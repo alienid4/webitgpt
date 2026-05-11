@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}開發後台 - webitgpt{% endblock %}
+{% block content %}
+<section class="dev-workbench">
+  <div class="dev-toolbar">
+    <div class="dev-title">
+      <strong>開發後台</strong>
+      <span>功能驗證 / 開發設定 / 文件與提交紀錄</span>
+    </div>
+    {% include "_partials/dev_tabs.html" %}
+  </div>
+
+  <div class="dev-grid">
+    <aside class="dev-side">
+      <form method="post" action="{{ url_for('api_superadmin.dev_settings_update_page') }}">
+        <h2>開發設定</h2>
+        <label class="toggle-label">
+          <input type="checkbox" name="dev_auto_login_superadmin" {% if dev_auto_login %}checked{% endif %}>
+          <span>預設 superadmin 自動登入</span>
+        </label>
+        <p class="text-muted-sm">要測試一般帳號與權限時，關閉後登出再登入指定帳號。</p>
+        <button class="btn primary" type="submit">儲存</button>
+      </form>
+
+      {% if not error %}
+      <dl class="dev-meta">
+        <dt>通過</dt><dd>{{ report.passed }}</dd>
+        <dt>失敗</dt><dd>{{ report.failed }}</dd>
+        <dt>檢查數</dt><dd>{{ report.checks|length }}</dd>
+        <dt>基礎 URL</dt><dd>{{ report.base_url }}</dd>
+        <dt>報告來源</dt><dd>functional_validation_latest.json</dd>
+      </dl>
+      {% endif %}
+    </aside>
+
+    <section class="dev-main">
+      <div class="dev-section-head">
+        <h1>功能驗證</h1>
+        <span class="{{ 'badge-ok' if not error and report.failed == 0 else 'badge-error' }}">{{ "全部通過" if not error and report.failed == 0 else "需檢查" }}</span>
+      </div>
+      {% if error %}
+        <div class="notice danger">{{ error }}</div>
+      {% else %}
+        <div class="dev-compact-summary">
+          <span class="badge-ok">通過 {{ report.passed }}</span>
+          <span class="{{ 'badge-ok' if report.failed == 0 else 'badge-error' }}">失敗 {{ report.failed }}</span>
+          <span class="code-inline">{{ report.base_url }}</span>
+        </div>
+        <div class="dev-table-scroll">
+          <table class="data-table dev-table">
+            <thead><tr><th>檢查項目</th><th>狀態</th><th>明細</th></tr></thead>
+            <tbody>
+            {% for check in report.checks %}
+              <tr>
+                <td><strong>{{ check.name }}</strong></td>
+                <td><span class="{{ 'badge-ok' if check.ok else 'badge-error' }}">{{ "通過" if check.ok else "失敗" }}</span></td>
+                <td><details class="dev-detail"><summary>查看明細</summary><pre class="detail">{{ check.detail | tojson(indent=2) }}</pre></details></td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+</section>
+{% endblock %}

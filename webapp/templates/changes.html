@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}變更管理 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>變更管理</h1>
+  {% if created %}<div class="notice">已建立 {{ created.ticket_id }}</div>{% endif %}
+  <form class="grid-form" method="post">
+    <label>變更單號<input name="ticket_id" placeholder="留空自動產生"></label>
+    <label>標題<input name="title" value="webitgpt 變更" required></label>
+    <label>目標<input name="target" value="/opt/webitgpt"></label>
+    <label>風險<select name="risk"><option value="low">低</option><option value="medium">中</option><option value="high">高</option></select></label>
+    <label>狀態<select name="status"><option value="draft">草稿</option><option value="approved">已核准</option><option value="rejected">已退回</option><option value="done">已完成</option></select></label>
+    <label>回滾計畫<textarea name="rollback_plan" rows="3">執行前需先產生 dry-run 回滾計畫</textarea></label>
+    <button class="btn primary" type="submit">儲存變更單</button>
+  </form>
+</section>
+<section class="panel">
+  <h2>變更單</h2>
+  <table class="data-table">
+    <thead><tr><th>單號</th><th>標題</th><th>目標</th><th>風險</th><th>狀態</th><th>回滾</th></tr></thead>
+    <tbody>
+      {% for ticket in tickets %}
+      <tr><td>{{ ticket.ticket_id }}</td><td>{{ ticket.title }}</td><td>{{ ticket.target }}</td><td>{{ ticket.risk }}</td><td>{{ ticket.status }}</td><td>{{ ticket.rollback_plan }}</td></tr>
+      {% else %}
+      <tr><td colspan="6">尚無變更單</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

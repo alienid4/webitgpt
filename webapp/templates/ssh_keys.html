@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}SSH Key 管理 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>SSH Key 管理</h1>
+  <div class="notice">平行評選期間不會派送金鑰到受管主機；此頁提供盤點與 dry-run plan。</div>
+  <div class="actions">
+    <button class="btn primary" type="button" data-api-post="/api/ssh-keys/plan">預覽金鑰計畫</button>
+    <button class="btn" type="button" data-api-post="/api/inventory/ssh_keys/collect" data-payload='{"limit":50}'>採集 SSH 紀錄</button>
+  </div>
+  <pre class="detail" id="apiResult"></pre>
+  <table class="data-table">
+    <thead><tr><th>資產編號</th><th>主機名稱</th><th>使用者</th><th>Port</th><th>動作</th></tr></thead>
+    <tbody>
+      {% for item in plan["items"] %}
+      <tr><td>{{ item.asset_seq }}</td><td>{{ item.hostname }}</td><td>{{ item.ssh_user }}</td><td>{{ item.ssh_port }}</td><td>{{ item.action }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/admin_tools.js') }}"></script>{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}效能月報 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel report-hero">
+  <div>
+    <p class="eyebrow">NMON PERFORMANCE</p>
+    <h1>效能月報</h1>
+    <p class="muted">提供 nmon 真實採樣入口、日 / 週 / 月報表與簡易趨勢圖。</p>
+  </div>
+  <div class="actions">
+    <form method="post" action="{{ url_for('api_operations.nmon_sample_page') }}"><button class="btn primary" type="submit">立即採樣</button></form>
+    <button class="btn" type="button" data-api-post="/api/nmon/deploy-plan" data-payload='{"limit":20}'>部署計畫</button>
+    <a class="btn" href="{{ url_for('api_operations.nmon_report_api', period=report.period) }}">JSON</a>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="tab-row">
+    <a class="tab-btn {% if report.period == 'day' %}active{% endif %}" href="{{ url_for('api_operations.nmon_page', period='day') }}">日報</a>
+    <a class="tab-btn {% if report.period == 'week' %}active{% endif %}" href="{{ url_for('api_operations.nmon_page', period='week') }}">週報</a>
+    <a class="tab-btn {% if report.period == 'month' %}active{% endif %}" href="{{ url_for('api_operations.nmon_page', period='month') }}">月報</a>
+  </div>
+  <div class="summary-grid">
+    <div class="metric"><strong>{{ status.enabled_count }}</strong><span>已啟用主機</span></div>
+    <div class="metric"><strong>{{ status.hosts_total }}</strong><span>納管主機</span></div>
+    <div class="metric"><strong>{{ report.count }}</strong><span>採樣筆數</span></div>
+    <div class="metric"><strong>{{ "是" if status.read_only_mode else "否" }}</strong><span>唯讀模式</span></div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>效能趨勢</h2>
+  <div class="metric-grid">
+    {% for row in report.series %}
+    <div class="card">
+      <h3>{{ row.host }}</h3>
+      <div class="metric"><strong>{{ row.avg_mem }}%</strong><span>平均記憶體</span></div>
+      <div class="metric"><strong>{{ row.avg_disk }}%</strong><span>平均磁碟</span></div>
+      <div class="bar"><span style="width: {{ row.avg_mem }}%"></span></div>
+      <p class="text-muted-sm">樣本 {{ row.samples }} 筆</p>
+    </div>
+    {% else %}
+    <div class="no-data">尚無 nmon 採樣資料，請先按「立即採樣」。</div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel">
+  <h2>NMON 主機狀態</h2>
+  <table class="data-table">
+    <thead><tr><th>資產編號</th><th>主機名稱</th><th>間隔</th><th>部署時間</th></tr></thead>
+    <tbody>
+      {% for host in status["items"] %}
+      <tr><td>{{ host.asset_seq }}</td><td>{{ host.hostname }}</td><td>{{ host.nmon_interval_min }}</td><td>{{ host.nmon_deployed_at or "-" }}</td></tr>
+      {% else %}
+      <tr><td colspan="4" class="no-data">目前沒有啟用 NMON 的主機。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <pre class="detail" id="apiResult"></pre>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/admin_tools.js') }}"></script>{% endblock %}

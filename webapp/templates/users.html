@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}使用者管理 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>使用者管理</h1>
+  {% if reset_result %}
+    <div class="notice">{{ reset_result.username }} 的臨時密碼：<span class="code-inline">{{ reset_result.temporary_password }}</span></div>
+  {% endif %}
+  {% if backup_codes %}
+    <div class="notice">{{ backup_codes.username }} 的備援碼：<span class="code-inline">{{ backup_codes.backup_codes|join(', ') }}</span></div>
+  {% endif %}
+  <form class="grid-form" method="post">
+    <label>帳號<input name="username" required></label>
+    <label>顯示名稱<input name="display_name"></label>
+    <label>Email<input name="email"></label>
+    <label>角色
+      <select name="role">
+        <option value="viewer">檢視者</option>
+        <option value="admin">管理員</option>
+        <option value="super">進階管理員</option>
+        <option value="superadmin">最高管理員</option>
+      </select>
+    </label>
+    <label>初始密碼<input name="password" type="password"></label>
+    <button class="btn primary" type="submit">儲存使用者</button>
+  </form>
+</section>
+<section class="panel">
+  <h2>使用者清單</h2>
+  <table class="data-table">
+    <thead><tr><th>帳號</th><th>角色</th><th>Email</th><th>MFA</th><th>鎖定</th><th>操作</th></tr></thead>
+    <tbody>
+      {% for user in users %}
+      <tr>
+        <td>{{ user.username }}</td>
+        <td>{{ {"viewer":"檢視者","admin":"管理員","super":"進階管理員","superadmin":"最高管理員"}.get(user.role, user.role) }}</td>
+        <td>{{ user.email }}</td>
+        <td>{{ "是" if user.mfa_enabled else "否" }}</td>
+        <td>{{ "是" if user.locked else "否" }}</td>
+        <td class="actions">
+          <form method="post" action="{{ url_for('api_superadmin.users_lock_page', username=user.username) }}">
+            <label class="toggle"><input type="checkbox" name="locked" {% if user.locked %}checked{% endif %}><span>鎖定</span></label>
+            <button class="btn-sm" type="submit">儲存</button>
+          </form>
+          <form method="post" action="{{ url_for('api_superadmin.users_reset_password_page', username=user.username) }}"><button class="btn-sm" type="submit">重設密碼</button></form>
+          <form method="post" action="{{ url_for('api_superadmin.users_backup_codes_page', username=user.username) }}"><button class="btn-sm" type="submit">備援碼</button></form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

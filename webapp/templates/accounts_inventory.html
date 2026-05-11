@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% block title %}帳號盤點 - webitgpt{% endblock %}
+{% block content %}
+<section class="account-workbench">
+  <div class="account-toolbar panel">
+    <div class="account-toolbar-title">
+      <p class="eyebrow">ACCOUNT INVENTORY</p>
+      <h1>帳號盤點工作台</h1>
+      <p class="text-muted-sm">最後盤點：{{ account_view.last_collected }}{% if account_view.hide_system_defaults and account_view.summary.system_default_hidden %} / 已隱藏 {{ account_view.summary.system_default_hidden }} 個系統預設帳號{% endif %}</p>
+    </div>
+    <form class="account-filter-compact" method="get" action="{{ url_for('api_inventory.accounts_page') }}">
+      <label>主機
+        <select name="host">
+          <option value="">全部</option>
+          {% for host in account_view.options.hosts %}
+          <option value="{{ host }}" {% if account_view.filters.host == host %}selected{% endif %}>{{ host }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>部門
+        <select name="department">
+          <option value="">全部</option>
+          {% for department in account_view.options.departments %}
+          <option value="{{ department }}" {% if account_view.filters.department == department %}selected{% endif %}>{{ department }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>風險
+        <select name="risk">
+          <option value="">全部</option>
+          {% for risk in account_view.options.risks %}
+          <option value="{{ risk }}" {% if account_view.filters.risk == risk %}selected{% endif %}>{{ risk }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="account-search-field">搜尋
+        <input name="q" value="{{ account_view.filters.q or '' }}" placeholder="帳號 / 主機 / 備註">
+      </label>
+      <label class="toggle-label account-system-toggle">
+        <input type="checkbox" name="include_system_defaults" value="1" {% if not account_view.hide_system_defaults %}checked{% endif %}>
+        <span>顯示系統預設帳號</span>
+      </label>
+      <button class="btn secondary" type="submit">篩選</button>
+      <a class="btn secondary" href="{{ url_for('api_inventory.accounts_page') }}">清除</a>
+      <a class="btn" href="{{ url_for('api_inventory.accounts_csv', **account_view.filters) }}">CSV</a>
+      <a class="btn secondary" href="{{ url_for('api_inventory.inventory_diff_report_page', kind=kind) }}">差異報告</a>
+      <button class="btn primary" type="button" data-api-post="/api/inventory/accounts/collect" data-payload='{"limit":50}' data-reload-on-success="true">依冷卻規則盤點</button>
+      <button class="btn secondary" type="button" data-api-post="/api/inventory/accounts/collect" data-payload='{"limit":50,"force":true}' data-reload-on-success="true">強制重新盤點</button>
+    </form>
+    <nav class="account-tabs" aria-label="帳號盤點分頁">
+      <button class="account-tab active" type="button" data-account-tab="overview">總覽</button>
+      <button class="account-tab" type="button" data-account-tab="departments">部門設備</button>
+      <button class="account-tab" type="button" data-account-tab="host">主機角度</button>
+      <button class="account-tab" type="button" data-account-tab="account">帳號角度</button>
+      <button class="account-tab" type="button" data-account-tab="compliance">合規</button>
+      <button class="account-tab" type="button" data-account-tab="changes">變更</button>
+      <button class="account-tab" type="button" data-account-tab="actions">處置</button>
+      <button class="account-tab" type="button" data-account-tab="list">清冊</button>
+    </nav>
+    <div class="notice">
+      盤點歷史：
+      {% if account_view.history.latest %}
+        最近批次 <span class="code-inline">{{ account_view.history.latest.run_id }}</span>，
+        時間 {{ account_view.history.latest.started_at }}，
+        筆數 {{ account_view.history.latest.count or 0 }}。
+        與前次比較：新增 {{ account_view.history.diff.added if account_view.history.diff else 0 }}、
+        移除 {{ account_view.history.diff.removed if account_view.history.diff else 0 }}、
+        變更 {{ account_view.history.diff.changed if account_view.history.diff else 0 }}。
+      {% else %}
+        尚無歷史批次。
+      {% endif %}
+      預設 360 分鐘內再次盤點會沿用最近結果，避免造成網路與主機負擔。
+    </div>
+  </div>
+
+  <section class="account-tab-panel active" data-account-panel="overview">
+    <div class="summary-grid account-summary">
+      <div class="metric"><strong>{{ account_view.summary.managed_hosts }}</strong><span>總盤點設備</span></div>
+      <div class="metric"><strong>{{ account_view.summary.inventoried_hosts }}</strong><span>已盤點設備</span></div>
+      <div class="metric"><strong>{{ account_view.summary.departments }}</strong><span>參與部門</span></div>
+      <div class="metric"><strong>{{ account_view.summary.total }}</strong><span>帳號總數</span></div>
+      <div class="metric"><strong>{{ account_view.summary.abnormal }}</strong><span>異常帳號</span></div>
+      <div class="metric"><strong>{{ account_view.summary.privileged }}</strong><span>高權限</span></div>
+      <div class="metric"><strong>{{ account_view.summary.never_login }}</strong><span>長期未登入</span></div>
+      <div class="metric"><strong>{{ account_view.summary.service_login }}</strong><span>服務帳號可登入</span></div>
+      <div class="metric"><strong>{{ account_view.summary.pam_managed }}</strong><span>PAM 納管</span></div>
+      <div class="metric"><strong>{{ account_view.summary.system_default_hidden }}</strong><span>隱藏系統帳號</span></div>
+    </div>
+  </section>
+
+  <section class="account-tab-panel" data-account-panel="departments">
+    <div class="panel account-panel">
+      <h2>參與部門與設備</h2>
+      <div class="account-table-scroll">
+        <table class="data-table account-compact-table">
+          <thead><tr><th>部門</th><th>設備數</th><th>設備</th></tr></thead>
+          <tbody>
+            {% for item in account_view.department_hosts %}
+            <tr><td>{{ item.department }}</td><td>{{ item.count }}</td><td>{{ item.hosts_text }}</td></tr>
+            {% else %}
+            <tr><td colspan="3" class="no-data">尚無受管設備資料</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="account-tab-panel" data-account-panel="host">
+    <div class="panel account-panel">
+      <h2>主機角度</h2>
+      <div class="account-table-scroll">
+        <table class="data-table account-compact-table">
+          <thead><tr><th>主機</th><th>狀態</th><th>帳號</th><th>異常</th><th>無負責人</th><th>未登入</th><th>高權限</th></tr></thead>
+          <tbody>
+            {% for item in account_view.by_host %}
+            <tr>
+              <td>{{ item.host }}</td>
+              <td><span class="{% if item.status == '已盤點' %}badge-ok{% else %}badge-warn{% endif %}">{{ item.status }}</span></td>
+              <td>{{ item.total }}</td>
+              <td>{{ item.abnormal }}</td>
+              <td>{{ item.no_owner }}</td>
+              <td>{{ item.never_login }}</td>
+              <td>{{ item.privileged }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="no-data">尚無盤點資料</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="account-tab-panel" data-account-panel="account">
+    <div class="panel account-panel">
+      <h2>帳號角度</h2>
+      <div class="account-table-scroll">
+        <table class="data-table account-compact-table">
+          <thead><tr><th>帳號</th><th>主機數</th><th>所在主機</th><th>風險</th></tr></thead>
+          <tbody>
+            {% for item in account_view.by_account %}
+            <tr><td><strong>{{ item.name }}</strong></td><td>{{ item.count }}</td><td>{{ item.hosts_text }}</td><td>{{ item.risks }}</td></tr>
+            {% else %}
+            <tr><td colspan="4" class="no-data">尚無盤點資料</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="account-tab-panel" data-account-panel="compliance">
+    <div class="panel account-panel">
+      <h2>合規檢查</h2>
+      <div class="account-table-scroll">
+        <table class="data-table account-compact-table">
+          <thead><tr><th>項目</th><th>狀態</th><th>數量</th><th>說明</th></tr></thead>
+          <tbody>
+            {% for item in account_view.compliance %}
+            <tr>
+              <td>{{ item.name }}</td>
+              <td><span class="{% if item.status == '正常' %}badge-ok{% else %}badge-warn{% endif %}">{{ item.status }}</span></td>
+              <td>{{ item.count }}</td>
+              <td>{{ item.detail }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="account-tab-panel" data-account-panel="changes">
+    <div class="panel account-panel">
+      <h2>變更追蹤</h2>
+      <div class="account-table-scroll">
+        <table class="data-table account-compact-table">
+          <thead><tr><th>主機</th><th>狀態</th><th>新增帳號</th><th>刪除帳號</th><th>屬性變更</th></tr></thead>
+          <tbody>
+            {% for item in account_view.changes %}
+            <tr>
+              <td>{{ item.host }}</td>
+              <td>{{ item.status }}</td>
+              <td>{{ item.added|join("、") if item.added else "-" }}</td>
+              <td>{{ item.removed|join("、") if item.removed else "-" }}</td>
+              <td>{{ item.changed|join("、") if item.changed else "-" }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="no-data">尚無歷史盤點可比對</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="account-tab-panel" data-account-panel="actions">
+    <div class="panel account-panel">
+      <h2>處置規劃</h2>
+      <div class="account-table-scroll">
+        <table class="data-table account-compact-table">
+          <thead><tr><th>主機</th><th>帳號</th><th>風險</th><th>建議處置</th><th>模式</th></tr></thead>
+          <tbody>
+            {% for item in account_view.action_plan %}
+            <tr><td>{{ item.hostname }}</td><td>{{ item.name }}</td><td>{{ item.risk }}</td><td>{{ item.action }}<div class="text-muted-sm">備份：{{ item.backup }}；Rollback：{{ item.rollback }}</div></td><td>{{ item.mode }}</td></tr>
+            {% else %}
+            <tr><td colspan="5" class="no-data">目前沒有需要處置的帳號</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="account-tab-panel" data-account-panel="list">
+    <div class="panel account-panel account-list-panel">
+      <div class="flex-between account-list-head">
+        <h2>帳號清冊</h2>
+        <span class="text-muted-sm">目前篩選結果：{{ account_view.count }} 個帳號</span>
+      </div>
+      <div class="account-table-scroll account-ledger-scroll">
+        <table class="data-table account-ledger-table">
+          <thead>
+            <tr>
+              <th class="sticky-col col-host">主機</th>
+              <th class="sticky-col col-account">帳號</th>
+              <th class="col-uid">UID/GID</th>
+              <th class="col-home">家目錄</th>
+              <th class="col-shell">Shell</th>
+              <th class="col-login">登入</th>
+              <th class="col-priv">權限</th>
+              <th class="col-type">類型</th>
+              <th class="col-owner">管理者</th>
+              <th class="col-pam">PAM</th>
+              <th class="col-note">用途說明</th>
+              <th class="col-last">最後登入</th>
+              <th class="col-risk">風險</th>
+              <th class="sticky-col-right col-action">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in account_view["items"] %}
+            <tr class="{% if item.risk != '正常' %}account-risk-row{% endif %}">
+              <td class="sticky-col col-host">{{ item.hostname or item.asset_seq }}</td>
+              <td class="sticky-col col-account"><strong class="code-inline">{{ item.name }}</strong></td>
+              <td class="col-uid">{{ item.uid if item.uid is not none else "-" }}/{{ item.gid if item.gid is not none else "-" }}</td>
+              <td class="code-cell col-home">{{ item.home }}</td>
+              <td class="code-cell col-shell">{{ item.shell }}</td>
+              <td class="col-login">{{ "可" if item.can_login else "否" }}</td>
+              <td class="col-priv">{{ "高" if item.privileged else "一般" }}</td>
+              <td class="col-type">{{ item.note }}</td>
+              <td class="col-owner">{{ item.account_owner }}</td>
+              <td class="col-pam">{% if item.pam_managed %}<span class="badge-ok">已納管</span>{% else %}-{% endif %}</td>
+              <td class="col-note"><span class="account-note-preview">{{ item.usage_note }}</span></td>
+              <td class="col-last">{{ item.last_login }}</td>
+              <td class="col-risk">{% if item.risk == "正常" %}<span class="badge-ok">正常</span>{% else %}<span class="badge-warn">{{ item.risk }}</span>{% endif %}</td>
+              <td class="sticky-col-right col-action">
+                <button class="btn-sm account-edit-note" type="button"
+                  data-hostname="{{ item.hostname }}"
+                  data-asset-seq="{{ item.asset_seq }}"
+                  data-account-name="{{ item.name }}"
+                  data-platform-scope="{{ item.platform_scope }}"
+                  data-platform-bulk-supported="{{ '1' if item.platform_bulk_supported else '0' }}"
+                  data-owner="{{ item.account_owner }}"
+                  data-pam-managed="{{ '1' if item.pam_managed else '0' }}"
+                  data-usage-note="{{ item.usage_note|e }}">編輯</button>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="14" class="no-data">尚無盤點資料，請先執行盤點。</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</section>
+
+<aside class="account-drawer" id="accountNoteDrawer" aria-hidden="true">
+  <form class="account-drawer-panel" method="post" action="{{ url_for('api_inventory.accounts_usage_note_update') }}">
+    <div class="flex-between">
+      <h2>編輯用途說明</h2>
+      <button class="icon-btn" type="button" data-close-account-drawer aria-label="關閉">×</button>
+    </div>
+    <p class="text-muted-sm" id="accountDrawerTitle">-</p>
+    <input type="hidden" name="hostname">
+    <input type="hidden" name="asset_seq">
+    <input type="hidden" name="name">
+    <input type="hidden" name="platform_scope">
+    <label>管理者 / 保管人
+      <input name="owner" placeholder="例如：sysinfra 管理小組 / PAM / AP Owner">
+    </label>
+    <label class="toggle-label">
+      <input type="checkbox" name="pam_managed" value="1">
+      <span>此帳號已納入高權限代登入系統 PAM</span>
+    </label>
+    <label class="toggle-label">
+      <input type="checkbox" name="apply_all" value="1">
+      <span>套用到同帳號、同平台所有主機</span>
+    </label>
+    <p class="text-muted-sm" id="accountDrawerScope">套用範圍：單一主機</p>
+    <label>用途說明
+      <textarea name="usage_note" rows="8"></textarea>
+    </label>
+    <div class="actions">
+      <button class="btn primary" type="submit">儲存</button>
+      <button class="btn secondary" type="button" data-close-account-drawer>取消</button>
+    </div>
+  </form>
+</aside>
+<div class="notice" id="apiResult" hidden></div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin_tools.js') }}"></script>
+<script src="{{ url_for('static', filename='js/account_inventory.js') }}"></script>
+{% endblock %}

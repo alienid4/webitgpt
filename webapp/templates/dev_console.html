@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}開發後台 - webitgpt{% endblock %}
+{% block content %}
+<section class="dev-workbench">
+  <div class="dev-toolbar">
+    <div class="dev-title">
+      <strong>開發後台</strong>
+      <span>功能驗證 / 開發設定 / 文件與提交紀錄</span>
+    </div>
+    {% include "_partials/dev_tabs.html" %}
+  </div>
+</section>
+
+<section class="dev-admin-v317">
+  <div class="dev-admin-head">
+    <h1>超級管理員</h1>
+    <span class="text-muted-sm">開發後台功能已併入上方分頁，可拖拉調整順序。</span>
+  </div>
+
+  {% if saved %}<div class="notice">已儲存：{{ saved.path }}</div>{% endif %}
+
+  <section class="dev-admin-panel active" id="developer-docs" data-dev-panel-target="developer-docs">
+    <div class="dev-section-head">
+      <h2>開發者文件</h2>
+      <span class="code-inline">{{ console.docs_dir }}</span>
+    </div>
+    <table class="data-table dev-table">
+      <thead><tr><th>文件名稱</th><th>大小</th><th>修改時間</th></tr></thead>
+      <tbody>
+        {% for file in console.files %}
+        <tr><td>{{ file.name }}</td><td>{{ file.size }}</td><td>{{ file.mtime }}</td></tr>
+        {% else %}
+        <tr><td colspan="3" class="no-data">尚無文件。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="dev-admin-panel" id="file-manager" data-dev-panel-target="file-manager">
+    <div class="dev-section-head">
+      <h2>檔案管理</h2>
+      <span class="code-inline">{{ console.docs_dir }}</span>
+    </div>
+    <form class="dev-upload-bar" method="post" action="{{ url_for('api_superadmin.dev_console_upload_page') }}" enctype="multipart/form-data">
+      <label class="btn primary">
+        上傳檔案
+        <input class="visually-hidden" type="file" name="file" required>
+      </label>
+      <button class="btn secondary" type="submit">送出</button>
+      <a class="btn secondary" href="{{ url_for('api_superadmin.dev_console_page') }}#file-manager">重新整理</a>
+      <span class="text-muted-sm">上傳位置：開發文件目錄，單檔上限 20MB。</span>
+    </form>
+    <table class="data-table dev-table">
+      <thead><tr><th>名稱</th><th>類型</th><th>大小</th><th>修改時間</th></tr></thead>
+      <tbody>
+        {% for file in console.files %}
+        <tr><td>{{ file.name }}</td><td>檔案</td><td>{{ file.size }}</td><td>{{ file.mtime }}</td></tr>
+        {% else %}
+        <tr><td colspan="4" class="no-data">尚無檔案。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="dev-admin-panel" id="memo" data-dev-panel-target="memo">
+    <div class="dev-section-head">
+      <h2>備忘錄</h2>
+      <span class="badge-warn">開發期</span>
+    </div>
+    <form method="post" action="{{ url_for('api_superadmin.dev_console_notes_page') }}">
+      <textarea class="input-field dev-notes" name="notes" rows="12">{{ console.notes }}</textarea>
+      <div class="actions"><button class="btn primary" type="submit">儲存備忘錄</button></div>
+    </form>
+  </section>
+
+  <section class="dev-admin-panel" id="commit-log" data-dev-panel-target="commit-log">
+    <div class="dev-section-head">
+      <h2>提交紀錄</h2>
+      <span class="text-muted-sm">先看修復摘要，再看技術提交</span>
+    </div>
+    <table class="data-table dev-table">
+      <thead><tr><th>版本</th><th>時間</th><th>Patch</th><th>修復內容</th></tr></thead>
+      <tbody>
+        {% for release in console.release_notes %}
+        <tr>
+          <td><strong>v{{ release.version }}</strong></td>
+          <td>{{ release.date }}</td>
+          <td><span class="code-inline">{{ release.patch_id }}</span></td>
+          <td>
+            <ul class="dev-release-items">
+              {% for item in release.changes %}
+              <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="no-data">尚無修復摘要。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="dev-section-head compact">
+      <h2>技術提交明細</h2>
+      <span class="text-muted-sm">最近 20 筆 git log</span>
+    </div>
+    <pre class="detail dev-commits">{{ console.commits }}</pre>
+  </section>
+
+  <section class="dev-admin-panel" id="module-manager" data-dev-panel-target="module-manager">
+    <div class="dev-section-head">
+      <h2>模組管理</h2>
+      <span class="text-muted-sm">說明每個開關會影響哪個功能；大模組會排在最前面。</span>
+    </div>
+    <table class="data-table dev-table">
+      <thead><tr><th>分類</th><th>模組 / 功能</th><th>控制範圍</th><th>關閉後影響</th><th>建議</th><th>狀態</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for item in console.modules %}
+        <tr>
+          <td>
+            <strong>{{ item.category_label }}</strong><br>
+            <span class="text-muted-sm">{{ item.level }}</span>
+          </td>
+          <td>
+            <strong>{{ item.name }}</strong><br>
+            <span class="code-inline">{{ item.key }}</span>
+            {% if item.parent_note %}<div class="text-muted-sm">{{ item.parent_note }}</div>{% endif %}
+          </td>
+          <td>{{ item.scope }}</td>
+          <td>{{ item.off_effect }}</td>
+          <td>{{ item.recommendation }}</td>
+          <td>
+            <span class="{{ 'badge-ok' if item.enabled else 'badge-warn' }}">{{ "啟用" if item.enabled else "停用" }}</span>
+            {% if not item.effective_enabled and item.enabled %}
+            <div class="text-muted-sm">實際不開放</div>
+            {% endif %}
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('api_superadmin.dev_console_feature_update_page') }}">
+              <input type="hidden" name="key" value="{{ item.key }}">
+              <label class="toggle-label module-toggle">
+                <input type="checkbox" name="enabled" {% if item.enabled %}checked{% endif %} onchange="this.form.submit()">
+                <span>{{ "開" if item.enabled else "關" }}</span>
+              </label>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="no-data">尚無模組資料。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</section>
+{% endblock %}

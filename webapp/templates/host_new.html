@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}新增主機 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>新增主機</h1>
+  {% if errors %}<div class="notice danger">{{ errors|join(' / ') }}</div>{% endif %}
+  {% if import_result %}
+    <div class="notice">匯入結果：新增={{ import_result.created }}，更新={{ import_result.updated }}，失敗={{ import_result.failed }}</div>
+    {% if import_result.errors %}<div class="notice danger">{{ import_result.errors }}</div>{% endif %}
+  {% endif %}
+  {% if scan_result %}
+    <div class="notice">
+      網段掃描預覽：{{ scan_result.cidr }} / 發現={{ scan_result.discovered|length }} / 模式={{ scan_result.mode }}
+    </div>
+  {% endif %}
+  <div class="tabs">
+    <button class="tab active" type="button">手動新增</button>
+    <a class="tab" href="{{ url_for('api_hosts.csv_template') }}">CSV 範本</a>
+    <a class="tab" href="{{ url_for('api_hosts.csv_export') }}">CSV 匯出</a>
+    <a class="tab" href="#network-scan">網段掃描</a>
+  </div>
+  <form class="grid-form" method="post">
+    {% set field_labels = {
+      "division":"處別","department":"部門","asset_seq":"資產編號","status":"狀態","group_name":"群組","asset_name":"資產名稱",
+      "device_type":"設備類型","quantity":"數量","owner":"擁有者","environment":"環境","hostname":"主機名稱","os":"作業系統",
+      "ip":"IP","custodian":"保管人","user_unit":"使用單位","company":"公司","integrity":"完整性","confidentiality":"機密性",
+      "availability":"可用性","host_type":"主機類型","dc":"機房","connection":"連線方式"
+    } %}
+    {% for field in ["division","department","asset_seq","status","group_name","asset_name","device_type","quantity","owner","environment","hostname","os","ip","custodian","user_unit","company","integrity","confidentiality","availability","host_type","dc","connection"] %}
+    <label>{{ field_labels.get(field, field) }}<input name="{{ field }}" {% if field in ["asset_seq","status","group_name","asset_name","device_type","quantity","owner","environment","custodian","company","integrity","confidentiality","availability","host_type","dc"] %}required{% endif %}></label>
+    {% endfor %}
+    <button class="btn primary" type="submit">建立主機</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>CSV 匯入</h2>
+  <form class="form" method="post" action="{{ url_for('api_hosts.host_import_csv_page') }}" enctype="multipart/form-data">
+    <input type="file" name="csv_file" accept=".csv,text/csv">
+    <textarea name="csv_text" rows="8" placeholder="未上傳檔案時，可在此貼上 CSV 內容。"></textarea>
+    <button class="btn primary" type="submit">匯入 CSV</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>多主機手動輸入</h2>
+  <form class="form" method="post" action="{{ url_for('api_hosts.host_import_manual_page') }}">
+    <div class="grid-form">
+      {% for field, value in [
+        ("division","IT"),("department","Operations"),("status","active"),("group_name","H4"),
+        ("asset_name","Manual sample host"),("device_type","VM"),("quantity","1"),("owner","IT"),
+        ("environment","DEV"),("custodian","functional-validation"),("user_unit","IT"),("company","example-corp"),
+        ("integrity","1"),("confidentiality","2"),("availability","1"),("dc","neihu")
+      ] %}
+      <label>{{ field_labels.get(field, field) }}<input name="{{ field }}" value="{{ value }}" required></label>
+      {% endfor %}
+    </div>
+    <textarea name="rows" rows="6" placeholder="每行一台主機：asset_seq,hostname,ip,host_type,os,connection"></textarea>
+    <button class="btn primary" type="submit">建立 / 更新資料列</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>JSON 匯入</h2>
+  <form class="form" method="post" action="{{ url_for('api_hosts.host_import_json_page') }}" enctype="multipart/form-data">
+    <input type="file" name="json_file" accept=".json,application/json">
+    <textarea name="json_text" rows="8" placeholder="貼上一個 JSON 物件或物件陣列。"></textarea>
+    <button class="btn primary" type="submit">匯入 JSON</button>
+  </form>
+</section>
+
+<section class="panel" id="network-scan">
+  <h2>網段掃描預覽</h2>
+  <p class="muted">平行評審模式不會主動探測網路。此預覽只展開 CIDR、顯示候選主機資料，並安全阻擋真實探測。</p>
+  <form class="grid-form" method="post" action="{{ url_for('api_hosts.network_scan_page') }}">
+    <label>CIDR<input name="cidr" value="192.168.1.0/30" required></label>
+    <label>環境<input name="environment" value="DEV"></label>
+    <label>機房<input name="dc" value="neihu"></label>
+    <label>主機類型<input name="host_type" value="network_device"></label>
+    <button class="btn primary" type="submit">預覽掃描</button>
+  </form>
+  {% if scan_result %}
+  <table class="data-table">
+    <thead><tr><th>候選資產</th><th>IP</th><th>主機名稱</th><th>動作</th></tr></thead>
+    <tbody>
+      {% for item in scan_result.discovered %}
+      <tr><td>{{ item.asset_seq }}</td><td>{{ item.ip }}</td><td>{{ item.hostname }}</td><td>{{ item.action }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</section>
+{% endblock %}

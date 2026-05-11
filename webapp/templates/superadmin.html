@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}系統管理 - webitgpt{% endblock %}
+{% block content %}
+<section class="admin-page">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-title">系統管理</div>
+    <a class="admin-side-link active" href="{{ url_for('api_superadmin.superadmin_page') }}">管理總覽</a>
+    <a class="admin-side-link" href="#feature-flags">功能開關</a>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.users_page') }}">使用者與權限</a>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.tokens_page') }}">API Token</a>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.settings_page') }}">設定管理</a>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.logs_page') }}">日誌檢視</a>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.jobs_page') }}">工作排程</a>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.audit_logs_page') }}">操作紀錄</a>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.system_health_page') }}">系統健康</a>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.backup_dr_page') }}">備份 / DR</a>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.patches_page') }}">Patch / 回滾</a>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.dev_console_page') }}">開發後台</a>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.feature_parity_page') }}">功能對照</a>
+    <a class="admin-side-link" href="{{ url_for('api_housekeeping.housekeeping_page') }}">Housekeeping</a>
+    <a class="admin-side-link" href="{{ url_for('api_notifications.notifications_page') }}">通知設定</a>
+  </aside>
+
+  <div class="admin-content">
+    <section class="admin-hero">
+      <div>
+        <p class="eyebrow">SUPERADMIN CONSOLE</p>
+        <h1>系統管理後台</h1>
+        <p class="muted">集中管理功能開關、使用者權限、設定、日誌、排程、操作紀錄、備份與 Patch 回滾。</p>
+      </div>
+      <div class="admin-health">
+        <span class="{{ 'badge-ok' if audit_status.ok else 'badge-error' }}">{{ "稽核鏈正常" if audit_status.ok else "稽核鏈異常" }}</span>
+        <span class="text-muted-sm">版本 {{ console.health.version }} / {{ console.health.patch_id }}</span>
+      </div>
+    </section>
+
+    <section class="admin-section">
+      <div class="summary-grid">
+        <div class="metric"><strong>{{ console.metrics.hosts }}</strong><span>資產主機</span></div>
+        <div class="metric"><strong>{{ console.metrics.users }}</strong><span>使用者</span></div>
+        <div class="metric"><strong>{{ console.metrics.feature_flags }}</strong><span>功能開關</span></div>
+        <div class="metric"><strong>{{ console.metrics.settings }}</strong><span>設定</span></div>
+        <div class="metric"><strong>{{ console.metrics.audit_logs }}</strong><span>操作紀錄</span></div>
+        <div class="metric"><strong>{{ console.metrics.inventory_runs }}</strong><span>盤點批次</span></div>
+        <div class="metric"><strong>{{ console.metrics.ipam_reports }}</strong><span>IPAM 報告</span></div>
+        <div class="metric"><strong>{{ console.metrics.patch_backups }}</strong><span>Patch 備份</span></div>
+      </div>
+    </section>
+
+    <section class="admin-section">
+      <div class="admin-section-head">
+        <div>
+          <h2>管理模組</h2>
+          <p class="text-muted-sm">常用管理功能入口，不需要到處找頁面。</p>
+        </div>
+      </div>
+      <div class="admin-module-grid">
+        {% for module in console.modules %}
+        <a class="admin-module-card" href="{{ url_for(module.endpoint) }}">
+          <strong>{{ module.title }}</strong>
+          <span>{{ module.desc }}</span>
+          <em>{{ module.status }}</em>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="admin-section" id="feature-flags">
+      <div class="admin-section-head">
+        <div>
+          <h2>功能開關</h2>
+          <p class="text-muted-sm">尚未完成的大功能可以整個關閉，避免一般使用者看到不能用的功能。</p>
+        </div>
+      </div>
+      <div class="admin-summary">
+        {% for group in feature_groups %}
+        <a class="admin-summary-item" href="#flag-{{ group.key }}"><strong>{{ group.enabled_count }}/{{ group.total }}</strong><span>{{ group.label }}</span></a>
+        {% endfor %}
+      </div>
+
+      {% for group in feature_groups %}
+      <section class="admin-subsection" id="flag-{{ group.key }}">
+        <div class="admin-section-head">
+          <div>
+            <h3>{{ group.label }}</h3>
+            <p class="text-muted-sm">已啟用 {{ group.enabled_count }} / {{ group.total }}</p>
+          </div>
+        </div>
+        <div class="table-wrap admin-table-wrap">
+          <table class="data-table feature-table">
+            <thead><tr><th>功能</th><th>Key</th><th>狀態</th><th>操作</th></tr></thead>
+            <tbody>
+            {% for feature in group.flags %}
+              <tr>
+                <td><strong>{{ feature.name }}</strong>{% if feature.description %}<div class="text-muted-sm">{{ feature.description }}</div>{% endif %}</td>
+                <td><span class="code-inline">{{ feature.key }}</span></td>
+                <td><span class="{{ 'badge-ok' if feature.enabled else 'badge-warn' }}">{{ "啟用" if feature.enabled else "停用" }}</span></td>
+                <td>
+                  <form class="feature-toggle-form" method="post" action="{{ url_for('api_superadmin.feature_update_page') }}">
+                    <input type="hidden" name="key" value="{{ feature.key }}">
+                    <label class="toggle-label"><input type="checkbox" name="enabled" {% if feature.enabled %}checked{% endif %}><span>{{ "啟用" if feature.enabled else "停用" }}</span></label>
+                    <button class="btn-sm" type="submit">儲存</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {% endfor %}
+    </section>
+
+    <section class="admin-section">
+      <div class="admin-section-head">
+        <div>
+          <h2>最近操作紀錄</h2>
+          <p class="text-muted-sm">完整紀錄請到操作紀錄頁，也可以匯出 CSV。</p>
+        </div>
+        <a class="btn secondary" href="{{ url_for('api_superadmin.audit_logs_page') }}">查看全部</a>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>序號</th><th>時間</th><th>使用者</th><th>動作</th></tr></thead>
+        <tbody>
+          {% for log in console.latest_logs %}
+          <tr><td>{{ log.seq or "-" }}</td><td>{{ log.created_at or log.ts }}</td><td>{{ log.actor or log.user or "-" }}</td><td>{{ log.action }}</td></tr>
+          {% else %}
+          <tr><td colspan="4" class="no-data">尚無操作紀錄。</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </div>
+</section>
+{% endblock %}

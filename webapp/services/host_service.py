@@ -1,0 +1,148 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from typing import Any, Optional
+
+from pymongo import ASCENDING, DESCENDING
+
+from webapp.services.host_dir_service import archive_dir, init_dir, restore_dir, write_meta
+from webapp.services.host_schema import assert_valid_host_doc, normalize_host_doc
+from webapp.services.mongo_service import get_collection
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _public(doc: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    if not doc:
+        return None
+    out = {k: v for k, v in doc.items() if k != "ssh_key"}
+    if "_id" in out:
+        out["_id"] = str(out["_id"])
+    return out
+
+
+def list_hosts(
+    query: str = "",
+    filters: Optional[dict[str, Any]] = None,
+    page: int = 1,
+    page_size: int = 25,
+    sort: str = "hostname",
+    direction: str = "asc",
+) -> dict[str, Any]:
+    filters = filters or {}
+    mongo_filter: dict[str, Any] = {}
+    for key in ("status", "group_name", "environment", "host_type", "dc"):
+        value = filters.get(key)
+        if value:
+            mongo_filter[key] = normalize_host_doc({key: value}).get(key, value)
+    if query:
+        mongo_filter["$or"] = [
+            {"asset_seq": {"$regex": query, "$options": "i"}},
+            {"hostname": {"$regex": query, "$options": "i"}},
+            {"ip": {"$regex": query, "$options": "i"}},
+            {"ip_addresses": {"$regex": query, "$options": "i"}},
+            {"network_segments": {"$regex": query, "$options": "i"}},
+            {"asset_name": {"$regex": query, "$options": "i"}},
+            {"system_name": {"$regex": query, "$options": "i"}},
+        ]
+    page = max(page, 1)
+    page_size = min(max(page_size, 1), 100)
+    sort_dir = ASCENDING if direction == "asc" else DESCENDING
+    col = get_collection("hosts")
+    total = col.count_documents(mongo_filter)
+    docs = (
+        col.find(mongo_filter, {"ssh_key": 0})
+        .sort(sort, sort_dir)
+        .skip((page - 1) * page_size)
+        .limit(page_size)
+    )
+    return {
+        "items": [_public(doc) for doc in docs],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
+
+
+def _identity_query(key: str) -> dict[str, Any]:
+    return {"$or": [{"hostname": key}, {"asset_seq": key}]}
+
+
+def get_host(key: str) -> Optional[dict[str, Any]]:
+    return _public(get_collection("hosts").find_one(_identity_query(key), {"ssh_key": 0}))
+
+
+def create_host(doc: dict[str, Any], user: str = "system") -> dict[str, Any]:
+    normalized = normalize_host_doc(doc)
+    warnings = assert_valid_host_doc(normalized)
+    now = _now()
+    normalized.update(
+        {
+            "created_at": now,
+            "updated_at": now,
+            "created_by": user,
+            "updated_by": user,
+            "import_source": normalized.get("import_source", "manual"),
+        }
+    )
+    existing = get_collection("hosts").find_one({"hostname": normalized["hostname"]})
+    if existing:
+        raise ValidationError([f"hostname already exists: {normalized['hostname']}"])
+    get_collection("hosts").insert_one(normalized)
+    init_dir(normalized)
+    result = get_host(normalized["hostname"]) or {}
+    result["_warnings"] = warnings
+    return result
+
+
+def update_host(asset_seq: str, changes: dict[str, Any], user: str = "system") -> dict[str, Any]:
+    existing = get_collection("hosts").find_one(_identity_query(asset_seq))
+    if not existing:
+        raise KeyError(f"host not found: {asset_seq}")
+    original_asset_seq = existing.get("asset_seq", asset_seq)
+    merged = normalize_host_doc({**existing, **changes, "asset_seq": changes.get("asset_seq", original_asset_seq)})
+    warnings = assert_valid_host_doc(merged)
+    conflict = get_collection("hosts").find_one({"hostname": merged["hostname"], "_id": {"$ne": existing["_id"]}})
+    if conflict:
+        raise ValidationError([f"hostname already exists: {merged['hostname']}"])
+    merged["updated_at"] = _now()
+    merged["updated_by"] = user
+    get_collection("hosts").replace_one({"_id": existing["_id"]}, merged)
+    if merged.get("status") == "retired":
+        archive_dir(original_asset_seq, existing.get("hostname"))
+    else:
+        init_dir(merged)
+        write_meta(merged)
+    result = get_host(merged["hostname"]) or {}
+    result["_warnings"] = warnings
+    return result
+
+
+def delete_host(asset_seq: str, user: str = "system", soft: bool = True) -> bool:
+    if soft:
+        update_host(asset_seq, {"status": "retired"}, user=user)
+        return True
+    result = get_collection("hosts").delete_one(_identity_query(asset_seq))
+    return result.deleted_count == 1
+
+
+def restore_host(asset_seq: str, user: str = "system") -> dict[str, Any]:
+    existing = get_collection("hosts").find_one(_identity_query(asset_seq))
+    if not existing:
+        raise KeyError(f"host not found: {asset_seq}")
+    normalized_existing = normalize_host_doc(existing)
+    if normalized_existing.get("status") == "retired":
+        try:
+            restore_dir(asset_seq)
+        except FileNotFoundError:
+            pass
+    return update_host(asset_seq, {"status": "active"}, user=user)
+
+
+def upsert_host(doc: dict[str, Any], user: str = "system") -> dict[str, Any]:
+    key = doc.get("hostname") or doc.get("asset_seq")
+    if key and get_collection("hosts").find_one(_identity_query(key)):
+        return update_host(key, doc, user=user)
+    return create_host(doc, user=user)

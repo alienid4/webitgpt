@@ -1,0 +1,56 @@
+﻿from __future__ import annotations
+
+import os
+import re
+from pathlib import Path
+
+
+APP_NAME = "webitgpt"
+VERSION = "1.0.1.23"
+PATCH_ID = "deep-check-spec-foundation"
+RELEASE_NOTE = "深度檢查導入 Job、報告、API 與 Remedy KB"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-11 23:42:13 +08:00")
+
+if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
+    raise RuntimeError("webitgpt version must stay in 1.X.X.X format")
+
+INSPECTION_HOME = os.environ.get("INSPECTION_HOME", "/opt/webitgpt")
+WEB_PORT = int(os.environ.get("WEBITGPT_PORT", "8002"))
+EDGE_PORT = int(os.environ.get("WEBITGPT_EDGE_PORT", "9444"))
+
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017")
+MONGO_DB_NAME = os.environ.get("MONGO_DB") or os.environ.get("MONGO_DB_NAME", "webitgpt")
+
+DATA_DIR = f"{INSPECTION_HOME}/data"
+HOSTS_DIR = f"{DATA_DIR}/hosts"
+HOSTNAME_LINK_DIR = f"{DATA_DIR}/hosts_by_hostname"
+REPORTS_DIR = f"{DATA_DIR}/reports"
+GLOBAL_DATA_DIR = f"{DATA_DIR}/_global"
+ARCHIVE_DIR = f"{DATA_DIR}/_archive"
+DOCS_DIR = f"{DATA_DIR}/docs"
+LOGS_DIR = f"{INSPECTION_HOME}/logs"
+TMP_DIR = f"{INSPECTION_HOME}/tmp"
+BACKUP_DIR = f"{INSPECTION_HOME}/backup"
+
+MARKET_HOURS_START = os.environ.get("MARKET_HOURS_START", "07:50")
+MARKET_HOURS_END = os.environ.get("MARKET_HOURS_END", "15:00")
+TZ_NAME = os.environ.get("TZ", "Asia/Taipei")
+
+SECRET_KEY = os.environ.get("SECRET_KEY", "change-me-in-prod")
+
+
+def ensure_runtime_dirs() -> None:
+    for path in [
+        DATA_DIR,
+        HOSTS_DIR,
+        HOSTNAME_LINK_DIR,
+        REPORTS_DIR,
+        GLOBAL_DATA_DIR,
+        ARCHIVE_DIR,
+        DOCS_DIR,
+        LOGS_DIR,
+        TMP_DIR,
+        BACKUP_DIR,
+    ]:
+        Path(path).mkdir(parents=True, exist_ok=True)
+

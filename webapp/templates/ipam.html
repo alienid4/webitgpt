@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}IPAM 網段管理 - webitgpt{% endblock %}
+{% block content %}
+<section class="asset-workbench">
+  <div class="panel asset-edit-hero">
+    <div>
+      <p class="eyebrow">IP ADDRESS MANAGEMENT</p>
+      <h1>IPAM 網段管理</h1>
+      <p class="text-muted-sm">管理網段、保留 IP、查看納管狀態，並定期用 nmap 與資產管理資料對帳。</p>
+    </div>
+    <div class="asset-actions">
+      <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">回資產管理</a>
+      <a class="btn secondary" href="{{ url_for('api_hosts.extension_fields_page') }}">擴充欄位</a>
+    </div>
+  </div>
+
+  <section class="panel">
+    <h2>每週自動對帳排程</h2>
+    <p class="text-muted-sm">預設每週一 07:30 掃描所有 IPAM 網段；這裡調整後，背景 timer 會依新設定自動判斷是否執行。</p>
+    <form class="inline-form" method="post" action="{{ url_for('api_hosts.ipam_schedule_submit') }}">
+      <label class="toggle-label">
+        <input type="checkbox" name="enabled" {% if ipam_schedule.enabled %}checked{% endif %}>
+        <span>啟用自動對帳</span>
+      </label>
+      <label>
+        <span>星期</span>
+        <select name="weekday">
+          {% for key, label in weekday_labels.items() %}
+          <option value="{{ key }}" {% if ipam_schedule.weekday == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span>時間</span>
+        <input name="time" type="time" value="{{ ipam_schedule.time }}" required>
+      </label>
+      <button class="btn primary" type="submit">儲存排程</button>
+      <span class="text-muted-sm">目前：{{ ipam_schedule.display }}；下次：{{ ipam_schedule.next_run }}</span>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>新增 / 更新網段</h2>
+    <form class="asset-edit-grid" method="post" action="{{ url_for('api_hosts.ipam_network_submit') }}">
+      <label><span>網段名稱</span><input name="name" placeholder="例如 DEV 主機網段"></label>
+      <label><span>CIDR *</span><input name="cidr" placeholder="192.168.1.0/24" required></label>
+      <label><span>機房</span><select name="dc"><option value="dunan">敦南</option><option value="neihu">內湖</option><option value="banciao">板橋</option></select></label>
+      <label><span>環境</span><select name="environment"><option>DEV</option><option>TEST</option><option>UAT</option><option>PROD</option><option>BACKUP</option><option>OA</option></select></label>
+      <label><span>用途</span><input name="purpose" placeholder="主機 / AP / DB / 管理網段"></label>
+      <label><span>VLAN</span><input name="vlan"></label>
+      <label><span>Gateway</span><input name="gateway"></label>
+      <label><span>DNS</span><input name="dns"></label>
+      <label class="span-2"><span>保留 IP / 範圍</span><textarea name="reserved_ips" rows="2" placeholder="192.168.1.1 或 192.168.1.1-192.168.1.20，每行一筆"></textarea></label>
+      <label class="span-2"><span>保留說明</span><textarea name="reserved_note" rows="2" placeholder="例如 .1 gateway，.2-.20 保留給網路設備"></textarea></label>
+      <div class="asset-edit-actions span-2"><button class="btn primary" type="submit">儲存網段</button></div>
+    </form>
+  </section>
+
+  <section class="table-wrap asset-table-wrap">
+    <h2>網段清單</h2>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>名稱</th><th>CIDR</th><th>機房</th><th>環境</th><th>用途</th><th>可用</th><th>已用</th><th>保留</th><th>總數</th><th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in networks %}
+        <tr>
+          <td>{{ item.name }}</td>
+          <td class="code-inline">{{ item.cidr }}</td>
+          <td>{{ dc_labels.get(item.dc, item.dc or "-") }}</td>
+          <td>{{ item.environment }}</td>
+          <td>{{ item.purpose or "-" }}</td>
+          <td><span class="badge-ok">{{ item.available_count }}</span></td>
+          <td>{{ item.used_count }}</td>
+          <td>{{ item.reserved_count }}</td>
+          <td>{{ item.total_usable }}</td>
+          <td><a class="btn btn-sm" href="{{ url_for('api_hosts.ipam_network_detail_page', cidr=item.cidr) }}">查看 IP 明細</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10" class="no-data">尚未建立網段。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2>網段掃描對帳報告</h2>
+    <p class="text-muted-sm">手動產生單一網段對帳報告；每週排程則會掃描所有已建立的 IPAM 網段。</p>
+    <form class="inline-form" method="post" action="{{ url_for('api_hosts.ipam_scan_report_submit') }}">
+      <select name="cidr" required>
+        {% for item in networks %}
+        <option value="{{ item.cidr }}" {% if selected_cidr == item.cidr %}selected{% endif %}>{{ item.name }} / {{ item.cidr }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn primary" type="submit">產生對帳報告</button>
+      {% if scan_report %}
+      <a class="btn secondary" href="{{ url_for('api_hosts.ipam_scan_report_csv', cidr=scan_report.cidr) }}">匯出 CSV</a>
+      {% endif %}
+    </form>
+    {% if scan_report %}
+    <div class="metric-grid">
+      <div class="metric"><strong>{{ scan_report.discovered_count }}</strong><span>掃描發現</span></div>
+      <div class="metric"><strong>{{ scan_report.cmdb_count }}</strong><span>資產登錄</span></div>
+      <div class="metric"><strong>{{ scan_report.mismatch_count }}</strong><span>不一致項目</span></div>
+      <div class="metric"><strong>{{ scan_report.mode }}</strong><span>掃描模式</span></div>
+    </div>
+    {% if scan_report.error %}<div class="notice danger">{{ scan_report.error }}</div>{% endif %}
+    <table class="data-table">
+      <thead><tr><th>嚴重度</th><th>類型</th><th>IP</th><th>主機</th><th>資產名稱</th><th>OS</th><th>平台</th><th>建議處置</th></tr></thead>
+      <tbody>
+        {% for row in scan_report.rows %}
+        <tr>
+          <td>{{ row.severity }}</td>
+          <td>{{ row.type_label }}</td>
+          <td class="code-inline">{{ row.ip }}</td>
+          <td>{{ row.hostname or "-" }}</td>
+          <td>{{ row.asset_name or "-" }}</td>
+          <td>{{ row.os or "-" }}</td>
+          <td>{{ host_type_labels.get(row.host_type, row.host_type or "-") }}</td>
+          <td>{{ row.suggestion }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="no-data">目前沒有不一致項目。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="no-data">尚未產生網段掃描對帳報告。</div>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <h2>保留 IP</h2>
+    <form class="asset-edit-grid" method="post" action="{{ url_for('api_hosts.ipam_reserve_submit') }}">
+      <label><span>網段 *</span><select name="cidr" required>{% for item in networks %}<option value="{{ item.cidr }}">{{ item.name }} / {{ item.cidr }}</option>{% endfor %}</select></label>
+      <label><span>指定 IP</span><input name="ip" placeholder="空白時自動取下一個可用 IP"></label>
+      <label><span>主機名稱</span><input name="hostname"></label>
+      <label><span>資產名稱</span><input name="asset_name"></label>
+      <label><span>需求單號</span><input name="ticket"></label>
+      <label><span>保留天數</span><input name="days" value="14"></label>
+      <div class="asset-edit-actions span-2"><button class="btn secondary" type="submit">保留 IP</button></div>
+    </form>
+  </section>
+
+  <section class="table-wrap asset-table-wrap">
+    <h2>近期保留 / 分配</h2>
+    <table class="data-table">
+      <thead><tr><th>IP</th><th>網段</th><th>狀態</th><th>主機</th><th>資產名稱</th><th>需求單號</th><th>到期</th></tr></thead>
+      <tbody>
+        {% for item in reservations %}
+        <tr><td class="code-inline">{{ item.ip }}</td><td>{{ item.cidr }}</td><td>{{ item.status }}</td><td>{{ item.hostname or "-" }}</td><td>{{ item.asset_name or "-" }}</td><td>{{ item.ticket or "-" }}</td><td>{{ item.expires_at or "-" }}</td></tr>
+        {% else %}
+        <tr><td colspan="7" class="no-data">目前沒有 IP 保留紀錄。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</section>
+{% endblock %}

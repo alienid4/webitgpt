@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}系統清理 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>系統清理</h1>
+  <div class="summary-grid">
+    <div class="metric"><strong>{{ disk.used_pct }}%</strong><span>{{ disk.path }}</span></div>
+    <div class="metric"><strong>{{ disk.free }}</strong><span>可用 bytes</span></div>
+  </div>
+  <table>
+    <thead><tr><th>任務</th><th>排程</th><th>目標</th><th>上次狀態</th><th>操作</th></tr></thead>
+    <tbody>
+      {% for task in tasks %}
+      <tr>
+        <td><strong>{{ task.name }}</strong><br><span class="muted">{{ task.description }}</span></td>
+        <td>{{ task.schedule }}</td>
+        <td>{{ task.target }}</td>
+        <td>{{ task.last_run.status if task.last_run else "未執行" }}</td>
+        <td>
+          <form method="post" action="{{ url_for('api_housekeeping.run_task_page', task=task.name) }}">
+            <label class="toggle"><input type="checkbox" name="dry_run" checked><span>dry-run</span></label>
+            <button class="btn" type="submit">執行</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

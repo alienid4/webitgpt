@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}日誌檢視 - webitgpt{% endblock %}
+{% block content %}
+<section class="dev-workbench">
+  <div class="dev-toolbar">
+    <div class="dev-title">
+      <strong>開發後台</strong>
+      <span>功能驗證 / 開發設定 / 文件與提交紀錄</span>
+    </div>
+    {% include "_partials/dev_tabs.html" %}
+  </div>
+</section>
+
+<section class="panel">
+  <div class="page-header">
+    <div>
+      <p class="eyebrow">LOG VIEWER</p>
+      <h1>日誌檢視</h1>
+      <p class="text-muted-sm">{{ log.path }}</p>
+    </div>
+    <div class="actions">
+      <a class="btn secondary" href="{{ url_for('api_superadmin.superadmin_page') }}">回管理總覽</a>
+      <a class="btn" href="{{ url_for('api_superadmin.logs_api', name=log.name) }}">JSON API</a>
+      <a class="btn primary" href="{{ url_for('api_superadmin.logs_download', name=log.name) }}">下載日誌</a>
+    </div>
+  </div>
+  <div class="tab-row">
+    <a class="tab-btn {% if log.name == 'error' %}active{% endif %}" href="?name=error">錯誤日誌</a>
+    <a class="tab-btn {% if log.name == 'access' %}active{% endif %}" href="?name=access">存取日誌</a>
+    <a class="tab-btn {% if log.name == 'ipam' %}active{% endif %}" href="?name=ipam">IPAM 排程</a>
+  </div>
+  {% if log.error %}<div class="notice danger">{{ log.error }}</div>{% endif %}
+  <pre class="detail">{{ log.content }}</pre>
+</section>
+{% endblock %}

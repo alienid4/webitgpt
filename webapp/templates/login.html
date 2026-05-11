@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}登入 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel narrow">
+  <h1>登入</h1>
+  <form class="form" method="post" action="{{ url_for('auth.login') }}">
+    <label>帳號<input name="username" autocomplete="username" required></label>
+    <label>密碼<input name="password" type="password" autocomplete="current-password" required></label>
+    <button class="btn primary" type="submit">登入</button>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}TWGCB 合規 - webitgpt{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>TWGCB 合規 / 安全稽核</h1>
+    <p class="muted">以主機為單位檢視未修補項目，支援單項修補、全修補、修補前備份與 rollback plan。</p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('api_compliance.findings_csv') }}">匯出 CSV</a>
+    <a class="btn" href="{{ url_for('api_compliance.twgcb_excel') }}">匯出 Excel</a>
+  </div>
+</section>
+
+{% if error %}<div class="notice danger">{{ error }}</div>{% endif %}
+
+<section class="summary-grid">
+  <div class="metric"><strong>{{ host_overview.affected_hosts }}</strong><span>受影響主機</span></div>
+  <div class="metric"><strong>{{ dashboard.open_findings }}</strong><span>未結異常</span></div>
+  <div class="metric"><strong>{{ dashboard.rules_total }}</strong><span>規則數</span></div>
+  <div class="metric"><strong>{{ dashboard.by_severity.critical }}</strong><span>CRITICAL</span></div>
+  <div class="metric"><strong>{{ dashboard.by_severity.high }}</strong><span>HIGH</span></div>
+  <div class="metric"><strong>{{ dashboard.by_severity.medium }}</strong><span>MEDIUM</span></div>
+  <div class="metric"><strong>{{ dashboard.by_severity.low }}</strong><span>LOW</span></div>
+</section>
+
+<section class="panel">
+  <div class="tab-row">
+    <button class="tab-btn active" type="button">Linux</button>
+    <button class="tab-btn" type="button">Windows</button>
+    <button class="tab-btn" type="button">設定管理</button>
+    <button class="tab-btn" type="button">報表</button>
+  </div>
+  <h2>主機稽核狀態</h2>
+  <table class="data-table host-audit-table">
+    <thead><tr><th>主機</th><th>最高風險</th><th>未修補</th><th>最後稽核</th><th>操作</th></tr></thead>
+    <tbody>
+      {% for item in host_overview.hosts %}
+      <tr>
+        <td><strong>{{ item.hostname or item.asset_seq }}</strong><div class="text-muted-sm">{{ item.asset_seq }} / {{ item.ip }} / {{ item.os or item.host_type }}</div></td>
+        <td>{% if item.open_count %}<span class="badge-warn">{{ item.highest_severity_label }}</span>{% else %}<span class="badge-ok">通過</span>{% endif %}</td>
+        <td>{{ item.open_count }}<div class="text-muted-sm">Critical {{ item.severity_counts.critical }} / High {{ item.severity_counts.high }} / Medium {{ item.severity_counts.medium }} / Low {{ item.severity_counts.low }}</div></td>
+        <td>{{ item.last_compliance_at or "尚未稽核" }}</td>
+        <td class="actions">
+          <form method="post" action="{{ url_for('api_compliance.evaluate_host_page', asset_seq=item.asset_seq) }}"><button class="btn-sm" type="submit">重新稽核</button></form>
+          {% if item.open_count %}<form method="post" action="{{ url_for('api_compliance.remediate_all_page', asset_seq=item.asset_seq) }}"><button class="btn-sm btn-fix" type="submit">全修補</button></form>{% endif %}
+        </td>
+      </tr>
+      {% if item.findings %}
+      <tr><td colspan="5"><div class="finding-list">
+        {% for finding in item.findings %}
+        <div class="finding-item">
+          <div><strong>{{ finding.rule_id }}</strong> <span class="badge-warn">{{ finding.severity_label }}</span><div class="muted">{{ finding.violation }}</div><div class="text-muted-sm">修補：{{ finding.remediation.command or "人工確認" }}</div></div>
+          <form method="post" action="{{ url_for('api_compliance.remediate_one_page', asset_seq=item.asset_seq, rule_id=finding.rule_id) }}"><button class="btn-sm btn-fix" type="submit">單項修補</button></form>
+        </div>
+        {% endfor %}
+      </div></td></tr>
+      {% endif %}
+      {% else %}
+      <tr><td colspan="5" class="no-data">尚無主機資料。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>修補 / Rollback 計畫</h2>
+  <table class="data-table">
+    <thead><tr><th>計畫</th><th>主機</th><th>模式</th><th>備份</th><th>Rollback</th><th>操作</th></tr></thead>
+    <tbody>
+      {% for plan in plans %}
+      <tr>
+        <td class="code-inline">{{ plan.plan_id }}</td>
+        <td>{{ plan.hostname or plan.asset_seq }}</td>
+        <td>{{ "全修補" if plan.mode == "all" else "單項修補" }} / {{ plan.finding_count }} 項</td>
+        <td>{{ plan.backup_path }}</td>
+        <td>{{ plan.rollback_path }}</td>
+        <td><form method="post" action="{{ url_for('api_compliance.rollback_page', plan_id=plan.plan_id) }}"><button class="btn-sm" type="submit">提出 rollback</button></form></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="no-data">尚無修補計畫。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h2>TWGCB 規則庫 / 設定管理</h2>
+  <form class="grid-form" method="post" action="{{ url_for('api_compliance.rule_upsert_page') }}">
+    <label>規則 ID<input name="rule_id" required></label>
+    <label>類型<input name="type" value="setting" required></label>
+    <label>動作<input name="action" value="blacklist" required></label>
+    <label>分類<input name="category" value="white_box" required></label>
+    <label>目標<input name="target" required></label>
+    <label>嚴重度<input name="severity" value="medium" required></label>
+    <label>合規編號<input name="compliance_ref"></label>
+    <label class="toggle"><input type="checkbox" name="active" checked><span>啟用</span></label>
+    <button class="btn primary" type="submit">儲存規則</button>
+  </form>
+  <table class="data-table">
+    <thead><tr><th>規則</th><th>類型</th><th>動作</th><th>目標</th><th>嚴重度</th><th>啟用</th></tr></thead>
+    <tbody>{% for rule in rules %}<tr><td>{{ rule.rule_id }}</td><td>{{ rule.type }}</td><td>{{ rule.action }}</td><td>{{ rule.target }}</td><td>{{ rule.severity }}</td><td>{{ "是" if rule.active else "否" }}</td></tr>{% else %}<tr><td colspan="6">尚無規則。</td></tr>{% endfor %}</tbody>
+  </table>
+</section>
+{% endblock %}

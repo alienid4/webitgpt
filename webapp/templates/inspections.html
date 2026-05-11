@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}開門檢查 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel report-hero">
+  <div>
+    <p class="eyebrow">OPENING CHECK</p>
+    <h1>開門檢查</h1>
+    <p class="muted">依平台檢視 Linux / Windows / AIX / AS400，並以 9 個面向呈現深度診斷結果。</p>
+  </div>
+  <div class="actions">
+    <button class="btn primary" type="button" data-api-post="/api/inspections/run" data-payload='{"limit":100}' data-reload-on-success="true">立即檢查</button>
+    <a class="btn" href="{{ url_for('api_operations.today_report_api') }}">JSON API</a>
+  </div>
+</section>
+
+<section class="panel compact">
+  <div class="summary-grid">
+    <div class="metric"><strong>{{ diagnostics.summary.hosts }}</strong><span>{{ diagnostics.platform|upper }} 主機</span></div>
+    <div class="metric"><strong>{{ diagnostics.summary.ok }}</strong><span>正常項目</span></div>
+    <div class="metric"><strong>{{ diagnostics.summary.warn }}</strong><span>警示項目</span></div>
+    <div class="metric"><strong>{{ diagnostics.summary.pending }}</strong><span>待檢項目</span></div>
+  </div>
+</section>
+
+<section class="panel compact">
+  <div class="tab-row">
+    {% for tab in diagnostics.tabs %}
+    <a class="tab-btn {% if diagnostics.platform == tab.key %}active{% endif %}" href="{{ url_for('api_operations.inspections_page', platform=tab.key) }}">{{ tab.label }}</a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="opening-dashboard">
+  {% for host in diagnostics["items"] %}
+  <article class="gauge-card gauge-{{ host.overall or 'pending' }}" id="host-{{ host.asset_seq }}">
+    <div class="gauge-head">
+      <div>
+        <p class="eyebrow">HOST DASHBOARD</p>
+        <h2>{{ host.hostname }}</h2>
+        <div class="text-muted-sm">{{ host.asset_seq }} / {{ host.ip or "-" }} / {{ host.host_type }}</div>
+      </div>
+      <span class="gauge-state">{{ host.overall_label or "待檢" }}</span>
+    </div>
+
+    <div class="gauge-body">
+      <div class="score-meter">
+        <div class="score-ring">
+          <strong>{{ host.summary.score if host.summary else 0 }}</strong>
+          <span>健康分數</span>
+        </div>
+        <div class="score-bars">
+          <div><b>{{ host.summary.ok if host.summary else 0 }}</b><span>正常</span></div>
+          <div><b>{{ host.summary.warn if host.summary else 0 }}</b><span>警示</span></div>
+          <div><b>{{ host.summary.pending if host.summary else 0 }}</b><span>待檢</span></div>
+        </div>
+      </div>
+
+      <div class="aspect-lights" aria-label="9 面向診斷燈號">
+        {% for check in host.checks %}
+        <details class="aspect-light aspect-{{ check.status }}">
+          <summary>
+            <span class="light {% if check.status == 'ok' %}light-pass{% elif check.status == 'warn' %}light-exception{% elif check.status in ['fail', 'error'] %}light-fail{% else %}light-na{% endif %}"></span>
+            <strong>{{ check.label }}</strong>
+            <em>{{ check.status }}</em>
+          </summary>
+          <pre class="detail">{{ check.detail }}</pre>
+        </details>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="gauge-actions">
+      <form method="post" action="{{ url_for('api_operations.deep_diagnostic_page', asset_seq=host.asset_seq) }}">
+        <button class="btn-sm btn-primary" type="submit">深度檢查</button>
+      </form>
+      <button class="btn-sm" type="button" data-api-post="/api/deep-check/run" data-payload='{"hostname":"{{ host.hostname }}"}' data-reload-on-success="true">新版 L3</button>
+      <a class="btn-sm" href="/api/deep-check/history?hostname={{ host.hostname }}">歷史 API</a>
+      <details class="diagnostic-history">
+        <summary>最近一週 {{ host.recent|length if host.recent else 0 }} 筆</summary>
+        {% for run in host.recent %}
+        <div class="diagnostic-run">
+          <strong>{{ run.checked_at }}</strong>
+          <span class="text-muted-sm">OK={{ run.summary.ok }} / WARN={{ run.summary.warn }} / PENDING={{ run.summary.pending }}</span>
+        </div>
+        {% else %}
+        <div class="text-muted-sm">尚無深度檢查紀錄。</div>
+        {% endfor %}
+      </details>
+    </div>
+  </article>
+  {% else %}
+  <div class="panel no-data">尚未產生開門檢查資料。</div>
+  {% endfor %}
+</section>
+
+<section class="panel">
+  <h2>巡檢摘要</h2>
+  <table class="data-table">
+    <thead><tr><th>資產編號</th><th>主機名稱</th><th>平台</th><th>狀態</th><th>CPU</th><th>記憶體</th><th>磁碟</th><th>資料來源</th></tr></thead>
+    <tbody>
+      {% for item in report["items"] %}
+      <tr>
+        <td>{{ item.asset_seq }}</td>
+        <td>{{ item.hostname }}</td>
+        <td>{{ item.host_type }}</td>
+        <td>{{ item.status }}</td>
+        <td>{% if item.cpu_pct is not none %}{{ item.cpu_pct }}%{% else %}-{% endif %}</td>
+        <td>{% if item.mem_pct is not none %}{{ item.mem_pct }}%{% else %}-{% endif %}</td>
+        <td>{% if item.disk_pct is not none %}{{ item.disk_pct }}%{% else %}-{% endif %}</td>
+        <td>{{ item.metric_source or "not_collected" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" class="no-data">尚未產生開門檢查資料。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/admin_tools.js') }}"></script>{% endblock %}

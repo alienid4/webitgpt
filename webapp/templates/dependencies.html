@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}系統聯通圖 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel report-hero">
+  <div>
+    <p class="eyebrow">TOPOLOGY</p>
+    <h1>系統聯通圖 / 拓撲互動圖</h1>
+    <p class="muted">依 CMDB 的機房、系統名稱與主機資料產生拓撲，可用來檢視哪些主機已納入系統。</p>
+  </div>
+  <div class="actions"><a class="btn" href="{{ url_for('api_reports.dependencies_api') }}">JSON</a></div>
+</section>
+
+<section class="panel">
+  <div class="topology-canvas">
+    <svg viewBox="0 0 1100 520" role="img" aria-label="系統拓撲圖">
+      {% for node in topology.nodes %}
+        {% set x = 90 + (loop.index0 % 5) * 220 %}
+        {% set y = 70 + (loop.index0 // 5) * 120 %}
+        <g class="topology-node" tabindex="0">
+          <circle cx="{{ x }}" cy="{{ y }}" r="34"></circle>
+          <text x="{{ x }}" y="{{ y - 4 }}" text-anchor="middle">{{ node.label[:14] }}</text>
+          <text x="{{ x }}" y="{{ y + 15 }}" text-anchor="middle">{{ node.kind }}</text>
+        </g>
+      {% endfor %}
+    </svg>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>聯通清單</h2>
+  <table class="data-table">
+    <thead><tr><th>來源</th><th>目標</th><th>關係</th></tr></thead>
+    <tbody>
+      {% for edge in topology.edges %}
+      <tr><td>{{ edge.source }}</td><td>{{ edge.target }}</td><td>{{ edge.label or "-" }}</td></tr>
+      {% else %}
+      <tr><td colspan="3" class="no-data">尚無拓撲關係。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}API Token - webitgpt{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>API Token</h1>
+  {% if issued %}
+    <div class="notice">
+      新 Token 僅顯示一次：
+      <pre class="detail">{{ issued.token }}</pre>
+    </div>
+  {% endif %}
+  <form class="form" method="post">
+    <label>名稱<input name="name" value="operator-token" required></label>
+    <label>權限範圍<input name="scopes" value="hosts:read" required></label>
+    <button class="btn primary" type="submit">簽發 Token</button>
+  </form>
+</section>
+<section class="panel">
+  <h2>近期 Token</h2>
+  <table>
+    <thead><tr><th>名稱</th><th>權限範圍</th><th>啟用</th><th>建立時間</th></tr></thead>
+    <tbody>
+      {% for token in tokens %}
+      <tr>
+        <td>{{ token.name }}</td>
+        <td>{{ token.scopes|join(', ') }}</td>
+        <td>{{ token.active }}</td>
+        <td>{{ token.created_at }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4">尚無 Token</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

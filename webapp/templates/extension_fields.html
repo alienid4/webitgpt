@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}CMDB 擴充欄位 - webitgpt{% endblock %}
+{% block content %}
+<section class="asset-workbench">
+  <div class="panel asset-edit-hero">
+    <div>
+      <p class="eyebrow">CMDB EXTENSION FIELDS</p>
+      <h1>擴充欄位管理</h1>
+      <p class="text-muted-sm">核心 29 欄固定；臨時或部門特殊欄位放在擴充欄位，後續不用每次改資料結構。</p>
+    </div>
+    <div class="asset-actions">
+      <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">回資產管理</a>
+      <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM</a>
+    </div>
+  </div>
+
+  <section class="panel">
+    <h2>新增 / 更新欄位</h2>
+    <form class="asset-edit-grid" method="post" action="{{ url_for('api_hosts.extension_field_submit') }}">
+      <label><span>欄位代碼 *</span><input name="key" placeholder="pam_system_id" required></label>
+      <label><span>中文名稱 *</span><input name="label" placeholder="PAM 系統代號" required></label>
+      <label><span>類型</span><select name="field_type"><option value="text">文字</option><option value="number">數字</option><option value="date">日期</option><option value="select">下拉</option><option value="boolean">是/否</option><option value="url">連結</option></select></label>
+      <label><span>適用範圍</span><input name="applies_to" value="all" placeholder="all / linux / windows / db"></label>
+      <label><span>排序</span><input name="order" value="100"></label>
+      <label class="toggle-label"><input type="checkbox" name="required" value="1"> 必填</label>
+      <label class="toggle-label"><input type="checkbox" name="show_in_list" value="1"> 列表顯示</label>
+      <label class="toggle-label"><input type="checkbox" name="searchable" value="1"> 可搜尋</label>
+      <div class="asset-edit-actions span-2"><button class="btn primary" type="submit">儲存欄位</button></div>
+    </form>
+  </section>
+
+  <section class="table-wrap asset-table-wrap">
+    <h2>欄位清單</h2>
+    <table class="data-table">
+      <thead><tr><th>代碼</th><th>名稱</th><th>類型</th><th>適用</th><th>必填</th><th>列表</th><th>搜尋</th><th>排序</th></tr></thead>
+      <tbody>
+        {% for item in definitions %}
+        <tr>
+          <td class="code-inline">{{ item.key }}</td><td>{{ item.label }}</td><td>{{ item.field_type }}</td><td>{{ item.applies_to }}</td>
+          <td>{{ "是" if item.required else "否" }}</td><td>{{ "是" if item.show_in_list else "否" }}</td><td>{{ "是" if item.searchable else "否" }}</td><td>{{ item.order }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="no-data">尚未建立擴充欄位。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</section>
+{% endblock %}

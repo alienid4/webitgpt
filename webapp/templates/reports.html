@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}統計報表 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel report-hero">
+  <div>
+    <p class="eyebrow">MANAGEMENT REPORT</p>
+    <h1>統計報表</h1>
+    <p class="muted">以目前 MongoDB 內的實際盤點結果彙整，不使用假資料。帳號統計預設隱藏系統預設帳號，但 root 仍保留。</p>
+  </div>
+  <div class="actions">
+    <a class="btn primary" href="{{ url_for('api_reports.reports_summary_csv') }}">匯出摘要 CSV</a>
+    <a class="btn" href="{{ url_for('api_reports.reports_summary_api') }}">JSON API</a>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>主管摘要</h2>
+  <div class="summary-grid report-summary">
+    <div class="metric"><strong>{{ summary.hosts_total }}</strong><span>主機數</span></div>
+    <div class="metric"><strong>{{ summary.accounts.summary.total }}</strong><span>帳號盤點數</span></div>
+    <div class="metric"><strong>{{ summary.accounts.summary.abnormal }}</strong><span>異常帳號</span></div>
+    <div class="metric"><strong>{{ summary.accounts.summary.privileged }}</strong><span>高權限帳號</span></div>
+    <div class="metric"><strong>{{ summary.accounts.summary.service_login }}</strong><span>服務帳號可登入</span></div>
+    <div class="metric"><strong>{{ summary.accounts.summary.system_default_hidden }}</strong><span>已隱藏系統預設</span></div>
+  </div>
+  <p class="text-muted-sm">
+    最後帳號盤點：{{ summary.accounts.last_collected }}
+    {% if summary.accounts.hide_system_defaults and summary.accounts.summary.system_default_hidden %}
+    / 已隱藏 {{ summary.accounts.summary.system_default_hidden }} 個系統預設帳號
+    {% endif %}
+  </p>
+</section>
+
+<section class="report-grid">
+  <div class="panel">
+    <h2>帳號風險分布</h2>
+    <table class="data-table">
+      <thead><tr><th>風險</th><th>數量</th></tr></thead>
+      <tbody>
+        {% for item in summary.accounts.by_risk %}
+        <tr><td>{{ item.name }}</td><td>{{ item.count }}</td></tr>
+        {% else %}
+        <tr><td colspan="2">尚無帳號盤點資料</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <h2>部門帳號數</h2>
+    <table class="data-table">
+      <thead><tr><th>部門</th><th>數量</th></tr></thead>
+      <tbody>
+        {% for item in summary.accounts.by_department %}
+        <tr><td>{{ item.name }}</td><td>{{ item.count }}</td></tr>
+        {% else %}
+        <tr><td colspan="2">尚無帳號盤點資料</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="report-grid">
+  <div class="panel">
+    <h2>主機帳號數</h2>
+    <table class="data-table">
+      <thead><tr><th>主機</th><th>數量</th></tr></thead>
+      <tbody>
+        {% for item in summary.accounts.by_host %}
+        <tr><td>{{ item.name }}</td><td>{{ item.count }}</td></tr>
+        {% else %}
+        <tr><td colspan="2">尚無帳號盤點資料</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <h2>主機環境統計</h2>
+    <table class="data-table">
+      <thead><tr><th>環境</th><th>主機數</th></tr></thead>
+      <tbody>
+        {% for key, value in summary.by_env.items() %}
+        <tr><td>{{ key or "-" }}</td><td>{{ value }}</td></tr>
+        {% else %}
+        <tr><td colspan="2">尚無主機資料</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="flex-between">
+    <h2>異常帳號明細</h2>
+    <a class="btn" href="{{ url_for('api_inventory.accounts_page', risk='異常') }}">查看帳號盤點</a>
+  </div>
+  <div class="table-wrap admin-table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>主機</th>
+          <th>帳號</th>
+          <th>部門</th>
+          <th>類型</th>
+          <th>最後登入</th>
+          <th>風險</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in summary.accounts.abnormal_items %}
+        <tr>
+          <td>{{ item.hostname or item.asset_seq }}</td>
+          <td><strong>{{ item.name }}</strong></td>
+          <td>{{ item.department }}</td>
+          <td>{{ item.note }}</td>
+          <td>{{ item.last_login }}</td>
+          <td><span class="badge-warn">{{ item.risk }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">目前沒有異常帳號</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Patch / 回滾 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="page-header">
+    <div>
+      <p class="eyebrow">PATCH / ROLLBACK</p>
+      <h1>Patch / 回滾</h1>
+      <p class="text-muted-sm">{{ inventory.release_note }} / 建置時間 {{ inventory.build_time }}</p>
+    </div>
+    <div class="actions">
+      <a class="btn secondary" href="{{ url_for('api_superadmin.superadmin_page') }}">回管理總覽</a>
+      <a class="btn" href="{{ url_for('api_superadmin.patches_api') }}">JSON API</a>
+      <button class="btn primary" type="button" data-api-post="/api/superadmin/patches/rollback-plan" data-payload='{"target":"latest"}'>產生回滾計畫</button>
+    </div>
+  </div>
+  <div class="summary-grid">
+    <div class="metric"><strong>{{ inventory.current_version }}</strong><span>目前版本</span></div>
+    <div class="metric"><strong>{{ inventory.patch_id }}</strong><span>Patch ID</span></div>
+    <div class="metric"><strong>{{ inventory.patches|length }}</strong><span>Patch 備份</span></div>
+  </div>
+  <pre class="detail" id="apiResult"></pre>
+</section>
+
+<section class="panel">
+  <h2>Patch 備份</h2>
+  <table class="data-table">
+    <thead><tr><th>名稱</th><th>大小</th><th>修改時間</th></tr></thead>
+    <tbody>
+      {% for patch in inventory.patches %}
+      <tr><td>{{ patch.name }}</td><td>{{ patch.size }}</td><td>{{ patch.mtime }}</td></tr>
+      {% else %}
+      <tr><td colspan="3" class="no-data">尚無 Patch 備份。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/admin_tools.js') }}"></script>{% endblock %}
