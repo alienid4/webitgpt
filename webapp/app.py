@@ -14,6 +14,7 @@ from webapp.routes import (
     api_compliance,
     api_debug,
     api_deep_check,
+    api_dependencies,
     api_edge,
     api_housekeeping,
     api_inventory,
@@ -80,6 +81,7 @@ def create_app() -> Flask:
     app.register_blueprint(api_self_check.bp)
     app.register_blueprint(api_debug.bp)
     app.register_blueprint(api_deep_check.bp)
+    app.register_blueprint(api_dependencies.bp)
     app.register_blueprint(api_v1.bp)
     app.register_blueprint(api_ai.bp)
     app.register_blueprint(api_edge.bp)

@@ -852,11 +852,22 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
 .topology-dot-dc { background: var(--g1); border-color: var(--g1); }
 .topology-dot-system { background: var(--orange); border-color: var(--orange); }
 .topology-dot-host { background: var(--g-light); border-color: var(--g1); }
+.topology-line {
+  width: 30px;
+  height: 0;
+  border-top: 3px solid var(--g-text);
+}
+.topology-line-auto { border-top-style: dashed; border-top-color: var(--orange); }
 
 .topology-edge line {
   stroke: var(--g-text);
   stroke-width: 2.5;
   marker-end: url("#topology-arrow");
+}
+
+.topology-edge line.topology-line-auto {
+  stroke: var(--orange);
+  stroke-dasharray: 8 6;
 }
 
 .topology-edge text {

@@ -193,6 +193,44 @@ def test_inventory_diff_report_contracts_exist():
     assert "inventory_diff_report_page" in software_html
 
 
+def test_topology_spec_foundation_contracts_exist():
+    service = read("webapp/services/dependency_service.py")
+    routes = read("webapp/routes/api_dependencies.py")
+    app = read("webapp/app.py")
+    bootstrap = read("scripts/bootstrap.py")
+    page = read("webapp/templates/dependencies.html")
+    ghosts = read("webapp/templates/dependencies_ghosts.html")
+
+    for name in [
+        "def topology(",
+        "def _system_topology(",
+        "def _host_topology(",
+        "def _ip_topology(",
+        "def downstream_impact(",
+        "def upstream_impact(",
+        "def analyze_ghosts(",
+        "def adopt_ghost(",
+    ]:
+        assert name in service
+    assert "hashlib.sha1" in service
+    for endpoint in [
+        "/api/dependencies/systems",
+        "/api/dependencies/relations",
+        "/api/dependencies/topology",
+        "/api/dependencies/impact",
+        "/api/dependencies/ghosts",
+        "/api/dependencies/collect/trigger",
+    ]:
+        assert endpoint in routes
+    assert "api_dependencies" in app
+    assert "dependency_systems" in bootstrap
+    assert "dependency_relations" in bootstrap
+    assert "dependency_collect_runs" in bootstrap
+    assert "dependency_ghost_ignored" in bootstrap
+    assert "系統視角" in page and "主機視角" in page and "IP 視角" in page
+    assert "Ghost 清單" in ghosts
+
+
 def test_superadmin_console_is_complete_and_chinese():
     routes = read("webapp/routes/api_superadmin.py")
     service = read("webapp/services/system_service.py")

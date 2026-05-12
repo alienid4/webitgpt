@@ -1,5 +1,22 @@
 # webitgpt Changelog
 
+## v1.0.1.29 - 2026-05-12 21:38 +08:00 - topology-clean-legacy-unknown
+
+- 清理前一版拓撲同步留下的 `SYS-UNKNOWN` 重複系統節點。
+- 系統同步時若同名中文系統已有新版 hash system_id，會移除舊版 unknown 節點。
+
+## v1.0.1.28 - 2026-05-12 21:32 +08:00 - topology-chinese-system-id
+
+- 修正中文系統名稱在拓撲同步時被轉成 `SYS-UNKNOWN` 的問題。
+- 中文或非英數系統名稱改用穩定 SHA1 短碼產生 system_id，避免不同中文系統互相覆蓋。
+
+## v1.0.1.27 - 2026-05-12 21:20 +08:00 - topology-spec-foundation
+
+- 依 `topology.md` 補上拓撲模組骨架：system / host / ip 三視角、Systems CRUD、Relations CRUD、Topology API、Impact API、Ghost API。
+- 新增 Mongo collections 與 indexes：`dependency_systems`、`dependency_relations`、`dependency_collect_runs`、`dependency_ghost_ignored`。
+- `/dependencies` 改由拓撲服務供資料，支援視角切換、中心節點、深度、Ghost 清單與全螢幕入口。
+- 目前採集器仍為安全骨架，`ss -tunp` read-only runner 尚未接入。
+
 ## v1.0.1.26 - 2026-05-12 09:55 +08:00 - topology-zoom-controls
 
 - 拓撲互動圖新增縮小、放大、重設與目前倍率顯示。

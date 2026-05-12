@@ -12,10 +12,26 @@
 
 <section class="panel">
   <div class="topology-toolbar">
+    <form class="filter-bar" method="get" action="{{ url_for('api_reports.dependencies_page') }}">
+      <select name="view">
+        <option value="system" {% if topology.view == "system" %}selected{% endif %}>系統視角</option>
+        <option value="host" {% if topology.view == "host" %}selected{% endif %}>主機視角</option>
+        <option value="ip" {% if topology.view == "ip" %}selected{% endif %}>IP 視角</option>
+      </select>
+      <input name="center" value="{{ request.args.get('center', '') }}" placeholder="中心節點 / 系統 ID">
+      <select name="depth">
+        {% for item in [1,2,3,4] %}<option value="{{ item }}" {% if request.args.get('depth', '2')|int == item %}selected{% endif %}>深度 {{ item }}</option>{% endfor %}
+      </select>
+      <button type="submit">套用</button>
+      <a class="btn" href="{{ url_for('api_dependencies.dependencies_ghosts_page') }}">Ghost 清單</a>
+      <a class="btn" href="{{ url_for('api_dependencies.dependencies_fullscreen_page', view=topology.view) }}">全螢幕</a>
+    </form>
     <div class="topology-legend">
       <span><i class="topology-dot topology-dot-dc"></i>機房</span>
       <span><i class="topology-dot topology-dot-system"></i>系統</span>
       <span><i class="topology-dot topology-dot-host"></i>主機</span>
+      <span><i class="topology-line topology-line-manual"></i>手動/已確認</span>
+      <span><i class="topology-line topology-line-auto"></i>自動採集/待確認</span>
     </div>
     <div class="topology-zoom" data-topology-controls>
       <button class="btn-sm" type="button" data-topology-zoom-out title="縮小拓撲圖">縮小</button>
@@ -38,7 +54,7 @@
           {% set mid_y = ((edge.y1 + edge.y2) / 2) | int %}
           <g class="topology-edge" tabindex="0">
             <title>{{ edge.source_label }} → {{ edge.target_label }}{% if edge.label %}：{{ edge.label }}{% endif %}</title>
-            <line x1="{{ edge.x1 }}" y1="{{ edge.y1 }}" x2="{{ edge.x2 }}" y2="{{ edge.y2 }}"></line>
+          <line class="topology-line-{{ edge.trust or 'manual' }}" x1="{{ edge.x1 }}" y1="{{ edge.y1 }}" x2="{{ edge.x2 }}" y2="{{ edge.y2 }}"></line>
             {% if edge.label %}
               <text x="{{ mid_x }}" y="{{ mid_y - 8 }}" text-anchor="middle">{{ edge.label[:18] }}</text>
             {% endif %}

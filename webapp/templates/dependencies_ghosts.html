@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}拓撲 Ghost 清單 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel report-hero">
+  <div>
+    <p class="eyebrow">TOPOLOGY GHOSTS</p>
+    <h1>Ghost 清單</h1>
+    <p class="muted">Ghost 是採集到但不在資產管理、也不屬於已知外部服務的對端 IP。</p>
+  </div>
+  <div class="actions"><a class="btn" href="{{ url_for('api_reports.dependencies_page') }}">回拓撲圖</a></div>
+</section>
+
+<section class="summary-grid">
+  <div class="metric"><strong>{{ ghosts.summary.total }}</strong><span>Ghost 總數</span></div>
+  <div class="metric"><strong>{{ ghosts.summary.high }}</strong><span>內網未納管</span></div>
+  <div class="metric"><strong>{{ ghosts.summary.medium }}</strong><span>公網未知</span></div>
+</section>
+
+<section class="panel">
+  <table class="data-table">
+    <thead><tr><th>IP</th><th>風險</th><th>次數</th><th>Port</th><th>來源主機 / 程序</th></tr></thead>
+    <tbody>
+      {% for item in ghosts.items %}
+      <tr>
+        <td class="code-inline">{{ item.ip }}</td>
+        <td>{% if item.severity == "high" %}<span class="badge-error">內網未納管</span>{% else %}<span class="badge-warn">公網未知</span>{% endif %}</td>
+        <td>{{ item.seen_count }}</td>
+        <td>{{ item.remote_ports|join(", ") }}</td>
+        <td>{% for caller in item.callers %}<div>{{ caller.hostname or "-" }} / {{ caller.process or "-" }} / {{ caller.port }}</div>{% endfor %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="no-data">目前沒有 Ghost。自動採集接入後會在這裡列出未納管對端。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

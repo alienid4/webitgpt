@@ -3,14 +3,14 @@ from __future__ import annotations
 import csv
 import io
 
-from flask import Blueprint, Response, jsonify, render_template
+from flask import Blueprint, Response, jsonify, render_template, request
 
 from webapp.decorators import require_feature
 from webapp.services.compliance_service import dashboard as compliance_dashboard
 from webapp.services.feature_flags import is_enabled
 from webapp.services.host_service import list_hosts
 from webapp.services.inventory_service import account_report_summary
-from webapp.services.legacy_parity_service import topology_view
+from webapp.services.dependency_service import topology
 
 bp = Blueprint("api_reports", __name__)
 
@@ -92,10 +92,16 @@ def reports_summary_csv():
 @bp.get("/dependencies")
 @require_feature("dependencies")
 def dependencies_page():
-    return render_template("dependencies.html", topology=topology_view())
+    data = topology(
+        view=request.args.get("view", "host"),
+        center=request.args.get("center", ""),
+        depth=int(request.args.get("depth", 2)),
+        limit=int(request.args.get("limit", 200)),
+    )
+    return render_template("dependencies.html", topology=data)
 
 
 @bp.get("/api/dependencies")
 @require_feature("dependencies")
 def dependencies_api():
-    return jsonify(topology_view())
+    return jsonify(topology(view=request.args.get("view", "host"), center=request.args.get("center", ""), depth=int(request.args.get("depth", 2)), limit=int(request.args.get("limit", 200))))

@@ -67,6 +67,10 @@ COLLECTIONS = [
     "change_tickets",
     "login_attempts",
     "nmon_data",
+    "dependency_systems",
+    "dependency_relations",
+    "dependency_collect_runs",
+    "dependency_ghost_ignored",
 ]
 
 BASE_HOST = {
@@ -196,6 +200,16 @@ def ensure_indexes() -> None:
     get_db().network_scan_reports.create_index([("cidr", 1), ("started_at", -1)], name="cidr_started")
     get_db().ip_reservations.create_index([("ip", 1), ("status", 1)], name="ip_status")
     get_db().extension_definitions.create_index([("key", 1)], name="key", unique=True)
+    get_db().dependency_systems.create_index([("system_id", 1)], name="system_id", unique=True)
+    get_db().dependency_systems.create_index([("tier", 1), ("category", 1)], name="tier_category")
+    get_db().dependency_systems.create_index([("external", 1)], name="external")
+    get_db().dependency_systems.create_index([("host_refs", 1)], name="host_refs")
+    get_db().dependency_relations.create_index([("from_system", 1), ("to_system", 1)], name="from_to", unique=True)
+    get_db().dependency_relations.create_index([("source", 1)], name="source")
+    get_db().dependency_relations.create_index([("evidence.last_seen_at", -1)], name="evidence_last_seen")
+    get_db().dependency_collect_runs.create_index([("run_id", 1)], name="run_id", unique=True)
+    get_db().dependency_collect_runs.create_index([("started_at", -1)], name="started_at")
+    get_db().dependency_ghost_ignored.create_index([("ip", 1)], name="ip", unique=True)
 
 
 def seed_hosts() -> int:
