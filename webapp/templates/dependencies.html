@@ -3,13 +3,15 @@
 {% block content %}
 {% set show_ports = request.args.get('show_ports') in ['1', 'true', 'yes', 'on'] %}
 {% set failed_node = request.args.get('failed_node', '') %}
+{% set focus_impact = request.args.get('focus_impact') in ['1', 'true', 'yes', 'on'] %}
 {% set fullscreen_args = {
   'view': topology.view,
   'center': request.args.get('center', ''),
   'depth': request.args.get('depth', '2'),
   'include_external': 1 if topology.meta.include_external else 0,
   'show_ports': 1 if show_ports else 0,
-  'failed_node': failed_node
+  'failed_node': failed_node,
+  'focus_impact': 1 if focus_impact else 0
 } %}
 {% if fullscreen %}
 <section class="topology-fullscreen-panel">
@@ -65,6 +67,10 @@
       </select>
       <input name="failed_node" value="{{ failed_node }}" placeholder="故障模擬：點節點或輸入主機/IP">
       <label class="toggle-label">
+        <input type="checkbox" name="focus_impact" value="1" {% if focus_impact %}checked{% endif %} data-auto-submit>
+        只看一/二跳影響
+      </label>
+      <label class="toggle-label">
         <input type="checkbox" name="include_external" value="1" {% if topology.meta.include_external %}checked{% endif %} data-auto-submit>
         顯示外網未知節點
       </label>
@@ -102,6 +108,7 @@
       目前假裝 <strong>{{ topology.meta.simulation.failed_node }}</strong> 故障；
       下游受影響 {{ topology.meta.simulation.affected_count }} 個，
       上游/關聯來源 {{ topology.meta.simulation.related_count }} 個。
+      {% if topology.meta.focus_impact %}目前只顯示一/二跳影響範圍。{% endif %}
     </div>
     {% endif %}
     <div class="topology-view-note">
@@ -120,35 +127,66 @@
       <span class="topology-zoom-value" data-topology-zoom-value>80%</span>
     </div>
   </div>
-  <div class="topology-canvas" data-topology-canvas>
-    <div class="topology-stage" data-topology-stage>
-      <svg viewBox="0 0 1100 520" role="img" aria-label="系統拓撲圖">
-        <defs>
-          <marker id="topology-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M 0 0 L 10 5 L 0 10 z"></path>
-          </marker>
-        </defs>
+  <div class="topology-workspace {% if topology.meta.simulation.enabled %}topology-workspace-with-panel{% endif %}">
+    <div class="topology-canvas" data-topology-canvas>
+      <div class="topology-stage" data-topology-stage>
+        <svg viewBox="0 0 1100 520" role="img" aria-label="系統拓撲圖">
+          <defs>
+            <marker id="topology-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z"></path>
+            </marker>
+          </defs>
 
-        {% for edge in topology.edges %}
-          <g class="topology-edge {% if edge.simulation_status == 'affected' %}topology-edge-affected{% elif edge.simulation_status == 'related' %}topology-edge-related{% endif %}" tabindex="0">
-            <title>{{ edge.detail_label or edge.source_label ~ " → " ~ edge.target_label }}</title>
-            <line class="topology-line-{{ edge.trust or 'manual' }}" x1="{{ edge.x1 }}" y1="{{ edge.y1 }}" x2="{{ edge.x2 }}" y2="{{ edge.y2 }}"></line>
-            {% if show_ports and edge.port_label %}
-              <text class="topology-edge-label topology-edge-label-short" x="{{ (edge.x1 + edge.x2) / 2 }}" y="{{ (edge.y1 + edge.y2) / 2 - 48 }}" text-anchor="middle">{{ edge.port_label_short or edge.port_label }}</text>
-            {% endif %}
-          </g>
-        {% endfor %}
+          {% for edge in topology.edges %}
+            <g class="topology-edge {% if edge.simulation_status == 'affected' %}topology-edge-affected{% elif edge.simulation_status == 'related' %}topology-edge-related{% endif %}" tabindex="0">
+              <title>{{ edge.detail_label or edge.source_label ~ " → " ~ edge.target_label }}</title>
+              <line class="topology-line-{{ edge.trust or 'manual' }}" x1="{{ edge.x1 }}" y1="{{ edge.y1 }}" x2="{{ edge.x2 }}" y2="{{ edge.y2 }}"></line>
+              {% if show_ports and edge.port_label %}
+                <text class="topology-edge-label topology-edge-label-short" x="{{ (edge.x1 + edge.x2) / 2 }}" y="{{ (edge.y1 + edge.y2) / 2 - 48 }}" text-anchor="middle">{{ edge.port_label_short or edge.port_label }}</text>
+              {% endif %}
+            </g>
+          {% endfor %}
 
-        {% for node in topology.nodes %}
-          <g class="topology-node {% if node.kind == '機房' %}topology-node-dc{% elif node.kind in ['系統', '內網未納管', '內網未納管 IP'] %}topology-node-system{% elif node.kind in ['外網未知', '外網 IP'] %}topology-node-ghost{% elif node.kind == 'IP' %}topology-node-ip{% else %}topology-node-host{% endif %} {% if node.simulation_status == 'failed' %}topology-node-failed{% elif node.simulation_status == 'affected' %}topology-node-affected{% elif node.simulation_status == 'related' %}topology-node-related{% endif %}" tabindex="0" data-topology-node-id="{{ node.id }}">
-            <title>{{ node.kind }}：{{ node.label }}；點選可模擬此節點故障</title>
-            <circle cx="{{ node.x }}" cy="{{ node.y }}" r="38"></circle>
-            <text class="topology-node-label" x="{{ node.x }}" y="{{ node.y - 5 }}" text-anchor="middle">{{ node.label[:14] }}</text>
-            <text class="topology-node-kind" x="{{ node.x }}" y="{{ node.y + 17 }}" text-anchor="middle">{{ node.kind }}</text>
-          </g>
-        {% endfor %}
-      </svg>
+          {% for node in topology.nodes %}
+            <g class="topology-node {% if node.kind == '機房' %}topology-node-dc{% elif node.kind in ['系統', '內網未納管', '內網未納管 IP'] %}topology-node-system{% elif node.kind in ['外網未知', '外網 IP'] %}topology-node-ghost{% elif node.kind == 'IP' %}topology-node-ip{% else %}topology-node-host{% endif %} {% if node.simulation_status == 'failed' %}topology-node-failed{% elif node.simulation_status == 'affected' %}topology-node-affected{% elif node.simulation_status == 'related' %}topology-node-related{% endif %}" tabindex="0" data-topology-node-id="{{ node.id }}">
+              <title>{{ node.kind }}：{{ node.label }}；點選可模擬此節點故障</title>
+              <circle cx="{{ node.x }}" cy="{{ node.y }}" r="38"></circle>
+              <text class="topology-node-label" x="{{ node.x }}" y="{{ node.y - 5 }}" text-anchor="middle">{{ node.label[:14] }}</text>
+              <text class="topology-node-kind" x="{{ node.x }}" y="{{ node.y + 17 }}" text-anchor="middle">{{ node.kind }}</text>
+            </g>
+          {% endfor %}
+        </svg>
+      </div>
     </div>
+    {% if topology.meta.simulation.enabled %}
+    <aside class="topology-detail-panel">
+      <p class="eyebrow">IMPACT PANEL</p>
+      <h2>{{ topology.meta.simulation.node.label or topology.meta.simulation.failed_node }}</h2>
+      <dl>
+        <div><dt>節點類型</dt><dd>{{ topology.meta.simulation.node.kind or "-" }}</dd></div>
+        <div><dt>IP / OS</dt><dd>{{ topology.meta.simulation.node.ip or topology.meta.simulation.node.hostname or "-" }} / {{ topology.meta.simulation.node.os or "-" }}</dd></div>
+        <div><dt>系統</dt><dd>{{ topology.meta.simulation.node.system or topology.meta.simulation.node.category or "-" }}</dd></div>
+        <div><dt>目前檢視</dt><dd>{{ "只看一/二跳" if topology.meta.focus_impact else "完整拓撲" }}</dd></div>
+      </dl>
+      <h3>一跳影響</h3>
+      <p class="text-muted-sm">下游：{{ topology.meta.simulation.direct_affected|join("、") if topology.meta.simulation.direct_affected else "無" }}</p>
+      <p class="text-muted-sm">上游：{{ topology.meta.simulation.direct_related|join("、") if topology.meta.simulation.direct_related else "無" }}</p>
+      <h3>二跳影響</h3>
+      <p class="text-muted-sm">下游：{{ topology.meta.simulation.second_hop_affected|join("、") if topology.meta.simulation.second_hop_affected else "無" }}</p>
+      <p class="text-muted-sm">上游：{{ topology.meta.simulation.second_hop_related|join("、") if topology.meta.simulation.second_hop_related else "無" }}</p>
+      <h3>關聯線</h3>
+      <div class="topology-detail-list">
+        {% for edge in topology.meta.simulation.edges %}
+          <div>
+            <strong>{{ edge.source }} → {{ edge.target }}</strong>
+            <span>{{ edge.port }} / {{ edge.process }} / {{ "受影響" if edge.status == "affected" else "上游關聯" }}</span>
+          </div>
+        {% else %}
+          <p class="text-muted-sm">沒有可顯示的關聯線。</p>
+        {% endfor %}
+      </div>
+    </aside>
+    {% endif %}
   </div>
 </section>
 

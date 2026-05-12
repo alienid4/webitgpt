@@ -870,6 +870,11 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   min-height: 0;
 }
 
+.topology-fullscreen-card .topology-workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .topology-fullscreen-card .topology-stage {
   min-width: 1100px;
 }
@@ -893,6 +898,90 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
 
 .topology-canvas:active {
   cursor: grabbing;
+}
+
+.topology-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+.topology-workspace-with-panel {
+  grid-template-columns: minmax(0, 1fr) 330px;
+}
+
+.topology-workspace .topology-canvas {
+  min-width: 0;
+}
+
+.topology-detail-panel {
+  overflow: auto;
+  max-height: calc(100vh - 330px);
+  padding: 16px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+}
+
+.topology-fullscreen-card .topology-detail-panel {
+  max-height: none;
+}
+
+.topology-detail-panel h2 {
+  margin: 0 0 10px;
+  font-size: 22px;
+}
+
+.topology-detail-panel h3 {
+  margin: 14px 0 6px;
+  font-size: 15px;
+}
+
+.topology-detail-panel dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.topology-detail-panel dl div {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--bg2);
+}
+
+.topology-detail-panel dt {
+  color: var(--c3);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.topology-detail-panel dd {
+  min-width: 0;
+  margin: 0;
+  font-weight: 800;
+  word-break: break-word;
+}
+
+.topology-detail-list {
+  display: grid;
+  gap: 8px;
+}
+
+.topology-detail-list div {
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-xs);
+  background: var(--bg);
+}
+
+.topology-detail-list span {
+  color: var(--c3);
+  font-size: 12px;
 }
 
 .topology-stage {
@@ -1126,6 +1215,8 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   .asset-inline-tool { grid-template-columns: 1fr; }
   .admin-sidebar { position: static; }
   .admin-hero, .admin-section-head { align-items: flex-start; flex-direction: column; }
+  .topology-workspace-with-panel { grid-template-columns: 1fr; }
+  .topology-detail-panel { max-height: none; }
   .modal, .modal-box, .modal-content { max-width: 95%; }
   .ai-chat { position: static; width: auto; margin: 16px; }
 }

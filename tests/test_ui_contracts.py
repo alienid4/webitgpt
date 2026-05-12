@@ -244,9 +244,14 @@ def test_topology_spec_foundation_contracts_exist():
     assert "edge.detail_label" in page and "edge.port_summary" in page
     assert "show_ports" in page and "edge.port_label" in page
     assert "failed_node" in page and "故障模擬" in page
+    assert "focus_impact" in page and "只看一/二跳影響" in page
+    assert "topology-detail-panel" in page
+    assert "IMPACT PANEL" in page
     assert "data-topology-node-id" in page
     assert "topology-node-failed" in page
     assert "topology-edge-affected" in page
+    assert "direct_affected" in service and "second_hop_affected" in service
+    assert "def _filter_to_failure_scope(" in service
     assert "edge.caption" not in page
     assert "Port 明細請看下方清單" in page
     assert "topology-fullscreen-panel" in page

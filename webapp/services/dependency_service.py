@@ -502,7 +502,7 @@ def _topology_meta(view: str) -> dict[str, Any]:
     }
 
 
-def topology(view: str = "system", center: str = "", depth: int = 2, limit: int = 200, include_external: bool = False, failed_node: str = "") -> dict[str, Any]:
+def topology(view: str = "system", center: str = "", depth: int = 2, limit: int = 200, include_external: bool = False, failed_node: str = "", focus_impact: bool = False) -> dict[str, Any]:
     view = view if view in {"system", "host", "ip"} else "system"
     if view == "host":
         data = _host_topology(limit, include_external=include_external)
@@ -511,6 +511,9 @@ def topology(view: str = "system", center: str = "", depth: int = 2, limit: int 
     else:
         data = _system_topology(center=center, depth=depth, limit=limit, include_external=include_external)
     _apply_failure_simulation(data, failed_node, max_depth=max(depth, 1))
+    if focus_impact:
+        _filter_to_failure_scope(data)
+    data.setdefault("meta", {})["focus_impact"] = bool(focus_impact)
     return data
 
 
@@ -525,6 +528,8 @@ def _apply_failure_simulation(data: dict[str, Any], failed_node: str = "", max_d
 
     downstream: set[str] = set()
     upstream: set[str] = set()
+    downstream_layers: list[list[str]] = []
+    upstream_layers: list[list[str]] = []
     current = {failed_node}
     for _ in range(max(max_depth, 1)):
         next_layer = {
@@ -535,6 +540,7 @@ def _apply_failure_simulation(data: dict[str, Any], failed_node: str = "", max_d
         if not next_layer:
             break
         downstream.update(next_layer)
+        downstream_layers.append(sorted(next_layer))
         current = next_layer
     current = {failed_node}
     for _ in range(max(max_depth, 1)):
@@ -546,6 +552,7 @@ def _apply_failure_simulation(data: dict[str, Any], failed_node: str = "", max_d
         if not next_layer:
             break
         upstream.update(next_layer)
+        upstream_layers.append(sorted(next_layer))
         current = next_layer
 
     for node in nodes:
@@ -569,14 +576,54 @@ def _apply_failure_simulation(data: dict[str, Any], failed_node: str = "", max_d
         else:
             edge["simulation_status"] = "normal"
 
+    node_detail = next((node for node in nodes if str(node.get("id")) == failed_node), {})
     data.setdefault("meta", {})["simulation"] = {
         "enabled": True,
         "failed_node": failed_node,
+        "node": node_detail,
         "affected_nodes": sorted(downstream),
         "related_nodes": sorted(upstream),
+        "downstream_layers": downstream_layers,
+        "upstream_layers": upstream_layers,
         "affected_count": len(downstream),
         "related_count": len(upstream),
+        "direct_affected": downstream_layers[0] if downstream_layers else [],
+        "second_hop_affected": downstream_layers[1] if len(downstream_layers) > 1 else [],
+        "direct_related": upstream_layers[0] if upstream_layers else [],
+        "second_hop_related": upstream_layers[1] if len(upstream_layers) > 1 else [],
+        "edges": [
+            {
+                "source": edge.get("source_label") or edge.get("source"),
+                "target": edge.get("target_label") or edge.get("target"),
+                "port": edge.get("port_summary") or "-",
+                "process": edge.get("process_name") or "-",
+                "status": edge.get("simulation_status"),
+            }
+            for edge in edges
+            if edge.get("simulation_status") in {"affected", "related"}
+        ][:30],
     }
+
+
+def _filter_to_failure_scope(data: dict[str, Any]) -> None:
+    simulation = data.get("meta", {}).get("simulation") or {}
+    if not simulation.get("enabled"):
+        return
+    keep = {simulation.get("failed_node")}
+    keep.update(simulation.get("direct_affected") or [])
+    keep.update(simulation.get("second_hop_affected") or [])
+    keep.update(simulation.get("direct_related") or [])
+    keep.update(simulation.get("second_hop_related") or [])
+    keep = {str(item) for item in keep if item}
+    data["nodes"] = [node for node in data.get("nodes", []) if str(node.get("id")) in keep]
+    data["edges"] = [
+        edge
+        for edge in data.get("edges", [])
+        if str(edge.get("source")) in keep and str(edge.get("target")) in keep and edge.get("simulation_status") in {"affected", "related"}
+    ]
+    _layout(data["nodes"], data["edges"])
+    data.setdefault("meta", {})["focus_node_count"] = len(data["nodes"])
+    data.setdefault("meta", {})["focus_edge_count"] = len(data["edges"])
 
 
 def _system_topology(center: str = "", depth: int = 2, limit: int = 200, include_external: bool = False) -> dict[str, Any]:

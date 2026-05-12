@@ -14,6 +14,10 @@ def _include_external() -> bool:
     return request.args.get("include_external") in {"1", "true", "yes", "on"}
 
 
+def _focus_impact() -> bool:
+    return request.args.get("focus_impact") in {"1", "true", "yes", "on"}
+
+
 @bp.get("/dependencies/fullscreen")
 @require_feature("dependencies")
 def dependencies_fullscreen_page():
@@ -24,6 +28,7 @@ def dependencies_fullscreen_page():
         limit=int(request.args.get("limit", 200)),
         include_external=_include_external(),
         failed_node=request.args.get("failed_node", ""),
+        focus_impact=_focus_impact(),
     )
     return render_template("dependencies.html", topology=data, fullscreen=True)
 
@@ -122,6 +127,7 @@ def topology_api():
             limit=int(request.args.get("limit", 200)),
             include_external=_include_external(),
             failed_node=request.args.get("failed_node", ""),
+            focus_impact=_focus_impact(),
         )
     )
 
