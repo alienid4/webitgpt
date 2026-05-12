@@ -10,6 +10,7 @@ from webapp.services.compliance_service import dashboard as compliance_dashboard
 from webapp.services.feature_flags import is_enabled
 from webapp.services.host_service import list_hosts
 from webapp.services.inventory_service import account_report_summary
+from webapp.services import dependency_service
 from webapp.services.dependency_service import topology
 
 bp = Blueprint("api_reports", __name__)
@@ -109,7 +110,7 @@ def dependencies_page():
         failed_node=request.args.get("failed_node", ""),
         focus_impact=_focus_impact(),
     )
-    return render_template("dependencies.html", topology=data)
+    return render_template("dependencies.html", topology=data, reconcile_report=dependency_service.latest_reconcile_report())
 
 
 @bp.get("/api/dependencies")

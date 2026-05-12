@@ -214,9 +214,13 @@ def test_topology_spec_foundation_contracts_exist():
         "def _apply_failure_simulation(",
         "def latest_collect_run(",
         "def collect_runs(",
+        "def reconcile_ss_nmap(",
+        "def latest_reconcile_report(",
+        "def _run_nmap_port_scan(",
         "def _is_internal_ip(",
         "include_external",
         "ss -tunp",
+        "COMMON_EXPOSURE_PORTS",
     ]:
         assert name in service
     assert "hashlib.sha1" in service
@@ -228,6 +232,9 @@ def test_topology_spec_foundation_contracts_exist():
         "/api/dependencies/ghosts",
         "/api/dependencies/collect/trigger",
         "/dependencies/collect/trigger",
+        "/api/dependencies/reconcile/trigger",
+        "/dependencies/reconcile/trigger",
+        "/api/dependencies/reconcile/latest",
     ]:
         assert endpoint in routes
     assert "api_dependencies" in app
@@ -239,6 +246,7 @@ def test_topology_spec_foundation_contracts_exist():
     assert "dependency_systems" in bootstrap
     assert "dependency_relations" in bootstrap
     assert "dependency_collect_runs" in bootstrap
+    assert "dependency_reconcile_reports" in bootstrap
     assert "dependency_ghost_ignored" in bootstrap
     assert "系統視角" in page and "主機視角" in page and "IP 視角" in page
     assert "edge.detail_label" in page and "edge.port_summary" in page
@@ -256,6 +264,8 @@ def test_topology_spec_foundation_contracts_exist():
     assert "Port 明細請看下方清單" in page
     assert "topology-fullscreen-panel" in page
     assert "dependencies_fullscreen_page" in page
+    assert "ss+nmap 聯通驗證" in page
+    assert "執行 ss+nmap 驗證" in page
     assert "離開全螢幕" in page
     assert "執行 ss -tunp 採集" in page
     assert "採集狀態" in page

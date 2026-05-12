@@ -37,6 +37,10 @@
       <input type="hidden" name="view" value="{{ topology.view }}">
       <button class="btn primary" type="submit">執行 ss -tunp 採集</button>
     </form>
+    <form method="post" action="{{ url_for('api_dependencies.reconcile_trigger_page') }}">
+      <input type="hidden" name="view" value="{{ topology.view }}">
+      <button class="btn" type="submit">執行 ss+nmap 驗證</button>
+    </form>
     <a class="btn" href="{{ url_for('api_reports.dependencies_api') }}">JSON</a>
   </div>
 </section>
@@ -51,6 +55,53 @@
     <span class="text-muted-sm">尚無成功採集版本。</span>
   {% endif %}
 </section>
+
+<section class="panel compact-panel">
+  <strong>ss+nmap 聯通驗證</strong>
+  {% if reconcile_report %}
+    <span class="text-muted-sm">最新報告 {{ reconcile_report.finished_at_local or reconcile_report.finished_at or reconcile_report.started_at_local or reconcile_report.started_at }} / 目標 {{ reconcile_report.target_count }} / 明細 {{ reconcile_report.row_count }}</span>
+    <span class="code-inline">{{ reconcile_report.run_id }}</span>
+  {% else %}
+    <span class="text-muted-sm">尚未執行。先跑 ss 採集，再按「執行 ss+nmap 驗證」產出差異報告。</span>
+  {% endif %}
+</section>
+
+{% if reconcile_report %}
+<section class="panel">
+  <h2>ss+nmap 差異報告</h2>
+  <div class="metric-grid">
+    <div class="metric-card"><strong>{{ reconcile_report.summary.matched or 0 }}</strong><span>雙方一致</span></div>
+    <div class="metric-card"><strong>{{ reconcile_report.summary.ss_only or 0 }}</strong><span>ss 有、nmap 掃不到</span></div>
+    <div class="metric-card"><strong>{{ reconcile_report.summary.nmap_only or 0 }}</strong><span>nmap 有、ss 沒看到</span></div>
+    <div class="metric-card"><strong>{{ reconcile_report.summary.external_skipped or 0 }}</strong><span>外網未掃描</span></div>
+  </div>
+  {% if reconcile_report.errors %}
+    <div class="status-box warn">
+      {% for item in reconcile_report.errors %}
+        <p>{{ item.target }}：{{ item.error }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+  <table class="data-table">
+    <thead><tr><th>狀態</th><th>來源</th><th>目標 IP</th><th>Port</th><th>服務</th><th>程序</th><th>建議</th></tr></thead>
+    <tbody>
+      {% for row in reconcile_report.rows[:40] %}
+      <tr>
+        <td>{{ row.status_label }}</td>
+        <td>{{ row.source or "-" }}</td>
+        <td>{{ row.remote_ip }}</td>
+        <td>{{ row.port }}</td>
+        <td>{{ row.service or "-" }}</td>
+        <td>{{ row.process or "-" }}</td>
+        <td>{{ row.suggestion }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="no-data">本次沒有差異明細。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
 {% endif %}
 
 <section class="panel {% if fullscreen %}topology-fullscreen-card{% endif %}">

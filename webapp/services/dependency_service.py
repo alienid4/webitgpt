@@ -3,13 +3,17 @@ from __future__ import annotations
 import ipaddress
 import hashlib
 import re
+import shutil
 import subprocess
+import xml.etree.ElementTree as ET
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
+from zoneinfo import ZoneInfo
 
 from bson import ObjectId
 
+from webapp import config
 from webapp.services.host_service import list_hosts
 from webapp.services.mongo_service import get_collection
 
@@ -53,6 +57,8 @@ PORT_SERVICE_NAMES = {
     "27017": "MONGO",
 }
 
+COMMON_EXPOSURE_PORTS = ["22", "80", "443", "445", "3389", "5432", "3306", "1521", "27017", "6379", "8080", "8443"]
+
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -71,6 +77,13 @@ def _iso(value: Any) -> str:
     if isinstance(value, datetime):
         return value.isoformat()
     return str(value) if value else ""
+
+
+def _local_iso(value: datetime) -> str:
+    try:
+        return value.astimezone(ZoneInfo(config.TZ_NAME)).isoformat()
+    except Exception:  # noqa: BLE001 - timezone name may be customized by deployment
+        return value.isoformat()
 
 
 def _system_id(name: str) -> str:
@@ -260,6 +273,140 @@ def collect_topology(actor: str = "system", limit_hosts: int = 20) -> dict[str, 
 
 def collect_runs(limit: int = 20) -> list[dict[str, Any]]:
     return [_public(item) or {} for item in get_collection("dependency_collect_runs").find({}).sort("started_at", -1).limit(limit)]
+
+
+def latest_reconcile_report() -> Optional[dict[str, Any]]:
+    return _public(get_collection("dependency_reconcile_reports").find_one({}, sort=[("started_at", -1)]))
+
+
+def reconcile_ss_nmap(actor: str = "system", limit_hosts: int = 20) -> dict[str, Any]:
+    started_at = _now()
+    run_id = f"dep-reconcile-{started_at.strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}"
+    latest = latest_collect_run()
+    relations = list_relations({"run_id": latest["run_id"]}) if latest else []
+    hosts = _hosts()[:limit_hosts]
+    known_ips = {str(ip) for host in hosts for ip in (host.get("ip_addresses") or ([host.get("ip")] if host.get("ip") else [])) if ip}
+
+    ss_pairs: dict[tuple[str, str], dict[str, Any]] = {}
+    scan_targets: dict[str, set[str]] = {ip: set(COMMON_EXPOSURE_PORTS) for ip in known_ips if _is_internal_ip(ip)}
+    skipped_targets: set[str] = set()
+    for rel in relations:
+        evidence = rel.get("evidence") or {}
+        remote_ip = str(evidence.get("last_remote_ip") or "").strip()
+        remote_port = str(evidence.get("last_remote_port") or "").strip()
+        if not remote_ip or not remote_port or remote_port == "*":
+            continue
+        ss_pairs[(remote_ip, remote_port)] = {
+            "source": rel.get("from_system"),
+            "target": rel.get("to_system"),
+            "remote_ip": remote_ip,
+            "port": remote_port,
+            "process": evidence.get("process_name") or "",
+            "last_seen": evidence.get("last_seen_at") or evidence.get("last_seen") or "",
+        }
+        if _is_internal_ip(remote_ip):
+            scan_targets.setdefault(remote_ip, set(COMMON_EXPOSURE_PORTS)).add(remote_port)
+        else:
+            skipped_targets.add(remote_ip)
+
+    nmap_pairs: dict[tuple[str, str], dict[str, Any]] = {}
+    scan_errors = []
+    if not shutil.which("nmap"):
+        scan_errors.append({"target": "*", "error": "nmap 未安裝，無法執行 ss+nmap 聯通驗證。"})
+    else:
+        for ip, ports in sorted(scan_targets.items()):
+            result = _run_nmap_port_scan(ip, sorted(ports, key=lambda value: int(value) if value.isdigit() else 99999))
+            if result.get("error"):
+                scan_errors.append({"target": ip, "error": result["error"]})
+            for port in result.get("open_ports") or []:
+                nmap_pairs[(ip, str(port))] = {"remote_ip": ip, "port": str(port), "service": _port_service_name(port) or ""}
+
+    rows = []
+    for key in sorted(set(ss_pairs) | set(nmap_pairs), key=lambda item: (item[0], int(item[1]) if item[1].isdigit() else 99999)):
+        ss_item = ss_pairs.get(key)
+        nmap_item = nmap_pairs.get(key)
+        if ss_item and nmap_item:
+            status = "matched"
+            status_label = "雙方一致"
+            suggestion = "ss 看到實際連線，nmap 也能掃到該 Port。"
+        elif ss_item and key[0] in skipped_targets:
+            status = "external_skipped"
+            status_label = "外網未掃描"
+            suggestion = "外網目標預設不做 nmap 掃描，避免對外部位址造成不必要流量；可先確認是否要納入外部服務白名單。"
+        elif ss_item:
+            status = "ss_only"
+            status_label = "ss 有、nmap 掃不到"
+            suggestion = "可能只允許特定來源、防火牆限制，或 nmap 掃描來源無權連線。"
+        else:
+            status = "nmap_only"
+            status_label = "nmap 有、ss 沒看到"
+            suggestion = "外部可見服務目前沒有被 ss 快照捕捉到連線，請確認是否為必要暴露面。"
+        base = ss_item or nmap_item or {}
+        rows.append(
+            {
+                "status": status,
+                "status_label": status_label,
+                "source": base.get("source") or "",
+                "target": base.get("target") or "",
+                "remote_ip": base.get("remote_ip") or key[0],
+                "port": base.get("port") or key[1],
+                "service": _port_service_name(base.get("port") or key[1]) or nmap_item.get("service", "") if nmap_item else _port_service_name(base.get("port") or key[1]),
+                "process": base.get("process") or "",
+                "last_seen": base.get("last_seen") or "",
+                "suggestion": suggestion,
+            }
+        )
+
+    summary = {
+        "matched": sum(1 for row in rows if row["status"] == "matched"),
+        "ss_only": sum(1 for row in rows if row["status"] == "ss_only"),
+        "nmap_only": sum(1 for row in rows if row["status"] == "nmap_only"),
+        "external_skipped": sum(1 for row in rows if row["status"] == "external_skipped"),
+    }
+    report = {
+        "run_id": run_id,
+        "started_at": started_at,
+        "started_at_local": _local_iso(started_at),
+        "finished_at": _now(),
+        "started_by": actor,
+        "collector": "ss+nmap",
+        "ss_run_id": latest.get("run_id") if latest else "",
+        "target_count": len(scan_targets),
+        "row_count": len(rows),
+        "summary": summary,
+        "rows": rows,
+        "errors": scan_errors,
+    }
+    report["finished_at_local"] = _local_iso(report["finished_at"])
+    get_collection("dependency_reconcile_reports").insert_one(report)
+    return _public(report) or report
+
+
+def _run_nmap_port_scan(ip: str, ports: list[str]) -> dict[str, Any]:
+    if not ports:
+        return {"open_ports": [], "error": ""}
+    try:
+        completed = subprocess.run(
+            ["nmap", "-Pn", "-sT", "-p", ",".join(ports[:80]), "-oX", "-", ip],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=90,
+        )
+    except subprocess.TimeoutExpired:
+        return {"open_ports": [], "error": "nmap port scan 逾時。"}
+    if completed.returncode not in (0, 1):
+        return {"open_ports": [], "error": completed.stderr.strip() or "nmap port scan 失敗。"}
+    open_ports = []
+    try:
+        root = ET.fromstring(completed.stdout)
+        for port in root.findall(".//port"):
+            state = port.find("state")
+            if state is not None and state.attrib.get("state") == "open":
+                open_ports.append(port.attrib.get("portid", ""))
+    except ET.ParseError as exc:
+        return {"open_ports": [], "error": f"nmap XML 解析失敗：{exc}"}
+    return {"open_ports": sorted({port for port in open_ports if port}, key=lambda value: int(value) if value.isdigit() else 99999), "error": ""}
 
 
 def _run_ss_tunp(host: dict[str, Any]) -> str:

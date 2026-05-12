@@ -30,7 +30,7 @@ def dependencies_fullscreen_page():
         failed_node=request.args.get("failed_node", ""),
         focus_impact=_focus_impact(),
     )
-    return render_template("dependencies.html", topology=data, fullscreen=True)
+    return render_template("dependencies.html", topology=data, fullscreen=True, reconcile_report=dependency_service.latest_reconcile_report())
 
 
 @bp.get("/dependencies/ghosts")
@@ -164,6 +164,30 @@ def collect_trigger_page():
     run = dependency_service.collect_topology(current_user()["username"])
     audit_log_service.append("dependencies.collect.trigger", current_user()["username"], {"run_id": run.get("run_id"), "status": run.get("status")})
     return redirect(url_for("api_reports.dependencies_page", view=request.form.get("view", "host")))
+
+
+@bp.post("/api/dependencies/reconcile/trigger")
+@require_feature("dependencies")
+@require_role("admin")
+def reconcile_trigger_api():
+    report = dependency_service.reconcile_ss_nmap(current_user()["username"])
+    audit_log_service.append("dependencies.reconcile.trigger", current_user()["username"], {"run_id": report.get("run_id"), "row_count": report.get("row_count")})
+    return jsonify(report)
+
+
+@bp.post("/dependencies/reconcile/trigger")
+@require_feature("dependencies")
+@require_role("admin")
+def reconcile_trigger_page():
+    report = dependency_service.reconcile_ss_nmap(current_user()["username"])
+    audit_log_service.append("dependencies.reconcile.trigger", current_user()["username"], {"run_id": report.get("run_id"), "row_count": report.get("row_count")})
+    return redirect(url_for("api_reports.dependencies_page", view=request.form.get("view", "host"), show_ports=1))
+
+
+@bp.get("/api/dependencies/reconcile/latest")
+@require_feature("dependencies")
+def reconcile_latest_api():
+    return jsonify(dependency_service.latest_reconcile_report() or {"status": "empty"})
 
 
 @bp.get("/api/dependencies/collect/status/<run_id>")

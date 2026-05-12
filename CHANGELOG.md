@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.1.46 - 2026-05-13 02:05 +08:00 - topology-ss-nmap-reconcile
+
+- 拓撲新增 `ss+nmap` 聯通驗證：以最新 `ss -tunp` 採集結果對照 nmap port scan。
+- 新增差異分類：雙方一致、ss 有但 nmap 掃不到、nmap 有但 ss 沒看到、外網未掃描。
+- 新增 Mongo 報告集合 `dependency_reconcile_reports`，保留每次驗證結果供後續比較與稽核。
+
 ## v1.0.1.45 - 2026-05-13 01:18 +08:00 - topology-impact-detail-panel
 
 - 拓撲故障模擬新增右側詳情面板，顯示故障節點、IP/OS、系統、一跳/二跳影響與關聯 Port。

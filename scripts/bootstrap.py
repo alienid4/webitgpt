@@ -70,6 +70,7 @@ COLLECTIONS = [
     "dependency_systems",
     "dependency_relations",
     "dependency_collect_runs",
+    "dependency_reconcile_reports",
     "dependency_ghost_ignored",
 ]
 
@@ -209,6 +210,9 @@ def ensure_indexes() -> None:
     get_db().dependency_relations.create_index([("evidence.last_seen_at", -1)], name="evidence_last_seen")
     get_db().dependency_collect_runs.create_index([("run_id", 1)], name="run_id", unique=True)
     get_db().dependency_collect_runs.create_index([("started_at", -1)], name="started_at")
+    get_db().dependency_reconcile_reports.create_index([("run_id", 1)], name="run_id", unique=True)
+    get_db().dependency_reconcile_reports.create_index([("started_at", -1)], name="started_at")
+    get_db().dependency_reconcile_reports.create_index([("ss_run_id", 1)], name="ss_run_id")
     get_db().dependency_ghost_ignored.create_index([("ip", 1)], name="ip", unique=True)
 
 
