@@ -210,6 +210,10 @@ def test_topology_spec_foundation_contracts_exist():
         "def upstream_impact(",
         "def analyze_ghosts(",
         "def adopt_ghost(",
+        "def collect_topology(",
+        "def latest_collect_run(",
+        "def collect_runs(",
+        "ss -tunp",
     ]:
         assert name in service
     assert "hashlib.sha1" in service
@@ -220,6 +224,7 @@ def test_topology_spec_foundation_contracts_exist():
         "/api/dependencies/impact",
         "/api/dependencies/ghosts",
         "/api/dependencies/collect/trigger",
+        "/dependencies/collect/trigger",
     ]:
         assert endpoint in routes
     assert "api_dependencies" in app
@@ -233,6 +238,8 @@ def test_topology_spec_foundation_contracts_exist():
     assert "edge.detail_label" in page and "edge.port_summary" in page
     assert "edge.caption" not in page
     assert "Port 明細請看下方清單" in page
+    assert "執行 ss -tunp 採集" in page
+    assert "採集狀態" in page
     assert "Ghost 清單" in ghosts
 
 

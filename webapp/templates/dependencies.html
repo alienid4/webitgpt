@@ -5,9 +5,26 @@
   <div>
     <p class="eyebrow">TOPOLOGY</p>
     <h1>系統拓撲互動圖</h1>
-    <p class="muted">依 CMDB 的機房、系統名稱與主機資料產生拓撲，線條代表實際納管關係。</p>
+    <p class="muted">線條只顯示最後一次成功 ss -tunp 採集快照；未採集前只顯示節點，避免把 CMDB 歸屬誤當實際連線。</p>
   </div>
-  <div class="actions"><a class="btn" href="{{ url_for('api_reports.dependencies_api') }}">JSON</a></div>
+  <div class="actions">
+    <form method="post" action="{{ url_for('api_dependencies.collect_trigger_page') }}">
+      <input type="hidden" name="view" value="{{ topology.view }}">
+      <button class="btn primary" type="submit">執行 ss -tunp 採集</button>
+    </form>
+    <a class="btn" href="{{ url_for('api_reports.dependencies_api') }}">JSON</a>
+  </div>
+</section>
+
+<section class="panel compact-panel">
+  <strong>採集狀態</strong>
+  <span class="text-muted-sm">{{ topology.meta.message }}</span>
+  {% if topology.meta.run_id %}
+    <span class="code-inline">{{ topology.meta.run_id }}</span>
+    <span class="text-muted-sm">最後採集：{{ topology.meta.last_collect_at or "-" }} / 關聯 {{ topology.meta.edge_count }}</span>
+  {% else %}
+    <span class="text-muted-sm">尚無成功採集版本。</span>
+  {% endif %}
 </section>
 
 <section class="panel">

@@ -3,6 +3,8 @@ from __future__ import annotations
 import ipaddress
 import hashlib
 import re
+import subprocess
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -30,6 +32,12 @@ def _public(doc: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
     if "_id" in item:
         item["_id"] = str(item["_id"])
     return item
+
+
+def _iso(value: Any) -> str:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return str(value) if value else ""
 
 
 def _system_id(name: str) -> str:
@@ -130,6 +138,8 @@ def list_relations(filters: Optional[dict[str, Any]] = None) -> list[dict[str, A
         query["source"] = filters["source"]
     if filters.get("system_id"):
         query["$or"] = [{"from_system": filters["system_id"]}, {"to_system": filters["system_id"]}]
+    if filters.get("run_id"):
+        query["evidence.run_id"] = filters["run_id"]
     return [_public(item) or {} for item in get_collection("dependency_relations").find(query).sort("updated_at", -1)]
 
 
@@ -157,6 +167,183 @@ def upsert_relation(data: dict[str, Any], actor: str = "system") -> dict[str, An
 
 def delete_relation(relation_id: str) -> bool:
     return bool(get_collection("dependency_relations").delete_one({"_id": ObjectId(relation_id)}).deleted_count)
+
+
+def latest_collect_run() -> Optional[dict[str, Any]]:
+    return _public(get_collection("dependency_collect_runs").find_one({"status": "success"}, sort=[("finished_at", -1)]))
+
+
+def collect_topology(actor: str = "system", limit_hosts: int = 20) -> dict[str, Any]:
+    previous_success = latest_collect_run()
+    run_id = f"topo-{_now().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}"
+    started_at = _now()
+    hosts = _hosts()[:limit_hosts]
+    run_doc = {
+        "run_id": run_id,
+        "status": "running",
+        "collector": "ss -tunp",
+        "started_at": started_at,
+        "started_by": actor,
+        "host_count": len(hosts),
+        "edge_count": 0,
+        "errors": [],
+    }
+    get_collection("dependency_collect_runs").insert_one(run_doc)
+    aggregate: dict[tuple[str, str], dict[str, Any]] = {}
+    errors = []
+    for host in hosts:
+        hostname = host.get("hostname") or host.get("asset_seq") or host.get("ip")
+        try:
+            output = _run_ss_tunp(host)
+            for edge in _parse_ss_tunp(host, output, run_id):
+                key = (edge["from_system"], edge["to_system"])
+                item = aggregate.setdefault(key, edge)
+                if item is not edge:
+                    _merge_edge_evidence(item["evidence"], edge["evidence"])
+        except Exception as exc:  # noqa: BLE001 - keep collection resilient per host
+            errors.append({"host": hostname, "error": str(exc)[:300]})
+    now = _now()
+    should_replace_snapshot = not errors
+    if errors and aggregate and not previous_success:
+        should_replace_snapshot = True
+    if should_replace_snapshot:
+        get_collection("dependency_relations").delete_many({"source": "auto"})
+        for edge in aggregate.values():
+            edge["updated_at"] = now
+            edge["updated_by"] = actor
+            get_collection("dependency_relations").update_one(
+                {"from_system": edge["from_system"], "to_system": edge["to_system"]},
+                {"$set": edge, "$setOnInsert": {"created_at": now, "created_by": actor}},
+                upsert=True,
+            )
+        status = "success" if not errors else "partial"
+    else:
+        status = "partial" if aggregate else "failed"
+    update = {"status": status, "finished_at": now, "edge_count": len(aggregate), "errors": errors, "snapshot_replaced": should_replace_snapshot}
+    get_collection("dependency_collect_runs").update_one({"run_id": run_id}, {"$set": update})
+    run_doc.update(update)
+    return _public(run_doc) or run_doc
+
+
+def collect_runs(limit: int = 20) -> list[dict[str, Any]]:
+    return [_public(item) or {} for item in get_collection("dependency_collect_runs").find({}).sort("started_at", -1).limit(limit)]
+
+
+def _run_ss_tunp(host: dict[str, Any]) -> str:
+    hostname = host.get("hostname") or host.get("ip")
+    if host.get("ip") in {"127.0.0.1", "localhost", "192.168.1.221"} or hostname in {"localhost", "secansible"}:
+        cmd = ["bash", "-lc", "ss -tunp || netstat -tunp"]
+    else:
+        ssh_user = host.get("ssh_user") or "sysinfra"
+        ssh_port = str(host.get("ssh_port") or 22)
+        target = host.get("ip") or hostname
+        cmd = [
+            "ssh",
+            "-o",
+            "BatchMode=yes",
+            "-o",
+            "ConnectTimeout=8",
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-p",
+            ssh_port,
+            f"{ssh_user}@{target}",
+            "ss -tunp || netstat -tunp",
+        ]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+    if result.returncode != 0:
+        raise RuntimeError((result.stderr or result.stdout or f"{hostname} ss failed").strip())
+    return result.stdout
+
+
+def _parse_ss_tunp(host: dict[str, Any], output: str, run_id: str) -> list[dict[str, Any]]:
+    host_ips = _known_host_ip_map()
+    caller = host.get("hostname") or host.get("asset_seq") or host.get("ip")
+    caller_ip = host.get("ip") or ""
+    now = _now()
+    edges: list[dict[str, Any]] = []
+    for line in output.splitlines():
+        parts = line.split()
+        if len(parts) < 6 or parts[0].lower() in {"netid", "proto"}:
+            continue
+        local = _parse_endpoint(parts[4])
+        remote = _parse_endpoint(parts[5])
+        if not local or not remote:
+            continue
+        remote_ip, remote_port = remote
+        local_ip, local_port = local
+        if _skip_remote(remote_ip, remote_port):
+            continue
+        target = host_ips.get(remote_ip, f"UNKNOWN-{remote_ip}")
+        process_name = _parse_process(line)
+        edges.append(
+            {
+                "from_system": caller,
+                "to_system": target,
+                "rel_type": "tcp/udp",
+                "source": "auto",
+                "confidence": 0.8,
+                "description": "ss -tunp 採集",
+                "evidence": {
+                    "run_id": run_id,
+                    "collector": "ss -tunp",
+                    "caller_hostname": caller,
+                    "caller_ip": caller_ip,
+                    "last_local_ip": local_ip,
+                    "last_local_port": local_port,
+                    "last_remote_ip": remote_ip,
+                    "last_remote_port": remote_port,
+                    "remote_ports": [remote_port],
+                    "local_ports": [local_port],
+                    "process_name": process_name,
+                    "processes": [process_name] if process_name else [],
+                    "seen_count": 1,
+                    "last_seen_at": now,
+                },
+                "metadata": {},
+            }
+        )
+    return edges
+
+
+def _parse_endpoint(value: str) -> Optional[tuple[str, str]]:
+    value = value.strip()
+    if value in {"*:*", "0.0.0.0:*", "[::]:*"}:
+        return None
+    if value.startswith("[") and "]:" in value:
+        ip, port = value[1:].rsplit("]:", 1)
+        return ip, port
+    if ":" not in value:
+        return None
+    ip, port = value.rsplit(":", 1)
+    return ip.strip("[]"), port
+
+
+def _skip_remote(ip: str, port: str) -> bool:
+    if not ip or port == "*":
+        return True
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return True
+    return addr.is_loopback or addr.is_unspecified
+
+
+def _parse_process(line: str) -> str:
+    match = re.search(r'users:\(\("([^"]+)"', line)
+    return match.group(1) if match else ""
+
+
+def _merge_edge_evidence(target: dict[str, Any], source: dict[str, Any]) -> None:
+    target["seen_count"] = int(target.get("seen_count") or 0) + int(source.get("seen_count") or 1)
+    for key in ("remote_ports", "local_ports", "processes"):
+        values = list(target.get(key) or [])
+        for item in source.get(key) or []:
+            if item and item not in values:
+                values.append(item)
+        target[key] = values
+    for key in ("last_local_ip", "last_local_port", "last_remote_ip", "last_remote_port", "process_name", "last_seen_at"):
+        target[key] = source.get(key) or target.get(key)
 
 
 def _node(system: dict[str, Any]) -> dict[str, Any]:
@@ -236,6 +423,25 @@ def _edge_payload(rel: dict[str, Any], source_label: str, target_label: str) -> 
     }
 
 
+def _topology_meta(view: str) -> dict[str, Any]:
+    latest = latest_collect_run()
+    if not latest:
+        return {
+            "view": view,
+            "collect_status": "never",
+            "message": "尚未執行 ss -tunp 採集，拓撲只顯示節點，不顯示連線。",
+        }
+    return {
+        "view": view,
+        "collect_status": latest.get("status"),
+        "run_id": latest.get("run_id"),
+        "collector": latest.get("collector"),
+        "last_collect_at": _iso(latest.get("finished_at") or latest.get("started_at")),
+        "edge_count": latest.get("edge_count", 0),
+        "message": "目前顯示最後一次成功 ss -tunp 採集快照。",
+    }
+
+
 def topology(view: str = "system", center: str = "", depth: int = 2, limit: int = 200) -> dict[str, Any]:
     view = view if view in {"system", "host", "ip"} else "system"
     if view == "host":
@@ -248,7 +454,8 @@ def topology(view: str = "system", center: str = "", depth: int = 2, limit: int 
 def _system_topology(center: str = "", depth: int = 2, limit: int = 200) -> dict[str, Any]:
     systems = list_systems()
     system_map = {item["system_id"]: item for item in systems}
-    relations = list_relations()
+    latest = latest_collect_run()
+    relations = list_relations({"run_id": latest["run_id"]}) if latest else []
     if center:
         keep = _reachable(center, relations, depth)
         systems = [item for item in systems if item["system_id"] in keep]
@@ -265,42 +472,69 @@ def _system_topology(center: str = "", depth: int = 2, limit: int = 200) -> dict
         if rel.get("from_system") in node_ids and rel.get("to_system") in node_ids
     ]
     _layout(nodes, edges)
-    return {"view": "system", "nodes": nodes, "edges": edges, "meta": {"systems": len(nodes), "relations": len(edges), "center": center, "depth": depth}}
+    meta = _topology_meta("system")
+    meta.update({"systems": len(nodes), "relations": len(edges), "center": center, "depth": depth})
+    return {"view": "system", "nodes": nodes, "edges": edges, "meta": meta}
 
 
 def _host_topology(limit: int = 200) -> dict[str, Any]:
     hosts = _hosts()[:limit]
+    host_map = {host.get("hostname"): host for host in hosts if host.get("hostname")}
+    ip_map = _known_host_ip_map()
     nodes = [{"id": host.get("hostname"), "label": host.get("hostname"), "kind": "主機", "ip": host.get("ip"), "os": host.get("os"), "system": host.get("system_name") or ""} for host in hosts if host.get("hostname")]
-    system_nodes = []
+    node_ids = {node["id"] for node in nodes}
     edges = []
-    known_systems = set()
-    for host in hosts:
-        system_name = host.get("system_name")
-        if not system_name or not host.get("hostname"):
-            continue
-        sid = _system_id(system_name)
-        if sid not in known_systems:
-            known_systems.add(sid)
-            system_nodes.append({"id": sid, "label": system_name, "kind": "系統"})
-        edges.append({"source": sid, "target": host["hostname"], "source_label": system_name, "target_label": host["hostname"], "label": "包含主機", "caption": "", "detail_label": f"{system_name} -> {host['hostname']} / 包含主機", "port_summary": "", "process_name": "", "seen_count": "", "last_seen": "", "trust": "manual"})
-    nodes = system_nodes + nodes
+    latest = latest_collect_run()
+    relations = list_relations({"run_id": latest["run_id"]}) if latest else []
+    for rel in relations:
+        source = rel.get("from_system")
+        target = rel.get("to_system")
+        evidence = rel.get("evidence") or {}
+        if target not in node_ids:
+            remote_ip = evidence.get("last_remote_ip") or str(target).replace("UNKNOWN-", "")
+            label = ip_map.get(remote_ip) or remote_ip or target
+            nodes.append({"id": target, "label": label, "kind": "未知" if str(target).startswith("UNKNOWN-") else "主機", "ip": remote_ip, "os": ""})
+            node_ids.add(target)
+        source_label = host_map.get(source, {}).get("hostname") or source
+        target_label = host_map.get(target, {}).get("hostname") or evidence.get("last_remote_ip") or target
+        edges.append(_edge_payload(rel, source_label, target_label))
     _layout(nodes, edges)
-    return {"view": "host", "nodes": nodes, "edges": edges, "meta": {"hosts": len(hosts), "relations": len(edges)}}
+    meta = _topology_meta("host")
+    meta.update({"hosts": len(hosts), "relations": len(edges)})
+    return {"view": "host", "nodes": nodes, "edges": edges, "meta": meta}
 
 
 def _ip_topology(limit: int = 200) -> dict[str, Any]:
     hosts = _hosts()[:limit]
     nodes = []
     edges = []
+    latest = latest_collect_run()
+    relations = list_relations({"run_id": latest["run_id"]}) if latest else []
     for host in hosts:
         hostname = host.get("hostname")
         if hostname:
             nodes.append({"id": hostname, "label": hostname, "kind": "主機", "os": host.get("os")})
         for ip in host.get("ip_addresses") or ([host.get("ip")] if host.get("ip") else []):
             nodes.append({"id": ip, "label": ip, "kind": "IP"})
-            edges.append({"source": hostname, "target": ip, "source_label": hostname, "target_label": ip, "label": "IP 登錄", "caption": "", "detail_label": f"{hostname} -> {ip} / IP 登錄", "port_summary": "", "process_name": "", "seen_count": "", "last_seen": "", "trust": "manual"})
+    node_ids = {node["id"] for node in nodes}
+    for rel in relations:
+        evidence = rel.get("evidence") or {}
+        source = evidence.get("caller_ip") or rel.get("from_system")
+        target = evidence.get("last_remote_ip") or rel.get("to_system")
+        if source not in node_ids:
+            nodes.append({"id": source, "label": source, "kind": "IP"})
+            node_ids.add(source)
+        if target not in node_ids:
+            nodes.append({"id": target, "label": target, "kind": "IP"})
+            node_ids.add(target)
+        ip_rel = dict(rel)
+        ip_rel["from_system"] = source
+        ip_rel["to_system"] = target
+        edges.append(_edge_payload(ip_rel, source, target))
     _layout(nodes, edges)
-    return {"view": "ip", "nodes": nodes, "edges": edges, "meta": {"hosts": len(hosts), "ips": len([n for n in nodes if n.get("kind") == "IP"])}}
+    meta = _topology_meta("ip")
+    meta.update({"hosts": len(hosts), "ips": len([n for n in nodes if n.get("kind") == "IP"]), "relations": len(edges)})
+    return {"view": "ip", "nodes": nodes, "edges": edges, "meta": meta}
 
 
 def _reachable(center: str, relations: list[dict[str, Any]], depth: int) -> set[str]:
@@ -357,6 +591,16 @@ def _known_host_ips() -> set[str]:
         for ip in host.get("ip_addresses") or ([host.get("ip")] if host.get("ip") else []):
             ips.add(ip)
     return ips
+
+
+def _known_host_ip_map() -> dict[str, str]:
+    items = {}
+    for host in _hosts():
+        hostname = host.get("hostname")
+        for ip in host.get("ip_addresses") or ([host.get("ip")] if host.get("ip") else []):
+            if ip and hostname:
+                items[ip] = hostname
+    return items
 
 
 def _classify_external(ip: str) -> Optional[dict[str, str]]:

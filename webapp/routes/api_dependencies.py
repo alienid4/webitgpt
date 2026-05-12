@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, jsonify, redirect, render_template, request, url_for
 
 from webapp.decorators import current_user, require_feature, require_role
 from webapp.services import audit_log_service
@@ -138,13 +138,25 @@ def upstream_api():
 @require_feature("dependencies")
 @require_role("admin")
 def collect_trigger_api():
-    return jsonify({"status": "queued", "message": "拓撲採集器骨架已建立；ss -tunp read-only runner 將在下一步接入。"})
+    run = dependency_service.collect_topology(current_user()["username"])
+    audit_log_service.append("dependencies.collect.trigger", current_user()["username"], {"run_id": run.get("run_id"), "status": run.get("status")})
+    return jsonify(run)
+
+
+@bp.post("/dependencies/collect/trigger")
+@require_feature("dependencies")
+@require_role("admin")
+def collect_trigger_page():
+    run = dependency_service.collect_topology(current_user()["username"])
+    audit_log_service.append("dependencies.collect.trigger", current_user()["username"], {"run_id": run.get("run_id"), "status": run.get("status")})
+    return redirect(url_for("api_reports.dependencies_page", view=request.form.get("view", "host")))
 
 
 @bp.get("/api/dependencies/collect/status/<run_id>")
 @require_feature("dependencies")
 def collect_status_api(run_id: str):
-    return jsonify({"run_id": run_id, "status": "not_found"})
+    items = [item for item in dependency_service.collect_runs(limit=100) if item.get("run_id") == run_id]
+    return (jsonify(items[0]), 200) if items else (jsonify({"run_id": run_id, "status": "not_found"}), 404)
 
 
 @bp.get("/api/dependencies/collect/schedule")
@@ -163,7 +175,7 @@ def collect_schedule_update_api():
 @bp.get("/api/dependencies/collect/runs")
 @require_feature("dependencies")
 def collect_runs_api():
-    return jsonify({"items": []})
+    return jsonify({"items": dependency_service.collect_runs()})
 
 
 @bp.get("/api/dependencies/ghosts")

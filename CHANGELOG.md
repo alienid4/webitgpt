@@ -1,5 +1,20 @@
 # webitgpt Changelog
 
+## v1.0.1.34 - 2026-05-12 22:46 +08:00 - topology-preserve-last-success
+
+- 拓撲採集遇到部分主機失敗時不覆蓋上一個成功快照，避免半套資料洗掉原本可用拓撲。
+- 採集結果新增 `snapshot_replaced`，方便判斷本次是否真的更新畫面資料來源。
+
+## v1.0.1.33 - 2026-05-12 22:38 +08:00 - topology-local-collector-fix
+
+- 修正 221 本機拓撲採集改走本機 `ss -tunp`，不再 SSH 自己造成 permission denied。
+
+## v1.0.1.32 - 2026-05-12 22:28 +08:00 - topology-ss-snapshot-source
+
+- 拓撲線條改為只讀最後一次成功 `ss -tunp` 採集快照，未採集前不再用 CMDB 歸屬產生假連線。
+- 新增拓撲採集按鈕與採集狀態，採集失敗時保留上一版成功快照。
+- `dependency_collect_runs` 記錄採集版本，`dependency_relations` 的 auto 關聯改帶 run_id、Port、process 與 last_seen evidence。
+
 ## v1.0.1.31 - 2026-05-12 22:12 +08:00 - topology-edge-labels-off
 
 - 拓撲圖關閉線上 Port/關係文字，避免多條線靠近時文字仍然黏在一起。
