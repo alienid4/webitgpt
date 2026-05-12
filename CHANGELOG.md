@@ -1,5 +1,10 @@
 # webitgpt Changelog
 
+## v1.0.1.24 - 2026-05-12 07:35 +08:00 - opening-dashboard-overflow-fix
+
+- 修正開門檢查儀表板在兩張主機卡並排時，9 面向燈號格子超出卡片邊界的問題。
+- 將燈號區改為自適應 2 欄/1 欄，並限制卡片、內容與文字不可外溢。
+
 ## v1.0.1.23 - 2026-05-11 23:42 +08:00 - deep-check-spec-foundation
 
 - 依 deep_check.md 規格導入深度檢查 Job 架構，新增 Mongo `deep_check_jobs` 與 `deep_check_reports`。

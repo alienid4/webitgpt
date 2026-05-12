@@ -1270,9 +1270,10 @@ textarea,
 
 .opening-dashboard {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr));
   gap: 14px;
   margin: 14px 0;
+  overflow: hidden;
 }
 
 .gauge-card {
@@ -1282,6 +1283,8 @@ textarea,
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 18px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .gauge-ok { border-left-color: var(--g1); }
@@ -1319,9 +1322,10 @@ textarea,
 
 .gauge-body {
   display: grid;
-  grid-template-columns: 190px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: minmax(150px, 170px) minmax(0, 1fr);
+  gap: 14px;
   margin: 16px 0;
+  min-width: 0;
 }
 
 .score-meter {
@@ -1331,7 +1335,7 @@ textarea,
 }
 
 .score-ring {
-  width: 150px;
+  width: 138px;
   aspect-ratio: 1;
   border: 10px solid var(--c4);
   border-top-color: var(--g1);
@@ -1379,8 +1383,9 @@ textarea,
 
 .aspect-lights {
   display: grid;
-  grid-template-columns: repeat(3, minmax(150px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+  min-width: 0;
 }
 
 .aspect-light {
@@ -1388,19 +1393,24 @@ textarea,
   border-radius: var(--radius-xs);
   background: var(--white);
   min-width: 0;
+  overflow: hidden;
 }
 
 .aspect-light summary {
   min-height: 46px;
   display: grid;
-  grid-template-columns: 18px 1fr auto;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   padding: 8px;
   cursor: pointer;
 }
 
-.aspect-light strong { font-size: 14px; }
+.aspect-light strong {
+  min-width: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
 
 .aspect-light em {
   font-style: normal;
@@ -1427,7 +1437,7 @@ textarea,
   .opening-dashboard { grid-template-columns: 1fr; }
   .gauge-body { grid-template-columns: 1fr; }
   .score-ring { width: 132px; }
-  .aspect-lights { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+  .aspect-lights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 520px) {
