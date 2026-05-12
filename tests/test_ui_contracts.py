@@ -231,6 +231,8 @@ def test_topology_spec_foundation_contracts_exist():
     assert "dependency_ghost_ignored" in bootstrap
     assert "系統視角" in page and "主機視角" in page and "IP 視角" in page
     assert "edge.detail_label" in page and "edge.port_summary" in page
+    assert "edge.caption" not in page
+    assert "Port 明細請看下方清單" in page
     assert "Ghost 清單" in ghosts
 
 
