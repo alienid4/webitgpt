@@ -1,6 +1,27 @@
 {% extends "base.html" %}
 {% block title %}系統拓撲 - webitgpt{% endblock %}
 {% block content %}
+{% set show_ports = request.args.get('show_ports') in ['1', 'true', 'yes', 'on'] %}
+{% set fullscreen_args = {
+  'view': topology.view,
+  'center': request.args.get('center', ''),
+  'depth': request.args.get('depth', '2'),
+  'include_external': 1 if topology.meta.include_external else 0,
+  'show_ports': 1 if show_ports else 0
+} %}
+{% if fullscreen %}
+<section class="topology-fullscreen-panel">
+  <div class="topology-fullscreen-head">
+    <div>
+      <p class="eyebrow">TOPOLOGY FULLSCREEN</p>
+      <h1>系統拓撲互動圖</h1>
+      <p class="muted">全螢幕檢視：保留目前視角、深度、外網與 Port 顯示設定。</p>
+    </div>
+    <div class="actions">
+      <a class="btn" href="{{ url_for('api_reports.dependencies_page', **fullscreen_args) }}">回拓撲頁</a>
+    </div>
+  </div>
+{% else %}
 <section class="panel report-hero">
   <div>
     <p class="eyebrow">TOPOLOGY</p>
@@ -26,10 +47,11 @@
     <span class="text-muted-sm">尚無成功採集版本。</span>
   {% endif %}
 </section>
+{% endif %}
 
-<section class="panel">
+<section class="panel {% if fullscreen %}topology-fullscreen-card{% endif %}">
   <div class="topology-toolbar">
-    <form class="filter-bar" method="get" action="{{ url_for('api_reports.dependencies_page') }}" data-topology-filter>
+    <form class="filter-bar" method="get" action="{{ url_for('api_dependencies.dependencies_fullscreen_page') if fullscreen else url_for('api_reports.dependencies_page') }}" data-topology-filter>
       <select name="view" data-auto-submit>
         <option value="system" {% if topology.view == "system" %}selected{% endif %}>系統視角</option>
         <option value="host" {% if topology.view == "host" %}selected{% endif %}>主機視角</option>
@@ -44,12 +66,16 @@
         顯示外網未知節點
       </label>
       <label class="toggle-label">
-        <input type="checkbox" name="show_ports" value="1" {% if request.args.get('show_ports') in ['1', 'true', 'yes', 'on'] %}checked{% endif %} data-auto-submit>
+        <input type="checkbox" name="show_ports" value="1" {% if show_ports %}checked{% endif %} data-auto-submit>
         圖上顯示 Port
       </label>
       <button type="submit">套用</button>
       <a class="btn" href="{{ url_for('api_dependencies.dependencies_ghosts_page', include_external=1 if topology.meta.include_external else 0) }}">Ghost 清單</a>
-      <a class="btn" href="{{ url_for('api_dependencies.dependencies_fullscreen_page', view=topology.view, include_external=1 if topology.meta.include_external else 0, show_ports=1 if request.args.get('show_ports') in ['1', 'true', 'yes', 'on'] else 0) }}">全螢幕</a>
+      {% if fullscreen %}
+        <a class="btn" href="{{ url_for('api_reports.dependencies_page', **fullscreen_args) }}">離開全螢幕</a>
+      {% else %}
+        <a class="btn primary" href="{{ url_for('api_dependencies.dependencies_fullscreen_page', **fullscreen_args) }}">全螢幕</a>
+      {% endif %}
     </form>
     <div class="topology-legend">
       <span><i class="topology-dot topology-dot-dc"></i>機房</span>
@@ -92,7 +118,7 @@
           <g class="topology-edge" tabindex="0">
             <title>{{ edge.detail_label or edge.source_label ~ " → " ~ edge.target_label }}</title>
             <line class="topology-line-{{ edge.trust or 'manual' }}" x1="{{ edge.x1 }}" y1="{{ edge.y1 }}" x2="{{ edge.x2 }}" y2="{{ edge.y2 }}"></line>
-            {% if request.args.get('show_ports') in ['1', 'true', 'yes', 'on'] and edge.port_label %}
+            {% if show_ports and edge.port_label %}
               <text class="topology-edge-label topology-edge-label-short" x="{{ (edge.x1 + edge.x2) / 2 }}" y="{{ (edge.y1 + edge.y2) / 2 - 48 }}" text-anchor="middle">{{ edge.port_label_short or edge.port_label }}</text>
             {% endif %}
           </g>
@@ -111,7 +137,7 @@
   </div>
 </section>
 
-<section class="panel">
+<section class="panel {% if fullscreen %}topology-fullscreen-list{% endif %}">
   <h2>聯通清單</h2>
   <table class="data-table">
     <thead><tr><th>來源</th><th>目標</th><th>關係</th><th>Port</th><th>程序</th><th>次數</th><th>最後看到</th></tr></thead>
@@ -132,6 +158,9 @@
     </tbody>
   </table>
 </section>
+{% if fullscreen %}
+</section>
+{% endif %}
 {% endblock %}
 {% block scripts %}
 <script>

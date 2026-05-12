@@ -244,6 +244,9 @@ def test_topology_spec_foundation_contracts_exist():
     assert "show_ports" in page and "edge.port_label" in page
     assert "edge.caption" not in page
     assert "Port 明細請看下方清單" in page
+    assert "topology-fullscreen-panel" in page
+    assert "dependencies_fullscreen_page" in page
+    assert "離開全螢幕" in page
     assert "執行 ss -tunp 採集" in page
     assert "採集狀態" in page
     assert "顯示外網未知節點" in page

@@ -46,7 +46,7 @@
       {% if feature_enabled("module_compliance_security", default=false) %}
       <a data-nav-key="twgcb" draggable="true" title="TWGCB 合規" class="{% if endpoint.startswith('api_compliance.') %}active{% endif %}" href="{{ url_for('api_compliance.security_audit_page') }}">TWGCB 合規</a>
       {% endif %}
-      <a data-nav-key="topology" draggable="true" title="系統拓撲" class="{% if endpoint == 'api_reports.dependencies_page' %}active{% endif %}" href="{{ url_for('api_reports.dependencies_page') }}">系統拓撲</a>
+      <a data-nav-key="topology" draggable="true" title="系統拓撲" class="{% if endpoint in ['api_reports.dependencies_page','api_dependencies.dependencies_fullscreen_page'] %}active{% endif %}" href="{{ url_for('api_reports.dependencies_page') }}">系統拓撲</a>
       <a data-nav-key="assets" draggable="true" title="資產管理" class="nav-warn {% if endpoint.startswith('api_hosts.') %}active{% endif %}" href="{{ url_for('api_hosts.hosts_page') }}">▣ 資產管理</a>
       {% if is_superadmin %}
         {% set dev_console_endpoints = ['api_superadmin.validation_page','api_superadmin.dev_console_page','api_superadmin.logs_page','api_superadmin.jobs_page'] %}
