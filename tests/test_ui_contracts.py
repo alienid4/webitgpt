@@ -232,6 +232,7 @@ def test_topology_spec_foundation_contracts_exist():
     assert "api_dependencies" in app
     assert "def _port_summary(" in service
     assert "def _port_label(" in service
+    assert "def _short_port_label(" in service
     assert "PORT_SERVICE_NAMES" in service
     assert "def _edge_payload(" in service
     assert "dependency_systems" in bootstrap

@@ -896,6 +896,10 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   stroke-width: 5px;
 }
 
+.topology-edge-label-short {
+  font-size: 11px;
+}
+
 .topology-node circle {
   fill: var(--g-light);
   stroke: var(--g1);

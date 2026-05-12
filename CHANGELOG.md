@@ -1,5 +1,15 @@
 # webitgpt Changelog
 
+## v1.0.1.40 - 2026-05-13 00:12 +08:00 - topology-port-label-offset
+
+- 拓撲 Port 標籤改為顯示在節點上方，避免長連線穿過中間節點時文字被蓋住。
+- 圖上只放短標籤，例如 `SSH 22`；完整 `SSH 22 -> 39950` 仍保留在 tooltip 與下方聯通清單。
+
+## v1.0.1.39 - 2026-05-13 00:05 +08:00 - topology-port-label-overlap-fix
+
+- 拓撲短線上的 Port 標籤改顯示服務簡稱，例如 `SSH`，避免完整 `SSH 22 -> 39950` 被節點蓋住。
+- 完整 Port 仍保留在 tooltip 與下方聯通清單。
+
 ## v1.0.1.38 - 2026-05-12 23:52 +08:00 - topology-port-label-toggle
 
 - 拓撲新增「圖上顯示 Port」開關，預設保持乾淨，打開後在線條中央顯示 Port。

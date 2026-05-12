@@ -468,12 +468,19 @@ def _edge_payload(rel: dict[str, Any], source_label: str, target_label: str) -> 
         "detail_label": " / ".join(str(item) for item in detail_parts if item),
         "port_summary": port_summary,
         "port_label": port_label,
+        "port_label_short": _short_port_label(port_label),
         "process_name": process_name,
         "seen_count": seen_count,
         "last_seen": last_seen,
         "trust": rel.get("source") or "manual",
         "evidence": evidence,
     }
+
+
+def _short_port_label(port_label: str) -> str:
+    if " -> " in port_label:
+        return port_label.split(" -> ", 1)[0]
+    return port_label
 
 
 def _topology_meta(view: str) -> dict[str, Any]:
