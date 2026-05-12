@@ -231,6 +231,8 @@ def test_topology_spec_foundation_contracts_exist():
         assert endpoint in routes
     assert "api_dependencies" in app
     assert "def _port_summary(" in service
+    assert "def _port_label(" in service
+    assert "PORT_SERVICE_NAMES" in service
     assert "def _edge_payload(" in service
     assert "dependency_systems" in bootstrap
     assert "dependency_relations" in bootstrap
@@ -238,6 +240,7 @@ def test_topology_spec_foundation_contracts_exist():
     assert "dependency_ghost_ignored" in bootstrap
     assert "系統視角" in page and "主機視角" in page and "IP 視角" in page
     assert "edge.detail_label" in page and "edge.port_summary" in page
+    assert "show_ports" in page and "edge.port_label" in page
     assert "edge.caption" not in page
     assert "Port 明細請看下方清單" in page
     assert "執行 ss -tunp 採集" in page

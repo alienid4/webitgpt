@@ -885,6 +885,17 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   stroke-width: 4;
 }
 
+.topology-edge-label {
+  fill: var(--c1);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  font-weight: 900;
+  paint-order: stroke;
+  pointer-events: none;
+  stroke: var(--bg);
+  stroke-width: 5px;
+}
+
 .topology-node circle {
   fill: var(--g-light);
   stroke: var(--g1);

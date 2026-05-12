@@ -20,6 +20,39 @@ KNOWN_EXTERNAL = [
     {"name": "Cloudflare", "cidr": "104.16.0.0/12", "category": "External"},
 ]
 
+PORT_SERVICE_NAMES = {
+    "20": "FTP-DATA",
+    "21": "FTP",
+    "22": "SSH",
+    "23": "TELNET",
+    "25": "SMTP",
+    "53": "DNS",
+    "80": "HTTP",
+    "110": "POP3",
+    "123": "NTP",
+    "143": "IMAP",
+    "389": "LDAP",
+    "443": "HTTPS",
+    "445": "SMB",
+    "465": "SMTPS",
+    "587": "SMTP",
+    "636": "LDAPS",
+    "993": "IMAPS",
+    "995": "POP3S",
+    "1433": "MSSQL",
+    "1521": "ORACLE",
+    "3306": "MYSQL",
+    "3389": "RDP",
+    "5432": "POSTGRES",
+    "5900": "VNC",
+    "6379": "REDIS",
+    "8002": "WEBITGPT",
+    "8080": "HTTP-ALT",
+    "8443": "HTTPS-ALT",
+    "9444": "EDGE",
+    "27017": "MONGO",
+}
+
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -390,9 +423,28 @@ def _port_summary(evidence: dict[str, Any]) -> str:
     return ""
 
 
+def _port_service_name(*ports: Any) -> str:
+    for port in ports:
+        if not port:
+            continue
+        name = PORT_SERVICE_NAMES.get(str(port))
+        if name:
+            return name
+    return ""
+
+
+def _port_label(evidence: dict[str, Any]) -> str:
+    summary = _port_summary(evidence)
+    if not summary:
+        return ""
+    service = _port_service_name(evidence.get("last_remote_port"), evidence.get("last_local_port"))
+    return f"{service} {summary}" if service else summary
+
+
 def _edge_payload(rel: dict[str, Any], source_label: str, target_label: str) -> dict[str, Any]:
     evidence = rel.get("evidence") or {}
     port_summary = _port_summary(evidence)
+    port_label = _port_label(evidence)
     process_name = evidence.get("process_name") or evidence.get("program") or ""
     seen_count = evidence.get("seen_count") or ""
     last_seen = evidence.get("last_seen_at") or evidence.get("last_seen") or ""
@@ -415,6 +467,7 @@ def _edge_payload(rel: dict[str, Any], source_label: str, target_label: str) -> 
         "caption": port_summary or rel_label,
         "detail_label": " / ".join(str(item) for item in detail_parts if item),
         "port_summary": port_summary,
+        "port_label": port_label,
         "process_name": process_name,
         "seen_count": seen_count,
         "last_seen": last_seen,
