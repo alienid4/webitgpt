@@ -449,5 +449,45 @@ def topology_view() -> dict[str, Any]:
             if not any(node["id"] == sid for node in nodes):
                 nodes.append({"id": sid, "label": host.get("system_name"), "kind": "系統"})
             edges.append({"source": sid, "target": hid, "label": host.get("asset_usage") or ""})
-    return {"nodes": nodes, "edges": edges, "hosts": hosts}
+
+    def assign_positions(group: list[dict[str, Any]], y: int) -> None:
+        if not group:
+            return
+        count = max(len(group), 1)
+        if count == 1:
+            group[0]["x"] = 550
+            group[0]["y"] = y
+            return
+        step = 900 / max(count - 1, 1)
+        for index, node in enumerate(group):
+            node["x"] = int(100 + index * step)
+            node["y"] = y
+
+    dc_nodes = [node for node in nodes if node["id"].startswith("dc:")]
+    system_nodes = [node for node in nodes if node["id"].startswith("sys:")]
+    host_nodes = [node for node in nodes if node not in dc_nodes and node not in system_nodes]
+    assign_positions(dc_nodes, 80)
+    assign_positions(system_nodes, 235)
+    assign_positions(host_nodes, 400)
+
+    node_map = {node["id"]: node for node in nodes}
+    enriched_edges = []
+    for edge in edges:
+        source = node_map.get(edge["source"])
+        target = node_map.get(edge["target"])
+        if not source or not target:
+            continue
+        enriched_edges.append(
+            {
+                **edge,
+                "source_label": source.get("label") or edge["source"],
+                "target_label": target.get("label") or edge["target"],
+                "x1": source.get("x"),
+                "y1": source.get("y"),
+                "x2": target.get("x"),
+                "y2": target.get("y"),
+            }
+        )
+
+    return {"nodes": nodes, "edges": enriched_edges, "hosts": hosts}
 

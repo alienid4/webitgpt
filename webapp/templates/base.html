@@ -19,15 +19,15 @@
       <a class="brand" href="{{ url_for('api_hosts.hosts_page') }}">IT 巡檢系統</a>
       {% if show_app_shell %}
       <form class="quick-search" method="get" action="{{ url_for('api_hosts.hosts_page') }}">
-        <span aria-hidden="true">Search</span>
-        <input name="q" placeholder="搜尋資產..." autocomplete="off">
+        <span aria-hidden="true">搜尋</span>
+        <input name="q" placeholder="搜尋功能..." autocomplete="off">
       </form>
       {% endif %}
       <div class="build-chip" title="{{ patch_id }} / {{ release_note }}">v{{ app_version }} <span>|</span> {{ build_time }}</div>
       {% if show_app_shell %}
         <div class="user-chip">{{ role_label }} ({{ current_user.username }})</div>
         <a class="header-link" href="{{ url_for('auth.mfa_page') }}">帳號設定</a>
-        <button class="header-link" id="themeToggle" type="button" title="切換深色模式">深色</button>
+        <button class="header-link" id="themeToggle" type="button" title="切換夜間模式">夜間</button>
         <form method="post" action="{{ url_for('auth.logout') }}"><button class="header-link danger" type="submit">登出</button></form>
       {% elif not is_login_page %}
         <a class="header-link" href="{{ url_for('auth.login_page') }}">登入</a>
@@ -35,7 +35,7 @@
     </div>
     {% if show_app_shell %}
     <nav class="nav">
-      <a data-nav-key="dashboard" draggable="true" title="總覽" class="{% if endpoint == 'api_reports.dashboard_page' %}active{% endif %}" href="{{ url_for('api_reports.dashboard_page') }}">儀表板</a>
+      <a data-nav-key="dashboard" draggable="true" title="儀表板" class="{% if endpoint == 'api_reports.dashboard_page' %}active{% endif %}" href="{{ url_for('api_reports.dashboard_page') }}">儀表板</a>
       <a data-nav-key="executive_dashboard" draggable="true" title="主管儀表板" class="nav-strong {% if endpoint == 'api_reports.executive_page' %}active{% endif %}" href="{{ url_for('api_reports.executive_page') }}">主管儀表板</a>
       <a data-nav-key="daily_report" draggable="true" title="開門檢查" class="{% if endpoint == 'api_operations.inspections_page' %}active{% endif %}" href="{{ url_for('api_operations.inspections_page') }}">開門檢查</a>
       {% if feature_enabled("module_compliance_security", default=false) %}
@@ -47,7 +47,7 @@
       <a data-nav-key="twgcb" draggable="true" title="TWGCB 合規" class="{% if endpoint.startswith('api_compliance.') %}active{% endif %}" href="{{ url_for('api_compliance.security_audit_page') }}">TWGCB 合規</a>
       {% endif %}
       <a data-nav-key="topology" draggable="true" title="系統拓撲" class="{% if endpoint == 'api_reports.dependencies_page' %}active{% endif %}" href="{{ url_for('api_reports.dependencies_page') }}">系統拓撲</a>
-      <a data-nav-key="assets" draggable="true" title="資產管理" class="nav-warn {% if endpoint.startswith('api_hosts.') %}active{% endif %}" href="{{ url_for('api_hosts.hosts_page') }}">資產管理</a>
+      <a data-nav-key="assets" draggable="true" title="資產管理" class="nav-warn {% if endpoint.startswith('api_hosts.') %}active{% endif %}" href="{{ url_for('api_hosts.hosts_page') }}">▣ 資產管理</a>
       {% if is_superadmin %}
         {% set dev_console_endpoints = ['api_superadmin.validation_page','api_superadmin.dev_console_page','api_superadmin.logs_page','api_superadmin.jobs_page'] %}
         <a data-nav-key="system_admin" draggable="true" title="系統管理" class="nav-warn {% if endpoint.startswith('api_superadmin.') and endpoint not in dev_console_endpoints %}active{% endif %}" href="{{ url_for('api_superadmin.superadmin_page') }}">系統管理</a>

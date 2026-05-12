@@ -784,15 +784,92 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   height: auto;
 }
 
+.topology-legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  color: var(--c2);
+  font-weight: 700;
+}
+
+.topology-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.topology-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid var(--c4);
+  background: var(--white);
+}
+
+.topology-dot-dc { background: var(--g1); border-color: var(--g1); }
+.topology-dot-system { background: var(--orange); border-color: var(--orange); }
+.topology-dot-host { background: var(--g-light); border-color: var(--g1); }
+
+.topology-edge line {
+  stroke: var(--g-text);
+  stroke-width: 2.5;
+  marker-end: url("#topology-arrow");
+}
+
+.topology-edge text {
+  fill: var(--c2);
+  font-size: 12px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.topology-edge:hover line,
+.topology-edge:focus line {
+  stroke: var(--orange);
+  stroke-width: 4;
+}
+
 .topology-node circle {
   fill: var(--g-light);
   stroke: var(--g1);
   stroke-width: 2;
 }
 
+.topology-node-機房 circle {
+  fill: var(--g1);
+  stroke: var(--g-text);
+}
+
+.topology-node-系統 circle {
+  fill: var(--bg);
+  stroke: var(--orange);
+}
+
 .topology-node text {
   font-size: 12px;
   fill: var(--c1);
+}
+
+.topology-node-機房 text {
+  fill: var(--white);
+}
+
+.topology-node-label {
+  font-weight: 800;
+}
+
+.topology-node-kind {
+  fill: var(--c3);
+}
+
+.topology-node:hover circle,
+.topology-node:focus circle {
+  stroke-width: 4;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 

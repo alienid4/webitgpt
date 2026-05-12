@@ -109,6 +109,9 @@ def test_legacy_module_wave1_pages_exist():
     assert "/api/inventory/" in inventory
     assert "/api/nmon/status" in nmon or "nmon" in nmon.lower()
     assert "dependencies" in dependencies.lower() or "api/reports/dependencies" in dependencies
+    assert "topology-edge" in dependencies
+    assert "edge.x1" in dependencies
+    assert "聯通清單" in dependencies
     assert "rollback" in compliance.lower()
 
 
