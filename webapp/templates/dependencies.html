@@ -29,18 +29,18 @@
 
 <section class="panel">
   <div class="topology-toolbar">
-    <form class="filter-bar" method="get" action="{{ url_for('api_reports.dependencies_page') }}">
-      <select name="view">
+    <form class="filter-bar" method="get" action="{{ url_for('api_reports.dependencies_page') }}" data-topology-filter>
+      <select name="view" data-auto-submit>
         <option value="system" {% if topology.view == "system" %}selected{% endif %}>系統視角</option>
         <option value="host" {% if topology.view == "host" %}selected{% endif %}>主機視角</option>
         <option value="ip" {% if topology.view == "ip" %}selected{% endif %}>IP 視角</option>
       </select>
       <input name="center" value="{{ request.args.get('center', '') }}" placeholder="中心節點 / 系統 ID">
-      <select name="depth">
+      <select name="depth" data-auto-submit>
         {% for item in [1,2,3,4] %}<option value="{{ item }}" {% if request.args.get('depth', '2')|int == item %}selected{% endif %}>深度 {{ item }}</option>{% endfor %}
       </select>
       <label class="toggle-label">
-        <input type="checkbox" name="include_external" value="1" {% if topology.meta.include_external %}checked{% endif %}>
+        <input type="checkbox" name="include_external" value="1" {% if topology.meta.include_external %}checked{% endif %} data-auto-submit>
         顯示外網未知節點
       </label>
       <button type="submit">套用</button>
@@ -125,4 +125,11 @@
     </tbody>
   </table>
 </section>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.querySelectorAll("[data-topology-filter] [data-auto-submit]").forEach((field) => {
+    field.addEventListener("change", () => field.form.requestSubmit());
+  });
+</script>
 {% endblock %}
