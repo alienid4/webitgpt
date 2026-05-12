@@ -243,6 +243,8 @@ def test_topology_spec_foundation_contracts_exist():
     assert "def _short_port_label(" in service
     assert "PORT_SERVICE_NAMES" in service
     assert "def _edge_payload(" in service
+    assert "_merge_evidence(" not in service
+    assert "_merge_edge_evidence(" in service
     assert "dependency_systems" in bootstrap
     assert "dependency_relations" in bootstrap
     assert "dependency_collect_runs" in bootstrap
@@ -266,6 +268,18 @@ def test_topology_spec_foundation_contracts_exist():
     assert "dependencies_fullscreen_page" in page
     assert "ss+nmap 聯通驗證" in page
     assert "執行 ss+nmap 驗證" in page
+
+
+def test_fake_environment_seed_script_is_reversible():
+    script = read("scripts/seed_fake_environment.py")
+    page = read("webapp/templates/dependencies.html")
+    ghosts = read("webapp/templates/dependencies_ghosts.html")
+    assert "DEFAULT_BATCH = \"codex_fake_50_20260513\"" in script
+    assert "def seed(" in script and "def delete(" in script and "def status(" in script
+    assert "HW-FAKE-" in script
+    assert "metadata.test_batch" in script
+    assert "dependency_collect_runs" in script
+    assert "10.250" in script
     assert "離開全螢幕" in page
     assert "執行 ss -tunp 採集" in page
     assert "採集狀態" in page

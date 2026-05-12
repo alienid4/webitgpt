@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.1.47 - 2026-05-13 07:28 +08:00 - fake-data-topology-seed
+
+- 新增 `scripts/seed_fake_environment.py`，可建立/刪除/查詢同一批 50 台假資產、10 個測試網段、10 套測試系統與 50 條拓撲關聯。
+- 假資料使用 `codex_fake_50_20260513` batch 標記，後續可精準清除，不影響正式 221/222/223 主機。
+- 修正拓撲系統視角合併多條 evidence 時呼叫錯誤函式，避免大量假資料時系統視角 500。
+
 ## v1.0.1.46 - 2026-05-13 02:05 +08:00 - topology-ss-nmap-reconcile
 
 - 拓撲新增 `ss+nmap` 聯通驗證：以最新 `ss -tunp` 採集結果對照 nmap port scan。

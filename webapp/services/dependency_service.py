@@ -812,7 +812,7 @@ def _system_topology(center: str = "", depth: int = 2, limit: int = 200, include
             doc["to_system"] = target_system
             relation_map[key] = doc
         else:
-            _merge_evidence(relation_map[key].setdefault("evidence", {}), evidence)
+            _merge_edge_evidence(relation_map[key].setdefault("evidence", {}), evidence)
     relations = list(relation_map.values())
     if center:
         keep = _reachable(center, relations, depth)
