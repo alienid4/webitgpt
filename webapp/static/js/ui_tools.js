@@ -173,3 +173,55 @@ document.querySelectorAll(".dev-admin-tabs[data-tab-storage]").forEach((tabs) =>
   enableSortableTabs(tabs, "[data-dev-panel]", "devPanel", tabs.dataset.tabStorage);
   enableDevPanelTabs(tabs);
 });
+
+document.querySelectorAll("[data-topology-canvas]").forEach((canvas) => {
+  const stage = canvas.querySelector("[data-topology-stage]");
+  const value = document.querySelector("[data-topology-zoom-value]");
+  const zoomIn = document.querySelector("[data-topology-zoom-in]");
+  const zoomOut = document.querySelector("[data-topology-zoom-out]");
+  const zoomReset = document.querySelector("[data-topology-zoom-reset]");
+  if (!stage) return;
+
+  let scale = 0.8;
+  const setScale = (nextScale) => {
+    scale = Math.min(1.6, Math.max(0.45, Math.round(nextScale * 100) / 100));
+    stage.style.setProperty("--topology-scale", String(scale));
+    if (value) value.textContent = `${Math.round(scale * 100)}%`;
+  };
+
+  zoomIn?.addEventListener("click", () => setScale(scale + 0.1));
+  zoomOut?.addEventListener("click", () => setScale(scale - 0.1));
+  zoomReset?.addEventListener("click", () => {
+    setScale(0.8);
+    canvas.scrollTo({ left: 0, top: 0, behavior: "smooth" });
+  });
+
+  canvas.addEventListener("wheel", (event) => {
+    if (!event.ctrlKey) return;
+    event.preventDefault();
+    setScale(scale + (event.deltaY < 0 ? 0.08 : -0.08));
+  }, { passive: false });
+
+  let dragging = false;
+  let startX = 0;
+  let startY = 0;
+  let scrollLeft = 0;
+  let scrollTop = 0;
+  canvas.addEventListener("pointerdown", (event) => {
+    dragging = true;
+    startX = event.clientX;
+    startY = event.clientY;
+    scrollLeft = canvas.scrollLeft;
+    scrollTop = canvas.scrollTop;
+    canvas.setPointerCapture(event.pointerId);
+  });
+  canvas.addEventListener("pointermove", (event) => {
+    if (!dragging) return;
+    canvas.scrollLeft = scrollLeft - (event.clientX - startX);
+    canvas.scrollTop = scrollTop - (event.clientY - startY);
+  });
+  canvas.addEventListener("pointerup", () => { dragging = false; });
+  canvas.addEventListener("pointercancel", () => { dragging = false; });
+
+  setScale(scale);
+});

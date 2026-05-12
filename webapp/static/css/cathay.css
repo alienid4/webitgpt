@@ -771,17 +771,59 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   background: var(--g1);
 }
 
+.topology-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
 .topology-canvas {
-  overflow-x: auto;
+  overflow: auto;
   border: 1px solid var(--c4);
   border-radius: var(--radius-sm);
   background: var(--bg);
+  max-height: calc(100vh - 300px);
+  min-height: 340px;
+  cursor: grab;
 }
 
-.topology-canvas svg {
-  width: 100%;
-  min-width: 900px;
-  height: auto;
+.topology-canvas:active {
+  cursor: grabbing;
+}
+
+.topology-stage {
+  --topology-scale: .8;
+  width: calc(1100px * var(--topology-scale));
+  height: calc(520px * var(--topology-scale));
+  min-width: 100%;
+  transform-origin: top left;
+}
+
+.topology-stage svg {
+  width: 1100px;
+  height: 520px;
+  display: block;
+  transform: scale(var(--topology-scale));
+  transform-origin: top left;
+}
+
+.topology-zoom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.topology-zoom-value {
+  min-width: 54px;
+  color: var(--c2);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: right;
 }
 
 .topology-legend {
@@ -789,7 +831,6 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
-  margin-bottom: 10px;
   color: var(--c2);
   font-weight: 700;
 }
@@ -840,12 +881,12 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   stroke-width: 2;
 }
 
-.topology-node-機房 circle {
+.topology-node-dc circle {
   fill: var(--g1);
   stroke: var(--g-text);
 }
 
-.topology-node-系統 circle {
+.topology-node-system circle {
   fill: var(--bg);
   stroke: var(--orange);
 }
@@ -855,7 +896,7 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   fill: var(--c1);
 }
 
-.topology-node-機房 text {
+.topology-node-dc text {
   fill: var(--white);
 }
 

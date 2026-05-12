@@ -112,6 +112,11 @@ def test_legacy_module_wave1_pages_exist():
     assert "topology-edge" in dependencies
     assert "edge.x1" in dependencies
     assert "聯通清單" in dependencies
+    assert "data-topology-zoom-in" in dependencies
+    assert "data-topology-stage" in dependencies
+    assert "topology-node-dc" in dependencies
+    assert "data-topology-canvas" in read("webapp/static/js/ui_tools.js")
+    assert "--topology-scale" in read("webapp/static/css/cathay.css")
     assert "rollback" in compliance.lower()
 
 
