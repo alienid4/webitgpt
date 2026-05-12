@@ -795,6 +795,11 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   min-width: 220px;
 }
 
+.topology-toolbar .filter-bar input[name="failed_node"] {
+  width: min(280px, 24vw);
+  min-width: 220px;
+}
+
 .topology-toolbar .toggle-label {
   min-height: 38px;
   white-space: nowrap;
@@ -944,6 +949,17 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   line-height: 1.5;
 }
 
+.topology-simulation-note {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--orange);
+  border-radius: var(--radius-xs);
+  background: var(--bg);
+  color: var(--c2);
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .topology-dot {
   width: 12px;
   height: 12px;
@@ -957,6 +973,8 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
 .topology-dot-host { background: var(--g-light); border-color: var(--g1); }
 .topology-dot-ip { background: var(--white); border-color: var(--c2); }
 .topology-dot-ghost { background: var(--bg2); border-color: var(--c4); }
+.topology-dot-failed { background: var(--red); border-color: var(--red); }
+.topology-dot-affected { background: var(--orange); border-color: var(--orange); }
 .topology-line {
   width: 30px;
   height: 0;
@@ -979,6 +997,24 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
 .topology-edge:focus line {
   stroke: var(--orange);
   stroke-width: 4;
+}
+
+.topology-edge-affected line {
+  stroke: var(--red);
+  stroke-width: 4;
+}
+
+.topology-edge-affected line.topology-line-auto {
+  stroke: var(--red);
+}
+
+.topology-edge-related line {
+  stroke: var(--c3);
+  stroke-width: 3;
+}
+
+.topology-edge-related line.topology-line-auto {
+  stroke: var(--c3);
 }
 
 .topology-edge-label {
@@ -1022,12 +1058,31 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   stroke: var(--c4);
 }
 
+.topology-node-failed circle {
+  fill: var(--red);
+  stroke: var(--red);
+  stroke-width: 5;
+}
+
+.topology-node-affected circle {
+  fill: var(--bg);
+  stroke: var(--orange);
+  stroke-width: 4;
+}
+
+.topology-node-related circle {
+  fill: var(--bg2);
+  stroke: var(--c3);
+  stroke-width: 3;
+}
+
 .topology-node text {
   font-size: 12px;
   fill: var(--c1);
 }
 
-.topology-node-dc text {
+.topology-node-dc text,
+.topology-node-failed text {
   fill: var(--white);
 }
 

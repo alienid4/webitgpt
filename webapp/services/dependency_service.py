@@ -502,13 +502,81 @@ def _topology_meta(view: str) -> dict[str, Any]:
     }
 
 
-def topology(view: str = "system", center: str = "", depth: int = 2, limit: int = 200, include_external: bool = False) -> dict[str, Any]:
+def topology(view: str = "system", center: str = "", depth: int = 2, limit: int = 200, include_external: bool = False, failed_node: str = "") -> dict[str, Any]:
     view = view if view in {"system", "host", "ip"} else "system"
     if view == "host":
-        return _host_topology(limit, include_external=include_external)
-    if view == "ip":
-        return _ip_topology(limit, include_external=include_external)
-    return _system_topology(center=center, depth=depth, limit=limit, include_external=include_external)
+        data = _host_topology(limit, include_external=include_external)
+    elif view == "ip":
+        data = _ip_topology(limit, include_external=include_external)
+    else:
+        data = _system_topology(center=center, depth=depth, limit=limit, include_external=include_external)
+    _apply_failure_simulation(data, failed_node, max_depth=max(depth, 1))
+    return data
+
+
+def _apply_failure_simulation(data: dict[str, Any], failed_node: str = "", max_depth: int = 2) -> None:
+    failed_node = (failed_node or "").strip()
+    nodes = data.get("nodes") or []
+    edges = data.get("edges") or []
+    node_ids = {str(node.get("id")) for node in nodes}
+    if not failed_node or failed_node not in node_ids:
+        data.setdefault("meta", {})["simulation"] = {"enabled": False, "failed_node": failed_node}
+        return
+
+    downstream: set[str] = set()
+    upstream: set[str] = set()
+    current = {failed_node}
+    for _ in range(max(max_depth, 1)):
+        next_layer = {
+            str(edge.get("target"))
+            for edge in edges
+            if str(edge.get("source")) in current and str(edge.get("target")) not in downstream and str(edge.get("target")) != failed_node
+        }
+        if not next_layer:
+            break
+        downstream.update(next_layer)
+        current = next_layer
+    current = {failed_node}
+    for _ in range(max(max_depth, 1)):
+        next_layer = {
+            str(edge.get("source"))
+            for edge in edges
+            if str(edge.get("target")) in current and str(edge.get("source")) not in upstream and str(edge.get("source")) != failed_node
+        }
+        if not next_layer:
+            break
+        upstream.update(next_layer)
+        current = next_layer
+
+    for node in nodes:
+        node_id = str(node.get("id"))
+        if node_id == failed_node:
+            node["simulation_status"] = "failed"
+        elif node_id in downstream:
+            node["simulation_status"] = "affected"
+        elif node_id in upstream:
+            node["simulation_status"] = "related"
+        else:
+            node["simulation_status"] = "normal"
+
+    for edge in edges:
+        source = str(edge.get("source"))
+        target = str(edge.get("target"))
+        if source == failed_node or source in downstream:
+            edge["simulation_status"] = "affected"
+        elif target == failed_node or source in upstream or target in upstream:
+            edge["simulation_status"] = "related"
+        else:
+            edge["simulation_status"] = "normal"
+
+    data.setdefault("meta", {})["simulation"] = {
+        "enabled": True,
+        "failed_node": failed_node,
+        "affected_nodes": sorted(downstream),
+        "related_nodes": sorted(upstream),
+        "affected_count": len(downstream),
+        "related_count": len(upstream),
+    }
 
 
 def _system_topology(center: str = "", depth: int = 2, limit: int = 200, include_external: bool = False) -> dict[str, Any]:

@@ -102,6 +102,7 @@ def dependencies_page():
         depth=int(request.args.get("depth", 2)),
         limit=int(request.args.get("limit", 200)),
         include_external=_include_external(),
+        failed_node=request.args.get("failed_node", ""),
     )
     return render_template("dependencies.html", topology=data)
 
@@ -109,4 +110,4 @@ def dependencies_page():
 @bp.get("/api/dependencies")
 @require_feature("dependencies")
 def dependencies_api():
-    return jsonify(topology(view=request.args.get("view", "host"), center=request.args.get("center", ""), depth=int(request.args.get("depth", 2)), limit=int(request.args.get("limit", 200)), include_external=_include_external()))
+    return jsonify(topology(view=request.args.get("view", "host"), center=request.args.get("center", ""), depth=int(request.args.get("depth", 2)), limit=int(request.args.get("limit", 200)), include_external=_include_external(), failed_node=request.args.get("failed_node", "")))

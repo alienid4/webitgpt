@@ -23,6 +23,7 @@ def dependencies_fullscreen_page():
         depth=int(request.args.get("depth", 2)),
         limit=int(request.args.get("limit", 200)),
         include_external=_include_external(),
+        failed_node=request.args.get("failed_node", ""),
     )
     return render_template("dependencies.html", topology=data, fullscreen=True)
 
@@ -120,6 +121,7 @@ def topology_api():
             depth=int(request.args.get("depth", 2)),
             limit=int(request.args.get("limit", 200)),
             include_external=_include_external(),
+            failed_node=request.args.get("failed_node", ""),
         )
     )
 

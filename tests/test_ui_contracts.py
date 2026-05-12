@@ -211,6 +211,7 @@ def test_topology_spec_foundation_contracts_exist():
         "def analyze_ghosts(",
         "def adopt_ghost(",
         "def collect_topology(",
+        "def _apply_failure_simulation(",
         "def latest_collect_run(",
         "def collect_runs(",
         "def _is_internal_ip(",
@@ -242,6 +243,10 @@ def test_topology_spec_foundation_contracts_exist():
     assert "系統視角" in page and "主機視角" in page and "IP 視角" in page
     assert "edge.detail_label" in page and "edge.port_summary" in page
     assert "show_ports" in page and "edge.port_label" in page
+    assert "failed_node" in page and "故障模擬" in page
+    assert "data-topology-node-id" in page
+    assert "topology-node-failed" in page
+    assert "topology-edge-affected" in page
     assert "edge.caption" not in page
     assert "Port 明細請看下方清單" in page
     assert "topology-fullscreen-panel" in page
