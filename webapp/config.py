@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.1.34"
-PATCH_ID = "topology-preserve-last-success"
-RELEASE_NOTE = "拓撲採集遇到部分失敗時保留上一個成功快照"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-12 22:46:00 +08:00")
+VERSION = "1.0.1.35"
+PATCH_ID = "topology-ignore-external-ghosts"
+RELEASE_NOTE = "拓撲預設忽略外網未知節點，只標示內網未納管 Ghost"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-12 23:02:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

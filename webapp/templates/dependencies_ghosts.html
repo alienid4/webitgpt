@@ -7,7 +7,14 @@
     <h1>Ghost 清單</h1>
     <p class="muted">Ghost 是採集到但不在資產管理、也不屬於已知外部服務的對端 IP。</p>
   </div>
-  <div class="actions"><a class="btn" href="{{ url_for('api_reports.dependencies_page') }}">回拓撲圖</a></div>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('api_reports.dependencies_page', include_external=1 if ghosts.summary.include_external else 0) }}">回拓撲圖</a>
+    {% if ghosts.summary.include_external %}
+      <a class="btn secondary" href="{{ url_for('api_dependencies.dependencies_ghosts_page') }}">忽略外網</a>
+    {% else %}
+      <a class="btn secondary" href="{{ url_for('api_dependencies.dependencies_ghosts_page', include_external=1) }}">顯示外網</a>
+    {% endif %}
+  </div>
 </section>
 
 <section class="summary-grid">
@@ -18,18 +25,19 @@
 
 <section class="panel">
   <table class="data-table">
-    <thead><tr><th>IP</th><th>風險</th><th>次數</th><th>Port</th><th>來源主機 / 程序</th></tr></thead>
+    <thead><tr><th>IP</th><th>範圍</th><th>風險</th><th>次數</th><th>Port</th><th>來源主機 / 程序</th></tr></thead>
     <tbody>
       {% for item in ghosts.items %}
       <tr>
         <td class="code-inline">{{ item.ip }}</td>
+        <td>{{ item.scope or "-" }}</td>
         <td>{% if item.severity == "high" %}<span class="badge-error">內網未納管</span>{% else %}<span class="badge-warn">公網未知</span>{% endif %}</td>
         <td>{{ item.seen_count }}</td>
         <td>{{ item.remote_ports|join(", ") }}</td>
         <td>{% for caller in item.callers %}<div>{{ caller.hostname or "-" }} / {{ caller.process or "-" }} / {{ caller.port }}</div>{% endfor %}</td>
       </tr>
       {% else %}
-      <tr><td colspan="5" class="no-data">目前沒有 Ghost。自動採集接入後會在這裡列出未納管對端。</td></tr>
+      <tr><td colspan="6" class="no-data">目前沒有 Ghost。預設已忽略外網未知節點，只列內網未納管對端。</td></tr>
       {% endfor %}
     </tbody>
   </table>

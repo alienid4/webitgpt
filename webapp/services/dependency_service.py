@@ -442,12 +442,12 @@ def _topology_meta(view: str) -> dict[str, Any]:
     }
 
 
-def topology(view: str = "system", center: str = "", depth: int = 2, limit: int = 200) -> dict[str, Any]:
+def topology(view: str = "system", center: str = "", depth: int = 2, limit: int = 200, include_external: bool = False) -> dict[str, Any]:
     view = view if view in {"system", "host", "ip"} else "system"
     if view == "host":
-        return _host_topology(limit)
+        return _host_topology(limit, include_external=include_external)
     if view == "ip":
-        return _ip_topology(limit)
+        return _ip_topology(limit, include_external=include_external)
     return _system_topology(center=center, depth=depth, limit=limit)
 
 
@@ -477,7 +477,7 @@ def _system_topology(center: str = "", depth: int = 2, limit: int = 200) -> dict
     return {"view": "system", "nodes": nodes, "edges": edges, "meta": meta}
 
 
-def _host_topology(limit: int = 200) -> dict[str, Any]:
+def _host_topology(limit: int = 200, include_external: bool = False) -> dict[str, Any]:
     hosts = _hosts()[:limit]
     host_map = {host.get("hostname"): host for host in hosts if host.get("hostname")}
     ip_map = _known_host_ip_map()
@@ -490,21 +490,24 @@ def _host_topology(limit: int = 200) -> dict[str, Any]:
         source = rel.get("from_system")
         target = rel.get("to_system")
         evidence = rel.get("evidence") or {}
+        remote_ip = evidence.get("last_remote_ip") or str(target).replace("UNKNOWN-", "")
+        if str(target).startswith("UNKNOWN-") and not include_external and not _is_internal_ip(remote_ip):
+            continue
         if target not in node_ids:
-            remote_ip = evidence.get("last_remote_ip") or str(target).replace("UNKNOWN-", "")
             label = ip_map.get(remote_ip) or remote_ip or target
-            nodes.append({"id": target, "label": label, "kind": "未知" if str(target).startswith("UNKNOWN-") else "主機", "ip": remote_ip, "os": ""})
+            kind = _unknown_node_kind(remote_ip) if str(target).startswith("UNKNOWN-") else "主機"
+            nodes.append({"id": target, "label": label, "kind": kind, "ip": remote_ip, "os": ""})
             node_ids.add(target)
         source_label = host_map.get(source, {}).get("hostname") or source
         target_label = host_map.get(target, {}).get("hostname") or evidence.get("last_remote_ip") or target
         edges.append(_edge_payload(rel, source_label, target_label))
     _layout(nodes, edges)
     meta = _topology_meta("host")
-    meta.update({"hosts": len(hosts), "relations": len(edges)})
+    meta.update({"hosts": len(hosts), "relations": len(edges), "include_external": include_external})
     return {"view": "host", "nodes": nodes, "edges": edges, "meta": meta}
 
 
-def _ip_topology(limit: int = 200) -> dict[str, Any]:
+def _ip_topology(limit: int = 200, include_external: bool = False) -> dict[str, Any]:
     hosts = _hosts()[:limit]
     nodes = []
     edges = []
@@ -521,6 +524,8 @@ def _ip_topology(limit: int = 200) -> dict[str, Any]:
         evidence = rel.get("evidence") or {}
         source = evidence.get("caller_ip") or rel.get("from_system")
         target = evidence.get("last_remote_ip") or rel.get("to_system")
+        if target and target not in node_ids and not include_external and not _is_internal_ip(str(target)):
+            continue
         if source not in node_ids:
             nodes.append({"id": source, "label": source, "kind": "IP"})
             node_ids.add(source)
@@ -533,7 +538,7 @@ def _ip_topology(limit: int = 200) -> dict[str, Any]:
         edges.append(_edge_payload(ip_rel, source, target))
     _layout(nodes, edges)
     meta = _topology_meta("ip")
-    meta.update({"hosts": len(hosts), "ips": len([n for n in nodes if n.get("kind") == "IP"]), "relations": len(edges)})
+    meta.update({"hosts": len(hosts), "ips": len([n for n in nodes if n.get("kind") == "IP"]), "relations": len(edges), "include_external": include_external})
     return {"view": "ip", "nodes": nodes, "edges": edges, "meta": meta}
 
 
@@ -603,6 +608,18 @@ def _known_host_ip_map() -> dict[str, str]:
     return items
 
 
+def _is_internal_ip(ip: str) -> bool:
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    return addr.is_private or addr.is_loopback or addr.is_link_local
+
+
+def _unknown_node_kind(ip: str) -> str:
+    return "內網未納管" if _is_internal_ip(ip) else "外網未知"
+
+
 def _classify_external(ip: str) -> Optional[dict[str, str]]:
     try:
         addr = ipaddress.ip_address(ip)
@@ -618,7 +635,7 @@ def _classify_external(ip: str) -> Optional[dict[str, str]]:
     return None
 
 
-def analyze_ghosts() -> dict[str, Any]:
+def analyze_ghosts(include_external: bool = False) -> dict[str, Any]:
     known_ips = _known_host_ips()
     ghosts: dict[str, dict[str, Any]] = {}
     ignored = {item["ip"] for item in get_collection("dependency_ghost_ignored").find({}, {"ip": 1}) if item.get("ip")}
@@ -628,12 +645,15 @@ def analyze_ghosts() -> dict[str, Any]:
         if not ip or ip in known_ips or ip in ignored or _classify_external(ip):
             continue
         try:
-            addr = ipaddress.ip_address(ip)
+            ipaddress.ip_address(ip)
         except ValueError:
             continue
-        item = ghosts.setdefault(ip, {"ip": ip, "seen_count": 0, "callers": [], "remote_ports": set(), "severity": "medium"})
+        is_internal = _is_internal_ip(ip)
+        if not include_external and not is_internal:
+            continue
+        item = ghosts.setdefault(ip, {"ip": ip, "seen_count": 0, "callers": [], "remote_ports": set(), "severity": "medium", "scope": "內網" if is_internal else "外網"})
         item["seen_count"] += int(evidence.get("seen_count") or 1)
-        item["severity"] = "high" if addr.is_private else "medium"
+        item["severity"] = "high" if is_internal else "medium"
         if evidence.get("last_remote_port"):
             item["remote_ports"].add(evidence["last_remote_port"])
         item["callers"].append({"hostname": evidence.get("caller_hostname") or "", "process": evidence.get("process_name") or "", "port": evidence.get("last_remote_port") or "", "count": evidence.get("seen_count") or 1})
@@ -641,7 +661,7 @@ def analyze_ghosts() -> dict[str, Any]:
     for item in ghosts.values():
         item["remote_ports"] = sorted(item["remote_ports"])
         rows.append(item)
-    return {"items": sorted(rows, key=lambda x: (x["severity"], -x["seen_count"])), "summary": {"total": len(rows), "high": sum(1 for item in rows if item["severity"] == "high"), "medium": sum(1 for item in rows if item["severity"] == "medium")}}
+    return {"items": sorted(rows, key=lambda x: (x["severity"], -x["seen_count"])), "summary": {"total": len(rows), "high": sum(1 for item in rows if item["severity"] == "high"), "medium": sum(1 for item in rows if item["severity"] == "medium"), "include_external": include_external}}
 
 
 def adopt_ghost(ip: str, action: str, payload: dict[str, Any], actor: str = "system") -> dict[str, Any]:

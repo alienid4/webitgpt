@@ -852,6 +852,7 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
 .topology-dot-dc { background: var(--g1); border-color: var(--g1); }
 .topology-dot-system { background: var(--orange); border-color: var(--orange); }
 .topology-dot-host { background: var(--g-light); border-color: var(--g1); }
+.topology-dot-ghost { background: var(--bg2); border-color: var(--c4); }
 .topology-line {
   width: 30px;
   height: 0;
@@ -890,6 +891,11 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
 .topology-node-system circle {
   fill: var(--bg);
   stroke: var(--orange);
+}
+
+.topology-node-ghost circle {
+  fill: var(--bg2);
+  stroke: var(--c4);
 }
 
 .topology-node text {

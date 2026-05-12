@@ -15,6 +15,10 @@ from webapp.services.dependency_service import topology
 bp = Blueprint("api_reports", __name__)
 
 
+def _include_external() -> bool:
+    return request.args.get("include_external") in {"1", "true", "yes", "on"}
+
+
 def _summary() -> dict:
     hosts = list_hosts(page=1, page_size=10000)["items"]
     by_env: dict[str, int] = {}
@@ -97,6 +101,7 @@ def dependencies_page():
         center=request.args.get("center", ""),
         depth=int(request.args.get("depth", 2)),
         limit=int(request.args.get("limit", 200)),
+        include_external=_include_external(),
     )
     return render_template("dependencies.html", topology=data)
 
@@ -104,4 +109,4 @@ def dependencies_page():
 @bp.get("/api/dependencies")
 @require_feature("dependencies")
 def dependencies_api():
-    return jsonify(topology(view=request.args.get("view", "host"), center=request.args.get("center", ""), depth=int(request.args.get("depth", 2)), limit=int(request.args.get("limit", 200))))
+    return jsonify(topology(view=request.args.get("view", "host"), center=request.args.get("center", ""), depth=int(request.args.get("depth", 2)), limit=int(request.args.get("limit", 200)), include_external=_include_external()))

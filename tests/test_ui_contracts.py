@@ -213,6 +213,8 @@ def test_topology_spec_foundation_contracts_exist():
         "def collect_topology(",
         "def latest_collect_run(",
         "def collect_runs(",
+        "def _is_internal_ip(",
+        "include_external",
         "ss -tunp",
     ]:
         assert name in service
@@ -240,7 +242,11 @@ def test_topology_spec_foundation_contracts_exist():
     assert "Port 明細請看下方清單" in page
     assert "執行 ss -tunp 採集" in page
     assert "採集狀態" in page
+    assert "顯示外網未知節點" in page
+    assert "外網未知" in page
+    assert "外網未知節點已忽略" in page
     assert "Ghost 清單" in ghosts
+    assert "忽略外網" in ghosts and "顯示外網" in ghosts
 
 
 def test_superadmin_console_is_complete_and_chinese():

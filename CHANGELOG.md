@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.1.35 - 2026-05-12 23:02 +08:00 - topology-ignore-external-ghosts
+
+- 拓撲與 Ghost 清單預設忽略外網未知節點，只標示內網未納管對端。
+- 新增「顯示外網未知節點」切換與 `include_external=1` API 參數，必要時仍可查外網連線。
+- Ghost 清單新增「範圍」欄位，區分內網與外網。
+
 ## v1.0.1.34 - 2026-05-12 22:46 +08:00 - topology-preserve-last-success
 
 - 拓撲採集遇到部分主機失敗時不覆蓋上一個成功快照，避免半套資料洗掉原本可用拓撲。

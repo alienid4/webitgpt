@@ -10,6 +10,10 @@ from webapp.services import dependency_service
 bp = Blueprint("api_dependencies", __name__)
 
 
+def _include_external() -> bool:
+    return request.args.get("include_external") in {"1", "true", "yes", "on"}
+
+
 @bp.get("/dependencies/fullscreen")
 @require_feature("dependencies")
 def dependencies_fullscreen_page():
@@ -18,6 +22,7 @@ def dependencies_fullscreen_page():
         center=request.args.get("center", ""),
         depth=int(request.args.get("depth", 2)),
         limit=int(request.args.get("limit", 200)),
+        include_external=_include_external(),
     )
     return render_template("dependencies.html", topology=data, fullscreen=True)
 
@@ -25,7 +30,7 @@ def dependencies_fullscreen_page():
 @bp.get("/dependencies/ghosts")
 @require_feature("dependencies")
 def dependencies_ghosts_page():
-    return render_template("dependencies_ghosts.html", ghosts=dependency_service.analyze_ghosts())
+    return render_template("dependencies_ghosts.html", ghosts=dependency_service.analyze_ghosts(include_external=_include_external()))
 
 
 @bp.get("/api/dependencies/systems")
@@ -114,6 +119,7 @@ def topology_api():
             center=request.args.get("center", ""),
             depth=int(request.args.get("depth", 2)),
             limit=int(request.args.get("limit", 200)),
+            include_external=_include_external(),
         )
     )
 
@@ -181,7 +187,7 @@ def collect_runs_api():
 @bp.get("/api/dependencies/ghosts")
 @require_feature("dependencies")
 def ghosts_api():
-    return jsonify(dependency_service.analyze_ghosts())
+    return jsonify(dependency_service.analyze_ghosts(include_external=_include_external()))
 
 
 @bp.post("/api/dependencies/ghosts/<ip>/adopt")
