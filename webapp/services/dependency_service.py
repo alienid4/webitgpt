@@ -186,6 +186,56 @@ def _layout(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> None:
             edge.update({"x1": source["x"], "y1": source["y"], "x2": target["x"], "y2": target["y"]})
 
 
+def _port_summary(evidence: dict[str, Any]) -> str:
+    local_port = evidence.get("last_local_port") or evidence.get("local_port")
+    remote_port = evidence.get("last_remote_port") or evidence.get("remote_port")
+    ports = evidence.get("remote_ports") or evidence.get("ports") or []
+    if local_port and remote_port:
+        return f"{local_port} -> {remote_port}"
+    if remote_port:
+        return str(remote_port)
+    if local_port:
+        return str(local_port)
+    if isinstance(ports, list) and ports:
+        visible = [str(port) for port in ports[:3]]
+        suffix = f" +{len(ports) - 3}" if len(ports) > 3 else ""
+        return ", ".join(visible) + suffix
+    return ""
+
+
+def _edge_payload(rel: dict[str, Any], source_label: str, target_label: str) -> dict[str, Any]:
+    evidence = rel.get("evidence") or {}
+    port_summary = _port_summary(evidence)
+    process_name = evidence.get("process_name") or evidence.get("program") or ""
+    seen_count = evidence.get("seen_count") or ""
+    last_seen = evidence.get("last_seen_at") or evidence.get("last_seen") or ""
+    rel_label = rel.get("rel_type") or rel.get("description") or rel.get("source") or ""
+    detail_parts = [source_label, "->", target_label]
+    if port_summary:
+        detail_parts.append(f"port {port_summary}")
+    if process_name:
+        detail_parts.append(f"process {process_name}")
+    if seen_count:
+        detail_parts.append(f"seen {seen_count}")
+    if last_seen:
+        detail_parts.append(f"last {last_seen}")
+    return {
+        "source": rel.get("from_system"),
+        "target": rel.get("to_system"),
+        "source_label": source_label,
+        "target_label": target_label,
+        "label": rel_label,
+        "caption": port_summary or rel_label,
+        "detail_label": " / ".join(str(item) for item in detail_parts if item),
+        "port_summary": port_summary,
+        "process_name": process_name,
+        "seen_count": seen_count,
+        "last_seen": last_seen,
+        "trust": rel.get("source") or "manual",
+        "evidence": evidence,
+    }
+
+
 def topology(view: str = "system", center: str = "", depth: int = 2, limit: int = 200) -> dict[str, Any]:
     view = view if view in {"system", "host", "ip"} else "system"
     if view == "host":
@@ -206,15 +256,11 @@ def _system_topology(center: str = "", depth: int = 2, limit: int = 200) -> dict
     nodes = [_node(item) for item in systems[:limit]]
     node_ids = {node["id"] for node in nodes}
     edges = [
-        {
-            "source": rel.get("from_system"),
-            "target": rel.get("to_system"),
-            "source_label": system_map.get(rel.get("from_system"), {}).get("display_name", rel.get("from_system")),
-            "target_label": system_map.get(rel.get("to_system"), {}).get("display_name", rel.get("to_system")),
-            "label": rel.get("rel_type") or rel.get("description") or rel.get("source") or "",
-            "trust": rel.get("source") or "manual",
-            "evidence": rel.get("evidence") or {},
-        }
+        _edge_payload(
+            rel,
+            system_map.get(rel.get("from_system"), {}).get("display_name", rel.get("from_system")),
+            system_map.get(rel.get("to_system"), {}).get("display_name", rel.get("to_system")),
+        )
         for rel in relations
         if rel.get("from_system") in node_ids and rel.get("to_system") in node_ids
     ]
@@ -236,7 +282,7 @@ def _host_topology(limit: int = 200) -> dict[str, Any]:
         if sid not in known_systems:
             known_systems.add(sid)
             system_nodes.append({"id": sid, "label": system_name, "kind": "系統"})
-        edges.append({"source": sid, "target": host["hostname"], "source_label": system_name, "target_label": host["hostname"], "label": host.get("asset_usage") or "host_ref", "trust": "manual"})
+        edges.append({"source": sid, "target": host["hostname"], "source_label": system_name, "target_label": host["hostname"], "label": "包含主機", "caption": "", "detail_label": f"{system_name} -> {host['hostname']} / 包含主機", "port_summary": "", "process_name": "", "seen_count": "", "last_seen": "", "trust": "manual"})
     nodes = system_nodes + nodes
     _layout(nodes, edges)
     return {"view": "host", "nodes": nodes, "edges": edges, "meta": {"hosts": len(hosts), "relations": len(edges)}}
@@ -252,7 +298,7 @@ def _ip_topology(limit: int = 200) -> dict[str, Any]:
             nodes.append({"id": hostname, "label": hostname, "kind": "主機", "os": host.get("os")})
         for ip in host.get("ip_addresses") or ([host.get("ip")] if host.get("ip") else []):
             nodes.append({"id": ip, "label": ip, "kind": "IP"})
-            edges.append({"source": hostname, "target": ip, "source_label": hostname, "target_label": ip, "label": "has_ip", "trust": "manual"})
+            edges.append({"source": hostname, "target": ip, "source_label": hostname, "target_label": ip, "label": "IP 登錄", "caption": "", "detail_label": f"{hostname} -> {ip} / IP 登錄", "port_summary": "", "process_name": "", "seen_count": "", "last_seen": "", "trust": "manual"})
     _layout(nodes, edges)
     return {"view": "ip", "nodes": nodes, "edges": edges, "meta": {"hosts": len(hosts), "ips": len([n for n in nodes if n.get("kind") == "IP"])}}
 

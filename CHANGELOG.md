@@ -1,5 +1,10 @@
 # webitgpt Changelog
 
+## v1.0.1.30 - 2026-05-12 22:02 +08:00 - topology-port-detail-no-overlap
+
+- 拓撲圖不再把每條線的 Port 文字常駐畫在線上，避免大量連線時文字疊在一起。
+- Port、程序、次數、最後看到時間改放在滑鼠提示與下方「聯通清單」明細表。
+
 ## v1.0.1.29 - 2026-05-12 21:38 +08:00 - topology-clean-legacy-unknown
 
 - 清理前一版拓撲同步留下的 `SYS-UNKNOWN` 重複系統節點。

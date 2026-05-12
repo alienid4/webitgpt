@@ -874,6 +874,8 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   fill: var(--c2);
   font-size: 12px;
   font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
   paint-order: stroke;
   stroke: var(--bg);
   stroke-width: 4px;
@@ -884,6 +886,11 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
 .topology-edge:focus line {
   stroke: var(--orange);
   stroke-width: 4;
+}
+
+.topology-edge:hover text,
+.topology-edge:focus text {
+  opacity: 1;
 }
 
 .topology-node circle {

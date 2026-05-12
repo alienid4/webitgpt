@@ -53,10 +53,10 @@
           {% set mid_x = ((edge.x1 + edge.x2) / 2) | int %}
           {% set mid_y = ((edge.y1 + edge.y2) / 2) | int %}
           <g class="topology-edge" tabindex="0">
-            <title>{{ edge.source_label }} → {{ edge.target_label }}{% if edge.label %}：{{ edge.label }}{% endif %}</title>
-          <line class="topology-line-{{ edge.trust or 'manual' }}" x1="{{ edge.x1 }}" y1="{{ edge.y1 }}" x2="{{ edge.x2 }}" y2="{{ edge.y2 }}"></line>
-            {% if edge.label %}
-              <text x="{{ mid_x }}" y="{{ mid_y - 8 }}" text-anchor="middle">{{ edge.label[:18] }}</text>
+            <title>{{ edge.detail_label or edge.source_label ~ " → " ~ edge.target_label }}</title>
+            <line class="topology-line-{{ edge.trust or 'manual' }}" x1="{{ edge.x1 }}" y1="{{ edge.y1 }}" x2="{{ edge.x2 }}" y2="{{ edge.y2 }}"></line>
+            {% if edge.caption %}
+              <text class="topology-edge-caption" x="{{ mid_x }}" y="{{ mid_y - 8 }}" text-anchor="middle">{{ edge.caption[:18] }}</text>
             {% endif %}
           </g>
         {% endfor %}
@@ -77,12 +77,20 @@
 <section class="panel">
   <h2>聯通清單</h2>
   <table class="data-table">
-    <thead><tr><th>來源</th><th>目標</th><th>關係</th></tr></thead>
+    <thead><tr><th>來源</th><th>目標</th><th>關係</th><th>Port</th><th>程序</th><th>次數</th><th>最後看到</th></tr></thead>
     <tbody>
       {% for edge in topology.edges %}
-      <tr><td>{{ edge.source_label }}</td><td>{{ edge.target_label }}</td><td>{{ edge.label or "-" }}</td></tr>
+      <tr>
+        <td>{{ edge.source_label }}</td>
+        <td>{{ edge.target_label }}</td>
+        <td>{{ edge.label or "-" }}</td>
+        <td>{{ edge.port_summary or "-" }}</td>
+        <td>{{ edge.process_name or "-" }}</td>
+        <td>{{ edge.seen_count or "-" }}</td>
+        <td>{{ edge.last_seen or "-" }}</td>
+      </tr>
       {% else %}
-      <tr><td colspan="3" class="no-data">尚無拓撲關係。</td></tr>
+      <tr><td colspan="7" class="no-data">尚無拓撲關係。</td></tr>
       {% endfor %}
     </tbody>
   </table>
