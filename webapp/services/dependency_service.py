@@ -351,7 +351,7 @@ def _node(system: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": system["system_id"],
         "label": system.get("display_name") or system["system_id"],
-        "kind": "系統",
+        "kind": system.get("category") if system.get("category") in {"內網未納管", "外網未知"} else "系統",
         "tier": tier,
         "category": system.get("category") or "AP",
         "owner": system.get("owner") or "",
@@ -448,14 +448,50 @@ def topology(view: str = "system", center: str = "", depth: int = 2, limit: int 
         return _host_topology(limit, include_external=include_external)
     if view == "ip":
         return _ip_topology(limit, include_external=include_external)
-    return _system_topology(center=center, depth=depth, limit=limit)
+    return _system_topology(center=center, depth=depth, limit=limit, include_external=include_external)
 
 
-def _system_topology(center: str = "", depth: int = 2, limit: int = 200) -> dict[str, Any]:
+def _system_topology(center: str = "", depth: int = 2, limit: int = 200, include_external: bool = False) -> dict[str, Any]:
     systems = list_systems()
     system_map = {item["system_id"]: item for item in systems}
+    host_to_system = _host_system_index()
     latest = latest_collect_run()
-    relations = list_relations({"run_id": latest["run_id"]}) if latest else []
+    raw_relations = list_relations({"run_id": latest["run_id"]}) if latest else []
+    relation_map: dict[tuple[str, str], dict[str, Any]] = {}
+    for rel in raw_relations:
+        source_host = rel.get("from_system")
+        source_system = host_to_system.get(source_host or "")
+        if not source_system:
+            continue
+        evidence = rel.get("evidence") or {}
+        target_host = rel.get("to_system")
+        remote_ip = evidence.get("last_remote_ip") or str(target_host).replace("UNKNOWN-", "")
+        target_system = host_to_system.get(target_host or "")
+        if not target_system and str(target_host).startswith("UNKNOWN-"):
+            if not include_external and not _is_internal_ip(remote_ip):
+                continue
+            target_system = str(target_host)
+            if target_system not in system_map:
+                system_map[target_system] = {
+                    "system_id": target_system,
+                    "display_name": remote_ip or target_system,
+                    "tier": "C",
+                    "category": _unknown_node_kind(remote_ip),
+                    "owner": "",
+                    "external": not _is_internal_ip(remote_ip),
+                }
+                systems.append(system_map[target_system])
+        if not target_system:
+            continue
+        key = (source_system, target_system)
+        if key not in relation_map:
+            doc = dict(rel)
+            doc["from_system"] = source_system
+            doc["to_system"] = target_system
+            relation_map[key] = doc
+        else:
+            _merge_evidence(relation_map[key].setdefault("evidence", {}), evidence)
+    relations = list(relation_map.values())
     if center:
         keep = _reachable(center, relations, depth)
         systems = [item for item in systems if item["system_id"] in keep]
@@ -473,7 +509,7 @@ def _system_topology(center: str = "", depth: int = 2, limit: int = 200) -> dict
     ]
     _layout(nodes, edges)
     meta = _topology_meta("system")
-    meta.update({"systems": len(nodes), "relations": len(edges), "center": center, "depth": depth})
+    meta.update({"systems": len(nodes), "relations": len(edges), "center": center, "depth": depth, "include_external": include_external})
     return {"view": "system", "nodes": nodes, "edges": edges, "meta": meta}
 
 
@@ -513,12 +549,10 @@ def _ip_topology(limit: int = 200, include_external: bool = False) -> dict[str, 
     edges = []
     latest = latest_collect_run()
     relations = list_relations({"run_id": latest["run_id"]}) if latest else []
+    ip_to_host = _known_host_ip_map()
     for host in hosts:
-        hostname = host.get("hostname")
-        if hostname:
-            nodes.append({"id": hostname, "label": hostname, "kind": "主機", "os": host.get("os")})
         for ip in host.get("ip_addresses") or ([host.get("ip")] if host.get("ip") else []):
-            nodes.append({"id": ip, "label": ip, "kind": "IP"})
+            nodes.append({"id": ip, "label": ip, "kind": "IP", "hostname": host.get("hostname"), "os": host.get("os")})
     node_ids = {node["id"] for node in nodes}
     for rel in relations:
         evidence = rel.get("evidence") or {}
@@ -527,10 +561,10 @@ def _ip_topology(limit: int = 200, include_external: bool = False) -> dict[str, 
         if target and target not in node_ids and not include_external and not _is_internal_ip(str(target)):
             continue
         if source not in node_ids:
-            nodes.append({"id": source, "label": source, "kind": "IP"})
+            nodes.append({"id": source, "label": source, "kind": "IP", "hostname": ip_to_host.get(source)})
             node_ids.add(source)
         if target not in node_ids:
-            nodes.append({"id": target, "label": target, "kind": "IP"})
+            nodes.append({"id": target, "label": target, "kind": _unknown_ip_kind(str(target)), "hostname": ip_to_host.get(target)})
             node_ids.add(target)
         ip_rel = dict(rel)
         ip_rel["from_system"] = source
@@ -608,6 +642,17 @@ def _known_host_ip_map() -> dict[str, str]:
     return items
 
 
+def _host_system_index() -> dict[str, str]:
+    items = {}
+    for host in _hosts():
+        hostname = host.get("hostname")
+        if not hostname:
+            continue
+        name = host.get("system_name") or host.get("asset_name") or hostname
+        items[hostname] = _system_id(name)
+    return items
+
+
 def _is_internal_ip(ip: str) -> bool:
     try:
         addr = ipaddress.ip_address(ip)
@@ -618,6 +663,10 @@ def _is_internal_ip(ip: str) -> bool:
 
 def _unknown_node_kind(ip: str) -> str:
     return "內網未納管" if _is_internal_ip(ip) else "外網未知"
+
+
+def _unknown_ip_kind(ip: str) -> str:
+    return "內網未納管 IP" if _is_internal_ip(ip) else "外網 IP"
 
 
 def _classify_external(ip: str) -> Optional[dict[str, str]]:
