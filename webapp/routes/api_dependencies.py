@@ -230,3 +230,13 @@ def ghost_adopt_api(ip: str):
     result = dependency_service.adopt_ghost(ip, payload.get("action", "ignore"), payload, current_user()["username"])
     audit_log_service.append("dependencies.ghost.adopt", current_user()["username"], {"ip": ip, "action": payload.get("action")})
     return jsonify(result)
+
+
+@bp.post("/dependencies/ghosts/<ip>/ignore")
+@require_feature("dependencies")
+@require_role("admin")
+def ghost_ignore_page(ip: str):
+    result = dependency_service.adopt_ghost(ip, "ignore", {"reason": request.form.get("reason") or "由 Ghost 清單忽略"}, current_user()["username"])
+    audit_log_service.append("dependencies.ghost.ignore", current_user()["username"], {"ip": ip, "status": result.get("status")})
+    include_external = 1 if request.form.get("include_external") in {"1", "true", "yes", "on"} else 0
+    return redirect(url_for("api_dependencies.dependencies_ghosts_page", include_external=include_external))

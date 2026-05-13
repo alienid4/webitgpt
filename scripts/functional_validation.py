@@ -236,7 +236,7 @@ def main() -> int:
     check(report, "api_v1_hosts_before", status == 200 and before_total >= 3, {"total": before_total})
 
     status, home_page, _ = request(opener, "GET", f"{base}/hosts")
-    check(report, "ui_version_visible", status == 200 and "webitgpt v1.0.1.47" in home_page and "fake-data-topology-seed" in home_page and "IT 巡檢系統" in home_page, {"status": status})
+    check(report, "ui_version_visible", status == 200 and "webitgpt v1.0.1.48" in home_page and "ghost-ignore-ui" in home_page and "IT 巡檢系統" in home_page, {"status": status})
     check(report, "ui_asset_nav_active", status == 200 and 'class="nav-warn active"' in home_page and "▣ 資產管理" in home_page, {"status": status})
 
     view_name = f"validation-{random.randint(1000, 9999)}"
@@ -306,7 +306,7 @@ def main() -> int:
     check(report, "housekeeping_run_disk_alert", status == 200 and housekeeping_run and housekeeping_run.get("task") == "disk_alert", housekeeping_run)
 
     status, _, backup_manifest = request(opener, "POST", f"{base}/api/superadmin/backup/manifest")
-    check(report, "backup_manifest_api", status == 200 and backup_manifest and backup_manifest.get("version") == "1.0.1.18", backup_manifest)
+    check(report, "backup_manifest_api", status == 200 and backup_manifest and backup_manifest.get("version") == "1.0.1.47", backup_manifest)
 
     status, _, dr_result = request(opener, "POST", f"{base}/api/superadmin/dr-drill")
     check(report, "dr_drill_api", status == 200 and dr_result and dr_result.get("status") == "ok", dr_result)

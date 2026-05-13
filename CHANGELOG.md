@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.1.48 - 2026-05-13 07:45 +08:00 - ghost-ignore-ui
+
+- 修復 Ghost 清單在顯示外網後只能切回「忽略外網」、不能忽略單一外網 IP 的 UI 缺口。
+- 新增 `/dependencies/ghosts/<ip>/ignore` 頁面操作，會寫入 `dependency_ghost_ignored` 並保留 audit log。
+- 重整 Ghost 清單中文欄位，補上每筆 Ghost 的「忽略」按鈕。
+
 ## v1.0.1.47 - 2026-05-13 07:28 +08:00 - fake-data-topology-seed
 
 - 新增 `scripts/seed_fake_environment.py`，可建立/刪除/查詢同一批 50 台假資產、10 個測試網段、10 套測試系統與 50 條拓撲關聯。

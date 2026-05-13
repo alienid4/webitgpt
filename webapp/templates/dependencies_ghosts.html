@@ -5,11 +5,11 @@
   <div>
     <p class="eyebrow">TOPOLOGY GHOSTS</p>
     <h1>Ghost 清單</h1>
-    <p class="muted">Ghost 是採集到但不在資產管理、也不屬於已知外部服務的對端 IP。</p>
+    <p class="muted">Ghost 是 ss 採集到、但尚未納入資產管理或外部服務白名單的對端 IP。</p>
   </div>
   <div class="actions">
-    <a class="btn" href="{{ url_for('api_reports.dependencies_page', include_external=1 if ghosts.summary.include_external else 0) }}">回拓撲圖</a>
-    {% if ghosts.summary.include_external %}
+    <a class="btn" href="{{ url_for('api_reports.dependencies_page', include_external=1 if ghosts['summary']['include_external'] else 0) }}">回拓撲圖</a>
+    {% if ghosts["summary"]["include_external"] %}
       <a class="btn secondary" href="{{ url_for('api_dependencies.dependencies_ghosts_page') }}">忽略外網</a>
     {% else %}
       <a class="btn secondary" href="{{ url_for('api_dependencies.dependencies_ghosts_page', include_external=1) }}">顯示外網</a>
@@ -18,26 +18,49 @@
 </section>
 
 <section class="summary-grid">
-  <div class="metric"><strong>{{ ghosts.summary.total }}</strong><span>Ghost 總數</span></div>
-  <div class="metric"><strong>{{ ghosts.summary.high }}</strong><span>內網未納管</span></div>
-  <div class="metric"><strong>{{ ghosts.summary.medium }}</strong><span>公網未知</span></div>
+  <div class="metric"><strong>{{ ghosts["summary"]["total"] }}</strong><span>Ghost 總數</span></div>
+  <div class="metric"><strong>{{ ghosts["summary"]["high"] }}</strong><span>內網未納管</span></div>
+  <div class="metric"><strong>{{ ghosts["summary"]["medium"] }}</strong><span>外網未知</span></div>
 </section>
 
 <section class="panel">
   <table class="data-table">
-    <thead><tr><th>IP</th><th>範圍</th><th>風險</th><th>次數</th><th>Port</th><th>來源主機 / 程序</th></tr></thead>
+    <thead>
+      <tr>
+        <th>IP</th>
+        <th>範圍</th>
+        <th>風險</th>
+        <th>次數</th>
+        <th>Port</th>
+        <th>來源主機 / 程序</th>
+        <th>處理</th>
+      </tr>
+    </thead>
     <tbody>
-      {% for item in ghosts.items %}
+      {% for item in ghosts["items"] %}
       <tr>
         <td class="code-inline">{{ item.ip }}</td>
         <td>{{ item.scope or "-" }}</td>
-        <td>{% if item.severity == "high" %}<span class="badge-error">內網未納管</span>{% else %}<span class="badge-warn">公網未知</span>{% endif %}</td>
+        <td>
+          {% if item.severity == "high" %}
+            <span class="badge-error">內網未納管</span>
+          {% else %}
+            <span class="badge-warn">外網未知</span>
+          {% endif %}
+        </td>
         <td>{{ item.seen_count }}</td>
         <td>{{ item.remote_ports|join(", ") }}</td>
         <td>{% for caller in item.callers %}<div>{{ caller.hostname or "-" }} / {{ caller.process or "-" }} / {{ caller.port }}</div>{% endfor %}</td>
+        <td>
+          <form method="post" action="{{ url_for('api_dependencies.ghost_ignore_page', ip=item.ip) }}">
+            <input type="hidden" name="include_external" value="{{ 1 if ghosts['summary']['include_external'] else 0 }}">
+            <input type="hidden" name="reason" value="Ghost 清單手動忽略">
+            <button class="btn-sm" type="submit">忽略</button>
+          </form>
+        </td>
       </tr>
       {% else %}
-      <tr><td colspan="6" class="no-data">目前沒有 Ghost。預設已忽略外網未知節點，只列內網未納管對端。</td></tr>
+      <tr><td colspan="7" class="no-data">目前沒有 Ghost。預設已忽略外網未知節點，只列內網未納管對端。</td></tr>
       {% endfor %}
     </tbody>
   </table>

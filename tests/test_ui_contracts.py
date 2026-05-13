@@ -235,6 +235,7 @@ def test_topology_spec_foundation_contracts_exist():
         "/api/dependencies/reconcile/trigger",
         "/dependencies/reconcile/trigger",
         "/api/dependencies/reconcile/latest",
+        "/dependencies/ghosts/<ip>/ignore",
     ]:
         assert endpoint in routes
     assert "api_dependencies" in app
@@ -288,6 +289,8 @@ def test_fake_environment_seed_script_is_reversible():
     assert "外網未知節點已忽略" in page
     assert "Ghost 清單" in ghosts
     assert "忽略外網" in ghosts and "顯示外網" in ghosts
+    assert "ghost_ignore_page" in ghosts
+    assert ">忽略<" in ghosts
 
 
 def test_superadmin_console_is_complete_and_chinese():

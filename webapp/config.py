@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.1.47"
-PATCH_ID = "fake-data-topology-seed"
-RELEASE_NOTE = "新增可清除的 50 台假資產測試資料腳本，並修正拓撲系統視角合併 evidence 錯誤"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-13 07:28:00 +08:00")
+VERSION = "1.0.1.48"
+PATCH_ID = "ghost-ignore-ui"
+RELEASE_NOTE = "修復 Ghost 清單外網顯示後無法從頁面忽略單一 IP 的問題"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-13 07:45:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")
