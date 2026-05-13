@@ -272,6 +272,7 @@ def test_topology_spec_foundation_contracts_exist():
     assert "def _layered_system_ip_topology(" in service
     assert "topology-layer-guide" in page
     assert "第一層：系統拓撲" in page and "第二層：IP 一跳" in page and "第三層：IP 二跳" in page
+    assert "第四層：IP 三跳" in page and "三跳回接系統" in service
     assert "layer_mode" in service
     assert "layout_mode" in service
     assert "topology-fullscreen-panel" in page
@@ -288,6 +289,8 @@ def test_fake_environment_seed_script_is_reversible():
     assert "def seed(" in script and "def delete(" in script and "def status(" in script
     assert "HW-FAKE-" in script
     assert "metadata.test_batch" in script
+    assert "three-hop" in script
+    assert "三跳測試 3/3 回接其他系統" in script
     assert "dependency_collect_runs" in script
     assert "10.250" in script
     assert "離開全螢幕" in page

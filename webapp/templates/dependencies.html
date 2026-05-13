@@ -120,6 +120,7 @@
         <option value="1" {% if request.args.get('depth', '2')|int == 1 %}selected{% endif %}>第一層：系統拓撲</option>
         <option value="2" {% if request.args.get('depth', '2')|int == 2 %}selected{% endif %}>第二層：IP 一跳</option>
         <option value="3" {% if request.args.get('depth', '2')|int == 3 %}selected{% endif %}>第三層：IP 二跳</option>
+        <option value="4" {% if request.args.get('depth', '2')|int == 4 %}selected{% endif %}>第四層：IP 三跳</option>
       </select>
       <input name="failed_node" value="{{ failed_node }}" placeholder="故障模擬：點節點或輸入主機/IP">
       <label class="toggle-label">
@@ -169,7 +170,7 @@
     {% endif %}
     <div class="topology-view-note">
       {% if topology.view == "system" %}
-        系統視角：第一層看系統對系統，第二層展開 IP 一跳，第三層再追 IP 二跳。
+        系統視角：第一層看系統對系統，第二層展開 IP 一跳，第三層追 IP 二跳，第四層顯示 IP 三跳與回接系統。
       {% elif topology.view == "host" %}
         主機視角：一個系統一條主幹，主機掛在系統主幹旁，適合查同系統節點與跨系統連線。
       {% else %}

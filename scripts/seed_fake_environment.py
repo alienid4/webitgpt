@@ -192,6 +192,47 @@ def seed(batch: str) -> dict[str, Any]:
                 "updated_by": "codex",
             }
         )
+    for system_idx in range(10):
+        source = hosts[system_idx * 5]
+        target = hosts[((system_idx + 3) % 10) * 5 + 2]
+        hop1 = f"172.20.{system_idx}.10"
+        hop2 = f"172.20.{system_idx}.20"
+        local_port = str(43000 + system_idx)
+        remote_port = ["443", "1521", "3306", "5432", "8002"][system_idx % 5]
+        chain = [
+            (source["hostname"], f"UNKNOWN-{hop1.replace('.', '-')}", source["ip"], hop1, "三跳測試 1/3"),
+            (f"fake-hop{system_idx + 1:02d}-01", f"UNKNOWN-{hop2.replace('.', '-')}", hop1, hop2, "三跳測試 2/3"),
+            (f"fake-hop{system_idx + 1:02d}-02", target["hostname"], hop2, target["ip"], "三跳測試 3/3 回接其他系統"),
+        ]
+        for hop_index, (from_system, to_system, caller_ip, remote_ip, description) in enumerate(chain):
+            relations.append(
+                {
+                    "from_system": from_system,
+                    "to_system": to_system,
+                    "rel_type": "connects_to",
+                    "source": "auto",
+                    "confidence": 0.8,
+                    "description": f"{description} batch={batch}",
+                    "evidence": {
+                        "run_id": FAKE_RUN_ID,
+                        "caller_hostname": from_system,
+                        "caller_ip": caller_ip,
+                        "last_local_ip": caller_ip,
+                        "last_local_port": str(int(local_port) + hop_index),
+                        "last_remote_ip": remote_ip,
+                        "last_remote_port": remote_port,
+                        "local_ports": [str(int(local_port) + hop_index)],
+                        "remote_ports": [remote_port],
+                        "process_name": "java" if hop_index < 2 else "nginx",
+                        "seen_count": system_idx + hop_index + 1,
+                        "last_seen_at": now,
+                    },
+                    "metadata": {"test_batch": batch, "fake": True, "chain": "three-hop"},
+                    "created_at": now,
+                    "updated_at": now,
+                    "updated_by": "codex",
+                }
+            )
     get_collection("dependency_relations").delete_many({"metadata.test_batch": batch})
     if relations:
         get_collection("dependency_relations").insert_many(relations)
