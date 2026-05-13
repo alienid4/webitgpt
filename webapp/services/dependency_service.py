@@ -539,18 +539,96 @@ def _node(system: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _layout(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> None:
-    count = max(len(nodes), 1)
-    columns = min(5, count)
-    for index, node in enumerate(nodes):
-        node["x"] = 110 + (index % columns) * 220
-        node["y"] = 90 + (index // columns) * 140
+def _layout(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> dict[str, int]:
+    if not nodes:
+        return {"width": 1100, "height": 520}
+
+    by_id = {str(node["id"]): node for node in nodes}
+    outgoing: dict[str, set[str]] = {str(node["id"]): set() for node in nodes}
+    incoming: dict[str, set[str]] = {str(node["id"]): set() for node in nodes}
+    neighbors: dict[str, set[str]] = {str(node["id"]): set() for node in nodes}
+    for edge in edges:
+        source = str(edge.get("source") or "")
+        target = str(edge.get("target") or "")
+        if source in by_id and target in by_id:
+            outgoing[source].add(target)
+            incoming[target].add(source)
+            neighbors[source].add(target)
+            neighbors[target].add(source)
+
+    remaining = set(by_id)
+    components: list[list[str]] = []
+    while remaining:
+        starts = sorted(
+            remaining,
+            key=lambda item: (len(outgoing.get(item, set())) - len(incoming.get(item, set())), len(neighbors.get(item, set())), item),
+            reverse=True,
+        )
+        start = starts[0]
+        queue = [start]
+        seen = {start}
+        for current in queue:
+            for nxt in sorted(neighbors.get(current, set())):
+                if nxt not in seen:
+                    seen.add(nxt)
+                    queue.append(nxt)
+        components.append(queue)
+        remaining -= seen
+
+    canvas_width = 1100
+    y_offset = 70
+    for component in components:
+        root = sorted(
+            component,
+            key=lambda item: (len(outgoing.get(item, set())) - len(incoming.get(item, set())), len(neighbors.get(item, set())), item),
+            reverse=True,
+        )[0]
+        levels: dict[int, list[str]] = {0: [root]}
+        visited = {root}
+        queue = [(root, 0)]
+        for current, level in queue:
+            next_nodes = sorted(
+                [item for item in neighbors.get(current, set()) if item not in visited],
+                key=lambda item: (len(neighbors.get(item, set())), item),
+                reverse=True,
+            )
+            for nxt in next_nodes:
+                visited.add(nxt)
+                levels.setdefault(level + 1, []).append(nxt)
+                queue.append((nxt, level + 1))
+        if len(visited) < len(component):
+            levels.setdefault(1, []).extend(sorted(set(component) - visited))
+
+        max_level = max(levels)
+        max_rows = max(len(items) for items in levels.values())
+        component_height = max(300, max_rows * 86)
+        for level, items in levels.items():
+            x = 120 + level * 230
+            canvas_width = max(canvas_width, x + 170)
+            if level == 0:
+                positions = [y_offset + component_height / 2]
+            else:
+                gap = component_height / (len(items) + 1)
+                positions = [y_offset + gap * (index + 1) for index in range(len(items))]
+            for node_id, y in zip(items, positions):
+                by_id[node_id]["x"] = round(x, 1)
+                by_id[node_id]["y"] = round(y, 1)
+        y_offset += component_height + 80
+
     by_id = {node["id"]: node for node in nodes}
     for edge in edges:
         source = by_id.get(edge.get("source"))
         target = by_id.get(edge.get("target"))
         if source and target:
-            edge.update({"x1": source["x"], "y1": source["y"], "x2": target["x"], "y2": target["y"]})
+            x1, y1, x2, y2 = source["x"], source["y"], target["x"], target["y"]
+            dx = x2 - x1
+            dy = y2 - y1
+            length = max((dx * dx + dy * dy) ** 0.5, 1)
+            label_offset = 18 if abs(dy) < 36 else 26
+            label_x = (x1 + x2) / 2 - (dy / length) * label_offset
+            label_y = (y1 + y2) / 2 + (dx / length) * label_offset
+            edge.update({"x1": x1, "y1": y1, "x2": x2, "y2": y2, "label_x": round(label_x, 1), "label_y": round(label_y, 1)})
+    return {"width": int(max(canvas_width, 1100)), "height": int(max(y_offset, 520))}
 
 
 def _port_summary(evidence: dict[str, Any]) -> str:
@@ -768,7 +846,7 @@ def _filter_to_failure_scope(data: dict[str, Any]) -> None:
         for edge in data.get("edges", [])
         if str(edge.get("source")) in keep and str(edge.get("target")) in keep and edge.get("simulation_status") in {"affected", "related"}
     ]
-    _layout(data["nodes"], data["edges"])
+    data.setdefault("meta", {}).update(_layout(data["nodes"], data["edges"]))
     data.setdefault("meta", {})["focus_node_count"] = len(data["nodes"])
     data.setdefault("meta", {})["focus_edge_count"] = len(data["edges"])
 
@@ -829,8 +907,9 @@ def _system_topology(center: str = "", depth: int = 2, limit: int = 200, include
         for rel in relations
         if rel.get("from_system") in node_ids and rel.get("to_system") in node_ids
     ]
-    _layout(nodes, edges)
+    dimensions = _layout(nodes, edges)
     meta = _topology_meta("system")
+    meta.update(dimensions)
     meta.update({"systems": len(nodes), "relations": len(edges), "center": center, "depth": depth, "include_external": include_external})
     return {"view": "system", "nodes": nodes, "edges": edges, "meta": meta}
 
@@ -859,8 +938,9 @@ def _host_topology(limit: int = 200, include_external: bool = False) -> dict[str
         source_label = host_map.get(source, {}).get("hostname") or source
         target_label = host_map.get(target, {}).get("hostname") or evidence.get("last_remote_ip") or target
         edges.append(_edge_payload(rel, source_label, target_label))
-    _layout(nodes, edges)
+    dimensions = _layout(nodes, edges)
     meta = _topology_meta("host")
+    meta.update(dimensions)
     meta.update({"hosts": len(hosts), "relations": len(edges), "include_external": include_external})
     return {"view": "host", "nodes": nodes, "edges": edges, "meta": meta}
 
@@ -892,8 +972,9 @@ def _ip_topology(limit: int = 200, include_external: bool = False) -> dict[str, 
         ip_rel["from_system"] = source
         ip_rel["to_system"] = target
         edges.append(_edge_payload(ip_rel, source, target))
-    _layout(nodes, edges)
+    dimensions = _layout(nodes, edges)
     meta = _topology_meta("ip")
+    meta.update(dimensions)
     meta.update({"hosts": len(hosts), "ips": len([n for n in nodes if n.get("kind") == "IP"]), "relations": len(edges), "include_external": include_external})
     return {"view": "ip", "nodes": nodes, "edges": edges, "meta": meta}
 

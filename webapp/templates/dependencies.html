@@ -4,6 +4,8 @@
 {% set show_ports = request.args.get('show_ports') in ['1', 'true', 'yes', 'on'] %}
 {% set failed_node = request.args.get('failed_node', '') %}
 {% set focus_impact = request.args.get('focus_impact') in ['1', 'true', 'yes', 'on'] %}
+{% set graph_width = topology.meta.width or 1100 %}
+{% set graph_height = topology.meta.height or 520 %}
 {% set fullscreen_args = {
   'view': topology.view,
   'center': request.args.get('center', ''),
@@ -13,13 +15,14 @@
   'failed_node': failed_node,
   'focus_impact': 1 if focus_impact else 0
 } %}
+
 {% if fullscreen %}
 <section class="topology-fullscreen-panel">
   <div class="topology-fullscreen-head">
     <div>
       <p class="eyebrow">TOPOLOGY FULLSCREEN</p>
-      <h1>系統拓撲互動圖</h1>
-      <p class="muted">全螢幕檢視：保留目前視角、深度、外網與 Port 顯示設定。</p>
+      <h1>系統拓撲全螢幕</h1>
+      <p class="muted">保留目前視角、深度、外網與 Port 顯示設定。</p>
     </div>
     <div class="actions">
       <a class="btn" href="{{ url_for('api_reports.dependencies_page', **fullscreen_args) }}">回拓撲頁</a>
@@ -29,19 +32,19 @@
 <section class="panel report-hero">
   <div>
     <p class="eyebrow">TOPOLOGY</p>
-    <h1>系統拓撲互動圖</h1>
-    <p class="muted">線條只顯示最後一次成功 ss -tunp 採集快照；未採集前只顯示節點，避免把 CMDB 歸屬誤當實際連線。</p>
+    <h1>系統拓撲</h1>
+    <p class="muted">以 ss -tunp 採集結果為主，呈現系統、主機、IP 的連線關係；若尚未重新採集，會沿用最近一次資料。</p>
   </div>
   <div class="actions">
     <form method="post" action="{{ url_for('api_dependencies.collect_trigger_page') }}">
       <input type="hidden" name="view" value="{{ topology.view }}">
-      <button class="btn primary" type="submit">執行 ss -tunp 採集</button>
+      <button class="btn primary" type="submit">立即 ss 採集</button>
     </form>
     <form method="post" action="{{ url_for('api_dependencies.reconcile_trigger_page') }}">
       <input type="hidden" name="view" value="{{ topology.view }}">
-      <button class="btn" type="submit">執行 ss+nmap 驗證</button>
+      <button class="btn" type="submit">ss+nmap 對帳</button>
     </form>
-    <a class="btn" href="{{ url_for('api_reports.dependencies_api') }}">JSON</a>
+    <a class="btn" href="{{ url_for('api_reports.dependencies_api') }}">JSON API</a>
   </div>
 </section>
 
@@ -52,28 +55,28 @@
     <span class="code-inline">{{ topology.meta.run_id }}</span>
     <span class="text-muted-sm">最後採集：{{ topology.meta.last_collect_at or "-" }} / 關聯 {{ topology.meta.edge_count }}</span>
   {% else %}
-    <span class="text-muted-sm">尚無成功採集版本。</span>
+    <span class="text-muted-sm">尚未有採集紀錄。</span>
   {% endif %}
 </section>
 
 <section class="panel compact-panel">
-  <strong>ss+nmap 聯通驗證</strong>
+  <strong>ss+nmap 對帳報告</strong>
   {% if reconcile_report %}
-    <span class="text-muted-sm">最新報告 {{ reconcile_report.finished_at_local or reconcile_report.finished_at or reconcile_report.started_at_local or reconcile_report.started_at }} / 目標 {{ reconcile_report.target_count }} / 明細 {{ reconcile_report.row_count }}</span>
+    <span class="text-muted-sm">最近對帳：{{ reconcile_report.finished_at_local or reconcile_report.finished_at or reconcile_report.started_at_local or reconcile_report.started_at }} / 目標 {{ reconcile_report.target_count }} / 結果 {{ reconcile_report.row_count }}</span>
     <span class="code-inline">{{ reconcile_report.run_id }}</span>
   {% else %}
-    <span class="text-muted-sm">尚未執行。先跑 ss 採集，再按「執行 ss+nmap 驗證」產出差異報告。</span>
+    <span class="text-muted-sm">尚未執行 ss+nmap 對帳。</span>
   {% endif %}
 </section>
 
 {% if reconcile_report %}
 <section class="panel">
-  <h2>ss+nmap 差異報告</h2>
+  <h2>ss+nmap 差異摘要</h2>
   <div class="metric-grid">
-    <div class="metric-card"><strong>{{ reconcile_report.summary.matched or 0 }}</strong><span>雙方一致</span></div>
-    <div class="metric-card"><strong>{{ reconcile_report.summary.ss_only or 0 }}</strong><span>ss 有、nmap 掃不到</span></div>
-    <div class="metric-card"><strong>{{ reconcile_report.summary.nmap_only or 0 }}</strong><span>nmap 有、ss 沒看到</span></div>
-    <div class="metric-card"><strong>{{ reconcile_report.summary.external_skipped or 0 }}</strong><span>外網未掃描</span></div>
+    <div class="metric-card"><strong>{{ reconcile_report.summary.matched or 0 }}</strong><span>一致</span></div>
+    <div class="metric-card"><strong>{{ reconcile_report.summary.ss_only or 0 }}</strong><span>ss 有、nmap 無</span></div>
+    <div class="metric-card"><strong>{{ reconcile_report.summary.nmap_only or 0 }}</strong><span>nmap 有、ss 無</span></div>
+    <div class="metric-card"><strong>{{ reconcile_report.summary.external_skipped or 0 }}</strong><span>外網忽略</span></div>
   </div>
   {% if reconcile_report.errors %}
     <div class="status-box warn">
@@ -96,7 +99,7 @@
         <td>{{ row.suggestion }}</td>
       </tr>
       {% else %}
-      <tr><td colspan="7" class="no-data">本次沒有差異明細。</td></tr>
+      <tr><td colspan="7" class="no-data">目前沒有差異資料。</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -119,7 +122,7 @@
       <input name="failed_node" value="{{ failed_node }}" placeholder="故障模擬：點節點或輸入主機/IP">
       <label class="toggle-label">
         <input type="checkbox" name="focus_impact" value="1" {% if focus_impact %}checked{% endif %} data-auto-submit>
-        只看一/二跳影響
+        只看一跳/二跳影響
       </label>
       <label class="toggle-label">
         <input type="checkbox" name="include_external" value="1" {% if topology.meta.include_external %}checked{% endif %} data-auto-submit>
@@ -149,39 +152,39 @@
       <span><i class="topology-line topology-line-auto"></i>自動採集/待確認</span>
       <span><i class="topology-dot topology-dot-system"></i>內網未納管</span>
       {% if topology.meta.include_external %}<span><i class="topology-dot topology-dot-ghost"></i>外網未知</span>{% endif %}
-      <span><i class="topology-dot topology-dot-failed"></i>模擬故障</span>
+      <span><i class="topology-dot topology-dot-failed"></i>故障節點</span>
       <span><i class="topology-dot topology-dot-affected"></i>受影響</span>
       <span class="text-muted-sm">Port 明細請看下方清單</span>
       {% if not topology.meta.include_external %}<span class="text-muted-sm">外網未知節點已忽略</span>{% endif %}
     </div>
     {% if topology.meta.simulation.enabled %}
     <div class="topology-simulation-note">
-      目前假裝 <strong>{{ topology.meta.simulation.failed_node }}</strong> 故障；
-      下游受影響 {{ topology.meta.simulation.affected_count }} 個，
-      上游/關聯來源 {{ topology.meta.simulation.related_count }} 個。
-      {% if topology.meta.focus_impact %}目前只顯示一/二跳影響範圍。{% endif %}
+      模擬 <strong>{{ topology.meta.simulation.failed_node }}</strong> 故障：
+      下游受影響 {{ topology.meta.simulation.affected_count }} 個節點，
+      上游/相關連線 {{ topology.meta.simulation.related_count }} 個節點。
+      {% if topology.meta.focus_impact %}目前只顯示一跳/二跳影響範圍。{% endif %}
     </div>
     {% endif %}
     <div class="topology-view-note">
       {% if topology.view == "system" %}
-        系統視角：把同一業務系統的多台主機彙總成一個節點，用來看系統與系統之間的依賴與影響範圍。
+        系統視角：同一套系統內的多台主機會收斂成系統節點，適合主管看影響面。
       {% elif topology.view == "host" %}
-        主機視角：以 hostname 為節點，顯示哪台主機連到哪台主機或內網未納管 IP。
+        主機視角：以 hostname 為節點，適合查某台主機連到誰、誰連到它。
       {% else %}
-        IP 視角：只看 IP 對 IP 的連線與 Port，適合核對防火牆、網段與未知連線。
+        IP 視角：以 IP 為節點，適合查 ACL、防火牆與 Port 對帳。
       {% endif %}
     </div>
     <div class="topology-zoom" data-topology-controls>
-      <button class="btn-sm" type="button" data-topology-zoom-out title="縮小拓撲圖">縮小</button>
-      <button class="btn-sm" type="button" data-topology-zoom-in title="放大拓撲圖">放大</button>
-      <button class="btn-sm" type="button" data-topology-zoom-reset title="回到預設大小">重設</button>
+      <button class="btn-sm" type="button" data-topology-zoom-out title="縮小拓撲">縮小</button>
+      <button class="btn-sm" type="button" data-topology-zoom-in title="放大拓撲">放大</button>
+      <button class="btn-sm" type="button" data-topology-zoom-reset title="重設縮放">重設</button>
       <span class="topology-zoom-value" data-topology-zoom-value>80%</span>
     </div>
   </div>
   <div class="topology-workspace {% if topology.meta.simulation.enabled %}topology-workspace-with-panel{% endif %}">
     <div class="topology-canvas" data-topology-canvas>
-      <div class="topology-stage" data-topology-stage>
-        <svg viewBox="0 0 1100 520" role="img" aria-label="系統拓撲圖">
+      <div class="topology-stage" data-topology-stage style="--topology-width: {{ graph_width }}px; --topology-height: {{ graph_height }}px;">
+        <svg viewBox="0 0 {{ graph_width }} {{ graph_height }}" role="img" aria-label="系統拓撲圖">
           <defs>
             <marker id="topology-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
               <path d="M 0 0 L 10 5 L 0 10 z"></path>
@@ -190,17 +193,17 @@
 
           {% for edge in topology.edges %}
             <g class="topology-edge {% if edge.simulation_status == 'affected' %}topology-edge-affected{% elif edge.simulation_status == 'related' %}topology-edge-related{% endif %}" tabindex="0">
-              <title>{{ edge.detail_label or edge.source_label ~ " → " ~ edge.target_label }}</title>
+              <title>{{ edge.detail_label or edge.source_label ~ " -> " ~ edge.target_label }}</title>
               <line class="topology-line-{{ edge.trust or 'manual' }}" x1="{{ edge.x1 }}" y1="{{ edge.y1 }}" x2="{{ edge.x2 }}" y2="{{ edge.y2 }}"></line>
               {% if show_ports and edge.port_label %}
-                <text class="topology-edge-label topology-edge-label-short" x="{{ (edge.x1 + edge.x2) / 2 }}" y="{{ (edge.y1 + edge.y2) / 2 - 48 }}" text-anchor="middle">{{ edge.port_label_short or edge.port_label }}</text>
+                <text class="topology-edge-label topology-edge-label-short" x="{{ edge.label_x or ((edge.x1 + edge.x2) / 2) }}" y="{{ edge.label_y or ((edge.y1 + edge.y2) / 2 - 28) }}" text-anchor="middle">{{ edge.port_label_short or edge.port_label }}</text>
               {% endif %}
             </g>
           {% endfor %}
 
           {% for node in topology.nodes %}
-            <g class="topology-node {% if node.kind == '機房' %}topology-node-dc{% elif node.kind in ['系統', '內網未納管', '內網未納管 IP'] %}topology-node-system{% elif node.kind in ['外網未知', '外網 IP'] %}topology-node-ghost{% elif node.kind == 'IP' %}topology-node-ip{% else %}topology-node-host{% endif %} {% if node.simulation_status == 'failed' %}topology-node-failed{% elif node.simulation_status == 'affected' %}topology-node-affected{% elif node.simulation_status == 'related' %}topology-node-related{% endif %}" tabindex="0" data-topology-node-id="{{ node.id }}">
-              <title>{{ node.kind }}：{{ node.label }}；點選可模擬此節點故障</title>
+            <g class="topology-node {% if node.kind == '機房' %}topology-node-dc{% elif node.kind in ['系統', '內網未納管', '內網未納管IP'] %}topology-node-system{% elif node.kind in ['外網未知', '外網 IP'] %}topology-node-ghost{% elif node.kind == 'IP' %}topology-node-ip{% else %}topology-node-host{% endif %} {% if node.simulation_status == 'failed' %}topology-node-failed{% elif node.simulation_status == 'affected' %}topology-node-affected{% elif node.simulation_status == 'related' %}topology-node-related{% endif %}" tabindex="0" data-topology-node-id="{{ node.id }}">
+              <title>{{ node.kind }}：{{ node.label }}。點選可帶入故障模擬。</title>
               <circle cx="{{ node.x }}" cy="{{ node.y }}" r="38"></circle>
               <text class="topology-node-label" x="{{ node.x }}" y="{{ node.y - 5 }}" text-anchor="middle">{{ node.label[:14] }}</text>
               <text class="topology-node-kind" x="{{ node.x }}" y="{{ node.y + 17 }}" text-anchor="middle">{{ node.kind }}</text>
@@ -217,20 +220,20 @@
         <div><dt>節點類型</dt><dd>{{ topology.meta.simulation.node.kind or "-" }}</dd></div>
         <div><dt>IP / OS</dt><dd>{{ topology.meta.simulation.node.ip or topology.meta.simulation.node.hostname or "-" }} / {{ topology.meta.simulation.node.os or "-" }}</dd></div>
         <div><dt>系統</dt><dd>{{ topology.meta.simulation.node.system or topology.meta.simulation.node.category or "-" }}</dd></div>
-        <div><dt>目前檢視</dt><dd>{{ "只看一/二跳" if topology.meta.focus_impact else "完整拓撲" }}</dd></div>
+        <div><dt>顯示範圍</dt><dd>{{ "只看一跳/二跳" if topology.meta.focus_impact else "完整拓撲" }}</dd></div>
       </dl>
       <h3>一跳影響</h3>
-      <p class="text-muted-sm">下游：{{ topology.meta.simulation.direct_affected|join("、") if topology.meta.simulation.direct_affected else "無" }}</p>
-      <p class="text-muted-sm">上游：{{ topology.meta.simulation.direct_related|join("、") if topology.meta.simulation.direct_related else "無" }}</p>
+      <p class="text-muted-sm">下游：{{ topology.meta.simulation.direct_affected|join("、") if topology.meta.simulation.direct_affected else "-" }}</p>
+      <p class="text-muted-sm">上游：{{ topology.meta.simulation.direct_related|join("、") if topology.meta.simulation.direct_related else "-" }}</p>
       <h3>二跳影響</h3>
-      <p class="text-muted-sm">下游：{{ topology.meta.simulation.second_hop_affected|join("、") if topology.meta.simulation.second_hop_affected else "無" }}</p>
-      <p class="text-muted-sm">上游：{{ topology.meta.simulation.second_hop_related|join("、") if topology.meta.simulation.second_hop_related else "無" }}</p>
+      <p class="text-muted-sm">下游：{{ topology.meta.simulation.second_hop_affected|join("、") if topology.meta.simulation.second_hop_affected else "-" }}</p>
+      <p class="text-muted-sm">上游：{{ topology.meta.simulation.second_hop_related|join("、") if topology.meta.simulation.second_hop_related else "-" }}</p>
       <h3>關聯線</h3>
       <div class="topology-detail-list">
         {% for edge in topology.meta.simulation.edges %}
           <div>
-            <strong>{{ edge.source }} → {{ edge.target }}</strong>
-            <span>{{ edge.port }} / {{ edge.process }} / {{ "受影響" if edge.status == "affected" else "上游關聯" }}</span>
+            <strong>{{ edge.source }} -> {{ edge.target }}</strong>
+            <span>{{ edge.port }} / {{ edge.process }} / {{ "受影響" if edge.status == "affected" else "上游相關" }}</span>
           </div>
         {% else %}
           <p class="text-muted-sm">沒有可顯示的關聯線。</p>
@@ -242,9 +245,9 @@
 </section>
 
 <section class="panel {% if fullscreen %}topology-fullscreen-list{% endif %}">
-  <h2>聯通清單</h2>
+  <h2>關聯清單</h2>
   <table class="data-table">
-    <thead><tr><th>來源</th><th>目標</th><th>關係</th><th>Port</th><th>程序</th><th>次數</th><th>最後看到</th></tr></thead>
+    <thead><tr><th>來源</th><th>目標</th><th>類型</th><th>Port</th><th>程序</th><th>次數</th><th>最後看到</th></tr></thead>
     <tbody>
       {% for edge in topology.edges %}
       <tr>
@@ -257,7 +260,7 @@
         <td>{{ edge.last_seen or "-" }}</td>
       </tr>
       {% else %}
-      <tr><td colspan="7" class="no-data">尚無拓撲關係。</td></tr>
+      <tr><td colspan="7" class="no-data">目前沒有拓撲關聯資料。</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -265,20 +268,4 @@
 {% if fullscreen %}
 </section>
 {% endif %}
-{% endblock %}
-{% block scripts %}
-<script>
-  document.querySelectorAll("[data-topology-filter] [data-auto-submit]").forEach((field) => {
-    field.addEventListener("change", () => field.form.requestSubmit());
-  });
-  document.querySelectorAll("[data-topology-node-id]").forEach((node) => {
-    node.addEventListener("click", () => {
-      const form = document.querySelector("[data-topology-filter]");
-      const field = form?.querySelector('input[name="failed_node"]');
-      if (!form || !field) return;
-      field.value = node.dataset.topologyNodeId || "";
-      form.requestSubmit();
-    });
-  });
-</script>
 {% endblock %}

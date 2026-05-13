@@ -111,7 +111,7 @@ def test_legacy_module_wave1_pages_exist():
     assert "dependencies" in dependencies.lower() or "api/reports/dependencies" in dependencies
     assert "topology-edge" in dependencies
     assert "edge.x1" in dependencies
-    assert "聯通清單" in dependencies
+    assert "關聯清單" in dependencies
     assert "data-topology-zoom-in" in dependencies
     assert "data-topology-stage" in dependencies
     assert "topology-node-dc" in dependencies
@@ -255,7 +255,7 @@ def test_topology_spec_foundation_contracts_exist():
     assert "edge.detail_label" in page and "edge.port_summary" in page
     assert "show_ports" in page and "edge.port_label" in page
     assert "failed_node" in page and "故障模擬" in page
-    assert "focus_impact" in page and "只看一/二跳影響" in page
+    assert "focus_impact" in page and "只看一跳/二跳影響" in page
     assert "topology-detail-panel" in page
     assert "IMPACT PANEL" in page
     assert "data-topology-node-id" in page
@@ -267,8 +267,8 @@ def test_topology_spec_foundation_contracts_exist():
     assert "Port 明細請看下方清單" in page
     assert "topology-fullscreen-panel" in page
     assert "dependencies_fullscreen_page" in page
-    assert "ss+nmap 聯通驗證" in page
-    assert "執行 ss+nmap 驗證" in page
+    assert "ss+nmap 對帳報告" in page
+    assert "ss+nmap 對帳" in page
 
 
 def test_fake_environment_seed_script_is_reversible():
@@ -282,7 +282,7 @@ def test_fake_environment_seed_script_is_reversible():
     assert "dependency_collect_runs" in script
     assert "10.250" in script
     assert "離開全螢幕" in page
-    assert "執行 ss -tunp 採集" in page
+    assert "立即 ss 採集" in page
     assert "採集狀態" in page
     assert "顯示外網未知節點" in page
     assert "外網未知" in page

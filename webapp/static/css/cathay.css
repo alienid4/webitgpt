@@ -986,15 +986,17 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
 
 .topology-stage {
   --topology-scale: .8;
-  width: calc(1100px * var(--topology-scale));
-  height: calc(520px * var(--topology-scale));
+  --topology-width: 1100px;
+  --topology-height: 520px;
+  width: calc(var(--topology-width) * var(--topology-scale));
+  height: calc(var(--topology-height) * var(--topology-scale));
   min-width: 100%;
   transform-origin: top left;
 }
 
 .topology-stage svg {
-  width: 1100px;
-  height: 520px;
+  width: var(--topology-width);
+  height: var(--topology-height);
   display: block;
   transform: scale(var(--topology-scale));
   transform-origin: top left;

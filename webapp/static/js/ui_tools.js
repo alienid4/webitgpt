@@ -223,5 +223,15 @@ document.querySelectorAll("[data-topology-canvas]").forEach((canvas) => {
   canvas.addEventListener("pointerup", () => { dragging = false; });
   canvas.addEventListener("pointercancel", () => { dragging = false; });
 
+  canvas.querySelectorAll("[data-topology-node-id]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const form = document.querySelector("[data-topology-filter]");
+      const input = form?.querySelector('input[name="failed_node"]');
+      if (!form || !input) return;
+      input.value = node.dataset.topologyNodeId || "";
+      form.requestSubmit();
+    });
+  });
+
   setScale(scale);
 });
