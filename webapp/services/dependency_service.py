@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import xml.etree.ElementTree as ET
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
@@ -216,10 +216,29 @@ def delete_relation(relation_id: str) -> bool:
 
 
 def latest_collect_run() -> Optional[dict[str, Any]]:
+    mark_stale_collect_runs()
     return _public(get_collection("dependency_collect_runs").find_one({"status": "success"}, sort=[("finished_at", -1)]))
 
 
+def mark_stale_collect_runs(max_age_min: int = 15) -> int:
+    cutoff = _now() - timedelta(minutes=max_age_min)
+    result = get_collection("dependency_collect_runs").update_many(
+        {"status": "running", "started_at": {"$lt": cutoff}},
+        {
+            "$set": {
+                "status": "failed",
+                "finished_at": _now(),
+                "edge_count": 0,
+                "snapshot_replaced": False,
+                "errors": [{"host": "*", "error": f"採集超過 {max_age_min} 分鐘未完成，已自動標記失敗。"}],
+            }
+        },
+    )
+    return int(result.modified_count)
+
+
 def collect_topology(actor: str = "system", limit_hosts: int = 20) -> dict[str, Any]:
+    mark_stale_collect_runs()
     previous_success = latest_collect_run()
     run_id = f"topo-{_now().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}"
     started_at = _now()
@@ -235,43 +254,56 @@ def collect_topology(actor: str = "system", limit_hosts: int = 20) -> dict[str, 
         "errors": [],
     }
     get_collection("dependency_collect_runs").insert_one(run_doc)
-    aggregate: dict[tuple[str, str], dict[str, Any]] = {}
-    errors = []
-    for host in hosts:
-        hostname = host.get("hostname") or host.get("asset_seq") or host.get("ip")
-        try:
-            output = _run_ss_tunp(host)
-            for edge in _parse_ss_tunp(host, output, run_id):
-                key = (edge["from_system"], edge["to_system"])
-                item = aggregate.setdefault(key, edge)
-                if item is not edge:
-                    _merge_edge_evidence(item["evidence"], edge["evidence"])
-        except Exception as exc:  # noqa: BLE001 - keep collection resilient per host
-            errors.append({"host": hostname, "error": str(exc)[:300]})
-    now = _now()
-    should_replace_snapshot = not errors
-    if errors and aggregate and not previous_success:
-        should_replace_snapshot = True
-    if should_replace_snapshot:
-        get_collection("dependency_relations").delete_many({"source": "auto"})
-        for edge in aggregate.values():
-            edge["updated_at"] = now
-            edge["updated_by"] = actor
-            get_collection("dependency_relations").update_one(
-                {"from_system": edge["from_system"], "to_system": edge["to_system"]},
-                {"$set": edge, "$setOnInsert": {"created_at": now, "created_by": actor}},
-                upsert=True,
-            )
-        status = "success" if not errors else "partial"
-    else:
-        status = "partial" if aggregate else "failed"
-    update = {"status": status, "finished_at": now, "edge_count": len(aggregate), "errors": errors, "snapshot_replaced": should_replace_snapshot}
-    get_collection("dependency_collect_runs").update_one({"run_id": run_id}, {"$set": update})
-    run_doc.update(update)
-    return _public(run_doc) or run_doc
+    try:
+        aggregate: dict[tuple[str, str], dict[str, Any]] = {}
+        errors = []
+        for host in hosts:
+            hostname = host.get("hostname") or host.get("asset_seq") or host.get("ip")
+            try:
+                output = _run_ss_tunp(host)
+                for edge in _parse_ss_tunp(host, output, run_id):
+                    key = (edge["from_system"], edge["to_system"])
+                    item = aggregate.setdefault(key, edge)
+                    if item is not edge:
+                        _merge_edge_evidence(item["evidence"], edge["evidence"])
+            except Exception as exc:  # noqa: BLE001 - keep collection resilient per host
+                errors.append({"host": hostname, "error": str(exc)[:300]})
+        now = _now()
+        should_replace_snapshot = not errors
+        if errors and aggregate and not previous_success:
+            should_replace_snapshot = True
+        if should_replace_snapshot:
+            get_collection("dependency_relations").delete_many({"source": "auto"})
+            for edge in aggregate.values():
+                edge["updated_at"] = now
+                edge["updated_by"] = actor
+                get_collection("dependency_relations").update_one(
+                    {"from_system": edge["from_system"], "to_system": edge["to_system"]},
+                    {"$set": edge, "$setOnInsert": {"created_at": now, "created_by": actor}},
+                    upsert=True,
+                )
+            status = "success" if not errors else "partial"
+        else:
+            status = "partial" if aggregate else "failed"
+        update = {"status": status, "finished_at": now, "edge_count": len(aggregate), "errors": errors, "snapshot_replaced": should_replace_snapshot}
+        get_collection("dependency_collect_runs").update_one({"run_id": run_id}, {"$set": update})
+        run_doc.update(update)
+        return _public(run_doc) or run_doc
+    except Exception as exc:  # noqa: BLE001 - never leave a run stuck in running
+        update = {
+            "status": "failed",
+            "finished_at": _now(),
+            "edge_count": 0,
+            "errors": [{"host": "*", "error": str(exc)[:300]}],
+            "snapshot_replaced": False,
+        }
+        get_collection("dependency_collect_runs").update_one({"run_id": run_id}, {"$set": update})
+        run_doc.update(update)
+        return _public(run_doc) or run_doc
 
 
 def collect_runs(limit: int = 20) -> list[dict[str, Any]]:
+    mark_stale_collect_runs()
     return [_public(item) or {} for item in get_collection("dependency_collect_runs").find({}).sort("started_at", -1).limit(limit)]
 
 

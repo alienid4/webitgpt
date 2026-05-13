@@ -51,16 +51,32 @@
 <section class="panel compact-panel">
   <strong>採集狀態</strong>
   <span class="text-muted-sm">{{ topology.meta.message }}</span>
+  {% if request.args.get('collect_run') %}
+    <span class="badge badge-{{ 'ok' if request.args.get('collect_status') == 'success' else 'warn' if request.args.get('collect_status') == 'partial' else 'error' }}">剛剛採集：{{ request.args.get('collect_status') }}</span>
+    <span class="code-inline">{{ request.args.get('collect_run') }}</span>
+  {% endif %}
   {% if topology.meta.run_id %}
     <span class="code-inline">{{ topology.meta.run_id }}</span>
     <span class="text-muted-sm">最後採集：{{ topology.meta.last_collect_at or "-" }} / 關聯 {{ topology.meta.edge_count }}</span>
   {% else %}
     <span class="text-muted-sm">尚未有採集紀錄。</span>
   {% endif %}
+  {% if collect_runs %}
+    {% set last_run = collect_runs[0] %}
+    <span class="text-muted-sm">最近執行：{{ last_run.status }} / {{ last_run.started_at or "-" }} / {{ last_run.edge_count or 0 }} 條</span>
+    {% if last_run.errors %}
+      <span class="text-muted-sm">錯誤：{{ last_run.errors[0].host }} {{ last_run.errors[0].error }}</span>
+    {% endif %}
+  {% endif %}
 </section>
 
 <section class="panel compact-panel">
   <strong>ss+nmap 對帳報告</strong>
+  {% if request.args.get('reconcile_run') %}
+    <span class="badge badge-ok">剛剛對帳</span>
+    <span class="code-inline">{{ request.args.get('reconcile_run') }}</span>
+    <span class="text-muted-sm">結果 {{ request.args.get('reconcile_rows') or 0 }} 筆</span>
+  {% endif %}
   {% if reconcile_report %}
     <span class="text-muted-sm">最近對帳：{{ reconcile_report.finished_at_local or reconcile_report.finished_at or reconcile_report.started_at_local or reconcile_report.started_at }} / 目標 {{ reconcile_report.target_count }} / 結果 {{ reconcile_report.row_count }}</span>
     <span class="code-inline">{{ reconcile_report.run_id }}</span>

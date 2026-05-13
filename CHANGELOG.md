@@ -1,5 +1,12 @@
 # webitgpt Changelog
 
+## v1.0.1.53 - 2026-05-13 10:05 +08:00 - topology-action-feedback
+
+- 拓撲「立即 ss 採集」按鈕改為回頁面顯示 run id、狀態與最近錯誤，避免看起來像沒反應。
+- `ss+nmap 對帳` 按鈕回頁面顯示對帳 run id 與結果筆數。
+- 新增卡住採集自動清理，超過 15 分鐘仍為 running 的 run 會標記 failed 並留下錯誤訊息。
+- 採集流程加上最後防線，非預期例外不再留下永久 running 狀態。
+
 ## v1.0.1.52 - 2026-05-13 09:40 +08:00 - topology-third-hop-fake-data
 
 - 系統拓撲新增 `第四層：IP 三跳`，可呈現二跳後再延伸到第三個 IP hop 的關係。

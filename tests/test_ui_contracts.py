@@ -211,6 +211,7 @@ def test_topology_spec_foundation_contracts_exist():
         "def analyze_ghosts(",
         "def adopt_ghost(",
         "def collect_topology(",
+        "def mark_stale_collect_runs(",
         "def _apply_failure_simulation(",
         "def latest_collect_run(",
         "def collect_runs(",
@@ -273,6 +274,8 @@ def test_topology_spec_foundation_contracts_exist():
     assert "topology-layer-guide" in page
     assert "第一層：系統拓撲" in page and "第二層：IP 一跳" in page and "第三層：IP 二跳" in page
     assert "第四層：IP 三跳" in page and "三跳回接系統" in service
+    assert "剛剛採集" in page and "最近執行" in page
+    assert "剛剛對帳" in page and "reconcile_run" in page
     assert "layer_mode" in service
     assert "layout_mode" in service
     assert "topology-fullscreen-panel" in page

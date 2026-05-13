@@ -21,6 +21,7 @@ def _focus_impact() -> bool:
 @bp.get("/dependencies/fullscreen")
 @require_feature("dependencies")
 def dependencies_fullscreen_page():
+    collect_runs = dependency_service.collect_runs(limit=5)
     data = dependency_service.topology(
         view=request.args.get("view", "system"),
         center=request.args.get("center", ""),
@@ -30,7 +31,7 @@ def dependencies_fullscreen_page():
         failed_node=request.args.get("failed_node", ""),
         focus_impact=_focus_impact(),
     )
-    return render_template("dependencies.html", topology=data, fullscreen=True, reconcile_report=dependency_service.latest_reconcile_report())
+    return render_template("dependencies.html", topology=data, fullscreen=True, reconcile_report=dependency_service.latest_reconcile_report(), collect_runs=collect_runs)
 
 
 @bp.get("/dependencies/ghosts")
@@ -163,7 +164,7 @@ def collect_trigger_api():
 def collect_trigger_page():
     run = dependency_service.collect_topology(current_user()["username"])
     audit_log_service.append("dependencies.collect.trigger", current_user()["username"], {"run_id": run.get("run_id"), "status": run.get("status")})
-    return redirect(url_for("api_reports.dependencies_page", view=request.form.get("view", "host")))
+    return redirect(url_for("api_reports.dependencies_page", view=request.form.get("view", "host"), collect_run=run.get("run_id"), collect_status=run.get("status")))
 
 
 @bp.post("/api/dependencies/reconcile/trigger")
@@ -181,7 +182,7 @@ def reconcile_trigger_api():
 def reconcile_trigger_page():
     report = dependency_service.reconcile_ss_nmap(current_user()["username"])
     audit_log_service.append("dependencies.reconcile.trigger", current_user()["username"], {"run_id": report.get("run_id"), "row_count": report.get("row_count")})
-    return redirect(url_for("api_reports.dependencies_page", view=request.form.get("view", "host"), show_ports=1))
+    return redirect(url_for("api_reports.dependencies_page", view=request.form.get("view", "host"), show_ports=1, reconcile_run=report.get("run_id"), reconcile_rows=report.get("row_count")))
 
 
 @bp.get("/api/dependencies/reconcile/latest")

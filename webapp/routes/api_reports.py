@@ -101,6 +101,7 @@ def reports_summary_csv():
 @bp.get("/dependencies")
 @require_feature("dependencies")
 def dependencies_page():
+    collect_runs = dependency_service.collect_runs(limit=5)
     data = topology(
         view=request.args.get("view", "host"),
         center=request.args.get("center", ""),
@@ -110,7 +111,7 @@ def dependencies_page():
         failed_node=request.args.get("failed_node", ""),
         focus_impact=_focus_impact(),
     )
-    return render_template("dependencies.html", topology=data, reconcile_report=dependency_service.latest_reconcile_report())
+    return render_template("dependencies.html", topology=data, reconcile_report=dependency_service.latest_reconcile_report(), collect_runs=collect_runs)
 
 
 @bp.get("/api/dependencies")
