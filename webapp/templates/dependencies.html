@@ -48,38 +48,54 @@
   </div>
 </section>
 
-<section class="panel compact-panel">
+<section class="panel compact-panel topology-status-panel">
   <strong>採集狀態</strong>
+  <span class="status-pill status-pill-info">資料來源：ss -tunp 採集快照</span>
   <span class="text-muted-sm">{{ topology.meta.message }}</span>
   {% if request.args.get('collect_run') %}
     <span class="badge badge-{{ 'ok' if request.args.get('collect_status') == 'success' else 'warn' if request.args.get('collect_status') == 'partial' else 'error' }}">剛剛採集：{{ request.args.get('collect_status') }}</span>
-    <span class="code-inline">{{ request.args.get('collect_run') }}</span>
   {% endif %}
   {% if topology.meta.run_id %}
-    <span class="code-inline">{{ topology.meta.run_id }}</span>
-    <span class="text-muted-sm">最後採集：{{ topology.meta.last_collect_at or "-" }} / 關聯 {{ topology.meta.edge_count }}</span>
+    <span class="status-pill">最後採集：{{ (topology.meta.last_collect_at or "-")[:19]|replace("T", " ") }}</span>
+    <span class="status-pill">關聯線：{{ topology.meta.edge_count }} 條</span>
   {% else %}
     <span class="text-muted-sm">尚未有採集紀錄。</span>
   {% endif %}
   {% if collect_runs %}
     {% set last_run = collect_runs[0] %}
-    <span class="text-muted-sm">最近執行：{{ last_run.status }} / {{ last_run.started_at or "-" }} / {{ last_run.edge_count or 0 }} 條</span>
+    <span class="status-pill status-pill-{{ 'ok' if last_run.status == 'success' else 'warn' if last_run.status in ['running', 'partial'] else 'error' }}">最近執行：{{ "成功" if last_run.status == "success" else "執行中" if last_run.status == "running" else "部分完成" if last_run.status == "partial" else "失敗" }}</span>
     {% if last_run.errors %}
       <span class="text-muted-sm">錯誤：{{ last_run.errors[0].host }} {{ last_run.errors[0].error }}</span>
     {% endif %}
   {% endif %}
+  {% if topology.meta.run_id or request.args.get('collect_run') %}
+    <details class="inline-detail">
+      <summary>技術資訊</summary>
+      <span class="text-muted-sm">目前批次：</span><span class="code-inline">{{ topology.meta.run_id or "-" }}</span>
+      {% if request.args.get('collect_run') %}
+        <span class="text-muted-sm">剛剛觸發：</span><span class="code-inline">{{ request.args.get('collect_run') }}</span>
+      {% endif %}
+    </details>
+  {% endif %}
 </section>
 
-<section class="panel compact-panel">
+<section class="panel compact-panel topology-status-panel">
   <strong>ss+nmap 對帳報告</strong>
   {% if request.args.get('reconcile_run') %}
     <span class="badge badge-ok">剛剛對帳</span>
-    <span class="code-inline">{{ request.args.get('reconcile_run') }}</span>
     <span class="text-muted-sm">結果 {{ request.args.get('reconcile_rows') or 0 }} 筆</span>
   {% endif %}
   {% if reconcile_report %}
-    <span class="text-muted-sm">最近對帳：{{ reconcile_report.finished_at_local or reconcile_report.finished_at or reconcile_report.started_at_local or reconcile_report.started_at }} / 目標 {{ reconcile_report.target_count }} / 結果 {{ reconcile_report.row_count }}</span>
-    <span class="code-inline">{{ reconcile_report.run_id }}</span>
+    <span class="status-pill">最近對帳：{{ ((reconcile_report.finished_at_local or reconcile_report.finished_at or reconcile_report.started_at_local or reconcile_report.started_at) or "-")[:19]|replace("T", " ") }}</span>
+    <span class="status-pill">掃描目標：{{ reconcile_report.target_count }}</span>
+    <span class="status-pill">差異結果：{{ reconcile_report.row_count }} 筆</span>
+    <details class="inline-detail">
+      <summary>技術資訊</summary>
+      <span class="code-inline">{{ reconcile_report.run_id }}</span>
+      {% if request.args.get('reconcile_run') %}
+        <span class="text-muted-sm">剛剛觸發：</span><span class="code-inline">{{ request.args.get('reconcile_run') }}</span>
+      {% endif %}
+    </details>
   {% else %}
     <span class="text-muted-sm">尚未執行 ss+nmap 對帳。</span>
   {% endif %}

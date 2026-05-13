@@ -173,6 +173,57 @@ input[type="checkbox"], input[type="radio"] { width: auto; min-height: auto; pad
 }
 .panel.compact { padding: 12px; margin-bottom: 12px; }
 .panel.narrow { max-width: 520px; margin: 40px auto; }
+.compact-panel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.topology-status-panel {
+  gap: 8px;
+  line-height: 1.5;
+}
+.topology-status-panel strong {
+  margin-right: 4px;
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-xs);
+  background: var(--white);
+  color: var(--c2);
+  font-weight: 700;
+}
+.status-pill-info {
+  border-color: var(--g1);
+  background: var(--g-light);
+  color: var(--g-text);
+}
+.status-pill-ok {
+  border-color: var(--g1);
+  color: var(--g-text);
+}
+.status-pill-warn {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+.status-pill-error {
+  border-color: var(--red);
+  color: var(--red);
+}
+.inline-detail {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.inline-detail summary {
+  cursor: pointer;
+  color: var(--g-text);
+  font-weight: 800;
+}
 .card-title { color: var(--c3); font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
 .card-status-ok { border-left: 4px solid var(--g1); }
 .card-status-warn { border-left: 4px solid var(--orange); }

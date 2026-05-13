@@ -275,6 +275,12 @@ def test_topology_spec_foundation_contracts_exist():
     assert "第一層：系統拓撲" in page and "第二層：IP 一跳" in page and "第三層：IP 二跳" in page
     assert "第四層：IP 三跳" in page and "三跳回接系統" in service
     assert "剛剛採集" in page and "最近執行" in page
+    assert "資料來源：ss -tunp 採集快照" in page
+    assert "最後採集：" in page
+    assert "關聯線：" in page
+    assert "技術資訊" in page
+    assert "status-pill" in read("webapp/static/css/cathay.css")
+    assert "inline-detail" in read("webapp/static/css/cathay.css")
     assert "剛剛對帳" in page and "reconcile_run" in page
     assert "layer_mode" in service
     assert "layout_mode" in service
