@@ -174,6 +174,50 @@ document.querySelectorAll(".dev-admin-tabs[data-tab-storage]").forEach((tabs) =>
   enableDevPanelTabs(tabs);
 });
 
+function setTopologyFullscreen(panel, enabled) {
+  if (!panel) return;
+  panel.classList.toggle("topology-client-fullscreen", enabled);
+  document.body.classList.toggle("body-topology-fullscreen", enabled);
+}
+
+document.querySelectorAll("[data-topology-fullscreen-enter]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const panel = document.querySelector("[data-topology-panel]");
+    if (!panel) {
+      const fallback = button.dataset.fullscreenUrl;
+      if (fallback) window.location.href = fallback;
+      return;
+    }
+    setTopologyFullscreen(panel, true);
+    try {
+      if (panel.requestFullscreen && !document.fullscreenElement) {
+        await panel.requestFullscreen();
+      }
+    } catch (error) {
+      // Browser fullscreen can be blocked; the fixed overlay still gives a usable full-screen workspace.
+    }
+  });
+});
+
+document.querySelectorAll("[data-topology-fullscreen-exit]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        await document.exitFullscreen();
+      }
+    } catch (error) {
+      // Keep local overlay cleanup below even if the browser API refuses the request.
+    }
+    setTopologyFullscreen(document.querySelector("[data-topology-panel]"), false);
+  });
+});
+
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement) {
+    setTopologyFullscreen(document.querySelector("[data-topology-panel]"), false);
+  }
+});
+
 document.querySelectorAll("[data-topology-canvas]").forEach((canvas) => {
   const stage = canvas.querySelector("[data-topology-stage]");
   const value = document.querySelector("[data-topology-zoom-value]");

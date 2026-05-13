@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.1.55 - 2026-05-13 10:45 +08:00 - topology-fullscreen-toggle
+
+- 修正拓撲「全螢幕」按鈕，改成點擊後直接把目前拓撲面板切成固定全螢幕，不再只靠跳轉全螢幕網址。
+- 加入「離開全螢幕」按鈕、Esc/browser fullscreen change 後自動還原頁面捲動。
+- 保留「全螢幕頁」備援連結，避免瀏覽器封鎖 Fullscreen API 時完全無路可用。
+
 ## v1.0.1.54 - 2026-05-13 10:20 +08:00 - topology-fullscreen-real
 
 - 修正拓撲全螢幕模式，讓全螢幕面板覆蓋整個視窗寬高。

@@ -123,7 +123,7 @@
 {% endif %}
 {% endif %}
 
-<section class="panel {% if fullscreen %}topology-fullscreen-card{% endif %}">
+<section class="panel {% if fullscreen %}topology-fullscreen-card{% endif %}" data-topology-panel>
   <div class="topology-toolbar">
     <form class="filter-bar" method="get" action="{{ url_for('api_dependencies.dependencies_fullscreen_page') if fullscreen else url_for('api_reports.dependencies_page') }}" data-topology-filter>
       <select name="view" data-auto-submit>
@@ -156,8 +156,10 @@
       {% if fullscreen %}
         <a class="btn" href="{{ url_for('api_reports.dependencies_page', **fullscreen_args) }}">離開全螢幕</a>
       {% else %}
-        <a class="btn primary" href="{{ url_for('api_dependencies.dependencies_fullscreen_page', **fullscreen_args) }}">全螢幕</a>
+        <button class="btn primary" type="button" data-topology-fullscreen-enter data-fullscreen-url="{{ url_for('api_dependencies.dependencies_fullscreen_page', **fullscreen_args) }}">全螢幕</button>
+        <a class="btn topology-fullscreen-fallback" href="{{ url_for('api_dependencies.dependencies_fullscreen_page', **fullscreen_args) }}">全螢幕頁</a>
       {% endif %}
+      <button class="btn danger topology-fullscreen-exit" type="button" data-topology-fullscreen-exit>離開全螢幕</button>
       {% if topology.meta.simulation.enabled %}
         <a class="btn danger" href="{{ url_for('api_dependencies.dependencies_fullscreen_page' if fullscreen else 'api_reports.dependencies_page', view=topology.view, center=request.args.get('center', ''), depth=request.args.get('depth', '2'), include_external=1 if topology.meta.include_external else 0, show_ports=1 if show_ports else 0) }}">清除模擬</a>
       {% endif %}

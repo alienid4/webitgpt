@@ -281,6 +281,12 @@ def test_topology_spec_foundation_contracts_exist():
     assert "topology-fullscreen-panel" in page
     assert "dependencies_fullscreen_page" in page
     assert "height: 100vh" in read("webapp/static/css/cathay.css")
+    assert "data-topology-panel" in page
+    assert "data-topology-fullscreen-enter" in page
+    assert "data-topology-fullscreen-exit" in page
+    assert "topology-client-fullscreen" in read("webapp/static/css/cathay.css")
+    assert "requestFullscreen" in read("webapp/static/js/ui_tools.js")
+    assert "body-topology-fullscreen" in read("webapp/static/js/ui_tools.js")
     assert "ss+nmap 對帳報告" in page
     assert "ss+nmap 對帳" in page
 
