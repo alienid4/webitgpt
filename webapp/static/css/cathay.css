@@ -815,9 +815,12 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   overflow: hidden;
   padding: 14px;
   background: var(--bg);
+  width: 100vw;
+  height: 100vh;
 }
 
 .topology-fullscreen-head {
+  flex: 0 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -839,6 +842,7 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   min-height: 0;
   margin: 0;
   overflow: hidden;
+  padding: 10px;
 }
 
 .topology-fullscreen-card .topology-toolbar {
@@ -868,11 +872,13 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   flex: 1 1 auto;
   max-height: none;
   min-height: 0;
+  height: 100%;
 }
 
 .topology-fullscreen-card .topology-workspace {
   flex: 1 1 auto;
   min-height: 0;
+  height: 100%;
 }
 
 .topology-fullscreen-card .topology-stage {
@@ -880,8 +886,8 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
 }
 
 .topology-fullscreen-list {
-  flex: 0 0 160px;
-  max-height: 160px;
+  flex: 0 0 140px;
+  max-height: 140px;
   margin: 0;
   overflow: auto;
 }

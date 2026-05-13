@@ -280,6 +280,7 @@ def test_topology_spec_foundation_contracts_exist():
     assert "layout_mode" in service
     assert "topology-fullscreen-panel" in page
     assert "dependencies_fullscreen_page" in page
+    assert "height: 100vh" in read("webapp/static/css/cathay.css")
     assert "ss+nmap 對帳報告" in page
     assert "ss+nmap 對帳" in page
 
