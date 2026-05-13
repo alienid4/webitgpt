@@ -265,6 +265,10 @@ def test_topology_spec_foundation_contracts_exist():
     assert "def _filter_to_failure_scope(" in service
     assert "edge.caption" not in page
     assert "Port 明細請看下方清單" in page
+    assert "topology-system-trunk" in page
+    assert "一個系統一條主幹" in page
+    assert "def _layout_host_system_trunks(" in service
+    assert "layout_mode" in service
     assert "topology-fullscreen-panel" in page
     assert "dependencies_fullscreen_page" in page
     assert "ss+nmap 對帳報告" in page

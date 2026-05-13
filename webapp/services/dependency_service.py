@@ -631,6 +631,67 @@ def _layout(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> dict[st
     return {"width": int(max(canvas_width, 1100)), "height": int(max(y_offset, 520))}
 
 
+def _layout_host_system_trunks(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> dict[str, Any]:
+    if not nodes:
+        return {"width": 1100, "height": 520, "groups": []}
+
+    system_groups: dict[str, list[dict[str, Any]]] = {}
+    unknown_nodes: list[dict[str, Any]] = []
+    for node in nodes:
+        if node.get("kind") == "主機":
+            system_name = str(node.get("system") or "未分類系統")
+            system_groups.setdefault(system_name, []).append(node)
+        else:
+            unknown_nodes.append(node)
+
+    groups: list[dict[str, Any]] = []
+    y_offset = 80
+    host_x = 280
+    trunk_x = 120
+    canvas_width = 1100
+    for system_name, group_nodes in sorted(system_groups.items()):
+        group_nodes.sort(key=lambda item: str(item.get("label") or item.get("id")))
+        height = max(220, len(group_nodes) * 78)
+        y1 = y_offset
+        y2 = y_offset + height
+        groups.append({"label": system_name, "x": trunk_x, "y1": y1, "y2": y2, "label_y": y1 + 22})
+        gap = height / (len(group_nodes) + 1)
+        for index, node in enumerate(group_nodes):
+            node["x"] = host_x
+            node["y"] = round(y1 + gap * (index + 1), 1)
+            node["trunk_x"] = trunk_x
+            node["trunk_y"] = node["y"]
+        y_offset = y2 + 90
+
+    unknown_x = 560
+    for index, node in enumerate(sorted(unknown_nodes, key=lambda item: str(item.get("label") or item.get("id")))):
+        node["x"] = unknown_x + (index // 14) * 220
+        node["y"] = 90 + (index % 14) * 78
+        canvas_width = max(canvas_width, node["x"] + 170)
+
+    by_id = {node["id"]: node for node in nodes}
+    for edge in edges:
+        source = by_id.get(edge.get("source"))
+        target = by_id.get(edge.get("target"))
+        if source and target:
+            x1, y1, x2, y2 = source["x"], source["y"], target["x"], target["y"]
+            dx = x2 - x1
+            dy = y2 - y1
+            length = max((dx * dx + dy * dy) ** 0.5, 1)
+            label_offset = 24
+            edge.update(
+                {
+                    "x1": x1,
+                    "y1": y1,
+                    "x2": x2,
+                    "y2": y2,
+                    "label_x": round((x1 + x2) / 2 - (dy / length) * label_offset, 1),
+                    "label_y": round((y1 + y2) / 2 + (dx / length) * label_offset, 1),
+                }
+            )
+    return {"width": int(max(canvas_width, 1100)), "height": int(max(y_offset, 520)), "groups": groups}
+
+
 def _port_summary(evidence: dict[str, Any]) -> str:
     local_port = evidence.get("last_local_port") or evidence.get("local_port")
     remote_port = evidence.get("last_remote_port") or evidence.get("remote_port")
@@ -938,10 +999,10 @@ def _host_topology(limit: int = 200, include_external: bool = False) -> dict[str
         source_label = host_map.get(source, {}).get("hostname") or source
         target_label = host_map.get(target, {}).get("hostname") or evidence.get("last_remote_ip") or target
         edges.append(_edge_payload(rel, source_label, target_label))
-    dimensions = _layout(nodes, edges)
+    dimensions = _layout_host_system_trunks(nodes, edges)
     meta = _topology_meta("host")
     meta.update(dimensions)
-    meta.update({"hosts": len(hosts), "relations": len(edges), "include_external": include_external})
+    meta.update({"hosts": len(hosts), "relations": len(edges), "include_external": include_external, "layout_mode": "system_trunks"})
     return {"view": "host", "nodes": nodes, "edges": edges, "meta": meta}
 
 

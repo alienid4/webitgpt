@@ -1079,6 +1079,28 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   marker-end: url("#topology-arrow");
 }
 
+.topology-system-trunk line {
+  stroke: var(--orange);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.topology-system-trunk text {
+  fill: var(--g-text);
+  font-size: 14px;
+  font-weight: 900;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 5px;
+}
+
+.topology-host-branch {
+  stroke: var(--orange);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  opacity: .5;
+}
+
 .topology-edge line.topology-line-auto {
   stroke: var(--orange);
   stroke-dasharray: 8 6;
