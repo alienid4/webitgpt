@@ -900,10 +900,16 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   overflow: hidden;
 }
 
+.body-topology-fullscreen .app-header,
+.body-topology-fullscreen .app-footer,
+.body-topology-fullscreen .toast {
+  display: none;
+}
+
 .topology-client-fullscreen {
   position: fixed;
   inset: 0;
-  z-index: 3000;
+  z-index: 99999;
   display: flex;
   flex-direction: column;
   width: 100vw;

@@ -882,14 +882,14 @@ def _topology_meta(view: str) -> dict[str, Any]:
     }
 
 
-def topology(view: str = "system", center: str = "", depth: int = 2, limit: int = 200, include_external: bool = False, failed_node: str = "", focus_impact: bool = False) -> dict[str, Any]:
+def topology(view: str = "system", center: str = "", depth: int = 2, limit: int = 200, include_external: bool = False, include_unmanaged: bool = False, failed_node: str = "", focus_impact: bool = False) -> dict[str, Any]:
     view = view if view in {"system", "host", "ip"} else "system"
     if view == "host":
-        data = _host_topology(limit, include_external=include_external)
+        data = _host_topology(limit, include_external=include_external, include_unmanaged=include_unmanaged)
     elif view == "ip":
-        data = _ip_topology(limit, include_external=include_external)
+        data = _ip_topology(limit, include_external=include_external, include_unmanaged=include_unmanaged)
     else:
-        data = _system_topology(center=center, depth=depth, limit=limit, include_external=include_external)
+        data = _system_topology(center=center, depth=depth, limit=limit, include_external=include_external, include_unmanaged=include_unmanaged)
     _apply_failure_simulation(data, failed_node, max_depth=max(depth, 1))
     if focus_impact:
         _filter_to_failure_scope(data)
@@ -1006,7 +1006,7 @@ def _filter_to_failure_scope(data: dict[str, Any]) -> None:
     data.setdefault("meta", {})["focus_edge_count"] = len(data["edges"])
 
 
-def _system_topology(center: str = "", depth: int = 2, limit: int = 200, include_external: bool = False) -> dict[str, Any]:
+def _system_topology(center: str = "", depth: int = 2, limit: int = 200, include_external: bool = False, include_unmanaged: bool = False) -> dict[str, Any]:
     systems = list_systems()
     system_map = {item["system_id"]: item for item in systems}
     host_to_system = _host_system_index()
@@ -1023,6 +1023,8 @@ def _system_topology(center: str = "", depth: int = 2, limit: int = 200, include
         remote_ip = evidence.get("last_remote_ip") or str(target_host).replace("UNKNOWN-", "")
         target_system = host_to_system.get(target_host or "")
         if not target_system and str(target_host).startswith("UNKNOWN-"):
+            if not include_unmanaged and _is_internal_ip(remote_ip):
+                continue
             if not include_external and not _is_internal_ip(remote_ip):
                 continue
             target_system = str(target_host)
@@ -1063,11 +1065,11 @@ def _system_topology(center: str = "", depth: int = 2, limit: int = 200, include
         if rel.get("from_system") in node_ids and rel.get("to_system") in node_ids
     ]
     if depth >= 2:
-        return _layered_system_ip_topology(systems[:limit], edges, raw_relations, system_map, center, depth, include_external)
+        return _layered_system_ip_topology(systems[:limit], edges, raw_relations, system_map, center, depth, include_external, include_unmanaged)
     dimensions = _layout(nodes, edges)
     meta = _topology_meta("system")
     meta.update(dimensions)
-    meta.update({"systems": len(nodes), "relations": len(edges), "center": center, "depth": depth, "include_external": include_external, "layer_mode": "system_only"})
+    meta.update({"systems": len(nodes), "relations": len(edges), "center": center, "depth": depth, "include_external": include_external, "include_unmanaged": include_unmanaged, "layer_mode": "system_only"})
     return {"view": "system", "nodes": nodes, "edges": edges, "meta": meta}
 
 
@@ -1079,6 +1081,7 @@ def _layered_system_ip_topology(
     center: str,
     depth: int,
     include_external: bool,
+    include_unmanaged: bool,
 ) -> dict[str, Any]:
     hosts = _hosts()
     host_to_system = _host_system_index()
@@ -1160,6 +1163,8 @@ def _layered_system_ip_topology(
             continue
         if source_system not in selected_systems:
             continue
+        if not include_unmanaged and not target_system and _is_internal_ip(str(target_ip)):
+            continue
         if not include_external and not _is_internal_ip(str(target_ip)) and not target_system:
             continue
         source_node = add_ip(str(source_ip), 2, str(source_host or ""))
@@ -1179,6 +1184,8 @@ def _layered_system_ip_topology(
             if not source_ip or not target_ip:
                 continue
             if source_ip not in seed_ips and target_ip not in seed_ips:
+                continue
+            if not include_unmanaged and target_ip not in known_ips and _is_internal_ip(target_ip):
                 continue
             if not include_external and not _is_internal_ip(target_ip) and target_ip not in known_ips:
                 continue
@@ -1204,6 +1211,8 @@ def _layered_system_ip_topology(
             if not source_ip or not target_ip:
                 continue
             if source_ip not in seed_ips and target_ip not in seed_ips:
+                continue
+            if not include_unmanaged and target_ip not in known_ips and _is_internal_ip(target_ip):
                 continue
             if not include_external and not _is_internal_ip(target_ip) and target_ip not in known_ips:
                 continue
@@ -1235,6 +1244,7 @@ def _layered_system_ip_topology(
             "center": center,
             "depth": depth,
             "include_external": include_external,
+            "include_unmanaged": include_unmanaged,
             "layer_mode": "system_ip_layers",
             "max_hop": 3 if depth >= 4 else 2 if depth >= 3 else 1 if depth >= 2 else 0,
         }
@@ -1242,7 +1252,7 @@ def _layered_system_ip_topology(
     return {"view": "system", "nodes": nodes, "edges": edges, "meta": meta}
 
 
-def _host_topology(limit: int = 200, include_external: bool = False) -> dict[str, Any]:
+def _host_topology(limit: int = 200, include_external: bool = False, include_unmanaged: bool = False) -> dict[str, Any]:
     hosts = _hosts()[:limit]
     host_map = {host.get("hostname"): host for host in hosts if host.get("hostname")}
     ip_map = _known_host_ip_map()
@@ -1256,6 +1266,8 @@ def _host_topology(limit: int = 200, include_external: bool = False) -> dict[str
         target = rel.get("to_system")
         evidence = rel.get("evidence") or {}
         remote_ip = evidence.get("last_remote_ip") or str(target).replace("UNKNOWN-", "")
+        if str(target).startswith("UNKNOWN-") and not include_unmanaged and _is_internal_ip(remote_ip):
+            continue
         if str(target).startswith("UNKNOWN-") and not include_external and not _is_internal_ip(remote_ip):
             continue
         if target not in node_ids:
@@ -1269,11 +1281,11 @@ def _host_topology(limit: int = 200, include_external: bool = False) -> dict[str
     dimensions = _layout_host_system_trunks(nodes, edges)
     meta = _topology_meta("host")
     meta.update(dimensions)
-    meta.update({"hosts": len(hosts), "relations": len(edges), "include_external": include_external, "layout_mode": "system_trunks"})
+    meta.update({"hosts": len(hosts), "relations": len(edges), "include_external": include_external, "include_unmanaged": include_unmanaged, "layout_mode": "system_trunks"})
     return {"view": "host", "nodes": nodes, "edges": edges, "meta": meta}
 
 
-def _ip_topology(limit: int = 200, include_external: bool = False) -> dict[str, Any]:
+def _ip_topology(limit: int = 200, include_external: bool = False, include_unmanaged: bool = False) -> dict[str, Any]:
     hosts = _hosts()[:limit]
     nodes = []
     edges = []
@@ -1288,6 +1300,8 @@ def _ip_topology(limit: int = 200, include_external: bool = False) -> dict[str, 
         evidence = rel.get("evidence") or {}
         source = evidence.get("caller_ip") or rel.get("from_system")
         target = evidence.get("last_remote_ip") or rel.get("to_system")
+        if target and target not in node_ids and not include_unmanaged and _is_internal_ip(str(target)):
+            continue
         if target and target not in node_ids and not include_external and not _is_internal_ip(str(target)):
             continue
         if source not in node_ids:
@@ -1303,7 +1317,7 @@ def _ip_topology(limit: int = 200, include_external: bool = False) -> dict[str, 
     dimensions = _layout(nodes, edges)
     meta = _topology_meta("ip")
     meta.update(dimensions)
-    meta.update({"hosts": len(hosts), "ips": len([n for n in nodes if n.get("kind") == "IP"]), "relations": len(edges), "include_external": include_external})
+    meta.update({"hosts": len(hosts), "ips": len([n for n in nodes if n.get("kind") == "IP"]), "relations": len(edges), "include_external": include_external, "include_unmanaged": include_unmanaged})
     return {"view": "ip", "nodes": nodes, "edges": edges, "meta": meta}
 
 

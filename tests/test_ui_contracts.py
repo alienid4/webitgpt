@@ -220,6 +220,7 @@ def test_topology_spec_foundation_contracts_exist():
         "def _run_nmap_port_scan(",
         "def _is_internal_ip(",
         "include_external",
+        "include_unmanaged",
         "ss -tunp",
         "COMMON_EXPOSURE_PORTS",
     ]:
@@ -255,6 +256,8 @@ def test_topology_spec_foundation_contracts_exist():
     assert "系統視角" in page and "主機視角" in page and "IP 視角" in page
     assert "edge.detail_label" in page and "edge.port_summary" in page
     assert "show_ports" in page and "edge.port_label" in page
+    assert "include_unmanaged" in page and "顯示內網未納管" in page
+    assert "內網未納管節點已隱藏" in page
     assert "failed_node" in page and "故障模擬" in page
     assert "focus_impact" in page and "只看一跳/二跳影響" in page
     assert "topology-detail-panel" in page
@@ -291,10 +294,14 @@ def test_topology_spec_foundation_contracts_exist():
     assert "data-topology-fullscreen-enter" in page
     assert "data-topology-fullscreen-exit" in page
     assert "topology-client-fullscreen" in read("webapp/static/css/cathay.css")
+    assert ".body-topology-fullscreen .app-header" in read("webapp/static/css/cathay.css")
+    assert "z-index: 99999" in read("webapp/static/css/cathay.css")
     assert "requestFullscreen" in read("webapp/static/js/ui_tools.js")
     assert "body-topology-fullscreen" in read("webapp/static/js/ui_tools.js")
     assert "ss+nmap 對帳報告" in page
     assert "ss+nmap 對帳" in page
+    assert "展開對帳明細" in page
+    assert "誤看成 CMDB 假資料" in page
 
 
 def test_fake_environment_seed_script_is_reversible():

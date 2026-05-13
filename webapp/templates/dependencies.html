@@ -11,6 +11,7 @@
   'center': request.args.get('center', ''),
   'depth': request.args.get('depth', '2'),
   'include_external': 1 if topology.meta.include_external else 0,
+  'include_unmanaged': 1 if topology.meta.include_unmanaged else 0,
   'show_ports': 1 if show_ports else 0,
   'failed_node': failed_node,
   'focus_impact': 1 if focus_impact else 0
@@ -104,6 +105,7 @@
 {% if reconcile_report %}
 <section class="panel">
   <h2>ss+nmap 差異摘要</h2>
+  <p class="text-muted-sm">下方只先顯示統計摘要；逐筆 IP/Port 明細收在「展開對帳明細」，避免把未納管或外網位址誤看成 CMDB 假資料。</p>
   <div class="metric-grid">
     <div class="metric-card"><strong>{{ reconcile_report.summary.matched or 0 }}</strong><span>一致</span></div>
     <div class="metric-card"><strong>{{ reconcile_report.summary.ss_only or 0 }}</strong><span>ss 有、nmap 無</span></div>
@@ -117,24 +119,27 @@
       {% endfor %}
     </div>
   {% endif %}
-  <table class="data-table">
-    <thead><tr><th>狀態</th><th>來源</th><th>目標 IP</th><th>Port</th><th>服務</th><th>程序</th><th>建議</th></tr></thead>
-    <tbody>
-      {% for row in reconcile_report.rows[:40] %}
-      <tr>
-        <td>{{ row.status_label }}</td>
-        <td>{{ row.source or "-" }}</td>
-        <td>{{ row.remote_ip }}</td>
-        <td>{{ row.port }}</td>
-        <td>{{ row.service or "-" }}</td>
-        <td>{{ row.process or "-" }}</td>
-        <td>{{ row.suggestion }}</td>
-      </tr>
-      {% else %}
-      <tr><td colspan="7" class="no-data">目前沒有差異資料。</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <details class="dev-detail">
+    <summary>展開對帳明細</summary>
+    <table class="data-table">
+      <thead><tr><th>狀態</th><th>來源</th><th>目標 IP</th><th>Port</th><th>服務</th><th>程序</th><th>建議</th></tr></thead>
+      <tbody>
+        {% for row in reconcile_report.rows[:40] %}
+        <tr>
+          <td>{{ row.status_label }}</td>
+          <td>{{ row.source or "-" }}</td>
+          <td>{{ row.remote_ip }}</td>
+          <td>{{ row.port }}</td>
+          <td>{{ row.service or "-" }}</td>
+          <td>{{ row.process or "-" }}</td>
+          <td>{{ row.suggestion }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="no-data">目前沒有差異資料。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </details>
 </section>
 {% endif %}
 {% endif %}
@@ -160,6 +165,10 @@
         只看一跳/二跳影響
       </label>
       <label class="toggle-label">
+        <input type="checkbox" name="include_unmanaged" value="1" {% if topology.meta.include_unmanaged %}checked{% endif %} data-auto-submit>
+        顯示內網未納管
+      </label>
+      <label class="toggle-label">
         <input type="checkbox" name="include_external" value="1" {% if topology.meta.include_external %}checked{% endif %} data-auto-submit>
         顯示外網未知節點
       </label>
@@ -177,7 +186,7 @@
       {% endif %}
       <button class="btn danger topology-fullscreen-exit" type="button" data-topology-fullscreen-exit>離開全螢幕</button>
       {% if topology.meta.simulation.enabled %}
-        <a class="btn danger" href="{{ url_for('api_dependencies.dependencies_fullscreen_page' if fullscreen else 'api_reports.dependencies_page', view=topology.view, center=request.args.get('center', ''), depth=request.args.get('depth', '2'), include_external=1 if topology.meta.include_external else 0, show_ports=1 if show_ports else 0) }}">清除模擬</a>
+        <a class="btn danger" href="{{ url_for('api_dependencies.dependencies_fullscreen_page' if fullscreen else 'api_reports.dependencies_page', view=topology.view, center=request.args.get('center', ''), depth=request.args.get('depth', '2'), include_external=1 if topology.meta.include_external else 0, include_unmanaged=1 if topology.meta.include_unmanaged else 0, show_ports=1 if show_ports else 0) }}">清除模擬</a>
       {% endif %}
     </form>
     <div class="topology-legend">
@@ -187,11 +196,12 @@
       {% if topology.view == "ip" %}<span><i class="topology-dot topology-dot-ip"></i>IP</span>{% endif %}
       <span><i class="topology-line topology-line-manual"></i>手動/已確認</span>
       <span><i class="topology-line topology-line-auto"></i>自動採集/待確認</span>
-      <span><i class="topology-dot topology-dot-system"></i>內網未納管</span>
+      {% if topology.meta.include_unmanaged %}<span><i class="topology-dot topology-dot-system"></i>內網未納管</span>{% endif %}
       {% if topology.meta.include_external %}<span><i class="topology-dot topology-dot-ghost"></i>外網未知</span>{% endif %}
       <span><i class="topology-dot topology-dot-failed"></i>故障節點</span>
       <span><i class="topology-dot topology-dot-affected"></i>受影響</span>
       <span class="text-muted-sm">Port 明細請看下方清單</span>
+      {% if not topology.meta.include_unmanaged %}<span class="text-muted-sm">內網未納管節點已隱藏</span>{% endif %}
       {% if not topology.meta.include_external %}<span class="text-muted-sm">外網未知節點已忽略</span>{% endif %}
     </div>
     {% if topology.meta.simulation.enabled %}
