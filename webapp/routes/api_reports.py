@@ -116,7 +116,7 @@ def dependencies_page():
         failed_node=request.args.get("failed_node", ""),
         focus_impact=_focus_impact(),
     )
-    return render_template("dependencies.html", topology=data, reconcile_report=dependency_service.latest_reconcile_report(), collect_runs=collect_runs)
+    return render_template("dependencies.html", topology=data, reconcile_report=dependency_service.filtered_reconcile_report(include_external=_include_external(), include_unmanaged=_include_unmanaged()), collect_runs=collect_runs)
 
 
 @bp.get("/api/dependencies")

@@ -929,6 +929,10 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   display: inline-flex;
 }
 
+.topology-client-fullscreen [data-topology-fullscreen-enter] {
+  display: none;
+}
+
 .topology-client-fullscreen .topology-fullscreen-fallback {
   display: none;
 }

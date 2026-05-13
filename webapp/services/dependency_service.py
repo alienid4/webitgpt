@@ -311,6 +311,33 @@ def latest_reconcile_report() -> Optional[dict[str, Any]]:
     return _public(get_collection("dependency_reconcile_reports").find_one({}, sort=[("started_at", -1)]))
 
 
+def filtered_reconcile_report(include_external: bool = False, include_unmanaged: bool = False) -> Optional[dict[str, Any]]:
+    report = latest_reconcile_report()
+    if not report:
+        return None
+    known_ips = _known_host_ip_map()
+    visible_rows = []
+    hidden_unmanaged = 0
+    hidden_external = 0
+    for row in report.get("rows") or []:
+        remote_ip = str(row.get("remote_ip") or "")
+        is_known = remote_ip in known_ips
+        is_internal = _is_internal_ip(remote_ip)
+        if not is_known and is_internal and not include_unmanaged:
+            hidden_unmanaged += 1
+            continue
+        if not is_known and not is_internal and not include_external:
+            hidden_external += 1
+            continue
+        visible_rows.append(row)
+    report = dict(report)
+    report["rows"] = visible_rows
+    report["visible_row_count"] = len(visible_rows)
+    report["hidden_unmanaged_count"] = hidden_unmanaged
+    report["hidden_external_count"] = hidden_external
+    return report
+
+
 def reconcile_ss_nmap(actor: str = "system", limit_hosts: int = 20) -> dict[str, Any]:
     started_at = _now()
     run_id = f"dep-reconcile-{started_at.strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}"

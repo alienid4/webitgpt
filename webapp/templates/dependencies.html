@@ -89,7 +89,10 @@
   {% if reconcile_report %}
     <span class="status-pill">最近對帳：{{ ((reconcile_report.finished_at_local or reconcile_report.finished_at or reconcile_report.started_at_local or reconcile_report.started_at) or "-")[:19]|replace("T", " ") }}</span>
     <span class="status-pill">掃描目標：{{ reconcile_report.target_count }}</span>
-    <span class="status-pill">差異結果：{{ reconcile_report.row_count }} 筆</span>
+    <span class="status-pill">可見差異：{{ reconcile_report.visible_row_count if reconcile_report.visible_row_count is defined else reconcile_report.row_count }} 筆</span>
+    {% if reconcile_report.hidden_unmanaged_count or reconcile_report.hidden_external_count %}
+      <span class="status-pill status-pill-info">已收合：未納管 {{ reconcile_report.hidden_unmanaged_count or 0 }} 筆 / 外網 {{ reconcile_report.hidden_external_count or 0 }} 筆</span>
+    {% endif %}
     <details class="inline-detail">
       <summary>技術資訊</summary>
       <span class="code-inline">{{ reconcile_report.run_id }}</span>
@@ -105,7 +108,7 @@
 {% if reconcile_report %}
 <section class="panel">
   <h2>ss+nmap 差異摘要</h2>
-  <p class="text-muted-sm">下方只先顯示統計摘要；逐筆 IP/Port 明細收在「展開對帳明細」，避免把未納管或外網位址誤看成 CMDB 假資料。</p>
+  <p class="text-muted-sm">下方只先顯示統計摘要；預設只列 CMDB 已納管主機，未納管與外網位址需手動開關後才會列出。</p>
   <div class="metric-grid">
     <div class="metric-card"><strong>{{ reconcile_report.summary.matched or 0 }}</strong><span>一致</span></div>
     <div class="metric-card"><strong>{{ reconcile_report.summary.ss_only or 0 }}</strong><span>ss 有、nmap 無</span></div>
@@ -201,7 +204,7 @@
       <span><i class="topology-dot topology-dot-failed"></i>故障節點</span>
       <span><i class="topology-dot topology-dot-affected"></i>受影響</span>
       <span class="text-muted-sm">Port 明細請看下方清單</span>
-      {% if not topology.meta.include_unmanaged %}<span class="text-muted-sm">內網未納管節點已隱藏</span>{% endif %}
+      {% if not topology.meta.include_unmanaged %}<span class="text-muted-sm">只顯示 CMDB 已納管主機</span>{% endif %}
       {% if not topology.meta.include_external %}<span class="text-muted-sm">外網未知節點已忽略</span>{% endif %}
     </div>
     {% if topology.meta.simulation.enabled %}
