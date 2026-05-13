@@ -1101,6 +1101,21 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   opacity: .5;
 }
 
+.topology-layer-guide line {
+  stroke: var(--c4);
+  stroke-width: 1;
+  stroke-dasharray: 6 8;
+}
+
+.topology-layer-guide text {
+  fill: var(--g-text);
+  font-size: 13px;
+  font-weight: 900;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 5px;
+}
+
 .topology-edge line.topology-line-auto {
   stroke: var(--orange);
   stroke-dasharray: 8 6;

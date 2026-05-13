@@ -692,6 +692,53 @@ def _layout_host_system_trunks(nodes: list[dict[str, Any]], edges: list[dict[str
     return {"width": int(max(canvas_width, 1100)), "height": int(max(y_offset, 520)), "groups": groups}
 
 
+def _layout_layered_system_ip(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> dict[str, Any]:
+    if not nodes:
+        return {"width": 1100, "height": 520, "layer_guides": []}
+    layers = {
+        1: [node for node in nodes if int(node.get("layer") or 1) == 1],
+        2: [node for node in nodes if int(node.get("layer") or 1) == 2],
+        3: [node for node in nodes if int(node.get("layer") or 1) >= 3],
+    }
+    labels = {1: "第一層：系統拓撲", 2: "第二層：IP 一跳", 3: "第三層：IP 二跳"}
+    x_map = {1: 150, 2: 500, 3: 850}
+    max_rows = max(len(items) for items in layers.values()) if layers else 1
+    height = max(520, max_rows * 86 + 140)
+    guides = []
+    for layer, items in layers.items():
+        items.sort(key=lambda item: (str(item.get("system") or ""), str(item.get("label") or item.get("id"))))
+        x = x_map[layer]
+        guides.append({"label": labels[layer], "x": x, "y": 36})
+        if not items:
+            continue
+        gap = (height - 110) / (len(items) + 1)
+        for index, node in enumerate(items):
+            node["x"] = x
+            node["y"] = round(80 + gap * (index + 1), 1)
+
+    by_id = {node["id"]: node for node in nodes}
+    for edge in edges:
+        source = by_id.get(edge.get("source"))
+        target = by_id.get(edge.get("target"))
+        if source and target:
+            x1, y1, x2, y2 = source["x"], source["y"], target["x"], target["y"]
+            dx = x2 - x1
+            dy = y2 - y1
+            length = max((dx * dx + dy * dy) ** 0.5, 1)
+            label_offset = 24
+            edge.update(
+                {
+                    "x1": x1,
+                    "y1": y1,
+                    "x2": x2,
+                    "y2": y2,
+                    "label_x": round((x1 + x2) / 2 - (dy / length) * label_offset, 1),
+                    "label_y": round((y1 + y2) / 2 + (dx / length) * label_offset, 1),
+                }
+            )
+    return {"width": 1100, "height": int(height), "layer_guides": guides}
+
+
 def _port_summary(evidence: dict[str, Any]) -> str:
     local_port = evidence.get("last_local_port") or evidence.get("local_port")
     remote_port = evidence.get("last_remote_port") or evidence.get("remote_port")
@@ -761,6 +808,20 @@ def _edge_payload(rel: dict[str, Any], source_label: str, target_label: str) -> 
         "trust": rel.get("source") or "manual",
         "evidence": evidence,
     }
+
+
+def _layer_edge(source: str, target: str, label: str, source_label: str, target_label: str, evidence: Optional[dict[str, Any]] = None, trust: str = "manual") -> dict[str, Any]:
+    return _edge_payload(
+        {
+            "from_system": source,
+            "to_system": target,
+            "rel_type": label,
+            "source": trust,
+            "evidence": evidence or {},
+        },
+        source_label,
+        target_label,
+    )
 
 
 def _short_port_label(port_label: str) -> str:
@@ -968,10 +1029,147 @@ def _system_topology(center: str = "", depth: int = 2, limit: int = 200, include
         for rel in relations
         if rel.get("from_system") in node_ids and rel.get("to_system") in node_ids
     ]
+    if depth >= 2:
+        return _layered_system_ip_topology(systems[:limit], edges, raw_relations, system_map, center, depth, include_external)
     dimensions = _layout(nodes, edges)
     meta = _topology_meta("system")
     meta.update(dimensions)
-    meta.update({"systems": len(nodes), "relations": len(edges), "center": center, "depth": depth, "include_external": include_external})
+    meta.update({"systems": len(nodes), "relations": len(edges), "center": center, "depth": depth, "include_external": include_external, "layer_mode": "system_only"})
+    return {"view": "system", "nodes": nodes, "edges": edges, "meta": meta}
+
+
+def _layered_system_ip_topology(
+    systems: list[dict[str, Any]],
+    system_edges: list[dict[str, Any]],
+    raw_relations: list[dict[str, Any]],
+    system_map: dict[str, dict[str, Any]],
+    center: str,
+    depth: int,
+    include_external: bool,
+) -> dict[str, Any]:
+    hosts = _hosts()
+    host_to_system = _host_system_index()
+    host_by_name = {host.get("hostname"): host for host in hosts if host.get("hostname")}
+    known_ips = _known_host_ip_map()
+    selected_systems = {item["system_id"] for item in systems}
+    nodes_by_id: dict[str, dict[str, Any]] = {}
+    edges: list[dict[str, Any]] = []
+
+    def add_node(node: dict[str, Any]) -> None:
+        nodes_by_id.setdefault(str(node["id"]), node)
+
+    def ip_node_id(ip: str) -> str:
+        return f"ip:{ip}"
+
+    for system in systems:
+        add_node(
+            {
+                "id": system["system_id"],
+                "label": system.get("display_name") or system["system_id"],
+                "kind": system.get("category") if system.get("category") in {"內網未納管", "外網未知"} else "系統",
+                "tier": system.get("tier") or "C",
+                "category": system.get("category") or "AP",
+                "external": bool(system.get("external")),
+                "layer": 1,
+            }
+        )
+
+    for edge in system_edges:
+        if edge.get("source") in nodes_by_id and edge.get("target") in nodes_by_id:
+            layer_edge = dict(edge)
+            layer_edge["label"] = "系統關聯"
+            edges.append(layer_edge)
+
+    first_hop_ip_ids: set[str] = set()
+    known_system_ip_ids: set[str] = set()
+    for host in hosts:
+        hostname = host.get("hostname")
+        system_id = host_to_system.get(hostname or "")
+        if not hostname or system_id not in selected_systems:
+            continue
+        system_label = system_map.get(system_id, {}).get("display_name") or system_id
+        for ip in host.get("ip_addresses") or ([host.get("ip")] if host.get("ip") else []):
+            if not ip:
+                continue
+            node_id = ip_node_id(str(ip))
+            known_system_ip_ids.add(node_id)
+            first_hop_ip_ids.add(node_id)
+            add_node({"id": node_id, "label": str(ip), "kind": "IP", "hostname": hostname, "os": host.get("os"), "system": system_label, "layer": 2})
+            edges.append(_layer_edge(system_id, node_id, "系統內 IP", system_label, str(ip), trust="manual"))
+
+    def add_ip(ip: str, layer: int, source_host: str = "") -> str:
+        node_id = ip_node_id(str(ip))
+        if node_id not in nodes_by_id:
+            add_node(
+                {
+                    "id": node_id,
+                    "label": str(ip),
+                    "kind": "IP" if known_ips.get(str(ip)) else _unknown_ip_kind(str(ip)),
+                    "hostname": known_ips.get(str(ip)) or source_host,
+                    "system": "",
+                    "layer": layer,
+                }
+            )
+        else:
+            nodes_by_id[node_id]["layer"] = min(int(nodes_by_id[node_id].get("layer") or layer), layer)
+        return node_id
+
+    for rel in raw_relations:
+        evidence = rel.get("evidence") or {}
+        source_host = rel.get("from_system")
+        source_system = host_to_system.get(source_host or "")
+        target_host = rel.get("to_system")
+        target_system = host_to_system.get(target_host or "")
+        source_doc = host_by_name.get(source_host or "", {})
+        source_ip = evidence.get("caller_ip") or evidence.get("last_local_ip") or source_doc.get("ip")
+        target_ip = evidence.get("last_remote_ip") or str(target_host).replace("UNKNOWN-", "")
+        if not source_ip or not target_ip:
+            continue
+        if source_system not in selected_systems and target_system not in selected_systems:
+            continue
+        if not include_external and not _is_internal_ip(str(target_ip)) and not target_system:
+            continue
+        source_node = add_ip(str(source_ip), 2, str(source_host or ""))
+        target_node = add_ip(str(target_ip), 2, str(target_host or ""))
+        first_hop_ip_ids.update({source_node, target_node})
+        edges.append(_layer_edge(source_node, target_node, "IP 一跳", str(source_ip), str(target_ip), evidence=evidence, trust=rel.get("source") or "auto"))
+
+    if depth >= 3:
+        seed_ips = {node_id.replace("ip:", "") for node_id in first_hop_ip_ids}
+        for rel in raw_relations:
+            evidence = rel.get("evidence") or {}
+            source_host = rel.get("from_system")
+            source_doc = host_by_name.get(source_host or "", {})
+            source_ip = str(evidence.get("caller_ip") or evidence.get("last_local_ip") or source_doc.get("ip") or "")
+            target_ip = str(evidence.get("last_remote_ip") or str(rel.get("to_system")).replace("UNKNOWN-", "") or "")
+            if not source_ip or not target_ip:
+                continue
+            if source_ip not in seed_ips and target_ip not in seed_ips:
+                continue
+            if not include_external and not _is_internal_ip(target_ip) and target_ip not in known_ips:
+                continue
+            source_layer = 2 if source_ip in seed_ips else 3
+            target_layer = 2 if target_ip in seed_ips else 3
+            source_node = add_ip(source_ip, source_layer, str(source_host or ""))
+            target_node = add_ip(target_ip, target_layer, str(rel.get("to_system") or ""))
+            if target_node not in known_system_ip_ids or source_node not in known_system_ip_ids:
+                edges.append(_layer_edge(source_node, target_node, "IP 二跳", source_ip, target_ip, evidence=evidence, trust=rel.get("source") or "auto"))
+
+    nodes = list(nodes_by_id.values())
+    dimensions = _layout_layered_system_ip(nodes, edges)
+    meta = _topology_meta("system")
+    meta.update(dimensions)
+    meta.update(
+        {
+            "systems": len([node for node in nodes if node.get("layer") == 1]),
+            "ips": len([node for node in nodes if node.get("kind") in {"IP", "內網未納管IP", "外網 IP"}]),
+            "relations": len(edges),
+            "center": center,
+            "depth": depth,
+            "include_external": include_external,
+            "layer_mode": "system_ip_layers",
+        }
+    )
     return {"view": "system", "nodes": nodes, "edges": edges, "meta": meta}
 
 

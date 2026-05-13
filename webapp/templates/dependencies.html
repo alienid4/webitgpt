@@ -117,7 +117,9 @@
       </select>
       <input name="center" value="{{ request.args.get('center', '') }}" placeholder="中心節點 / 系統 ID">
       <select name="depth" data-auto-submit>
-        {% for item in [1,2,3,4] %}<option value="{{ item }}" {% if request.args.get('depth', '2')|int == item %}selected{% endif %}>深度 {{ item }}</option>{% endfor %}
+        <option value="1" {% if request.args.get('depth', '2')|int == 1 %}selected{% endif %}>第一層：系統拓撲</option>
+        <option value="2" {% if request.args.get('depth', '2')|int == 2 %}selected{% endif %}>第二層：IP 一跳</option>
+        <option value="3" {% if request.args.get('depth', '2')|int == 3 %}selected{% endif %}>第三層：IP 二跳</option>
       </select>
       <input name="failed_node" value="{{ failed_node }}" placeholder="故障模擬：點節點或輸入主機/IP">
       <label class="toggle-label">
@@ -167,7 +169,7 @@
     {% endif %}
     <div class="topology-view-note">
       {% if topology.view == "system" %}
-        系統視角：同一套系統內的多台主機會收斂成系統節點，適合主管看影響面。
+        系統視角：第一層看系統對系統，第二層展開 IP 一跳，第三層再追 IP 二跳。
       {% elif topology.view == "host" %}
         主機視角：一個系統一條主幹，主機掛在系統主幹旁，適合查同系統節點與跨系統連線。
       {% else %}
@@ -190,6 +192,15 @@
               <path d="M 0 0 L 10 5 L 0 10 z"></path>
             </marker>
           </defs>
+
+          {% if topology.meta.layer_mode == "system_ip_layers" %}
+            {% for guide in topology.meta.layer_guides or [] %}
+              <g class="topology-layer-guide">
+                <line x1="{{ guide.x }}" y1="58" x2="{{ guide.x }}" y2="{{ graph_height - 24 }}"></line>
+                <text x="{{ guide.x }}" y="{{ guide.y }}" text-anchor="middle">{{ guide.label }}</text>
+              </g>
+            {% endfor %}
+          {% endif %}
 
           {% if topology.meta.layout_mode == "system_trunks" %}
             {% for group in topology.meta.groups or [] %}

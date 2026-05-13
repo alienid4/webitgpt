@@ -268,6 +268,11 @@ def test_topology_spec_foundation_contracts_exist():
     assert "topology-system-trunk" in page
     assert "一個系統一條主幹" in page
     assert "def _layout_host_system_trunks(" in service
+    assert "def _layout_layered_system_ip(" in service
+    assert "def _layered_system_ip_topology(" in service
+    assert "topology-layer-guide" in page
+    assert "第一層：系統拓撲" in page and "第二層：IP 一跳" in page and "第三層：IP 二跳" in page
+    assert "layer_mode" in service
     assert "layout_mode" in service
     assert "topology-fullscreen-panel" in page
     assert "dependencies_fullscreen_page" in page
