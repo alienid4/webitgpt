@@ -69,6 +69,22 @@ def test_ipam_reconcile_and_schedule_contracts_exist():
     assert "ipam_schedule_submit" in routes
 
 
+def test_asset_new_workbench_has_csv_and_scan_entrypoints():
+    host_new = read("webapp/templates/host_new.html")
+    routes = read("webapp/routes/api_hosts.py")
+    cmdb = read("webapp/services/cmdb_service.py")
+
+    assert "CSV 大量匯入" in host_new
+    assert "網段掃描後新增" in host_new
+    assert "將勾選 IP 建立草稿" in host_new
+    assert "host_new_full_page" in routes
+    assert "host_new_discovery_scan_page" in routes
+    assert "host_new_discovery_create_drafts_page" in routes
+    assert "run_asset_discovery_scan" in cmdb
+    assert '"hostname": item.get("hostname", "")' in cmdb
+    assert '"os": item.get("os") or "未偵測"' in cmdb
+
+
 def test_dashboard_parity_and_legacy_pages_are_wired():
     base_html = read("webapp/templates/base.html")
     reports_route = read("webapp/routes/api_reports.py")

@@ -1,90 +1,138 @@
 {% extends "base.html" %}
-{% block title %}新增主機 - webitgpt{% endblock %}
+{% block title %}新增資產 - webitgpt{% endblock %}
 {% block content %}
-<section class="panel">
-  <h1>新增主機</h1>
+<section class="panel asset-new-workbench">
+  <div class="page-header">
+    <div>
+      <p class="eyebrow">ASSET CREATE</p>
+      <h1>新增資產</h1>
+      <p class="text-muted-sm">同一個入口支援單筆新增、CSV 大量匯入、網段掃描後勾選多台建立草稿。</p>
+    </div>
+    <div class="asset-actions">
+      <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">回資產管理</a>
+      <a class="btn primary" href="{{ url_for('api_hosts.host_new_full_page') }}">單筆完整表單</a>
+    </div>
+  </div>
+
   {% if errors %}<div class="notice danger">{{ errors|join(' / ') }}</div>{% endif %}
   {% if import_result %}
-    <div class="notice">匯入結果：新增={{ import_result.created }}，更新={{ import_result.updated }}，失敗={{ import_result.failed }}</div>
-    {% if import_result.errors %}<div class="notice danger">{{ import_result.errors }}</div>{% endif %}
-  {% endif %}
-  {% if scan_result %}
-    <div class="notice">
-      網段掃描預覽：{{ scan_result.cidr }} / 發現={{ scan_result.discovered|length }} / 模式={{ scan_result.mode }}
-    </div>
-  {% endif %}
-  <div class="tabs">
-    <button class="tab active" type="button">手動新增</button>
-    <a class="tab" href="{{ url_for('api_hosts.csv_template') }}">CSV 範本</a>
-    <a class="tab" href="{{ url_for('api_hosts.csv_export') }}">CSV 匯出</a>
-    <a class="tab" href="#network-scan">網段掃描</a>
+  <div class="notice">
+    CSV 匯入結果：新增 {{ import_result.created }}，更新 {{ import_result.updated }}，失敗 {{ import_result.failed }}。
+    {% if import_result.errors %}<br>錯誤：{{ import_result.errors }}{% endif %}
   </div>
-  <form class="grid-form" method="post">
-    {% set field_labels = {
-      "division":"處別","department":"部門","asset_seq":"資產編號","status":"狀態","group_name":"群組","asset_name":"資產名稱",
-      "device_type":"設備類型","quantity":"數量","owner":"擁有者","environment":"環境","hostname":"主機名稱","os":"作業系統",
-      "ip":"IP","custodian":"保管人","user_unit":"使用單位","company":"公司","integrity":"完整性","confidentiality":"機密性",
-      "availability":"可用性","host_type":"主機類型","dc":"機房","connection":"連線方式"
-    } %}
-    {% for field in ["division","department","asset_seq","status","group_name","asset_name","device_type","quantity","owner","environment","hostname","os","ip","custodian","user_unit","company","integrity","confidentiality","availability","host_type","dc","connection"] %}
-    <label>{{ field_labels.get(field, field) }}<input name="{{ field }}" {% if field in ["asset_seq","status","group_name","asset_name","device_type","quantity","owner","environment","custodian","company","integrity","confidentiality","availability","host_type","dc"] %}required{% endif %}></label>
-    {% endfor %}
-    <button class="btn primary" type="submit">建立主機</button>
-  </form>
+  {% endif %}
+  {% if scan_created is not none %}
+  <div class="notice">
+    掃描建檔結果：建立 {{ scan_created|length }} 筆草稿，略過 {{ scan_skipped|length if scan_skipped else 0 }} 筆。
+  </div>
+  {% endif %}
 </section>
 
 <section class="panel">
-  <h2>CSV 匯入</h2>
+  <h2>1. 單筆新增</h2>
+  <p class="text-muted-sm">已知主機資料完整時，使用完整表單建立正式資產；如果資料還沒齊，也可先回資產管理使用快速草稿。</p>
+  <a class="btn primary" href="{{ url_for('api_hosts.host_new_full_page') }}">開啟完整新增表單</a>
+</section>
+
+<section class="panel">
+  <div class="page-header">
+    <div>
+      <h2>2. CSV 大量匯入</h2>
+      <p class="text-muted-sm">適合一次匯入多台主機。建議先下載範本，保留欄位名稱後再貼上或上傳。</p>
+    </div>
+    <div class="asset-actions">
+      <a class="btn secondary" href="{{ url_for('api_hosts.csv_template') }}">下載 CSV 範本</a>
+      <a class="btn secondary" href="{{ url_for('api_hosts.csv_export') }}">匯出現有資產</a>
+    </div>
+  </div>
   <form class="form" method="post" action="{{ url_for('api_hosts.host_import_csv_page') }}" enctype="multipart/form-data">
-    <input type="file" name="csv_file" accept=".csv,text/csv">
-    <textarea name="csv_text" rows="8" placeholder="未上傳檔案時，可在此貼上 CSV 內容。"></textarea>
+    <label>CSV 檔案<input type="file" name="csv_file" accept=".csv,text/csv"></label>
+    <label>或貼上 CSV 內容<textarea name="csv_text" rows="8" placeholder="asset_seq,hostname,ip,host_type,os,..."></textarea></label>
     <button class="btn primary" type="submit">匯入 CSV</button>
   </form>
 </section>
 
-<section class="panel">
-  <h2>多主機手動輸入</h2>
-  <form class="form" method="post" action="{{ url_for('api_hosts.host_import_manual_page') }}">
-    <div class="grid-form">
-      {% for field, value in [
-        ("division","IT"),("department","Operations"),("status","active"),("group_name","H4"),
-        ("asset_name","Manual sample host"),("device_type","VM"),("quantity","1"),("owner","IT"),
-        ("environment","DEV"),("custodian","functional-validation"),("user_unit","IT"),("company","example-corp"),
-        ("integrity","1"),("confidentiality","2"),("availability","1"),("dc","neihu")
-      ] %}
-      <label>{{ field_labels.get(field, field) }}<input name="{{ field }}" value="{{ value }}" required></label>
-      {% endfor %}
-    </div>
-    <textarea name="rows" rows="6" placeholder="每行一台主機：asset_seq,hostname,ip,host_type,os,connection"></textarea>
-    <button class="btn primary" type="submit">建立 / 更新資料列</button>
-  </form>
-</section>
-
-<section class="panel">
-  <h2>JSON 匯入</h2>
-  <form class="form" method="post" action="{{ url_for('api_hosts.host_import_json_page') }}" enctype="multipart/form-data">
-    <input type="file" name="json_file" accept=".json,application/json">
-    <textarea name="json_text" rows="8" placeholder="貼上一個 JSON 物件或物件陣列。"></textarea>
-    <button class="btn primary" type="submit">匯入 JSON</button>
-  </form>
-</section>
-
 <section class="panel" id="network-scan">
-  <h2>網段掃描預覽</h2>
-  <p class="muted">平行評審模式不會主動探測網路。此預覽只展開 CIDR、顯示候選主機資料，並安全阻擋真實探測。</p>
-  <form class="grid-form" method="post" action="{{ url_for('api_hosts.network_scan_page') }}">
-    <label>CIDR<input name="cidr" value="192.168.1.0/30" required></label>
-    <label>環境<input name="environment" value="DEV"></label>
-    <label>機房<input name="dc" value="neihu"></label>
-    <label>主機類型<input name="host_type" value="network_device"></label>
-    <button class="btn primary" type="submit">預覽掃描</button>
+  <div class="page-header">
+    <div>
+      <h2>3. 網段掃描後新增</h2>
+      <p class="text-muted-sm">用於你知道某個網段有主機尚未加入 CMDB 時。掃描會列出 IP、hostname、OS 偵測結果與是否已納管，可勾選多台建立草稿。</p>
+    </div>
+  </div>
+  <form class="grid-form" method="post" action="{{ url_for('api_hosts.host_new_discovery_scan_page') }}">
+    <label>掃描網段 CIDR<input name="cidr" value="{{ scan_report.cidr if scan_report else '192.168.1.0/24' }}" placeholder="192.168.1.0/24" required></label>
+    <label>預設環境
+      <select name="environment">
+        {% for option in ["DEV","TEST","UAT","PROD","BACKUP","OA"] %}
+        <option value="{{ option }}">{{ option }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>預設機房
+      <select name="dc">
+        {% for value, label in dc_labels.items() %}
+        <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button class="btn primary" type="submit">開始掃描</button>
   </form>
-  {% if scan_result %}
+
+  {% if scan_report %}
+  <div class="notice">
+    掃描結果：{{ scan_report.cidr }}，發現 {{ scan_report.discovered_count }} 個回應 IP，未納管 {{ scan_report.mismatch_count }} 個。
+    模式：{{ scan_report.mode }}{% if scan_report.error %}，訊息：{{ scan_report.error }}{% endif %}
+  </div>
+  <form method="post" action="{{ url_for('api_hosts.host_new_discovery_create_drafts_page') }}">
+    <input type="hidden" name="cidr" value="{{ scan_report.cidr }}">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>選取</th>
+          <th>狀態</th>
+          <th>IP</th>
+          <th>Hostname</th>
+          <th>OS 偵測</th>
+          <th>平台判斷</th>
+          <th>建議</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in scan_report.rows %}
+        <tr>
+          <td>
+            {% if row.type == "scan_not_in_cmdb" %}
+            <input type="checkbox" name="ip" value="{{ row.ip }}">
+            {% else %}
+            -
+            {% endif %}
+          </td>
+          <td>{{ row.type_label }}</td>
+          <td><span class="code-inline">{{ row.ip }}</span></td>
+          <td>{{ row.hostname or "-" }}</td>
+          <td>{{ row.os or "未偵測" }}</td>
+          <td>{{ host_type_labels.get(row.host_type, row.host_type or "-") }}</td>
+          <td>{{ row.suggestion }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="no-data">沒有掃描結果。請確認 nmap 是否安裝，或網段是否允許掃描。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="asset-edit-actions">
+      <button class="btn primary" type="submit">將勾選 IP 建立草稿</button>
+      <span class="text-muted-sm">只建立草稿，不會直接正式納管；建立後請回資產管理補齊欄位。</span>
+    </div>
+  </form>
+  {% endif %}
+
+  {% if scan_created %}
+  <h3>已建立草稿</h3>
   <table class="data-table">
-    <thead><tr><th>候選資產</th><th>IP</th><th>主機名稱</th><th>動作</th></tr></thead>
+    <thead><tr><th>IP</th><th>Hostname</th><th>資產編號</th></tr></thead>
     <tbody>
-      {% for item in scan_result.discovered %}
-      <tr><td>{{ item.asset_seq }}</td><td>{{ item.ip }}</td><td>{{ item.hostname }}</td><td>{{ item.action }}</td></tr>
+      {% for row in scan_created %}
+      <tr><td>{{ row.ip }}</td><td>{{ row.hostname }}</td><td>{{ row.asset_seq }}</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -282,6 +282,149 @@ def _run_nmap_ping_scan(cidr: str) -> dict[str, Any]:
     return {"mode": "nmap", "ips": sorted({ip for ip in ips if ip}), "error": ""}
 
 
+def _infer_host_type_from_os(os_text: str) -> str:
+    value = str(os_text or "").lower()
+    if "windows" in value:
+        return "windows"
+    if "aix" in value:
+        return "aix"
+    if "as/400" in value or "as400" in value or "ibm i" in value:
+        return "as400"
+    if "vmware" in value or "esxi" in value:
+        return "vmware_host"
+    if value:
+        return "linux"
+    return "end_device"
+
+
+def _parse_nmap_hosts(xml_text: str) -> list[dict[str, Any]]:
+    root = ET.fromstring(xml_text)
+    rows = []
+    for host in root.findall("host"):
+        status = host.find("status")
+        if status is not None and status.attrib.get("state") != "up":
+            continue
+        ip_text = ""
+        for address in host.findall("address"):
+            if address.attrib.get("addrtype") == "ipv4":
+                ip_text = str(address.attrib.get("addr", "")).strip()
+                break
+        if not ip_text:
+            continue
+        hostname = ""
+        hostnames = host.find("hostnames")
+        if hostnames is not None:
+            first = hostnames.find("hostname")
+            if first is not None:
+                hostname = str(first.attrib.get("name", "")).strip()
+        os_text = ""
+        os_node = host.find("os")
+        if os_node is not None:
+            osmatch = os_node.find("osmatch")
+            if osmatch is not None:
+                os_text = str(osmatch.attrib.get("name", "")).strip()
+        rows.append({"ip": ip_text, "hostname": hostname, "os": os_text, "host_type": _infer_host_type_from_os(os_text)})
+    return rows
+
+
+def run_asset_discovery_scan(cidr: str, user: str = "system", environment: str = "", dc: str = "") -> dict[str, Any]:
+    network = ipaddress.ip_network(cidr, strict=False)
+    hosts_by_ip = _host_ips_in_network(str(network))
+    if not shutil.which("nmap"):
+        report = {
+            "cidr": str(network),
+            "mode": "nmap_missing",
+            "error": "nmap 未安裝，無法執行網段掃描。",
+            "discovered_count": 0,
+            "cmdb_count": len(hosts_by_ip),
+            "mismatch_count": 0,
+            "rows": [],
+            "started_at": _now(),
+            "updated_by": user,
+            "source": "asset_new_workbench",
+            "default_environment": environment,
+            "default_dc": dc,
+        }
+        get_collection("network_scan_reports").insert_one(report)
+        return _public(report) or report
+
+    commands = [
+        ["nmap", "-O", "--osscan-guess", "-oX", "-", str(network)],
+        ["nmap", "-sn", "-R", "-oX", "-", str(network)],
+    ]
+    parsed_hosts: list[dict[str, Any]] = []
+    mode = "nmap_os"
+    last_error = ""
+    for index, command in enumerate(commands):
+        try:
+            completed = subprocess.run(command, check=False, capture_output=True, text=True, timeout=180)
+        except subprocess.TimeoutExpired:
+            last_error = "nmap 掃描逾時。"
+            continue
+        if completed.returncode not in (0, 1):
+            last_error = completed.stderr.strip() or "nmap 掃描失敗。"
+            continue
+        try:
+            parsed_hosts = _parse_nmap_hosts(completed.stdout)
+            mode = "nmap_os" if index == 0 else "nmap_ping"
+            break
+        except ET.ParseError as exc:
+            last_error = f"nmap XML 解析失敗：{exc}"
+
+    rows = []
+    for item in sorted(parsed_hosts, key=lambda row: ipaddress.ip_address(row["ip"])):
+        ip_text = item["ip"]
+        enrolled_hosts = hosts_by_ip.get(ip_text, [])
+        if enrolled_hosts:
+            for host in enrolled_hosts:
+                rows.append(
+                    {
+                        "severity": "info",
+                        "type": "already_in_cmdb",
+                        "type_label": "已納管",
+                        "ip": ip_text,
+                        "hostname": host.get("hostname") or item.get("hostname", ""),
+                        "asset_name": host.get("asset_name", ""),
+                        "os": host.get("os") or item.get("os", ""),
+                        "host_type": host.get("host_type") or item.get("host_type", ""),
+                        "status": host.get("status", ""),
+                        "suggestion": "此 IP 已在資產管理系統，不需要重複建立。",
+                    }
+                )
+            continue
+        rows.append(
+            {
+                "severity": "high",
+                "type": "scan_not_in_cmdb",
+                "type_label": "掃描到但未納管",
+                "ip": ip_text,
+                "hostname": item.get("hostname", ""),
+                "asset_name": "",
+                "os": item.get("os") or "未偵測",
+                "host_type": item.get("host_type") or "end_device",
+                "status": "待建立草稿",
+                "suggestion": "請勾選需要納管的主機，建立草稿後再補齊資產欄位。",
+            }
+        )
+
+    report = {
+        "cidr": str(network),
+        "mode": mode,
+        "error": last_error if not parsed_hosts else "",
+        "discovered_count": len(parsed_hosts),
+        "cmdb_count": len(hosts_by_ip),
+        "mismatch_count": len([row for row in rows if row.get("type") == "scan_not_in_cmdb"]),
+        "rows": rows,
+        "started_at": _now(),
+        "updated_by": user,
+        "source": "asset_new_workbench",
+        "default_environment": environment,
+        "default_dc": dc,
+    }
+    get_collection("network_scan_reports").insert_one(report)
+    return _public(report) or report
+
+
 def run_network_reconcile(cidr: str, user: str = "system") -> dict[str, Any]:
     network = ipaddress.ip_network(cidr, strict=False)
     scan = _run_nmap_ping_scan(str(network))
@@ -398,7 +541,7 @@ def create_asset_drafts_from_scan(cidr: str, user: str, ips: Optional[list[str]]
         raise ValueError("尚未有此網段掃描報告，請先執行 IPAM 網段對帳。")
 
     requested = {str(ip).strip() for ip in (ips or []) if str(ip).strip()}
-    candidates = []
+    candidates = {}
     for row in report.get("rows") or []:
         if row.get("type") != "scan_not_in_cmdb":
             continue
@@ -407,18 +550,22 @@ def create_asset_drafts_from_scan(cidr: str, user: str, ips: Optional[list[str]]
             continue
         if requested and ip_text not in requested:
             continue
-        candidates.append(ip_text)
+        candidates[ip_text] = row
 
     network_doc = get_collection("ipam_networks").find_one({"cidr": str(network)}) or {}
     created = []
     skipped = []
     used = _used_ips()
     now = _now()
-    for ip_text in sorted(set(candidates), key=lambda value: ipaddress.ip_address(value)):
+    for ip_text in sorted(candidates, key=lambda value: ipaddress.ip_address(value)):
         if ip_text in used:
             skipped.append({"ip": ip_text, "reason": "IP 已存在於資產或保留清單"})
             continue
-        hostname = _unique_scan_hostname(ip_text)
+        source_row = candidates[ip_text]
+        source_hostname = str(source_row.get("hostname") or "").strip()
+        hostname = source_hostname if source_hostname and not host_service.get_host(source_hostname) else _unique_scan_hostname(ip_text)
+        os_text = str(source_row.get("os") or "").strip()
+        host_type = str(source_row.get("host_type") or "").strip() or _infer_host_type_from_os(os_text)
         doc = {
             "division": "待補",
             "department": "待補",
@@ -429,15 +576,16 @@ def create_asset_drafts_from_scan(cidr: str, user: str, ips: Optional[list[str]]
             "device_type": "待分類",
             "quantity": 1,
             "owner": "待補",
-            "environment": network_doc.get("environment") or "DEV",
+            "environment": report.get("default_environment") or network_doc.get("environment") or "DEV",
             "hostname": hostname,
+            "os": os_text,
             "ip": ip_text,
             "ip_addresses": [ip_text],
             "network_segments": [str(network)],
             "custodian": "待補",
             "company": "待補",
-            "host_type": "end_device",
-            "dc": network_doc.get("dc") or "dunan",
+            "host_type": host_type,
+            "dc": report.get("default_dc") or network_doc.get("dc") or "dunan",
             "integrity": 1,
             "confidentiality": 1,
             "availability": 1,

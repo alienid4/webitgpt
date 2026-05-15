@@ -125,6 +125,22 @@ def _host_form_data() -> dict:
     return data
 
 
+def _host_new_context(**extra: dict) -> dict:
+    context = {
+        "errors": None,
+        "import_result": None,
+        "scan_report": None,
+        "scan_created": None,
+        "scan_skipped": None,
+        "ipam_networks": cmdb_service.list_networks(),
+        "host_type_labels": HOST_TYPE_LABELS,
+        "dc_labels": DC_LABELS,
+        "status_labels": ASSET_STATUS_LABELS,
+    }
+    context.update(extra)
+    return context
+
+
 @bp.get("/")
 def index():
     return redirect(url_for("api_hosts.hosts_page"))
@@ -169,6 +185,12 @@ def hosts_page():
 @bp.get("/hosts/new")
 @require_feature("cmdb_manual_input")
 def host_new_page():
+    return render_template("host_new.html", **_host_new_context())
+
+
+@bp.get("/hosts/new/full")
+@require_feature("cmdb_manual_input")
+def host_new_full_page():
     return render_template(
         "host_edit.html",
         host={},
@@ -215,7 +237,7 @@ def host_import_csv_page():
         text = request.files["csv_file"].read().decode("utf-8-sig", errors="replace")
     result = import_csv(text, user=current_user()["username"])
     audit_log_service.append("host.csv_import", current_user()["username"], result)
-    return render_template("host_import.html", import_result=result, active_tab="csv"), 200 if result["failed"] == 0 else 400
+    return render_template("host_new.html", **_host_new_context(import_result=result)), 200 if result["failed"] == 0 else 400
 
 
 @bp.post("/hosts/import/json")
@@ -282,13 +304,13 @@ def host_import_manual_page():
 @market_hours_protected
 def network_scan_stub():
     payload = request.get_json(force=True, silent=True) or {}
-    result = _network_scan_preview(
-        payload.get("cidr", "192.168.1.0/30"),
-        payload.get("environment", "DEV"),
-        payload.get("dc", ""),
-        payload.get("host_type", "network_device"),
+    result = cmdb_service.run_asset_discovery_scan(
+        payload.get("cidr", ""),
+        user=current_user()["username"],
+        environment=payload.get("environment", ""),
+        dc=payload.get("dc", ""),
     )
-    audit_log_service.append("host.network_scan.preview", current_user()["username"], {"cidr": result["cidr"], "count": len(result["discovered"])})
+    audit_log_service.append("host.network_scan.preview", current_user()["username"], {"cidr": result.get("cidr"), "count": result.get("discovered_count")})
     return jsonify(result)
 
 
@@ -297,14 +319,58 @@ def network_scan_stub():
 @require_role("admin")
 @market_hours_protected
 def network_scan_page():
-    result = _network_scan_preview(
-        request.form.get("cidr", "192.168.1.0/30"),
-        request.form.get("environment", "DEV"),
-        request.form.get("dc", ""),
-        request.form.get("host_type", "network_device"),
+    result = cmdb_service.run_asset_discovery_scan(
+        request.form.get("cidr", ""),
+        user=current_user()["username"],
+        environment=request.form.get("environment", ""),
+        dc=request.form.get("dc", ""),
     )
-    audit_log_service.append("host.network_scan.preview", current_user()["username"], {"cidr": result["cidr"], "count": len(result["discovered"])})
-    return render_template("host_import.html", scan_result=result)
+    audit_log_service.append("host.network_scan.preview", current_user()["username"], {"cidr": result.get("cidr"), "count": result.get("discovered_count")})
+    return render_template("host_new.html", **_host_new_context(scan_report=result))
+
+
+@bp.post("/hosts/new/discovery-scan")
+@require_feature("cmdb_network_scan")
+@require_role("admin")
+def host_new_discovery_scan_page():
+    cidr = request.form.get("cidr", "")
+    try:
+        report = cmdb_service.run_asset_discovery_scan(
+            cidr,
+            user=current_user()["username"],
+            environment=request.form.get("environment", ""),
+            dc=request.form.get("dc", ""),
+        )
+        audit_log_service.append(
+            "host.discovery_scan",
+            current_user()["username"],
+            {"cidr": report.get("cidr"), "discovered": report.get("discovered_count"), "unmanaged": report.get("mismatch_count")},
+        )
+        return render_template("host_new.html", **_host_new_context(scan_report=report))
+    except Exception as exc:
+        return render_template("host_new.html", **_host_new_context(errors=[str(exc)])), 400
+
+
+@bp.post("/hosts/new/discovery-create-drafts")
+@require_feature("cmdb_network_scan")
+@require_role("admin")
+@market_hours_protected
+def host_new_discovery_create_drafts_page():
+    ips = request.form.getlist("ip")
+    try:
+        result = cmdb_service.create_asset_drafts_from_scan(request.form.get("cidr", ""), user=current_user()["username"], ips=ips)
+        audit_log_service.append(
+            "host.discovery_scan.create_drafts",
+            current_user()["username"],
+            {"cidr": result.get("cidr"), "created": result.get("created_count"), "skipped": result.get("skipped_count")},
+        )
+        report = cmdb_service.latest_network_reconcile(result.get("cidr", "")) or {}
+        return render_template(
+            "host_new.html",
+            **_host_new_context(scan_report=report, scan_created=result.get("created", []), scan_skipped=result.get("skipped", [])),
+        )
+    except Exception as exc:
+        return render_template("host_new.html", **_host_new_context(errors=[str(exc)])), 400
 
 
 def _network_scan_preview(cidr: str, environment: str, dc: str, host_type: str) -> dict:
