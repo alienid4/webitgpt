@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import uuid
@@ -17,16 +18,76 @@ REPORT_RE = re.compile(r"^ts_[\w\-.]+_\d{8}_\d{6}_(summary|detail)\.txt$")
 
 
 FACE_SPECS = [
-    (1, "效能", "uptime && top -bn1 | head -5 && free -m", "CPU idle > 30%，Swap < 50%"),
-    (2, "頻寬", "ip -s link; ss -s; ping -c 3 ${PING_TGT:-127.0.0.1}", "NIC 無 error/drop，TCP 狀態正常"),
-    (3, "AP listener", "ss -ltnp; systemctl --failed --no-pager || true", "必要 AP port 有 listener"),
-    (4, "AP 健康檢查", "ss -ltnp; curl -fsS http://127.0.0.1:${AP_PORT:-8002}/health || true", "健康檢查 port 回應正常"),
-    (5, "Session", "ss -tan | awk 'NR>1 {print $1}' | sort | uniq -c | sort -nr", "連線狀態無異常集中"),
-    (6, "Storage", "df -h; df -i; df -h /tmp 2>/dev/null || true", "磁碟與 inode 未超過 85%"),
-    (7, "時間與憑證", "timedatectl; chronyc tracking 2>/dev/null || ntpq -p 2>/dev/null || true", "時間同步正常，憑證未接近到期"),
-    (8, "DB", "ps -ef | egrep 'tnslsnr|oracle|sqlservr|mysqld|mariadbd|db2sysc|postgres|mongod' | grep -v grep || true; ss -ltnp | egrep '1521|1433|3306|50000|5432|27017' || true", "DB process 與 port 狀態符合主機角色"),
-    (9, "Infra", "dmesg -T | egrep -i 'oom|mce|machine check' | tail -20 || true; systemctl --failed --no-pager || true; cat /proc/sys/kernel/tainted 2>/dev/null || true", "無 OOM、MCE、failed unit 或 kernel tainted 異常"),
-    (10, "運維軌跡", "last -n 10; find /etc /opt -xdev -mtime -1 -type f 2>/dev/null | head -30", "近期登入與異動可追溯"),
+    {
+        "idx": 1,
+        "name": "效能",
+        "cmd": "uptime; top -bn1 | head -5; free -m; vmstat 1 3",
+        "baseline": "CPU idle 大於 30%，Swap 使用率低於 50%，load 不高於 CPU 核心數 2 倍。",
+        "warn_patterns": ["load average"],
+    },
+    {
+        "idx": 2,
+        "name": "網路",
+        "cmd": "ip -s link; ss -s; ping -c 3 ${PING_TGT:-127.0.0.1}; sysctl net.netfilter.nf_conntrack_count net.netfilter.nf_conntrack_max 2>/dev/null || true",
+        "baseline": "網卡無大量 error/drop，TCP 狀態正常，ping 無明顯 loss。",
+        "warn_patterns": ["retrans", "drop", "errors", "loss"],
+    },
+    {
+        "idx": 3,
+        "name": "AP Listener",
+        "cmd": "ss -ltnp 2>/dev/null | head -80; ps -eo pid,comm,%cpu,%mem --sort=-%cpu | head -12; systemctl --failed --no-pager || true",
+        "baseline": "AP listener 存在，程序資源合理，systemd 無 failed unit。",
+        "warn_patterns": ["failed"],
+    },
+    {
+        "idx": 4,
+        "name": "AP 連線",
+        "cmd": "ss -ltnp 2>/dev/null | egrep ':(${AP_PORT:-8002})\\b' || true; curl -fsS --max-time 5 http://127.0.0.1:${AP_PORT:-8002}/health || true",
+        "baseline": "指定 AP port 可連線，health endpoint 回應正常。",
+        "warn_patterns": ["failed", "refused", "timeout", "not found"],
+    },
+    {
+        "idx": 5,
+        "name": "Session",
+        "cmd": "ss -tan | awk 'NR>1 {print $1}' | sort | uniq -c | sort -nr; ss -tan state established | awk 'NR>1 {print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr | head",
+        "baseline": "TCP session 分布合理，沒有大量 CLOSE_WAIT / SYN_RECV。",
+        "warn_patterns": ["CLOSE-WAIT", "SYN-RECV"],
+    },
+    {
+        "idx": 6,
+        "name": "Storage",
+        "cmd": "df -h; df -i; df -h /tmp 2>/dev/null || true; journalctl --disk-usage 2>/dev/null || true",
+        "baseline": "磁碟與 inode 使用率低於 85%，/tmp 空間足夠。",
+        "warn_patterns": [],
+    },
+    {
+        "idx": 7,
+        "name": "時間與憑證",
+        "cmd": "date; timedatectl 2>/dev/null || true; chronyc tracking 2>/dev/null || ntpq -p 2>/dev/null || true; find /etc/pki /opt -name '*.crt' -o -name '*.pem' 2>/dev/null | head -20",
+        "baseline": "時間同步正常，憑證未在 30 天內到期。",
+        "warn_patterns": ["not synchronized", "unsynchronized"],
+    },
+    {
+        "idx": 8,
+        "name": "資料庫",
+        "cmd": "ps -ef | egrep 'tnslsnr|oracle|sqlservr|mysqld|mariadbd|db2sysc|postgres|mongod' | grep -v grep || true; ss -ltnp 2>/dev/null | egrep '1521|1433|3306|50000|5432|27017' || true",
+        "baseline": "DB process 與常見 port 狀態符合主機用途。",
+        "warn_patterns": [],
+    },
+    {
+        "idx": 9,
+        "name": "Infra",
+        "cmd": "dmesg -T 2>/dev/null | egrep -i 'oom|mce|machine check' | tail -20 || true; systemctl --failed --no-pager || true; cat /proc/sys/kernel/tainted 2>/dev/null || true",
+        "baseline": "無 OOM / MCE / failed unit，kernel tainted 為 0。",
+        "warn_patterns": ["oom", "machine check", "failed"],
+    },
+    {
+        "idx": 10,
+        "name": "運維軌跡",
+        "cmd": "last -n 10; find /etc /opt -xdev -mtime -1 -type f 2>/dev/null | head -30; journalctl --since '24 hours ago' 2>/dev/null | egrep -i 'started|stopped|restart|failed' | tail -40 || true",
+        "baseline": "近期登入、設定異動與服務啟停都有可追溯紀錄。",
+        "warn_patterns": ["failed"],
+    },
 ]
 
 
@@ -34,9 +95,10 @@ def meta() -> dict[str, Any]:
     return {
         "controller_hostname": _controller_hostname(),
         "role": "L3 on-demand deep check",
-        "faces": [{"idx": idx, "name": name} for idx, name, _, _ in FACE_SPECS],
+        "faces": [{"idx": item["idx"], "name": item["name"], "baseline": item["baseline"]} for item in FACE_SPECS],
         "timeout_seconds": 300,
         "storage": "per-host data/hosts/<asset_seq>/deep_check",
+        "job_store": "mongo deep_check_jobs",
     }
 
 
@@ -46,11 +108,11 @@ def run(hostname: str, user: str = "system") -> dict[str, Any]:
         return {"success": False, "error": "缺少 hostname"}
     host = _get_host_by_hostname(hostname)
     if not host:
-        return {"success": False, "error": f"找不到主機: {hostname}"}
+        return {"success": False, "error": f"找不到主機：{hostname}"}
     if host.get("host_type") != "linux":
-        return {"success": False, "error": f"目前深度檢查只支援 Linux 主機: {hostname}"}
+        return {"success": False, "error": f"目前 L3 深度檢查只支援 Linux 主機：{hostname}"}
     if host.get("status") in {"disabled", "retired"}:
-        return {"success": False, "error": f"主機已停用: {hostname}"}
+        return {"success": False, "error": f"主機狀態不允許檢查：{hostname}"}
 
     running = get_collection("deep_check_jobs").find_one({"status": {"$in": ["starting", "running"]}}, {"_id": 0})
     if running:
@@ -69,7 +131,7 @@ def run(hostname: str, user: str = "system") -> dict[str, Any]:
         "job_ts": job_ts,
         "started_at": now,
         "finished_at": None,
-        "phase": "建立 job",
+        "phase": "建立工作",
         "progress": 0,
         "total": 1,
         "completed": 0,
@@ -85,13 +147,15 @@ def run(hostname: str, user: str = "system") -> dict[str, Any]:
             {"job_id": job_id},
             {"$set": {"status": "error", "error": str(exc), "finished_at": datetime.now(timezone.utc), "phase": "執行失敗"}},
         )
-    return {"success": True, "job_id": job_id, "message": f"深度檢查已完成: {hostname}", "hostname": hostname}
+        return {"success": False, "error": str(exc), "job_id": job_id, "hostname": hostname}
+    return {"success": True, "job_id": job_id, "message": f"L3 深度檢查已完成：{hostname}", "hostname": hostname}
 
 
 def progress(job_id: str) -> dict[str, Any]:
     job = get_collection("deep_check_jobs").find_one({"job_id": job_id}, {"_id": 0})
     if not job:
         return {"success": False, "error": "job not found"}
+    hostname = job.get("hostname")
     return {
         "success": True,
         "job_id": job_id,
@@ -99,7 +163,7 @@ def progress(job_id: str) -> dict[str, Any]:
         "phase": job.get("phase"),
         "total": job.get("total", 1),
         "completed": job.get("completed", 0),
-        "hosts": [{"hostname": job.get("hostname"), "ip": (job.get("host_ip_map") or {}).get(job.get("hostname")), "status": job.get("status")}],
+        "hosts": [{"hostname": hostname, "ip": (job.get("host_ip_map") or {}).get(hostname), "status": job.get("status")}],
         "started_at": job.get("started_at"),
         "finished_at": job.get("finished_at"),
         "is_finished": job.get("status") in {"done", "error", "timeout", "canceled"},
@@ -113,19 +177,25 @@ def progress(job_id: str) -> dict[str, Any]:
 def cancel(job_id: str, user: str = "system") -> dict[str, Any]:
     result = get_collection("deep_check_jobs").update_one(
         {"job_id": job_id, "status": {"$in": ["starting", "running"]}},
-        {"$set": {"status": "canceled", "finished_at": datetime.now(timezone.utc), "phase": "使用者取消", "canceled_by": user}},
+        {"$set": {"status": "canceled", "finished_at": datetime.now(timezone.utc), "phase": "已取消", "canceled_by": user}},
     )
     return {"success": bool(result.modified_count), "job_id": job_id}
 
 
 def history(hostname: str, limit: int = 20) -> dict[str, Any]:
-    rows = list(get_collection("deep_check_jobs").find({"hostname": hostname}, {"_id": 0}).sort("started_at", -1).limit(limit))
+    query = {"hostname": hostname} if hostname else {}
+    rows = list(get_collection("deep_check_jobs").find(query, {"_id": 0}).sort("started_at", -1).limit(limit))
     return {"success": True, "hostname": hostname, "items": rows}
 
 
 def reports(hostname: str) -> dict[str, Any]:
-    rows = list(get_collection("deep_check_reports").find({"hostname": hostname}, {"_id": 0}).sort("timestamp", -1))
+    query = {"hostname": hostname} if hostname else {}
+    rows = list(get_collection("deep_check_reports").find(query, {"_id": 0}).sort("timestamp", -1).limit(100))
     return {"success": True, "hostname": hostname, "items": rows}
+
+
+def latest_report(hostname: str) -> Optional[dict[str, Any]]:
+    return get_collection("deep_check_reports").find_one({"hostname": hostname}, {"_id": 0}, sort=[("timestamp", -1)])
 
 
 def preview(filename: str) -> dict[str, Any]:
@@ -134,7 +204,10 @@ def preview(filename: str) -> dict[str, Any]:
 
 
 def parsed(filename: str) -> dict[str, Any]:
-    report = get_collection("deep_check_reports").find_one({"filename": filename}, {"_id": 0})
+    report = get_collection("deep_check_reports").find_one(
+        {"$or": [{"filename": filename}, {"summary_filename": filename}, {"detail_filename": filename}]},
+        {"_id": 0},
+    )
     if not report:
         return {"success": False, "error": "report not found"}
     return {"success": True, "filename": filename, "data": report.get("parsed", {})}
@@ -146,29 +219,31 @@ def download_path(filename: str) -> Path:
 
 def _execute(job: dict[str, Any], host: dict[str, Any]) -> None:
     job_id = job["job_id"]
-    get_collection("deep_check_jobs").update_one({"job_id": job_id}, {"$set": {"status": "running", "phase": "執行 9 面向檢查", "progress": 10}})
+    get_collection("deep_check_jobs").update_one({"job_id": job_id}, {"$set": {"status": "running", "phase": "執行 9 面向檢查", "progress": 5}})
     items = []
     detail_lines = []
-    for idx, name, cmd, baseline in FACE_SPECS:
-        rc, out, err = _run_command(host, cmd)
-        text = out or err or "無輸出"
-        verdict = _verdict(idx, rc, text)
+    for spec in FACE_SPECS:
+        idx = int(spec["idx"])
+        rc, out, err = _run_command(host, str(spec["cmd"]))
+        raw = out or err or "無輸出"
+        verdict = _verdict(spec, rc, raw)
         item = {
             "idx": idx,
-            "name": name,
+            "name": spec["name"],
             "level": verdict.lower(),
             "verdict": verdict,
-            "range": f"{name} 深度檢查",
-            "cmd": cmd,
-            "baseline": baseline,
-            "actual": text[:1000],
-            "impact": _impact(verdict, name, text),
-            "action": "PASS 無需處置" if verdict in {"PASS", "N/A"} else "請依 Remedy KB 進行人工確認",
+            "range": f"{spec['name']} 深度診斷",
+            "cmd": spec["cmd"],
+            "baseline": spec["baseline"],
+            "actual": raw[:1200],
+            "impact": _impact(verdict, spec["name"], raw),
+            "action": "持續觀察" if verdict in {"PASS", "N/A"} else "依 Remedy KB 確認風險、備份與修復步驟",
         }
         item["remedies"] = match_remedies(item)
         items.append(item)
-        detail_lines.append(_format_item(item, text))
-        get_collection("deep_check_jobs").update_one({"job_id": job_id}, {"$set": {"phase": f"{name} 完成", "progress": min(95, idx * 10)}})
+        detail_lines.append(_format_item(item, raw))
+        progress_pct = min(95, 5 + idx * 9)
+        get_collection("deep_check_jobs").update_one({"job_id": job_id}, {"$set": {"phase": f"{spec['name']} 完成", "progress": progress_pct, "log": "\n\n".join(detail_lines)[-5000:]}})
 
     parsed_data = _parsed_data(host, job["job_ts"], items)
     summary_text = _summary_text(parsed_data)
@@ -204,8 +279,9 @@ def _execute(job: dict[str, Any], host: dict[str, Any]) -> None:
 
 
 def _run_command(host: dict[str, Any], cmd: str) -> tuple[int, str, str]:
+    env_cmd = f"AP_PORT={os.environ.get('AP_PORT', str(config.WEB_PORT))} {cmd}"
     if host.get("connection") == "local":
-        completed = subprocess.run(cmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+        completed = subprocess.run(env_cmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=35)
         return completed.returncode, completed.stdout.strip(), completed.stderr.strip()
     target = host.get("ip") or host.get("hostname")
     ssh_cmd = [
@@ -219,41 +295,43 @@ def _run_command(host: dict[str, Any], cmd: str) -> tuple[int, str, str]:
         "-p",
         str(host.get("ssh_port") or 22),
         f"{host.get('ssh_user') or 'sysinfra'}@{target}",
-        cmd,
+        env_cmd,
     ]
-    completed = subprocess.run(ssh_cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=38)
+    completed = subprocess.run(ssh_cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=45)
     return completed.returncode, completed.stdout.strip(), completed.stderr.strip()
 
 
-def _verdict(idx: int, rc: int, text: str) -> str:
+def _verdict(spec: dict[str, Any], rc: int, text: str) -> str:
     lowered = text.lower()
-    if rc != 0:
+    if rc != 0 and int(spec["idx"]) not in {4, 8, 10}:
         return "WARN"
-    if idx == 6 and re.search(r"\s(9[0-9]|100)%", text):
+    if int(spec["idx"]) == 6 and re.search(r"\s(8[5-9]|9[0-9]|100)%", text):
         return "WARN"
-    if idx == 9 and any(token in lowered for token in ("oom", "failed", "machine check")):
+    if int(spec["idx"]) == 9 and any(token in lowered for token in ("oom", "machine check")):
         return "WARN"
+    for token in spec.get("warn_patterns", []):
+        if token.lower() in lowered and int(spec["idx"]) in {2, 3, 4, 5, 7, 9, 10}:
+            return "WARN"
     return "PASS"
 
 
 def _impact(verdict: str, name: str, text: str) -> str:
     if verdict == "PASS":
-        return "目前未看到明顯客戶影響。"
-    sample = " ".join(text.split())[:160]
-    return f"{name} 出現警示，可能造成服務延遲、timeout 或維運風險。摘要: {sample}"
+        return "未發現明顯影響，維持例行觀察。"
+    sample = " ".join(text.split())[:180]
+    return f"{name} 發現警示訊號，可能影響服務穩定、連線品質或維運可追溯性。摘要：{sample}"
 
 
 def _format_item(item: dict[str, Any], raw: str) -> str:
     return "\n".join(
         [
             f"[{item['idx']}/9] {item['name']} {item['verdict']}",
-            f"  檢查項目   : {item['range']}",
+            f"  檢查範圍   : {item['range']}",
             f"  檢查指令   : {item['cmd']}",
-            f"  通過基準   : {item['baseline']}",
+            f"  判斷基準   : {item['baseline']}",
             f"  實際結果   : {item['actual']}",
-            f"  判斷說明   : {item['impact']}",
-            f"  客戶影響   : {item['impact']}",
-            f"  Remedy     : {item['action']}",
+            f"  影響說明   : {item['impact']}",
+            f"  建議處置   : {item['action']}",
             "",
             raw,
         ]
@@ -268,18 +346,19 @@ def _parsed_data(host: dict[str, Any], job_ts: str, items: list[dict[str, Any]])
         "na": sum(1 for item in items if item["verdict"] == "N/A"),
     }
     status_level = "fail" if stats["fail"] else "warn" if stats["warn"] else "pass"
-    status = "客戶影響" if status_level == "fail" else "警示" if status_level == "warn" else "正常"
+    status = "異常" if status_level == "fail" else "警示" if status_level == "warn" else "正常"
+    impacts = [item["impact"] for item in items if item["verdict"] in {"WARN", "FAIL"}]
     return {
         "hostname": host["hostname"],
         "asset_seq": host["asset_seq"],
         "timestamp": job_ts,
         "os": host.get("os") or host.get("os_version") or host.get("host_type"),
-        "ap_port": "-",
-        "ping_target": "127.0.0.1",
+        "ap_port": os.environ.get("AP_PORT", str(config.WEB_PORT)),
+        "ping_target": os.environ.get("PING_TGT", "127.0.0.1"),
         "status": status,
         "status_level": status_level,
         "stats": stats,
-        "customer_impact": "；".join(item["impact"] for item in items if item["verdict"] in {"WARN", "FAIL"})[:800] or "目前未看到明顯客戶影響。",
+        "customer_impact": "；".join(impacts)[:1000] if impacts else "未發現明顯服務影響。",
         "items": items,
     }
 
@@ -290,7 +369,7 @@ def _summary_text(data: dict[str, Any]) -> str:
         f"時間: {data['timestamp']}",
         f"狀態: {data['status']}",
         f"PASS={data['stats']['pass']} WARN={data['stats']['warn']} FAIL={data['stats']['fail']} N/A={data['stats']['na']}",
-        f"客戶影響: {data['customer_impact']}",
+        f"影響摘要: {data['customer_impact']}",
         "",
     ]
     for item in data["items"]:
@@ -302,9 +381,8 @@ def _write_reports(host: dict[str, Any], job_ts: str, summary: str, detail: str)
     host_dir = Path(config.HOSTS_DIR) / host["asset_seq"] / "deep_check"
     host_dir.mkdir(parents=True, exist_ok=True)
     hostname = re.sub(r"[^\w\-.]", "_", host["hostname"])
-    short_ts = job_ts
-    summary_name = f"ts_{hostname}_{short_ts}_summary.txt"
-    detail_name = f"ts_{hostname}_{short_ts}_detail.txt"
+    summary_name = f"ts_{hostname}_{job_ts}_summary.txt"
+    detail_name = f"ts_{hostname}_{job_ts}_detail.txt"
     summary_path = host_dir / summary_name
     detail_path = host_dir / detail_name
     summary_path.write_text(summary, encoding="utf-8")
@@ -315,10 +393,13 @@ def _write_reports(host: dict[str, Any], job_ts: str, summary: str, detail: str)
 def _report_path(filename: str) -> Path:
     if not REPORT_RE.match(filename):
         raise FileNotFoundError("invalid report filename")
-    report = get_collection("deep_check_reports").find_one({"$or": [{"summary_filename": filename}, {"detail_filename": filename}]}, {"_id": 0})
+    report = get_collection("deep_check_reports").find_one(
+        {"$or": [{"summary_filename": filename}, {"detail_filename": filename}, {"filename": filename}]},
+        {"_id": 0},
+    )
     if not report:
         raise FileNotFoundError(filename)
-    path = Path(report["path"] if report.get("summary_filename") == filename else report["detail_path"])
+    path = Path(report["path"] if report.get("summary_filename") == filename or report.get("filename") == filename else report["detail_path"])
     if not path.exists():
         raise FileNotFoundError(filename)
     return path

@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.1.60"
-PATCH_ID = "admin-console-chinese-modules"
-RELEASE_NOTE = "補齊系統管理與開發後台中文化，模組管理顯示控制範圍與關閉影響"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-15 09:30:00 +08:00")
+VERSION = "1.0.1.61"
+PATCH_ID = "opening-deep-check-complete"
+RELEASE_NOTE = "補齊開門檢查與 L3 深度檢查，加入 9 面向、Mongo job、歷史報告與 Remedy KB"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-15 17:20:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

@@ -1,17 +1,19 @@
 {% extends "base.html" %}
 {% block title %}開門檢查 - webitgpt{% endblock %}
 {% block content %}
-<section class="panel report-hero">
+<section class="page-hero inspection-hero">
   <div>
     <p class="eyebrow">OPENING CHECK</p>
     <h1>開門檢查</h1>
-    <p class="muted">依平台檢視 Linux / Windows / AIX / AS400，並以 9 個面向呈現深度診斷結果。</p>
+    <p class="muted">每天先看 L1 快速巡檢；需要追根因時，對單台 Linux 主機執行 L3 深度檢查，保留歷史、摘要、明細與 Remedy 建議。</p>
   </div>
   <div class="actions">
-    <button class="btn primary" type="button" data-api-post="/api/inspections/run" data-payload='{"limit":100}' data-reload-on-success="true">立即檢查</button>
-    <a class="btn" href="{{ url_for('api_operations.today_report_api') }}">JSON API</a>
+    <button class="btn primary" type="button" data-api-post="/api/inspections/run" data-payload='{"limit":100}' data-reload-on-success="true" data-busy-text="巡檢中">立即巡檢</button>
+    <a class="btn secondary" href="{{ url_for('api_operations.today_report_api') }}">JSON API</a>
   </div>
 </section>
+
+<pre id="apiResult" class="notice" hidden></pre>
 
 <section class="panel compact">
   <div class="summary-grid">
@@ -55,7 +57,7 @@
         </div>
       </div>
 
-      <div class="aspect-lights" aria-label="9 面向診斷燈號">
+      <div class="aspect-lights" aria-label="9 面向檢查">
         {% for check in host.checks %}
         <details class="aspect-light aspect-{{ check.status }}">
           <summary>
@@ -69,21 +71,81 @@
       </div>
     </div>
 
+    {% set l3 = host.latest_deep_check %}
+    <section class="l3-panel">
+      <div class="l3-head">
+        <div>
+          <strong>L3 深度檢查</strong>
+          {% if l3 %}
+          <span class="text-muted-sm">最近：{{ l3.parsed.timestamp }} / {{ l3.parsed.status }}</span>
+          {% else %}
+          <span class="text-muted-sm">尚未執行 L3。</span>
+          {% endif %}
+        </div>
+        {% if host.host_type == "linux" %}
+        <button class="btn-sm btn-primary" type="button" data-api-post="/api/deep-check/run" data-payload='{"hostname":"{{ host.hostname }}"}' data-reload-on-success="true" data-busy-text="檢查中">執行 L3</button>
+        {% else %}
+        <span class="badge-warn">平台待接</span>
+        {% endif %}
+      </div>
+      {% if l3 %}
+      <div class="l3-summary">
+        <div><b>{{ l3.parsed.stats.pass }}</b><span>PASS</span></div>
+        <div><b>{{ l3.parsed.stats.warn }}</b><span>WARN</span></div>
+        <div><b>{{ l3.parsed.stats.fail }}</b><span>FAIL</span></div>
+        <div><b>{{ l3.parsed.stats.na }}</b><span>N/A</span></div>
+      </div>
+      <p class="text-muted-sm">{{ l3.parsed.customer_impact }}</p>
+      <details class="diagnostic-history">
+        <summary>展開 L3 9 面向與 Remedy</summary>
+        <div class="l3-items">
+          {% for item in l3.parsed["items"] %}
+          <article class="l3-item l3-{{ item.level }}">
+            <header>
+              <strong>{{ item.idx }}. {{ item.name }}</strong>
+              <span class="{{ 'badge-ok' if item.verdict == 'PASS' else 'badge-warn' if item.verdict == 'WARN' else 'badge-error' }}">{{ item.verdict }}</span>
+            </header>
+            <p>{{ item.impact }}</p>
+            {% if item.remedies %}
+            <div class="remedy-list">
+              {% for remedy in item.remedies %}
+              <details>
+                <summary>{{ remedy.title }}</summary>
+                <div class="grid-2col">
+                  <div><b>Commands</b><pre class="detail">{{ "\n".join(remedy.commands) }}</pre></div>
+                  <div><b>Verify</b><pre class="detail">{{ "\n".join(remedy.verify) }}</pre></div>
+                </div>
+                <p class="text-muted-sm">風險：{{ "；".join(remedy.risks) }}</p>
+              </details>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </article>
+          {% endfor %}
+        </div>
+      </details>
+      <div class="gauge-actions l3-links">
+        <a class="btn-sm" href="/api/deep-check/reports/{{ l3.summary_filename }}/parsed">Parsed JSON</a>
+        <a class="btn-sm" href="/api/deep-check/reports/{{ l3.summary_filename }}/preview">摘要預覽</a>
+        <a class="btn-sm" href="/api/deep-check/reports/{{ l3.detail_filename }}/download">下載明細</a>
+      </div>
+      {% endif %}
+    </section>
+
     <div class="gauge-actions">
       <form method="post" action="{{ url_for('api_operations.deep_diagnostic_page', asset_seq=host.asset_seq) }}">
-        <button class="btn-sm btn-primary" type="submit">深度檢查</button>
+        <button class="btn-sm btn-secondary" type="submit">L1 快速檢查</button>
       </form>
-      <button class="btn-sm" type="button" data-api-post="/api/deep-check/run" data-payload='{"hostname":"{{ host.hostname }}"}' data-reload-on-success="true">新版 L3</button>
-      <a class="btn-sm" href="/api/deep-check/history?hostname={{ host.hostname }}">歷史 API</a>
+      <a class="btn-sm" href="/api/deep-check/history?hostname={{ host.hostname }}">L3 歷史 API</a>
       <details class="diagnostic-history">
-        <summary>最近一週 {{ host.recent|length if host.recent else 0 }} 筆</summary>
+        <summary>最近一週 L1 {{ host.recent|length if host.recent else 0 }} 筆</summary>
         {% for run in host.recent %}
         <div class="diagnostic-run">
           <strong>{{ run.checked_at }}</strong>
           <span class="text-muted-sm">OK={{ run.summary.ok }} / WARN={{ run.summary.warn }} / PENDING={{ run.summary.pending }}</span>
         </div>
         {% else %}
-        <div class="text-muted-sm">尚無深度檢查紀錄。</div>
+        <div class="text-muted-sm">尚無快速檢查紀錄。</div>
         {% endfor %}
       </details>
     </div>
@@ -94,9 +156,9 @@
 </section>
 
 <section class="panel">
-  <h2>巡檢摘要</h2>
+  <h2>今日巡檢明細</h2>
   <table class="data-table">
-    <thead><tr><th>資產編號</th><th>主機名稱</th><th>平台</th><th>狀態</th><th>CPU</th><th>記憶體</th><th>磁碟</th><th>資料來源</th></tr></thead>
+    <thead><tr><th>資產編號</th><th>主機名稱</th><th>類型</th><th>狀態</th><th>CPU</th><th>記憶體</th><th>磁碟</th><th>資料來源</th></tr></thead>
     <tbody>
       {% for item in report["items"] %}
       <tr>

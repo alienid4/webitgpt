@@ -11,6 +11,7 @@ from typing import Any
 from webapp import config
 from webapp.services.host_service import get_host
 from webapp.services.host_service import list_hosts
+from webapp.services.deep_check_service import latest_report
 from webapp.services.inventory_service import DEFAULT_MIN_INTERVAL_MINUTES, inventory_history
 from webapp.services.mongo_service import get_collection
 
@@ -192,17 +193,24 @@ def daily_diagnostics(platform: str = "linux") -> dict[str, Any]:
             latest = get_collection("diagnostic_results").find_one({"asset_seq": host.get("asset_seq")}, {"_id": 0}, sort=[("checked_at", -1)])
             if latest:
                 latest["recent"] = diagnostic_history(host.get("asset_seq"), days=7, limit=6)
+                latest["latest_deep_check"] = latest_report(host.get("hostname"))
                 rows.append(latest)
             elif host.get("connection") == "local":
                 row = _local_linux_diagnostics(host)
                 row["recent"] = diagnostic_history(host.get("asset_seq"), days=7, limit=6)
+                row["latest_deep_check"] = latest_report(host.get("hostname"))
                 rows.append(row)
             else:
                 row = _ssh_placeholder_diagnostics(host)
                 row["recent"] = diagnostic_history(host.get("asset_seq"), days=7, limit=6)
+                row["latest_deep_check"] = latest_report(host.get("hostname"))
                 rows.append(row)
     else:
-        rows = [_ssh_placeholder_diagnostics(host) for host in hosts]
+        rows = []
+        for host in hosts:
+            row = _ssh_placeholder_diagnostics(host)
+            row["latest_deep_check"] = latest_report(host.get("hostname"))
+            rows.append(row)
     summary = {
         "hosts": len(rows),
         "ok": sum(1 for row in rows for check in row["checks"] if check["status"] == "ok"),
