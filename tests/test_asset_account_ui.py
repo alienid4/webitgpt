@@ -56,3 +56,17 @@ def test_inventory_metrics_link_to_details_and_diff_filters():
     assert 'request.args.get("change_type", "")' in routes
     assert "def inventory_diff_report(kind: str, run_id: str = \"\", change_type: str = \"\")" in service
     assert "filtered_rows" in service
+
+
+def test_deep_check_items_are_collapsible_and_have_problem_recommendation():
+    html = read("webapp/templates/inspections.html")
+    css = read("webapp/static/css/cathay.css")
+    service = read("webapp/services/deep_check_service.py")
+
+    assert '<details class="l3-item l3-{{ item.level }}">' in html
+    assert "l3-item-summary" in html
+    assert "問題點" in html
+    assert "建議處置" in html
+    assert ".l3-item-summary" in css
+    assert "def _problem_summary(" in service
+    assert "def _recommendation(" in service

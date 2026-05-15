@@ -2074,11 +2074,64 @@ textarea,
   padding: 10px;
 }
 
-.l3-item header {
+.l3-item-summary {
   display: flex;
   justify-content: space-between;
   gap: 10px;
   align-items: center;
+  cursor: pointer;
+  list-style: none;
+}
+
+.l3-item-summary::-webkit-details-marker {
+  display: none;
+}
+
+.l3-item-summary::before {
+  content: "▸";
+  color: var(--g-text);
+  font-weight: 900;
+}
+
+.l3-item[open] > .l3-item-summary::before {
+  content: "▾";
+}
+
+.l3-item-summary > span:first-child {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+}
+
+.l3-item-summary em {
+  color: var(--c2);
+  font-style: normal;
+  font-size: 13px;
+}
+
+.l3-focus {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.l3-problem,
+.l3-threshold,
+.l3-recommendation {
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-xs);
+  background: var(--bg2);
+}
+
+.l3-threshold {
+  background: var(--white);
+}
+
+.l3-recommendation {
+  border-color: var(--g1);
+  background: var(--g-light);
 }
 
 .l3-warn { border-color: var(--orange); }
@@ -2089,7 +2142,7 @@ textarea,
   display: grid;
   grid-template-columns: 1.2fr 1fr;
   gap: 8px;
-  margin: 8px 0;
+  margin-top: 8px;
 }
 
 .l3-evidence > div,

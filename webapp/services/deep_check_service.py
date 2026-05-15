@@ -238,6 +238,9 @@ def _execute(job: dict[str, Any], host: dict[str, Any]) -> None:
             "baseline": spec["baseline"],
             "actual": raw[:1200],
             "evidence": _evidence_summary(spec, rc, raw, verdict),
+            "problem": _problem_summary(spec, rc, raw, verdict),
+            "threshold": _threshold_summary(spec, raw),
+            "recommendation": _recommendation(spec, verdict, raw),
             "action": "持續觀察" if verdict in {"PASS", "N/A"} else "依 Remedy KB 確認風險、備份與修復步驟",
         }
         item["impact"] = _impact(verdict, spec["name"], item["evidence"])
@@ -307,6 +310,12 @@ def _verdict(spec: dict[str, Any], rc: int, text: str) -> str:
     lowered = text.lower()
     if int(spec["idx"]) == 2:
         return _network_verdict(rc, text)
+    if int(spec["idx"]) == 3:
+        return _ap_listener_verdict(rc, text)
+    if int(spec["idx"]) == 5:
+        return _session_verdict(rc, text)
+    if int(spec["idx"]) == 9:
+        return _infra_verdict(rc, text)
     if rc != 0 and int(spec["idx"]) not in {4, 8, 10}:
         return "WARN"
     if int(spec["idx"]) == 6 and re.search(r"\s(8[5-9]|9[0-9]|100)%", text):
@@ -316,6 +325,43 @@ def _verdict(spec: dict[str, Any], rc: int, text: str) -> str:
     for token in spec.get("warn_patterns", []):
         if token.lower() in lowered and int(spec["idx"]) in {2, 3, 4, 5, 7, 9, 10}:
             return "WARN"
+    return "PASS"
+
+
+def _ap_listener_verdict(rc: int, text: str) -> str:
+    if rc != 0:
+        return "WARN"
+    if _systemd_failed_issue_lines(text):
+        return "WARN"
+    if "listen" not in text.lower():
+        return "WARN"
+    return "PASS"
+
+
+def _session_verdict(rc: int, text: str) -> str:
+    if rc != 0:
+        return "WARN"
+    counts = _tcp_state_counts(text)
+    if counts.get("SYN-RECV", 0) > 0:
+        return "WARN"
+    if counts.get("CLOSE-WAIT", 0) >= 10:
+        return "WARN"
+    if counts.get("ESTAB", 0) >= 500:
+        return "WARN"
+    return "PASS"
+
+
+def _infra_verdict(rc: int, text: str) -> str:
+    lowered = text.lower()
+    if rc != 0:
+        return "WARN"
+    if any(token in lowered for token in ("oom", "machine check")):
+        return "WARN"
+    if _systemd_failed_issue_lines(text):
+        return "WARN"
+    tainted = _kernel_tainted_value(text)
+    if tainted and tainted != "0":
+        return "WARN"
     return "PASS"
 
 
@@ -379,11 +425,112 @@ def _tcp_retransmit_seen(text: str) -> bool:
     return False
 
 
+def _tcp_state_counts(text: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for line in text.splitlines():
+        match = re.match(r"\s*(\d+)\s+([A-Z-]+)\s*$", line)
+        if match:
+            counts[match.group(2).upper()] = int(match.group(1))
+    return counts
+
+
+def _systemd_failed_issue_lines(text: str) -> list[str]:
+    issues: list[str] = []
+    for line in text.splitlines():
+        cleaned = line.strip()
+        lowered = cleaned.lower()
+        if not cleaned or cleaned.startswith("UNIT ") or "0 loaded units listed" in lowered:
+            continue
+        if re.search(r"\bloaded\s+failed\s+failed\b", lowered) or re.search(r"\bfailed\b", lowered):
+            issues.append(cleaned[:240])
+    return issues
+
+
+def _kernel_tainted_value(text: str) -> str:
+    for line in reversed(text.splitlines()):
+        cleaned = line.strip()
+        if re.fullmatch(r"\d+", cleaned):
+            return cleaned
+    return ""
+
+
 def _impact(verdict: str, name: str, text: str) -> str:
     if verdict == "PASS":
         return "未發現明顯影響，維持例行觀察。"
     sample = " ".join(text.split())[:180]
     return f"{name} 發現警示訊號，可能影響服務穩定、連線品質或維運可追溯性。摘要：{sample}"
+
+
+def _problem_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) -> str:
+    idx = int(spec["idx"])
+    if verdict == "PASS":
+        if idx == 3:
+            return "AP listener 有偵測到 LISTEN，且未發現 systemd failed unit。"
+        if idx == 5:
+            counts = _tcp_state_counts(text)
+            return (
+                f"TCP 狀態在門檻內：SYN-RECV={counts.get('SYN-RECV', 0)}、"
+                f"CLOSE-WAIT={counts.get('CLOSE-WAIT', 0)}、ESTAB={counts.get('ESTAB', 0)}。"
+            )
+        if idx == 9:
+            return "未發現 OOM/MCE、failed unit 或 kernel tainted 異常。"
+        return "未超過警示門檻。"
+    if rc != 0:
+        return f"命令回傳碼 rc={rc}，代表採集或檢查命令執行異常。"
+    if idx == 2:
+        issues = _network_counter_issue_lines(text)
+        loss_match = re.search(r"(\d+(?:\.\d+)?)%\s+packet loss", text.lower())
+        if issues:
+            return "網路介面 counter 有非 0 異常值：" + "；".join(line for line in issues if line.startswith("異常 counter"))
+        if loss_match and float(loss_match.group(1)) > 0:
+            return f"Ping packet loss={loss_match.group(1)}%，高於 0% 門檻。"
+    if idx == 3:
+        issues = _systemd_failed_issue_lines(text)
+        if issues:
+            return "AP 主機存在 failed unit：" + "；".join(issues[:3])
+        return "未找到 LISTEN 服務或 AP listener 輸出異常。"
+    if idx == 5:
+        counts = _tcp_state_counts(text)
+        if counts.get("SYN-RECV", 0) > 0:
+            return f"SYN-RECV={counts.get('SYN-RECV')}，門檻為 0。"
+        if counts.get("CLOSE-WAIT", 0) >= 10:
+            return f"CLOSE-WAIT={counts.get('CLOSE-WAIT')}，門檻為小於 10。"
+        if counts.get("ESTAB", 0) >= 500:
+            return f"ESTAB={counts.get('ESTAB')}，門檻為小於 500。"
+    if idx == 9:
+        issues = _systemd_failed_issue_lines(text)
+        if issues:
+            return "Infra failed unit：" + "；".join(issues[:3])
+        tainted = _kernel_tainted_value(text)
+        if tainted and tainted != "0":
+            return f"kernel tainted={tainted}，門檻為 0。"
+    return "命中警示條件，請查看證據摘要確認異常數值。"
+
+
+def _threshold_summary(spec: dict[str, Any], text: str) -> str:
+    idx = int(spec["idx"])
+    if idx == 3:
+        return "需有 LISTEN 服務；systemd failed unit 必須為 0。"
+    if idx == 5:
+        return "SYN-RECV 必須為 0；CLOSE-WAIT 小於 10；ESTAB 小於 500。"
+    if idx == 9:
+        return "無 OOM / MCE / failed unit；kernel tainted 必須為 0。"
+    return str(spec.get("baseline") or "")
+
+
+def _recommendation(spec: dict[str, Any], verdict: str, text: str) -> str:
+    if verdict == "PASS":
+        return "維持例行觀察；不需立即處置。"
+    idx = int(spec["idx"])
+    if idx == 2:
+        return "先確認異常網卡的 switch port、VM NIC、線路或虛擬化層狀態；修復前保留 ip -s link 與 ethtool 證據。"
+    if idx == 3:
+        return "確認 failed unit 是否與 AP 服務相關；先執行 systemctl status <unit> 與 journalctl -u <unit>，確認影響後再重啟。"
+    if idx == 5:
+        return "確認連線來源與應用 socket 釋放狀況；CLOSE_WAIT 偏高時先查應用 thread/連線池，不要直接重啟。"
+    if idx == 9:
+        return "針對 failed unit 執行 systemctl status 與 journalctl；若是 setroubleshootd，可確認 SELinux denial log 處理服務是否需要啟動或停用。"
+    return "依 Remedy KB 先查證、備份與建立 rollback，再安排修復。"
 
 
 def _evidence_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) -> str:
@@ -394,7 +541,11 @@ def _evidence_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) ->
     elif idx == 2:
         lines.extend(_network_evidence(text))
     elif idx == 3:
-        lines.extend(_matching_lines(text, [r"listening|listen", r"failed units|0 loaded units listed|unit"], limit=5))
+        failed = _systemd_failed_issue_lines(text)
+        if failed:
+            lines.extend(failed[:5])
+        else:
+            lines.extend(_matching_lines(text, [r"listening|listen", r"0 loaded units listed|unit"], limit=5))
     elif idx == 4:
         lines.extend(_matching_lines(text, [r"status|ok|health|refused|failed|timeout|not found"], limit=5))
     elif idx == 5:
@@ -406,7 +557,11 @@ def _evidence_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) ->
     elif idx == 8:
         lines.extend(_matching_lines(text, [r"oracle|sql|mysql|mariadb|postgres|mongod|1521|1433|3306|5432|27017"], limit=6))
     elif idx == 9:
-        lines.extend(_matching_lines(text, [r"oom|machine check|failed|tainted|0 loaded units listed"], limit=6))
+        failed = _systemd_failed_issue_lines(text)
+        if failed:
+            lines.extend(failed[:5])
+        else:
+            lines.extend(_matching_lines(text, [r"oom|machine check|tainted|0 loaded units listed"], limit=6))
     elif idx == 10:
         lines.extend(_matching_lines(text, [r"logged|reboot|started|stopped|restart|failed"], limit=6))
     if len(lines) == 1:
@@ -504,10 +659,12 @@ def _format_item(item: dict[str, Any], raw: str) -> str:
             f"  檢查指令   : {item['cmd']}",
             f"  回傳碼     : {item['returncode']}",
             f"  判斷基準   : {item['baseline']}",
+            f"  問題點     : {item.get('problem', '-')}",
+            f"  警示門檻   : {item.get('threshold', item['baseline'])}",
             f"  證據摘要   : {item['evidence']}",
             f"  實際結果   : {item['actual']}",
             f"  影響說明   : {item['impact']}",
-            f"  建議處置   : {item['action']}",
+            f"  建議處置   : {item.get('recommendation') or item['action']}",
             "",
             raw,
         ]

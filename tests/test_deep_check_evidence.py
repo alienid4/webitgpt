@@ -1,4 +1,4 @@
-from webapp.services.deep_check_service import _evidence_summary
+from webapp.services.deep_check_service import _ap_listener_verdict, _evidence_summary, _problem_summary, _session_verdict
 
 
 def test_pass_evidence_includes_returncode_and_sample_output():
@@ -47,3 +47,25 @@ def test_network_evidence_includes_interface_and_counter_values():
     assert "615350 1035 0 4 0 0" in evidence
     assert "dropped=4" in evidence
     assert "lo:" not in evidence
+
+
+def test_session_one_close_wait_is_not_warn():
+    text = "53 ESTAB\n22 TIME-WAIT\n12 LISTEN\n1 CLOSE-WAIT"
+    assert _session_verdict(0, text) == "PASS"
+    problem = _problem_summary({"idx": 5, "name": "Session"}, 0, text, "PASS")
+    assert "CLOSE-WAIT=1" in problem
+    assert "SYN-RECV=0" in problem
+
+
+def test_ap_listener_warn_points_to_failed_unit_not_listen_lines():
+    text = """
+LISTEN 0 128 0.0.0.0:9444 0.0.0.0:*
+UNIT LOAD ACTIVE SUB DESCRIPTION
+setroubleshootd.service loaded failed failed SETroubleshoot daemon for processing new SELinux denial logs
+"""
+    assert _ap_listener_verdict(0, text) == "WARN"
+    problem = _problem_summary({"idx": 3, "name": "AP Listener"}, 0, text, "WARN")
+    evidence = _evidence_summary({"idx": 3, "name": "AP Listener"}, 0, text, "WARN")
+    assert "setroubleshootd.service" in problem
+    assert "setroubleshootd.service" in evidence
+    assert "0.0.0.0:9444" not in evidence
