@@ -13,10 +13,10 @@
 </section>
 
 <section class="summary-grid">
-  <div class="metric"><strong>{{ summary.hosts_total }}</strong><span>納管資產</span></div>
-  <div class="metric"><strong>{{ summary.accounts.summary.abnormal }}</strong><span>異常帳號</span></div>
-  <div class="metric"><strong>{{ summary.accounts.summary.privileged }}</strong><span>高權限帳號</span></div>
-  <div class="metric"><strong>{{ summary.compliance.open_findings }}</strong><span>合規未結異常</span></div>
+  <a class="metric" href="{{ url_for('api_hosts.hosts_page') }}"><strong>{{ summary.hosts_total }}</strong><span>納管資產</span></a>
+  <a class="metric" href="{{ url_for('api_inventory.accounts_page', metric='abnormal') }}"><strong>{{ summary.accounts.summary.abnormal }}</strong><span>異常帳號</span></a>
+  <a class="metric" href="{{ url_for('api_inventory.accounts_page', metric='privileged') }}"><strong>{{ summary.accounts.summary.privileged }}</strong><span>高權限帳號</span></a>
+  <a class="metric" href="{{ url_for('api_compliance.security_audit_page') }}#security-hosts"><strong>{{ summary.compliance.open_findings }}</strong><span>合規未結異常</span></a>
 </section>
 
 <section class="panel">

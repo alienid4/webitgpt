@@ -15,16 +15,16 @@
 {% if error %}<div class="notice danger">{{ error }}</div>{% endif %}
 
 <section class="summary-grid">
-  <div class="metric"><strong>{{ host_overview.affected_hosts }}</strong><span>受影響主機</span></div>
-  <div class="metric"><strong>{{ dashboard.open_findings }}</strong><span>未結異常</span></div>
-  <div class="metric"><strong>{{ dashboard.rules_total }}</strong><span>規則數</span></div>
-  <div class="metric"><strong>{{ dashboard.by_severity.critical }}</strong><span>CRITICAL</span></div>
-  <div class="metric"><strong>{{ dashboard.by_severity.high }}</strong><span>HIGH</span></div>
-  <div class="metric"><strong>{{ dashboard.by_severity.medium }}</strong><span>MEDIUM</span></div>
-  <div class="metric"><strong>{{ dashboard.by_severity.low }}</strong><span>LOW</span></div>
+  <a class="metric" href="#security-hosts"><strong>{{ host_overview.affected_hosts }}</strong><span>受影響主機</span></a>
+  <a class="metric" href="#security-hosts"><strong>{{ dashboard.open_findings }}</strong><span>未結異常</span></a>
+  <a class="metric" href="#security-rules"><strong>{{ dashboard.rules_total }}</strong><span>規則數</span></a>
+  <a class="metric" href="#security-hosts"><strong>{{ dashboard.by_severity.critical }}</strong><span>CRITICAL</span></a>
+  <a class="metric" href="#security-hosts"><strong>{{ dashboard.by_severity.high }}</strong><span>HIGH</span></a>
+  <a class="metric" href="#security-hosts"><strong>{{ dashboard.by_severity.medium }}</strong><span>MEDIUM</span></a>
+  <a class="metric" href="#security-hosts"><strong>{{ dashboard.by_severity.low }}</strong><span>LOW</span></a>
 </section>
 
-<section class="panel">
+<section class="panel" id="security-hosts">
   <div class="tab-row">
     <button class="tab-btn active" type="button">Linux</button>
     <button class="tab-btn" type="button">Windows</button>
@@ -63,7 +63,7 @@
   </table>
 </section>
 
-<section class="panel">
+<section class="panel" id="security-plans">
   <h2>修補 / Rollback 計畫</h2>
   <table class="data-table">
     <thead><tr><th>計畫</th><th>主機</th><th>模式</th><th>備份</th><th>Rollback</th><th>操作</th></tr></thead>
@@ -84,7 +84,7 @@
   </table>
 </section>
 
-<section class="panel">
+<section class="panel" id="security-rules">
   <h2>TWGCB 規則庫 / 設定管理</h2>
   <form class="grid-form" method="post" action="{{ url_for('api_compliance.rule_upsert_page') }}">
     <label>規則 ID<input name="rule_id" required></label>

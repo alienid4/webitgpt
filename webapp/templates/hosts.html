@@ -64,11 +64,11 @@
   </div>
 
   <section class="summary-grid asset-summary">
-    <div class="metric"><strong>{{ data.get("total", 0) }}</strong><span>資產總數</span></div>
-    <div class="metric"><strong>{{ asset_summary.complete_assets }}</strong><span>必填完整</span></div>
-    <div class="metric"><strong>{{ asset_summary.missing_required }}</strong><span>缺漏必填欄位</span></div>
-    <div class="metric"><strong>{{ asset_summary.environments }}</strong><span>環境數</span></div>
-    <div class="metric"><strong>{{ asset_summary.types }}</strong><span>平台類型數</span></div>
+    <a class="metric" href="#asset-details"><strong>{{ data.get("total", 0) }}</strong><span>資產總數</span></a>
+    <a class="metric" href="#asset-details"><strong>{{ asset_summary.complete_assets }}</strong><span>必填完整</span></a>
+    <a class="metric" href="#asset-details"><strong>{{ asset_summary.missing_required }}</strong><span>缺漏必填欄位</span></a>
+    <a class="metric" href="#asset-details"><strong>{{ asset_summary.environments }}</strong><span>環境數</span></a>
+    <a class="metric" href="#asset-details"><strong>{{ asset_summary.types }}</strong><span>平台類型數</span></a>
   </section>
 
   <section class="panel compact">
@@ -126,7 +126,7 @@
 
   {% if data.get("error") %}<div class="notice danger">{{ data.get("error") }}</div>{% endif %}
 
-  <section class="table-wrap asset-table-wrap">
+  <section class="table-wrap asset-table-wrap" id="asset-details">
     <table class="data-table asset-table">
       <thead>
         <tr>

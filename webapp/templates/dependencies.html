@@ -110,10 +110,10 @@
   <h2>ss+nmap 差異摘要</h2>
   <p class="text-muted-sm">下方只先顯示統計摘要；預設只列 CMDB 已納管主機，未納管與外網位址需手動開關後才會列出。</p>
   <div class="metric-grid">
-    <div class="metric-card"><strong>{{ reconcile_report.summary.matched or 0 }}</strong><span>一致</span></div>
-    <div class="metric-card"><strong>{{ reconcile_report.summary.ss_only or 0 }}</strong><span>ss 有、nmap 無</span></div>
-    <div class="metric-card"><strong>{{ reconcile_report.summary.nmap_only or 0 }}</strong><span>nmap 有、ss 無</span></div>
-    <div class="metric-card"><strong>{{ reconcile_report.summary.external_skipped or 0 }}</strong><span>外網忽略</span></div>
+    <a class="metric metric-card" href="#reconcile-details"><strong>{{ reconcile_report.summary.matched or 0 }}</strong><span>一致</span></a>
+    <a class="metric metric-card" href="#reconcile-details"><strong>{{ reconcile_report.summary.ss_only or 0 }}</strong><span>ss 有、nmap 無</span></a>
+    <a class="metric metric-card" href="#reconcile-details"><strong>{{ reconcile_report.summary.nmap_only or 0 }}</strong><span>nmap 有、ss 無</span></a>
+    <a class="metric metric-card" href="#reconcile-details"><strong>{{ reconcile_report.summary.external_skipped or 0 }}</strong><span>外網忽略</span></a>
   </div>
   {% if reconcile_report.errors %}
     <div class="status-box warn">
@@ -122,7 +122,7 @@
       {% endfor %}
     </div>
   {% endif %}
-  <details class="dev-detail">
+  <details class="dev-detail" id="reconcile-details">
     <summary>展開對帳明細</summary>
     <table class="data-table">
       <thead><tr><th>狀態</th><th>來源</th><th>目標 IP</th><th>Port</th><th>服務</th><th>程序</th><th>建議</th></tr></thead>

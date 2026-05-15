@@ -28,10 +28,10 @@
     <button class="btn-sm" type="submit">套用</button>
   </form>
   <div class="summary-grid">
-    <div class="metric"><strong>{{ diagnostics.summary.hosts }}</strong><span>{{ diagnostics.selected_system }} / {{ diagnostics.platform|upper }}</span></div>
-    <div class="metric"><strong>{{ diagnostics.summary.ok }}</strong><span>正常項目</span></div>
-    <div class="metric"><strong>{{ diagnostics.summary.warn }}</strong><span>警示項目</span></div>
-    <div class="metric"><strong>{{ diagnostics.summary.pending }}</strong><span>待檢項目</span></div>
+    <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.hosts }}</strong><span>{{ diagnostics.selected_system }} / {{ diagnostics.platform|upper }}</span></a>
+    <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.ok }}</strong><span>正常項目</span></a>
+    <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.warn }}</strong><span>警示項目</span></a>
+    <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.pending }}</strong><span>待檢項目</span></a>
   </div>
 </section>
 
@@ -43,7 +43,7 @@
   </div>
 </section>
 
-<section class="opening-dashboard">
+<section class="opening-dashboard" id="opening-hosts">
   {% for host in diagnostics["items"] %}
   <article class="gauge-card gauge-{{ host.overall or 'pending' }}" id="host-{{ host.asset_seq }}">
     <div class="gauge-head">

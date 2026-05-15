@@ -97,3 +97,26 @@ def test_opening_check_is_system_scoped_and_deep_check_supports_aix():
     assert "selected_system" in legacy
     assert "AIX_COMMANDS" in deep
     assert 'host.get("host_type") not in {"linux", "aix"}' in deep
+
+
+def test_metric_cards_are_clickable_across_pages():
+    templates = [
+        "webapp/templates/dashboard.html",
+        "webapp/templates/executive.html",
+        "webapp/templates/reports.html",
+        "webapp/templates/hosts.html",
+        "webapp/templates/inspections.html",
+        "webapp/templates/security_audit.html",
+        "webapp/templates/dependencies.html",
+    ]
+    for path in templates:
+        html = read(path)
+        assert '<div class="metric"' not in html
+        assert '<div class="metric-card"' not in html
+    hosts = read("webapp/templates/hosts.html")
+    security = read("webapp/templates/security_audit.html")
+    deps = read("webapp/templates/dependencies.html")
+    assert 'id="asset-details"' in hosts
+    assert 'id="security-hosts"' in security
+    assert 'id="security-rules"' in security
+    assert 'id="reconcile-details"' in deps
