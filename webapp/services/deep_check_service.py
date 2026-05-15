@@ -234,11 +234,13 @@ def _execute(job: dict[str, Any], host: dict[str, Any]) -> None:
             "verdict": verdict,
             "range": f"{spec['name']} 深度診斷",
             "cmd": spec["cmd"],
+            "returncode": rc,
             "baseline": spec["baseline"],
             "actual": raw[:1200],
-            "impact": _impact(verdict, spec["name"], raw),
+            "evidence": _evidence_summary(spec, rc, raw, verdict),
             "action": "持續觀察" if verdict in {"PASS", "N/A"} else "依 Remedy KB 確認風險、備份與修復步驟",
         }
+        item["impact"] = _impact(verdict, spec["name"], item["evidence"])
         item["remedies"] = match_remedies(item)
         items.append(item)
         detail_lines.append(_format_item(item, raw))
@@ -356,8 +358,8 @@ def _link_error_or_drop_seen(text: str) -> bool:
         values = [int(value) for value in re.findall(r"\b\d+\b", lines[idx + 1])]
         if not values:
             continue
-        for pos, header in enumerate(headers):
-            normalized = header.rstrip(":")
+        value_headers = [header.rstrip(":") for header in headers[1:]]
+        for pos, normalized in enumerate(value_headers):
             if normalized in {"errors", "dropped", "drop", "carrier", "collsns", "overruns"} and pos < len(values) and values[pos] > 0:
                 return True
     return False
@@ -384,13 +386,125 @@ def _impact(verdict: str, name: str, text: str) -> str:
     return f"{name} 發現警示訊號，可能影響服務穩定、連線品質或維運可追溯性。摘要：{sample}"
 
 
+def _evidence_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) -> str:
+    idx = int(spec["idx"])
+    lines = [f"回傳碼 rc={rc}；判定={verdict}。"]
+    if idx == 1:
+        lines.extend(_matching_lines(text, [r"load average", r"^mem:", r"^swap:", r"%?cpu"], limit=4))
+    elif idx == 2:
+        lines.extend(_network_evidence(text))
+    elif idx == 3:
+        lines.extend(_matching_lines(text, [r"listening|listen", r"failed units|0 loaded units listed|unit"], limit=5))
+    elif idx == 4:
+        lines.extend(_matching_lines(text, [r"status|ok|health|refused|failed|timeout|not found"], limit=5))
+    elif idx == 5:
+        lines.extend(_matching_lines(text, [r"estab|listen|close-wait|syn-recv|time-wait"], limit=6))
+    elif idx == 6:
+        lines.extend(_matching_lines(text, [r"filesystem|/dev/|tmpfs|journal"], limit=6))
+    elif idx == 7:
+        lines.extend(_matching_lines(text, [r"ntp|system clock|synchronized|rtc|\.crt|\.pem"], limit=6))
+    elif idx == 8:
+        lines.extend(_matching_lines(text, [r"oracle|sql|mysql|mariadb|postgres|mongod|1521|1433|3306|5432|27017"], limit=6))
+    elif idx == 9:
+        lines.extend(_matching_lines(text, [r"oom|machine check|failed|tainted|0 loaded units listed"], limit=6))
+    elif idx == 10:
+        lines.extend(_matching_lines(text, [r"logged|reboot|started|stopped|restart|failed"], limit=6))
+    if len(lines) == 1:
+        lines.extend(_first_nonempty_lines(text, limit=4))
+    return "\n".join(lines[:8])
+
+
+def _matching_lines(text: str, patterns: list[str], limit: int = 5) -> list[str]:
+    compiled = [re.compile(pattern, re.IGNORECASE) for pattern in patterns]
+    found: list[str] = []
+    for line in text.splitlines():
+        cleaned = line.strip()
+        if cleaned and any(pattern.search(cleaned) for pattern in compiled):
+            found.append(cleaned[:220])
+        if len(found) >= limit:
+            break
+    return found
+
+
+def _first_nonempty_lines(text: str, limit: int = 4) -> list[str]:
+    lines = []
+    for line in text.splitlines():
+        cleaned = line.strip()
+        if cleaned:
+            lines.append(cleaned[:220])
+        if len(lines) >= limit:
+            break
+    return lines
+
+
+def _network_evidence(text: str) -> list[str]:
+    evidence = _matching_lines(text, [r"packet loss", r"retrans", r"listen.*drop", r"no route|unreachable|timed out"], limit=4)
+    issue_lines = _network_counter_issue_lines(text)
+    if issue_lines:
+        return (evidence + issue_lines)[:8]
+
+    lines = text.splitlines()
+    for idx, line in enumerate(lines):
+        cleaned = line.strip()
+        lowered = cleaned.lower()
+        if re.match(r"^\d+:\s+\S+:", cleaned):
+            evidence.append(cleaned[:220])
+        elif lowered.startswith(("rx:", "tx:")) or re.search(r"\b(errors|dropped|carrier|collsns|overruns)\b", lowered):
+            evidence.append(cleaned[:220])
+            if idx + 1 < len(lines):
+                value_line = lines[idx + 1].strip()
+                if value_line:
+                    evidence.append(value_line[:220])
+        if len(evidence) >= 7:
+            break
+    return evidence
+
+
+def _network_counter_issue_lines(text: str) -> list[str]:
+    lines = text.splitlines()
+    current_iface = ""
+    issues: list[str] = []
+    for idx, line in enumerate(lines):
+        cleaned = line.strip()
+        iface_match = re.match(r"^\d+:\s+([^:]+):", cleaned)
+        if iface_match:
+            current_iface = cleaned
+            continue
+
+        headers = cleaned.lower().split()
+        if not headers or headers[0].rstrip(":") not in {"rx", "tx"}:
+            continue
+        watched = {"errors", "dropped", "drop", "carrier", "collsns", "overruns"}
+        if not any(header.rstrip(":") in watched for header in headers):
+            continue
+        if idx + 1 >= len(lines):
+            continue
+
+        value_line = lines[idx + 1].strip()
+        values = [int(value) for value in re.findall(r"\b\d+\b", value_line)]
+        triggered = []
+        value_headers = [header.rstrip(":") for header in headers[1:]]
+        for pos, normalized in enumerate(value_headers):
+            if normalized in watched and pos < len(values) and values[pos] > 0:
+                triggered.append(f"{normalized}={values[pos]}")
+        if triggered:
+            if current_iface:
+                issues.append(current_iface[:220])
+            issues.append(cleaned[:220])
+            issues.append(value_line[:220])
+            issues.append("異常 counter: " + ", ".join(triggered))
+    return issues
+
+
 def _format_item(item: dict[str, Any], raw: str) -> str:
     return "\n".join(
         [
             f"[{item['idx']}/9] {item['name']} {item['verdict']}",
             f"  檢查範圍   : {item['range']}",
             f"  檢查指令   : {item['cmd']}",
+            f"  回傳碼     : {item['returncode']}",
             f"  判斷基準   : {item['baseline']}",
+            f"  證據摘要   : {item['evidence']}",
             f"  實際結果   : {item['actual']}",
             f"  影響說明   : {item['impact']}",
             f"  建議處置   : {item['action']}",

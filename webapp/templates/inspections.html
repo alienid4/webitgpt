@@ -106,6 +106,28 @@
               <span class="{{ 'badge-ok' if item.verdict == 'PASS' else 'badge-warn' if item.verdict == 'WARN' else 'badge-error' }}">{{ item.verdict }}</span>
             </header>
             <p>{{ item.impact }}</p>
+            <div class="l3-evidence">
+              <div>
+                <b>檢查指令</b>
+                <pre class="detail">{{ item.cmd }}</pre>
+              </div>
+              <div>
+                <b>判斷基準</b>
+                <p>{{ item.baseline }}</p>
+              </div>
+              <div>
+                <b>證據摘要</b>
+                <pre class="detail">{{ item.evidence or item.actual }}</pre>
+              </div>
+              <div>
+                <b>回傳碼</b>
+                <p>rc={{ item.returncode if item.returncode is defined else "-" }}</p>
+              </div>
+            </div>
+            <details class="l3-raw-output">
+              <summary>查看原始輸出節錄</summary>
+              <pre class="detail">{{ item.actual }}</pre>
+            </details>
             {% if item.remedies %}
             <div class="remedy-list">
               {% for remedy in item.remedies %}

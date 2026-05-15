@@ -2053,6 +2053,37 @@ textarea,
 .l3-fail { border-color: var(--red); }
 .l3-pass { border-color: var(--g1); }
 
+.l3-evidence {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.l3-evidence > div,
+.l3-raw-output {
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-xs);
+  background: var(--bg2);
+  padding: 8px;
+}
+
+.l3-evidence b {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--g-text);
+}
+
+.l3-evidence p {
+  margin: 0;
+}
+
+.l3-raw-output summary {
+  cursor: pointer;
+  color: var(--g-text);
+  font-weight: 700;
+}
+
 .remedy-list {
   display: grid;
   gap: 6px;
@@ -2069,6 +2100,7 @@ textarea,
   .gauge-body { grid-template-columns: 1fr; }
   .score-ring { width: 132px; }
   .aspect-lights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .l3-evidence { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 520px) {
