@@ -86,9 +86,12 @@ def test_setroubleshootd_recommendation_is_manager_readable():
     text = "setroubleshootd.service loaded failed failed SETroubleshoot daemon for processing new SELinux denial logs"
     recommendation = _recommendation({"idx": 9, "name": "Infra"}, "WARN", text)
 
-    assert "這不代表 SELinux 一定有開啟或關閉錯誤" in recommendation
-    assert "輔助服務" in recommendation
-    assert "需要就修復服務，不需要就可評估停用" in recommendation
+    assert "交由 Linux 系統管理者處理" in recommendation
+    assert "先確認公司是否需要 SELinux 事件分析功能" in recommendation
+    assert "若需要，修復並啟動 setroubleshootd 服務" in recommendation
+    assert "若不需要，正式停用此服務並在巡檢例外備註原因" in recommendation
+    assert "重新執行深度檢查" in recommendation
+    assert "不是在說 SELinux 一定有開啟或關閉錯誤" in recommendation
     assert "journalctl" not in recommendation
     assert "systemctl" not in recommendation
 
