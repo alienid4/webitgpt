@@ -25,15 +25,23 @@
 <section class="panel sticky-toolbar">
   <form class="filter-bar" method="get" action="{{ url_for('api_inventory.software_page') }}">
     <label><span>主機</span><select name="host"><option value="">全部</option>{% for host in inventory.hosts %}<option value="{{ host }}" {% if inventory.filters.host == host %}selected{% endif %}>{{ host }}</option>{% endfor %}</select></label>
-    <label><span>搜尋</span><input name="q" value="{{ inventory.filters.q or '' }}" placeholder="套件名稱 / 版本"></label>
+    <label><span>搜尋</span><input name="q" value="{{ inventory.filters.q or '' }}" placeholder="套件 / 版本 / 來源 / 狀態 / 主機"></label>
     <button class="btn primary" type="submit">篩選</button>
     <a class="btn secondary" href="{{ url_for('api_inventory.software_page') }}">清除</a>
   </form>
+  <div class="filter-result-line">
+    <strong>搜尋結果：{{ inventory.summary.packages }} 筆</strong>
+    <span class="text-muted-sm">
+      {% if inventory.filters.host %}主機={{ inventory.filters.host }}{% else %}全部主機{% endif %}
+      {% if inventory.filters.q %} / 關鍵字="{{ inventory.filters.q }}"{% endif %}
+    </span>
+  </div>
 </section>
 
 <section class="panel">
   <div class="summary-grid">
-    <div class="metric"><strong>{{ inventory.summary.hosts }}</strong><span>已採集主機</span></div>
+    <div class="metric"><strong>{{ inventory.summary.hosts }}</strong><span>符合主機</span></div>
+    <div class="metric"><strong>{{ inventory.summary.hosts_total }}</strong><span>已採集主機</span></div>
     <div class="metric"><strong>{{ inventory.summary.packages }}</strong><span>套件筆數</span></div>
     <div class="metric"><strong>{{ inventory.summary.changes }}</strong><span>版本異動</span></div>
   </div>

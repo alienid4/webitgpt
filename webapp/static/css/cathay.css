@@ -122,6 +122,14 @@ body {
 .toolbar h1, .page-header h1 { margin-right: auto; }
 .flex-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .filter-bar, .search { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.filter-result-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
 .search input { min-width: 240px; }
 .search select { width: auto; min-width: 120px; }
 

@@ -363,7 +363,8 @@ def _save_software_change(current: dict[str, Any], previous: dict[str, Any], now
 
 def software_inventory_view(filters: Any = None) -> dict[str, Any]:
     filters = filters or {}
-    q = (filters.get("q") or "").strip().lower()
+    q = (filters.get("q") or "").strip()
+    terms = [term for term in q.lower().split() if term]
     host = filters.get("host") or ""
     rows = list(get_collection("software_inventory").find({}, {"_id": 0}).sort("collected_at", -1).limit(500))
     packages = []
@@ -372,18 +373,45 @@ def software_inventory_view(filters: Any = None) -> dict[str, Any]:
             continue
         for item in row.get("items", []):
             record = {**item, "hostname": row.get("hostname"), "asset_seq": row.get("asset_seq"), "host_type": row.get("host_type"), "collected_at": row.get("collected_at")}
-            if q and q not in str(record.get("name", "")).lower() and q not in str(record.get("version", "")).lower():
+            if terms and not _software_record_matches(record, terms):
                 continue
             packages.append(record)
-    changes = list(get_collection("software_inventory_changes").find({}, {"_id": 0}).sort("created_at", -1).limit(100))
+    changes = []
+    for change in get_collection("software_inventory_changes").find({}, {"_id": 0}).sort("created_at", -1).limit(100):
+        if host and host not in {change.get("hostname"), change.get("asset_seq")}:
+            continue
+        if terms and not _software_change_matches(change, terms):
+            continue
+        changes.append(change)
     return {
-        "summary": {"hosts": len(rows), "packages": len(packages), "changes": sum(len(row.get("changes", [])) for row in changes)},
+        "summary": {
+            "hosts": len({item.get("hostname") for item in packages if item.get("hostname")}),
+            "hosts_total": len({row.get("hostname") for row in rows if row.get("hostname")}),
+            "packages": len(packages),
+            "changes": sum(len(row.get("changes", [])) for row in changes),
+        },
         "hosts": sorted({row.get("hostname") for row in rows if row.get("hostname")}),
         "items": packages[:1000],
         "changes": changes,
-        "filters": filters,
+        "filters": {"q": q, "host": host, "terms": terms},
         "history": inventory_history("software", limit=10),
     }
+
+
+def _software_record_matches(record: dict[str, Any], terms: list[str]) -> bool:
+    haystack = " ".join(
+        str(record.get(field, ""))
+        for field in ["hostname", "asset_seq", "host_type", "name", "version", "source", "status"]
+    ).lower()
+    return all(term in haystack for term in terms)
+
+
+def _software_change_matches(change: dict[str, Any], terms: list[str]) -> bool:
+    parts = [str(change.get("hostname", "")), str(change.get("asset_seq", ""))]
+    for item in change.get("changes", []):
+        parts.extend([str(item.get("type", "")), str(item.get("name", "")), str(item.get("before", "")), str(item.get("after", ""))])
+    haystack = " ".join(parts).lower()
+    return all(term in haystack for term in terms)
 
 
 def software_csv(filters: Any = None) -> str:
