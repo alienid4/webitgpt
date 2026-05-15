@@ -1876,8 +1876,9 @@ textarea,
 
 .opening-dashboard {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 420px));
+  gap: 10px;
+  justify-content: start;
   margin: 14px 0;
   overflow: hidden;
 }
@@ -1888,7 +1889,7 @@ textarea,
   border-left: 5px solid var(--c4);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 18px;
+  padding: 12px;
   min-width: 0;
   overflow: hidden;
 }
@@ -1908,7 +1909,7 @@ textarea,
 
 .gauge-head h2 {
   margin: 2px 0 0;
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .gauge-state {
@@ -1928,22 +1929,24 @@ textarea,
 
 .gauge-body {
   display: grid;
-  grid-template-columns: minmax(150px, 170px) minmax(0, 1fr);
-  gap: 14px;
-  margin: 16px 0;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin: 10px 0;
   min-width: 0;
 }
 
 .score-meter {
   display: grid;
-  gap: 12px;
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 8px;
   align-content: start;
+  align-items: center;
 }
 
 .score-ring {
-  width: 138px;
+  width: 76px;
   aspect-ratio: 1;
-  border: 10px solid var(--c4);
+  border: 7px solid var(--c4);
   border-top-color: var(--g1);
   border-right-color: var(--g1);
   border-radius: 50%;
@@ -1958,7 +1961,7 @@ textarea,
 
 .score-ring strong {
   font-family: "JetBrains Mono", monospace;
-  font-size: 34px;
+  font-size: 20px;
   line-height: 1;
 }
 
@@ -1984,13 +1987,13 @@ textarea,
 .score-bars b {
   display: block;
   font-family: "JetBrains Mono", monospace;
-  font-size: 18px;
+  font-size: 15px;
 }
 
 .aspect-lights {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
   min-width: 0;
 }
 
@@ -2003,22 +2006,23 @@ textarea,
 }
 
 .aspect-light summary {
-  min-height: 46px;
+  min-height: 34px;
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) auto;
+  grid-template-columns: 14px minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
-  padding: 8px;
+  gap: 6px;
+  padding: 6px;
   cursor: pointer;
 }
 
 .aspect-light strong {
   min-width: 0;
-  font-size: 14px;
+  font-size: 12px;
   overflow-wrap: anywhere;
 }
 
 .aspect-light em {
+  display: none;
   font-style: normal;
   color: var(--c3);
   font-size: 12px;
@@ -2043,10 +2047,10 @@ textarea,
   border: 1px solid var(--c4);
   border-radius: var(--radius-sm);
   background: var(--bg);
-  padding: 12px;
-  margin: 12px 0;
+  padding: 8px;
+  margin: 8px 0;
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .l3-head,
@@ -2064,17 +2068,24 @@ textarea,
   gap: 6px;
 }
 
-.l3-summary div {
+.l3-summary button {
   border: 1px solid var(--c4);
   border-radius: var(--radius-xs);
   background: var(--white);
-  padding: 7px;
+  padding: 6px 8px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.l3-summary button.active {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 2px var(--g-light) inset;
 }
 
 .l3-summary b {
   display: block;
   font-family: "JetBrains Mono", monospace;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .l3-summary span {
@@ -2204,7 +2215,7 @@ textarea,
 @media (max-width: 900px) {
   .opening-dashboard { grid-template-columns: 1fr; }
   .gauge-body { grid-template-columns: 1fr; }
-  .score-ring { width: 132px; }
+  .score-ring { width: 76px; }
   .aspect-lights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .l3-evidence { grid-template-columns: 1fr; }
 }

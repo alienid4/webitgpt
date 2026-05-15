@@ -78,7 +78,7 @@
       <a class="metric account-metric-link" href="#host" data-account-tab-jump="host"><strong>{{ account_view.summary.managed_hosts }}</strong><span>總盤點設備</span></a>
       <a class="metric account-metric-link" href="#host" data-account-tab-jump="host"><strong>{{ account_view.summary.inventoried_hosts }}</strong><span>已盤點設備</span></a>
       <a class="metric account-metric-link" href="#departments" data-account-tab-jump="departments"><strong>{{ account_view.summary.departments }}</strong><span>參與部門</span></a>
-      <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults','')) }}"><strong>{{ account_view.summary.total }}</strong><span>帳號總數</span></a>
+      <a class="metric account-metric-link" href="#list" data-account-tab-jump="list"><strong>{{ account_view.summary.total }}</strong><span>帳號總數</span></a>
       <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='abnormal') }}"><strong>{{ account_view.summary.abnormal }}</strong><span>異常帳號</span></a>
       <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='privileged') }}"><strong>{{ account_view.summary.privileged }}</strong><span>高權限</span></a>
       <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='never_login') }}"><strong>{{ account_view.summary.never_login }}</strong><span>長期未登入</span></a>

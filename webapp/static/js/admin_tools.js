@@ -1,4 +1,20 @@
 document.addEventListener("click", async (event) => {
+  const l3Filter = event.target.closest("[data-l3-filter]");
+  if (l3Filter) {
+    event.preventDefault();
+    const panel = l3Filter.closest(".l3-panel");
+    const verdict = l3Filter.dataset.l3Filter;
+    panel?.querySelectorAll("[data-l3-filter]").forEach((item) => item.classList.toggle("active", item === l3Filter));
+    const history = panel?.querySelector(".diagnostic-history");
+    if (history) history.open = true;
+    panel?.querySelectorAll("[data-l3-verdict]").forEach((item) => {
+      const matched = item.dataset.l3Verdict === verdict;
+      item.hidden = !matched;
+      if (matched && verdict !== "PASS") item.open = true;
+    });
+    return;
+  }
+
   const button = event.target.closest("[data-api-post]");
   if (!button) return;
 

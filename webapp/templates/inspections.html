@@ -103,17 +103,17 @@
       </div>
       {% if l3 %}
       <div class="l3-summary">
-        <div><b>{{ l3.parsed.stats.pass }}</b><span>PASS</span></div>
-        <div><b>{{ l3.parsed.stats.warn }}</b><span>WARN</span></div>
-        <div><b>{{ l3.parsed.stats.fail }}</b><span>FAIL</span></div>
-        <div><b>{{ l3.parsed.stats.na }}</b><span>N/A</span></div>
+        <button type="button" data-l3-filter="PASS"><b>{{ l3.parsed.stats.pass }}</b><span>PASS</span></button>
+        <button type="button" data-l3-filter="WARN"><b>{{ l3.parsed.stats.warn }}</b><span>WARN</span></button>
+        <button type="button" data-l3-filter="FAIL"><b>{{ l3.parsed.stats.fail }}</b><span>FAIL</span></button>
+        <button type="button" data-l3-filter="N/A"><b>{{ l3.parsed.stats.na }}</b><span>N/A</span></button>
       </div>
       <p class="text-muted-sm">{{ l3.parsed.customer_impact }}</p>
       <details class="diagnostic-history">
         <summary>展開 L3 9 面向與 Remedy</summary>
         <div class="l3-items">
           {% for item in l3.parsed["items"] %}
-          <details class="l3-item l3-{{ item.level }}">
+          <details class="l3-item l3-{{ item.level }}" data-l3-verdict="{{ item.verdict }}">
             <summary class="l3-item-summary">
               <span>
                 <strong>{{ item.idx }}. {{ item.name }}</strong>
