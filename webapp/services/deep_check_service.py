@@ -547,17 +547,19 @@ def _threshold_summary(spec: dict[str, Any], text: str) -> str:
 
 def _recommendation(spec: dict[str, Any], verdict: str, text: str) -> str:
     if verdict == "PASS":
-        return "維持例行觀察；不需立即處置。"
+        return "目前沒有看到需要立即處理的異常，維持例行觀察即可。"
     idx = int(spec["idx"])
     if idx == 2:
-        return "先確認異常網卡的 switch port、VM NIC、線路或虛擬化層狀態；修復前保留 ip -s link 與 ethtool 證據。"
+        return "網路有錯誤或掉包訊號，可能影響連線品質。建議先請網路或系統管理者確認交換器埠、網卡與線路狀態，再決定是否調整設定。"
     if idx == 3:
-        return "確認 failed unit 是否與 AP 服務相關；先執行 systemctl status <unit> 與 journalctl -u <unit>，確認影響後再重啟。"
+        return "主機上有服務啟動失敗。請先確認失敗服務是不是正式應用程式；如果是正式服務，需查明原因再重啟，避免直接重啟造成二次影響。"
     if idx == 5:
-        return "確認連線來源與應用 socket 釋放狀況；CLOSE_WAIT 偏高時先查應用 thread/連線池，不要直接重啟。"
+        return "連線狀態出現異常累積，可能代表程式沒有正常關閉連線或外部連線品質不穩。建議由系統負責人確認來源程式與連線對象。"
     if idx == 9:
-        return "針對 failed unit 執行 systemctl status 與 journalctl；若是 setroubleshootd，可確認 SELinux denial log 處理服務是否需要啟動或停用。"
-    return "依 Remedy KB 先查證、備份與建立 rollback，再安排修復。"
+        if "setroubleshootd" in text.lower():
+            return "偵測到 setroubleshootd 服務失敗。這不代表 SELinux 一定有開啟或關閉錯誤；它只是負責整理 SELinux 事件紀錄的輔助服務。建議確認公司是否需要這項紀錄分析功能：需要就修復服務，不需要就可評估停用，避免每天開門檢查都出現警示。"
+        return "主機底層服務有啟動失敗紀錄，可能影響監控、紀錄或系統輔助功能。建議先確認失敗服務用途與負責單位，再決定修復、停用或列入例外。"
+    return "請依 Remedy 建議先確認影響範圍與備份，再安排修復；不建議未確認原因就直接變更系統。"
 
 
 def _evidence_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) -> str:

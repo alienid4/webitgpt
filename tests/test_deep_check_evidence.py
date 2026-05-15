@@ -1,4 +1,10 @@
-from webapp.services.deep_check_service import _ap_listener_verdict, _evidence_summary, _problem_summary, _session_verdict
+from webapp.services.deep_check_service import (
+    _ap_listener_verdict,
+    _evidence_summary,
+    _problem_summary,
+    _recommendation,
+    _session_verdict,
+)
 
 
 def test_pass_evidence_includes_returncode_and_sample_output():
@@ -69,3 +75,14 @@ setroubleshootd.service loaded failed failed SETroubleshoot daemon for processin
     assert "setroubleshootd.service" in problem
     assert "setroubleshootd.service" in evidence
     assert "0.0.0.0:9444" not in evidence
+
+
+def test_setroubleshootd_recommendation_is_manager_readable():
+    text = "setroubleshootd.service loaded failed failed SETroubleshoot daemon for processing new SELinux denial logs"
+    recommendation = _recommendation({"idx": 9, "name": "Infra"}, "WARN", text)
+
+    assert "這不代表 SELinux 一定有開啟或關閉錯誤" in recommendation
+    assert "輔助服務" in recommendation
+    assert "需要就修復服務，不需要就可評估停用" in recommendation
+    assert "journalctl" not in recommendation
+    assert "systemctl" not in recommendation
