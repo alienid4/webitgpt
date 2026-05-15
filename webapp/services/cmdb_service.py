@@ -323,11 +323,71 @@ def _parse_nmap_hosts(xml_text: str) -> list[dict[str, Any]]:
             osmatch = os_node.find("osmatch")
             if osmatch is not None:
                 os_text = str(osmatch.attrib.get("name", "")).strip()
-        rows.append({"ip": ip_text, "hostname": hostname, "os": os_text, "host_type": _infer_host_type_from_os(os_text)})
+        open_ports = []
+        ports_node = host.find("ports")
+        if ports_node is not None:
+            for port in ports_node.findall("port"):
+                state = port.find("state")
+                if state is None or state.attrib.get("state") != "open":
+                    continue
+                service = port.find("service")
+                open_ports.append(
+                    {
+                        "port": port.attrib.get("portid", ""),
+                        "protocol": port.attrib.get("protocol", ""),
+                        "service": service.attrib.get("name", "") if service is not None else "",
+                    }
+                )
+        rows.append({"ip": ip_text, "hostname": hostname, "os": os_text, "host_type": _infer_host_type_from_os(os_text), "open_ports": open_ports})
     return rows
 
 
-def run_asset_discovery_scan(cidr: str, user: str = "system", environment: str = "", dc: str = "") -> dict[str, Any]:
+def _merge_discovery_rows(scans: list[tuple[str, list[dict[str, Any]]]]) -> list[dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    for source, rows in scans:
+        for row in rows:
+            ip_text = row["ip"]
+            item = merged.setdefault(ip_text, {"ip": ip_text, "hostname": "", "os": "", "host_type": "end_device", "open_ports": [], "scan_sources": []})
+            if source not in item["scan_sources"]:
+                item["scan_sources"].append(source)
+            if row.get("hostname") and not item.get("hostname"):
+                item["hostname"] = row["hostname"]
+            if row.get("os") and (not item.get("os") or item.get("os") == "未偵測"):
+                item["os"] = row["os"]
+                item["host_type"] = row.get("host_type") or _infer_host_type_from_os(row["os"])
+            if row.get("host_type") and item.get("host_type") == "end_device":
+                item["host_type"] = row["host_type"]
+            known_ports = {(p.get("protocol"), p.get("port")) for p in item.get("open_ports", [])}
+            for port in row.get("open_ports") or []:
+                key = (port.get("protocol"), port.get("port"))
+                if key not in known_ports:
+                    item["open_ports"].append(port)
+                    known_ports.add(key)
+            if item["host_type"] == "end_device":
+                ports = {str(p.get("port")) for p in item.get("open_ports", [])}
+                if ports.intersection({"135", "139", "445", "3389", "5985", "5986"}):
+                    item["host_type"] = "windows"
+                elif ports.intersection({"22", "111", "2049"}):
+                    item["host_type"] = "linux"
+                elif ports.intersection({"902", "903", "5989"}):
+                    item["host_type"] = "vmware_host"
+    return list(merged.values())
+
+
+def _run_nmap_xml(command: list[str], timeout: int = 180) -> tuple[list[dict[str, Any]], str]:
+    try:
+        completed = subprocess.run(command, check=False, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return [], "nmap 掃描逾時。"
+    if completed.returncode not in (0, 1):
+        return [], completed.stderr.strip() or "nmap 掃描失敗。"
+    try:
+        return _parse_nmap_hosts(completed.stdout), ""
+    except ET.ParseError as exc:
+        return [], f"nmap XML 解析失敗：{exc}"
+
+
+def run_asset_discovery_scan(cidr: str, user: str = "system", environment: str = "", dc: str = "", scan_mode: str = "combined") -> dict[str, Any]:
     network = ipaddress.ip_network(cidr, strict=False)
     hosts_by_ip = _host_ips_in_network(str(network))
     if not shutil.which("nmap"):
@@ -348,28 +408,24 @@ def run_asset_discovery_scan(cidr: str, user: str = "system", environment: str =
         get_collection("network_scan_reports").insert_one(report)
         return _public(report) or report
 
-    commands = [
-        ["nmap", "-O", "--osscan-guess", "-oX", "-", str(network)],
-        ["nmap", "-sn", "-R", "-oX", "-", str(network)],
-    ]
-    parsed_hosts: list[dict[str, Any]] = []
-    mode = "nmap_os"
-    last_error = ""
-    for index, command in enumerate(commands):
-        try:
-            completed = subprocess.run(command, check=False, capture_output=True, text=True, timeout=180)
-        except subprocess.TimeoutExpired:
-            last_error = "nmap 掃描逾時。"
-            continue
-        if completed.returncode not in (0, 1):
-            last_error = completed.stderr.strip() or "nmap 掃描失敗。"
-            continue
-        try:
-            parsed_hosts = _parse_nmap_hosts(completed.stdout)
-            mode = "nmap_os" if index == 0 else "nmap_ping"
-            break
-        except ET.ParseError as exc:
-            last_error = f"nmap XML 解析失敗：{exc}"
+    mode = scan_mode if scan_mode in {"ping", "tcp", "combined"} else "combined"
+    scans: list[tuple[str, list[dict[str, Any]]]] = []
+    errors = []
+    if mode in {"ping", "combined"}:
+        rows, error = _run_nmap_xml(["nmap", "-sn", "-R", "-oX", "-", str(network)], timeout=120)
+        scans.append(("ARP/Ping", rows))
+        if error:
+            errors.append(error)
+    if mode in {"tcp", "combined"}:
+        rows, error = _run_nmap_xml(
+            ["nmap", "-Pn", "-R", "-p", "22,80,135,139,443,445,3389,5985,5986,9444", "--open", "-oX", "-", str(network)],
+            timeout=240,
+        )
+        scans.append(("TCP 常見服務", rows))
+        if error:
+            errors.append(error)
+    parsed_hosts = _merge_discovery_rows(scans)
+    last_error = "；".join(errors)
 
     rows = []
     for item in sorted(parsed_hosts, key=lambda row: ipaddress.ip_address(row["ip"])):
@@ -387,6 +443,8 @@ def run_asset_discovery_scan(cidr: str, user: str = "system", environment: str =
                         "asset_name": host.get("asset_name", ""),
                         "os": host.get("os") or item.get("os", ""),
                         "host_type": host.get("host_type") or item.get("host_type", ""),
+                        "open_ports": item.get("open_ports", []),
+                        "scan_sources": item.get("scan_sources", []),
                         "status": host.get("status", ""),
                         "suggestion": "此 IP 已在資產管理系統，不需要重複建立。",
                     }
@@ -402,6 +460,8 @@ def run_asset_discovery_scan(cidr: str, user: str = "system", environment: str =
                 "asset_name": "",
                 "os": item.get("os") or "未偵測",
                 "host_type": item.get("host_type") or "end_device",
+                "open_ports": item.get("open_ports", []),
+                "scan_sources": item.get("scan_sources", []),
                 "status": "待建立草稿",
                 "suggestion": "請勾選需要納管的主機，建立草稿後再補齊資產欄位。",
             }
@@ -409,7 +469,7 @@ def run_asset_discovery_scan(cidr: str, user: str = "system", environment: str =
 
     report = {
         "cidr": str(network),
-        "mode": mode,
+        "mode": f"nmap_{mode}",
         "error": last_error if not parsed_hosts else "",
         "discovered_count": len(parsed_hosts),
         "cmdb_count": len(hosts_by_ip),

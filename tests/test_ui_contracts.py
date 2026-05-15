@@ -77,10 +77,15 @@ def test_asset_new_workbench_has_csv_and_scan_entrypoints():
     assert "CSV 大量匯入" in host_new
     assert "網段掃描後新增" in host_new
     assert "將勾選 IP 建立草稿" in host_new
+    assert "混合掃描：ARP/Ping + TCP 常見服務" in host_new
+    assert "開放服務" in host_new
+    assert "發現方式" in host_new
     assert "host_new_full_page" in routes
     assert "host_new_discovery_scan_page" in routes
     assert "host_new_discovery_create_drafts_page" in routes
     assert "run_asset_discovery_scan" in cmdb
+    assert "scan_mode" in cmdb
+    assert '"nmap", "-Pn", "-R", "-p"' in cmdb
     assert '"hostname": item.get("hostname", "")' in cmdb
     assert '"os": item.get("os") or "未偵測"' in cmdb
 

@@ -56,7 +56,8 @@
   <div class="page-header">
     <div>
       <h2>3. 網段掃描後新增</h2>
-      <p class="text-muted-sm">用於你知道某個網段有主機尚未加入 CMDB 時。掃描會列出 IP、hostname、OS 偵測結果與是否已納管，可勾選多台建立草稿。</p>
+      <p class="text-muted-sm">用於你知道某個網段有主機尚未加入 CMDB 時。掃描會列出 IP、hostname、OS/平台推測、開放服務與是否已納管，可勾選多台建立草稿。</p>
+      <p class="text-muted-sm">注意：這是從 221 的網路角度掃描。VM 沒開機、使用 host-only/NAT、沒有接到 192.168.1.0/24，或完全沒有任何回應，就不會出現在掃描結果。</p>
     </div>
   </div>
   <form class="grid-form" method="post" action="{{ url_for('api_hosts.host_new_discovery_scan_page') }}">
@@ -73,6 +74,13 @@
         {% for value, label in dc_labels.items() %}
         <option value="{{ value }}">{{ label }}</option>
         {% endfor %}
+      </select>
+    </label>
+    <label>掃描模式
+      <select name="scan_mode">
+        <option value="combined">混合掃描：ARP/Ping + TCP 常見服務</option>
+        <option value="ping">快速探索：ARP/Ping</option>
+        <option value="tcp">強制 TCP：不回 ping 也嘗試常見服務</option>
       </select>
     </label>
     <button class="btn primary" type="submit">開始掃描</button>
@@ -94,6 +102,8 @@
           <th>Hostname</th>
           <th>OS 偵測</th>
           <th>平台判斷</th>
+          <th>開放服務</th>
+          <th>發現方式</th>
           <th>建議</th>
         </tr>
       </thead>
@@ -112,10 +122,16 @@
           <td>{{ row.hostname or "-" }}</td>
           <td>{{ row.os or "未偵測" }}</td>
           <td>{{ host_type_labels.get(row.host_type, row.host_type or "-") }}</td>
+          <td>
+            {% for port in row.open_ports or [] %}
+            <span class="code-inline">{{ port.service or port.protocol }}:{{ port.port }}</span>
+            {% else %}-{% endfor %}
+          </td>
+          <td>{{ (row.scan_sources or [])|join('、') or '-' }}</td>
           <td>{{ row.suggestion }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="7" class="no-data">沒有掃描結果。請確認 nmap 是否安裝，或網段是否允許掃描。</td></tr>
+        <tr><td colspan="9" class="no-data">沒有掃描結果。請確認 nmap 是否安裝、VM 是否開機、網卡是否接到 221 可達的網段，或改用強制 TCP 掃描。</td></tr>
         {% endfor %}
       </tbody>
     </table>

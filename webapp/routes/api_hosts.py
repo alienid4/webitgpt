@@ -309,6 +309,7 @@ def network_scan_stub():
         user=current_user()["username"],
         environment=payload.get("environment", ""),
         dc=payload.get("dc", ""),
+        scan_mode=payload.get("scan_mode", "combined"),
     )
     audit_log_service.append("host.network_scan.preview", current_user()["username"], {"cidr": result.get("cidr"), "count": result.get("discovered_count")})
     return jsonify(result)
@@ -324,6 +325,7 @@ def network_scan_page():
         user=current_user()["username"],
         environment=request.form.get("environment", ""),
         dc=request.form.get("dc", ""),
+        scan_mode=request.form.get("scan_mode", "combined"),
     )
     audit_log_service.append("host.network_scan.preview", current_user()["username"], {"cidr": result.get("cidr"), "count": result.get("discovered_count")})
     return render_template("host_new.html", **_host_new_context(scan_report=result))
@@ -340,6 +342,7 @@ def host_new_discovery_scan_page():
             user=current_user()["username"],
             environment=request.form.get("environment", ""),
             dc=request.form.get("dc", ""),
+            scan_mode=request.form.get("scan_mode", "combined"),
         )
         audit_log_service.append(
             "host.discovery_scan",
