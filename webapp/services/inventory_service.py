@@ -530,6 +530,7 @@ def account_inventory_view(filters: Optional[dict[str, str]] = None) -> dict[str
     host = filters.get("host") or ""
     department = filters.get("department") or ""
     risk = filters.get("risk") or ""
+    metric = filters.get("metric") or ""
     if host:
         accounts = [item for item in accounts if item["hostname"] == host or item["asset_seq"] == host]
     if department:
@@ -539,6 +540,18 @@ def account_inventory_view(filters: Optional[dict[str, str]] = None) -> dict[str
             accounts = [item for item in accounts if item["risk"] != "正常"]
         else:
             accounts = [item for item in accounts if risk in item["risk"]]
+    if metric == "pam_managed":
+        accounts = [item for item in accounts if item.get("pam_managed")]
+    elif metric == "system_default":
+        accounts = [item for item in accounts if item.get("is_system_default")]
+    elif metric == "service_login":
+        accounts = [item for item in accounts if "服務帳號可登入" in item["risk"]]
+    elif metric == "never_login":
+        accounts = [item for item in accounts if "從未登入" in item["risk"] or item["last_login"] == "從未登入"]
+    elif metric == "privileged":
+        accounts = [item for item in accounts if "高權限" in item["risk"]]
+    elif metric == "abnormal":
+        accounts = [item for item in accounts if item["risk"] != "正常"]
     if q:
         accounts = [
             item

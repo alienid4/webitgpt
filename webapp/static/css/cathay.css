@@ -291,6 +291,14 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
 .metric { border: 1px solid var(--c4); border-radius: var(--radius-sm); padding: 12px; background: var(--bg2); }
 .metric strong, .metric-value { display: block; font-family: "JetBrains Mono", monospace; font-size: 28px; overflow-wrap: anywhere; }
 .metric span, .metric-label { color: var(--c3); font-size: 11px; text-transform: uppercase; }
+a.metric {
+  color: var(--c1);
+  text-decoration: none;
+}
+a.metric:hover {
+  border-color: var(--g1);
+  box-shadow: 0 0 0 2px var(--g-light) inset;
+}
 .detail { max-width: 520px; max-height: 160px; overflow: auto; margin: 0; white-space: pre-wrap; }
 .code-inline { font-family: "JetBrains Mono", monospace; background: var(--bg2); border: 1px solid var(--c4); border-radius: var(--radius-xs); padding: 1px 5px; }
 .no-data { color: var(--c3); text-align: center; padding: 24px; }
@@ -659,6 +667,19 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+}
+.asset-row-actions .btn-sm,
+.asset-row-actions form {
+  display: inline-flex;
+}
+.asset-row-actions .btn-sm {
+  min-width: 64px;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--c1);
+}
+.account-metric-link {
+  cursor: pointer;
 }
 .asset-cia {
   display: flex;

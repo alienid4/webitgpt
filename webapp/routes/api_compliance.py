@@ -36,7 +36,7 @@ def security_audit_page():
 @bp.post("/security_audit/evaluate/<asset_seq>")
 @require_module("module_compliance_security")
 @require_feature("compliance_engine")
-@require_role("admin")
+@require_role("superadmin")
 def evaluate_host_page(asset_seq: str):
     try:
         result = evaluate_host(asset_seq, current_user()["username"])
@@ -59,7 +59,7 @@ def evaluate_host_page(asset_seq: str):
 @bp.post("/api/compliance/evaluate/<asset_seq>")
 @require_module("module_compliance_security")
 @require_feature("compliance_engine")
-@require_role("admin")
+@require_role("superadmin")
 def evaluate_host_api(asset_seq: str):
     try:
         result = evaluate_host(asset_seq, current_user()["username"])

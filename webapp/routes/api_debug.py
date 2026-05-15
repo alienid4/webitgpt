@@ -17,7 +17,7 @@ bp = Blueprint("api_debug", __name__)
 
 @bp.post("/api/host/<asset_seq>/debug_snapshot")
 @require_feature("host_debug_snapshot")
-@require_role("admin")
+@require_role("superadmin")
 def debug_snapshot(asset_seq: str):
     host = host_service.get_host(asset_seq)
     if not host:

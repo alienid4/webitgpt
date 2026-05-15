@@ -1,9 +1,17 @@
 document.addEventListener("click", (event) => {
   const tab = event.target.closest("[data-account-tab]");
   if (tab) {
-    const name = tab.dataset.accountTab;
-    document.querySelectorAll("[data-account-tab]").forEach((item) => item.classList.toggle("active", item === tab));
-    document.querySelectorAll("[data-account-panel]").forEach((panel) => panel.classList.toggle("active", panel.dataset.accountPanel === name));
+    activateAccountTab(tab.dataset.accountTab);
+    return;
+  }
+
+  const metricJump = event.target.closest("[data-account-tab-jump]");
+  if (metricJump) {
+    event.preventDefault();
+    const name = metricJump.dataset.accountTabJump;
+    activateAccountTab(name);
+    history.replaceState(null, "", `#${name}`);
+    document.querySelector(`[data-account-panel="${name}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
 
@@ -35,6 +43,18 @@ document.addEventListener("click", (event) => {
     const drawer = document.getElementById("accountNoteDrawer");
     drawer.classList.remove("active");
     drawer.setAttribute("aria-hidden", "true");
+  }
+});
+
+function activateAccountTab(name) {
+  document.querySelectorAll("[data-account-tab]").forEach((item) => item.classList.toggle("active", item.dataset.accountTab === name));
+  document.querySelectorAll("[data-account-panel]").forEach((panel) => panel.classList.toggle("active", panel.dataset.accountPanel === name));
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const initial = window.location.hash.replace("#", "");
+  if (initial && document.querySelector(`[data-account-panel="${initial}"]`)) {
+    activateAccountTab(initial);
   }
 });
 
