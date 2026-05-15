@@ -1,16 +1,16 @@
 {% extends "base.html" %}
-{% block title %}系統健康 - webitgpt{% endblock %}
+{% block title %}健康檢查 - webitgpt{% endblock %}
 {% block content %}
 <section class="panel">
-  <h1>系統健康</h1>
+  <h1>健康檢查</h1>
   <div class="summary-grid">
     <div class="metric"><strong>{{ health.version }}</strong><span>版本</span></div>
     <div class="metric"><strong>{{ health.disk.used_pct }}%</strong><span>磁碟使用率</span></div>
-    <div class="metric"><strong>{{ "正常" if health.audit.ok else "異常" }}</strong><span>稽核鏈</span></div>
+    <div class="metric"><strong>{{ "正常" if health.audit.ok else "異常" }}</strong><span>Audit chain</span></div>
     <div class="metric"><strong>{{ health.collections.hosts }}</strong><span>主機數</span></div>
   </div>
   <table class="data-table">
-    <thead><tr><th>Collection</th><th>Count</th></tr></thead>
+    <thead><tr><th>Mongo collection</th><th>筆數</th></tr></thead>
     <tbody>{% for key, value in health.collections.items() %}<tr><td>{{ key }}</td><td>{{ value }}</td></tr>{% endfor %}</tbody>
   </table>
 </section>

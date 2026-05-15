@@ -5,7 +5,7 @@
   <div class="dev-toolbar">
     <div class="dev-title">
       <strong>開發後台</strong>
-      <span>功能驗證 / 開發設定 / 文件與提交紀錄</span>
+      <span>文件、檔案、備忘錄、提交紀錄與模組管理</span>
     </div>
     {% include "_partials/dev_tabs.html" %}
   </div>
@@ -13,8 +13,8 @@
 
 <section class="dev-admin-v317">
   <div class="dev-admin-head">
-    <h1>超級管理員</h1>
-    <span class="text-muted-sm">開發後台功能已併入上方分頁，可拖拉調整順序。</span>
+    <h1>開發後台</h1>
+    <span class="text-muted-sm">集中保存開發文件、上傳檔案、備忘錄、提交紀錄與功能開關說明。</span>
   </div>
 
   {% if saved %}<div class="notice">已儲存：{{ saved.path }}</div>{% endif %}
@@ -25,12 +25,12 @@
       <span class="code-inline">{{ console.docs_dir }}</span>
     </div>
     <table class="data-table dev-table">
-      <thead><tr><th>文件名稱</th><th>大小</th><th>修改時間</th></tr></thead>
+      <thead><tr><th>檔案名稱</th><th>大小</th><th>修改時間</th></tr></thead>
       <tbody>
         {% for file in console.files %}
         <tr><td>{{ file.name }}</td><td>{{ file.size }}</td><td>{{ file.mtime }}</td></tr>
         {% else %}
-        <tr><td colspan="3" class="no-data">尚無文件。</td></tr>
+        <tr><td colspan="3" class="no-data">尚無開發文件。</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -48,13 +48,13 @@
       </label>
       <button class="btn secondary" type="submit">送出</button>
       <a class="btn secondary" href="{{ url_for('api_superadmin.dev_console_page') }}#file-manager">重新整理</a>
-      <span class="text-muted-sm">上傳位置：開發文件目錄，單檔上限 20MB。</span>
+      <span class="text-muted-sm">上傳到開發文件目錄，單檔上限 20MB。</span>
     </form>
     <table class="data-table dev-table">
       <thead><tr><th>名稱</th><th>類型</th><th>大小</th><th>修改時間</th></tr></thead>
       <tbody>
         {% for file in console.files %}
-        <tr><td>{{ file.name }}</td><td>檔案</td><td>{{ file.size }}</td><td>{{ file.mtime }}</td></tr>
+        <tr><td>{{ file.name }}</td><td>文件</td><td>{{ file.size }}</td><td>{{ file.mtime }}</td></tr>
         {% else %}
         <tr><td colspan="4" class="no-data">尚無檔案。</td></tr>
         {% endfor %}
@@ -65,7 +65,7 @@
   <section class="dev-admin-panel" id="memo" data-dev-panel-target="memo">
     <div class="dev-section-head">
       <h2>備忘錄</h2>
-      <span class="badge-warn">開發期</span>
+      <span class="badge-warn">開發用</span>
     </div>
     <form method="post" action="{{ url_for('api_superadmin.dev_console_notes_page') }}">
       <textarea class="input-field dev-notes" name="notes" rows="12">{{ console.notes }}</textarea>
@@ -76,7 +76,7 @@
   <section class="dev-admin-panel" id="commit-log" data-dev-panel-target="commit-log">
     <div class="dev-section-head">
       <h2>提交紀錄</h2>
-      <span class="text-muted-sm">先看修復摘要，再看技術提交</span>
+      <span class="text-muted-sm">最近版本變更與 git log。</span>
     </div>
     <table class="data-table dev-table">
       <thead><tr><th>版本</th><th>時間</th><th>Patch</th><th>修復內容</th></tr></thead>
@@ -95,12 +95,12 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="4" class="no-data">尚無修復摘要。</td></tr>
+        <tr><td colspan="4" class="no-data">尚無版本紀錄。</td></tr>
         {% endfor %}
       </tbody>
     </table>
     <div class="dev-section-head compact">
-      <h2>技術提交明細</h2>
+      <h2>最近提交</h2>
       <span class="text-muted-sm">最近 20 筆 git log</span>
     </div>
     <pre class="detail dev-commits">{{ console.commits }}</pre>
@@ -109,7 +109,7 @@
   <section class="dev-admin-panel" id="module-manager" data-dev-panel-target="module-manager">
     <div class="dev-section-head">
       <h2>模組管理</h2>
-      <span class="text-muted-sm">說明每個開關會影響哪個功能；大模組會排在最前面。</span>
+      <span class="text-muted-sm">每個功能都列出控制範圍、關閉影響與建議，不必猜 key 代表什麼。</span>
     </div>
     <table class="data-table dev-table">
       <thead><tr><th>分類</th><th>模組 / 功能</th><th>控制範圍</th><th>關閉後影響</th><th>建議</th><th>狀態</th><th>操作</th></tr></thead>
@@ -129,9 +129,9 @@
           <td>{{ item.off_effect }}</td>
           <td>{{ item.recommendation }}</td>
           <td>
-            <span class="{{ 'badge-ok' if item.enabled else 'badge-warn' }}">{{ "啟用" if item.enabled else "停用" }}</span>
+            <span class="{{ 'badge-ok' if item.effective_enabled else 'badge-warn' }}">{{ "有效啟用" if item.effective_enabled else "未開放" }}</span>
             {% if not item.effective_enabled and item.enabled %}
-            <div class="text-muted-sm">實際不開放</div>
+            <div class="text-muted-sm">受上層大模組影響</div>
             {% endif %}
           </td>
           <td>
@@ -139,7 +139,7 @@
               <input type="hidden" name="key" value="{{ item.key }}">
               <label class="toggle-label module-toggle">
                 <input type="checkbox" name="enabled" {% if item.enabled %}checked{% endif %} onchange="this.form.submit()">
-                <span>{{ "開" if item.enabled else "關" }}</span>
+                <span>{{ "啟用" if item.enabled else "停用" }}</span>
               </label>
             </form>
           </td>

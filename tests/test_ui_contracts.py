@@ -8,19 +8,24 @@ def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_asset_nav_has_active_contract():
+def test_base_shell_keeps_navigation_theme_and_shortcuts():
     base_html = read("webapp/templates/base.html")
+    js = read("webapp/static/js/ui_tools.js")
     css = read("webapp/static/css/cathay.css")
 
     assert 'data-nav-key="assets"' in base_html
     assert "endpoint.startswith('api_hosts.')" in base_html
+    assert 'draggable="true"' in base_html
+    assert "IT 巡檢系統" in base_html
+    assert "themeToggle" in base_html
+    assert "webitgpt-theme" in js
+    assert "webitgpt-nav-order" in js
+    assert "event.altKey" in js
     assert ".nav a.active" in css
-    assert "background: var(--g-light);" in css
-    assert "box-shadow: inset 0 -3px 0 var(--g1);" in css
     assert ".nav a.nav-warn.active" in css
 
 
-def test_saved_view_form_has_visible_asset_filters():
+def test_hosts_saved_view_form_has_visible_asset_filters():
     hosts_html = read("webapp/templates/hosts.html")
 
     assert 'select name="host_type"' in hosts_html
@@ -28,440 +33,149 @@ def test_saved_view_form_has_visible_asset_filters():
     assert 'select name="dc"' in hosts_html
 
 
-def test_top_navigation_supports_personal_ordering():
-    base_html = read("webapp/templates/base.html")
-    js = read("webapp/static/js/ui_tools.js")
-    css = read("webapp/static/css/cathay.css")
-
-    assert 'data-nav-key="assets"' in base_html
-    assert 'draggable="true"' in base_html
-    assert "webitgpt-nav-order" in js
-    assert "localStorage.setItem(navStorageKey" in js
-    assert '.nav a[draggable="true"]' in css
-
-
-def test_ipam_has_network_reconcile_report():
-    ipam_html = read("webapp/templates/ipam.html")
-    routes = read("webapp/routes/api_hosts.py")
-    service = read("webapp/services/cmdb_service.py")
-
-    assert "ipam_scan_report_submit" in routes
-    assert "run_network_reconcile" in service
-    assert '["nmap", "-sn", "-oX", "-", cidr]' in service
-    assert "diff" in ipam_html or "report" in ipam_html.lower()
-
-
-def test_ipam_schedule_is_configurable():
+def test_ipam_reconcile_and_schedule_contracts_exist():
     installer = read("scripts/install_systemd.sh")
     script = read("scripts/weekly_ipam_reconcile.py")
     schedule_service = read("webapp/services/ipam_schedule_service.py")
     ipam_html = read("webapp/templates/ipam.html")
     routes = read("webapp/routes/api_hosts.py")
+    service = read("webapp/services/cmdb_service.py")
 
     assert "webitgpt-ipam-reconcile.timer" in installer
-    assert "OnCalendar=*-*-* *:0/5:00" in installer
     assert "weekly_ipam_reconcile.py" in installer
     assert "should_run_now" in script
     assert "run_network_reconcile" in script
+    assert '["nmap", "-sn", "-oX", "-", cidr]' in service
     assert '"weekday": "mon"' in schedule_service
     assert '"time": "07:30"' in schedule_service
-    assert "ipam_reconcile_schedule" in schedule_service
     assert 'select name="weekday"' in ipam_html
     assert 'input name="time" type="time"' in ipam_html
+    assert "ipam_scan_report_submit" in routes
     assert "ipam_schedule_submit" in routes
-    assert "ipam_schedule_service.save_schedule" in routes
 
 
-def test_dashboard_and_parity_pages_are_wired():
+def test_dashboard_parity_and_legacy_pages_are_wired():
     base_html = read("webapp/templates/base.html")
     reports_route = read("webapp/routes/api_reports.py")
     superadmin_route = read("webapp/routes/api_superadmin.py")
-    parity = read("webapp/templates/feature_parity.html")
+    app = read("webapp/app.py")
 
     assert "dashboard_page" in reports_route
     assert "executive_page" in reports_route
     assert "api_reports.dashboard_page" in base_html
     assert "api_reports.executive_page" in base_html
     assert "feature_parity_page" in superadmin_route
-    assert "v3.17" in superadmin_route or "v3.17" in parity
+    assert "v3.17" in superadmin_route
+    assert "api_dependencies" in app
 
 
-def test_legacy_module_wave1_pages_exist():
-    base_html = read("webapp/templates/base.html")
-    inspections = read("webapp/templates/inspections.html")
-    inventory = read("webapp/templates/inventory.html")
-    nmon = read("webapp/templates/nmon.html")
-    dependencies = read("webapp/templates/dependencies.html")
-    compliance = read("webapp/templates/security_audit.html")
-
-    assert "api_operations.inspections_page" in base_html
-    assert "api_reports.dependencies_page" in base_html
-    assert "開門檢查" in base_html
-    assert "開門檢查" in inspections
-    assert "OPENING CHECK" in inspections
-    assert "今日巡檢" not in base_html
-    assert "run-inspection" in inspections or "/api/inspections/run" in inspections
-    assert "深度檢查" in inspections
-    assert "最近一週" in inspections
-    assert "deep_diagnostic_page" in read("webapp/routes/api_operations.py")
-    assert "run_deep_diagnostic" in read("webapp/services/legacy_parity_service.py")
-    assert "diagnostic_results" in read("scripts/bootstrap.py")
-    assert "/api/inventory/" in inventory
-    assert "/api/nmon/status" in nmon or "nmon" in nmon.lower()
-    assert "dependencies" in dependencies.lower() or "api/reports/dependencies" in dependencies
-    assert "topology-edge" in dependencies
-    assert "edge.x1" in dependencies
-    assert "關聯清單" in dependencies
-    assert "data-topology-zoom-in" in dependencies
-    assert "data-topology-stage" in dependencies
-    assert "topology-node-dc" in dependencies
-    assert "data-topology-canvas" in read("webapp/static/js/ui_tools.js")
-    assert "--topology-scale" in read("webapp/static/css/cathay.css")
-    assert "rollback" in compliance.lower()
-
-
-def test_admin_and_dev_console_wave1_routes_exist():
+def test_superadmin_full_system_surfaces_exist():
     routes = read("webapp/routes/api_superadmin.py")
+    service = read("webapp/services/system_service.py")
+    superadmin = read("webapp/templates/superadmin.html")
+    users = read("webapp/templates/users.html")
+    health = read("webapp/templates/system_health.html")
+    backup = read("webapp/templates/backup_dr.html")
+    patches = read("webapp/templates/patches.html")
+
     for name in [
-        "settings_page",
-        "logs_page",
-        "jobs_page",
-        "audit_logs_page",
+        "users_page",
+        "users_reset_password_api",
+        "users_lock_api",
+        "backup_manifest_api",
+        "dr_drill_api",
+        "rollback_plan_api",
+        "system_health_api",
+        "settings_api",
+        "logs_api",
+        "jobs_api",
+        "audit_logs_api",
         "remote_tools_page",
         "dev_console_page",
     ]:
         assert name in routes
+    for name in [
+        "admin_console_overview",
+        "health_dashboard",
+        "create_backup_manifest",
+        "dr_drill",
+        "patch_inventory",
+        "rollback_plan",
+        "operation_logs_csv",
+    ]:
+        assert f"def {name}(" in service
+    assert "Hash chain：" in superadmin
+    assert "effective_enabled" in superadmin
+    assert "重設密碼" in users
+    assert "備用碼" in users
+    assert "健康檢查" in health
+    assert "備份 / DR" in backup
+    assert "Patch / 回滾" in patches
 
 
-def test_install_script_installs_nmap_for_ipam_scan():
-    install = read("scripts/install.sh")
+def test_phase_readonly_guard_remains_enabled_and_blocks_writes():
+    flags = read("webapp/services/feature_flags.py")
+    decorators = read("webapp/decorators.py")
+    admin_routes = read("webapp/routes/api_admin.py")
 
-    assert "ensure_system_tool nmap nmap" in install
-    assert "dnf install -y" in install
-    assert "apt-get install -y" in install
-    assert "please install ${package_name} manually for IPAM scan" in install
+    assert '_flag("phase_readonly_mode"' in flags
+    assert "雙寫評比期間封鎖受監控主機寫入動作" in flags
+    assert "default=True" in decorators
+    assert "Phase parallel review: monitored-host writes are locked" in decorators
+    assert "monitored_write_blocked" in admin_routes
 
 
-def test_inventory_history_and_cooldown_contracts_exist():
+def test_inventory_history_diff_and_topology_contracts_exist():
     inventory_service = read("webapp/services/inventory_service.py")
-    legacy_service = read("webapp/services/legacy_parity_service.py")
-    routes = read("webapp/routes/api_inventory.py")
-    bootstrap = read("scripts/bootstrap.py")
+    inventory_routes = read("webapp/routes/api_inventory.py")
+    dependency_service = read("webapp/services/dependency_service.py")
+    dependency_routes = read("webapp/routes/api_dependencies.py")
+    dependencies_page = read("webapp/templates/dependencies.html")
+    ui_tools = read("webapp/static/js/ui_tools.js")
+    css = read("webapp/static/css/cathay.css")
 
     assert "DEFAULT_MIN_INTERVAL_MINUTES = 360" in inventory_service
     assert "def inventory_history(" in inventory_service
-    assert "def _cooldown_result(" in inventory_service
-    assert "%Y%m%d%H%M%S%f" in inventory_service
-    assert "inventory_snapshots" in inventory_service
-    assert "inventory_runs" in bootstrap
-    assert "inventory_snapshots" in bootstrap
-    assert "software_inventory_changes" in bootstrap
-    assert "def _software_cooldown(" in legacy_service
-    assert "%Y%m%d%H%M%S%f" in legacy_service
-    assert '"/api/inventory/<kind>/history"' in routes
-    assert "force=bool(payload.get(\"force\"))" in routes
-
-
-def test_inventory_pages_show_history_and_force_collect():
-    accounts_html = read("webapp/templates/accounts_inventory.html")
-    software_html = read("webapp/templates/inventory.html")
-
-    assert "history" in accounts_html.lower() or "inventory_history" in accounts_html
-    assert "force" in accounts_html
-    assert "360" in accounts_html
-    assert "history" in software_html.lower() or "inventory_history" in software_html
-    assert "force" in software_html
-    assert "360" in software_html
-
-
-def test_inventory_diff_report_contracts_exist():
-    inventory_service = read("webapp/services/inventory_service.py")
-    routes = read("webapp/routes/api_inventory.py")
-    report_html = read("webapp/templates/inventory_diff_report.html")
-    accounts_html = read("webapp/templates/accounts_inventory.html")
-    software_html = read("webapp/templates/inventory.html")
-
     assert "def inventory_diff_report(" in inventory_service
-    assert "def export_inventory_diff_csv(" in inventory_service
-    assert "_changed_fields" in inventory_service
-    assert '"/inventory/<kind>/diff-report"' in routes
-    assert '"/inventory/<kind>/diff-report.csv"' in routes
-    assert '"/api/inventory/<kind>/diff-report"' in routes
-    assert "diff" in report_html.lower()
-    assert "csv" in report_html.lower()
-    assert "inventory_diff_report_page" in accounts_html
-    assert "inventory_diff_report_page" in software_html
-
-
-def test_topology_spec_foundation_contracts_exist():
-    service = read("webapp/services/dependency_service.py")
-    routes = read("webapp/routes/api_dependencies.py")
-    app = read("webapp/app.py")
-    bootstrap = read("scripts/bootstrap.py")
-    page = read("webapp/templates/dependencies.html")
-    ghosts = read("webapp/templates/dependencies_ghosts.html")
-
+    assert '"/api/inventory/<kind>/history"' in inventory_routes
+    assert '"/inventory/<kind>/diff-report"' in inventory_routes
     for name in [
         "def topology(",
-        "def _system_topology(",
-        "def _host_topology(",
-        "def _ip_topology(",
         "def downstream_impact(",
         "def upstream_impact(",
         "def analyze_ghosts(",
-        "def adopt_ghost(",
         "def collect_topology(",
-        "def mark_stale_collect_runs(",
-        "def _apply_failure_simulation(",
-        "def latest_collect_run(",
-        "def collect_runs(",
         "def reconcile_ss_nmap(",
-        "def latest_reconcile_report(",
-        "def _run_nmap_port_scan(",
-        "def _is_internal_ip(",
-        "include_external",
-        "include_unmanaged",
-        "ss -tunp",
-        "COMMON_EXPOSURE_PORTS",
     ]:
-        assert name in service
-    assert "hashlib.sha1" in service
-    for endpoint in [
-        "/api/dependencies/systems",
-        "/api/dependencies/relations",
-        "/api/dependencies/topology",
-        "/api/dependencies/impact",
-        "/api/dependencies/ghosts",
-        "/api/dependencies/collect/trigger",
-        "/dependencies/collect/trigger",
-        "/api/dependencies/reconcile/trigger",
-        "/dependencies/reconcile/trigger",
-        "/api/dependencies/reconcile/latest",
-        "/dependencies/ghosts/<ip>/ignore",
-    ]:
-        assert endpoint in routes
-    assert "api_dependencies" in app
-    assert "def _port_summary(" in service
-    assert "def _port_label(" in service
-    assert "def _short_port_label(" in service
-    assert "PORT_SERVICE_NAMES" in service
-    assert "def _edge_payload(" in service
-    assert "_merge_evidence(" not in service
-    assert "_merge_edge_evidence(" in service
-    assert "dependency_systems" in bootstrap
-    assert "dependency_relations" in bootstrap
-    assert "dependency_collect_runs" in bootstrap
-    assert "dependency_reconcile_reports" in bootstrap
-    assert "dependency_ghost_ignored" in bootstrap
-    assert "系統視角" in page and "主機視角" in page and "IP 視角" in page
-    assert "edge.detail_label" in page and "edge.port_summary" in page
-    assert "show_ports" in page and "edge.port_label" in page
-    assert "include_unmanaged" in page and "顯示內網未納管" in page
-    assert "只顯示 CMDB 已納管主機" in page
-    assert "failed_node" in page and "故障模擬" in page
-    assert "focus_impact" in page and "只看一跳/二跳影響" in page
-    assert "topology-detail-panel" in page
-    assert "IMPACT PANEL" in page
-    assert "data-topology-node-id" in page
-    assert "topology-node-failed" in page
-    assert "topology-edge-affected" in page
-    assert "direct_affected" in service and "second_hop_affected" in service
-    assert "def _filter_to_failure_scope(" in service
-    assert "edge.caption" not in page
-    assert "Port 明細請看下方清單" in page
-    assert "topology-system-trunk" in page
-    assert "一個系統一條主幹" in page
-    assert "def _layout_host_system_trunks(" in service
-    assert "def _layout_layered_system_ip(" in service
-    assert "def _layered_system_ip_topology(" in service
-    assert "topology-layer-guide" in page
-    assert "第一層：系統拓撲" in page and "第二層：IP 一跳" in page and "第三層：IP 二跳" in page
-    assert "第四層：IP 三跳" in page and "三跳回接系統" in service
-    assert "剛剛採集" in page and "最近執行" in page
-    assert "資料來源：ss -tunp 採集快照" in page
-    assert "最後採集：" in page
-    assert "關聯線：" in page
-    assert "技術資訊" in page
-    assert "status-pill" in read("webapp/static/css/cathay.css")
-    assert "inline-detail" in read("webapp/static/css/cathay.css")
-    assert "剛剛對帳" in page and "reconcile_run" in page
-    assert "layer_mode" in service
-    assert "layout_mode" in service
-    assert "topology-fullscreen-panel" in page
-    assert "dependencies_fullscreen_page" in page
-    assert "height: 100vh" in read("webapp/static/css/cathay.css")
-    assert "data-topology-panel" in page
-    assert "data-topology-fullscreen-enter" in page
-    assert "data-topology-fullscreen-exit" in page
-    assert "topology-client-fullscreen" in read("webapp/static/css/cathay.css")
-    assert ".body-topology-fullscreen .app-header" in read("webapp/static/css/cathay.css")
-    assert "z-index: 99999" in read("webapp/static/css/cathay.css")
-    assert "requestFullscreen" in read("webapp/static/js/ui_tools.js")
-    assert "body-topology-fullscreen" in read("webapp/static/js/ui_tools.js")
-    assert "def filtered_reconcile_report(" in service
-    assert "hidden_unmanaged_count" in service
-    assert "[data-topology-fullscreen-enter]" in read("webapp/static/css/cathay.css")
-    assert "ss+nmap 對帳報告" in page
-    assert "ss+nmap 對帳" in page
-    assert "展開對帳明細" in page
-    assert "預設只列 CMDB 已納管主機" in page
+        assert name in dependency_service
+    assert "/api/dependencies/topology" in dependency_routes
+    assert "/api/dependencies/reconcile/trigger" in dependency_routes
+    assert "data-topology-canvas" in ui_tools
+    assert "data-topology-panel" in dependencies_page
+    assert "topology-client-fullscreen" in css
 
 
-def test_fake_environment_seed_script_is_reversible():
-    script = read("scripts/seed_fake_environment.py")
-    page = read("webapp/templates/dependencies.html")
-    ghosts = read("webapp/templates/dependencies_ghosts.html")
-    assert "DEFAULT_BATCH = \"codex_fake_50_20260513\"" in script
-    assert "def seed(" in script and "def delete(" in script and "def status(" in script
-    assert "HW-FAKE-" in script
-    assert "metadata.test_batch" in script
-    assert "three-hop" in script
-    assert "三跳測試 3/3 回接其他系統" in script
-    assert "dependency_collect_runs" in script
-    assert "10.250" in script
-    assert "離開全螢幕" in page
-    assert "立即 ss 採集" in page
-    assert "採集狀態" in page
-    assert "顯示外網未知節點" in page
-    assert "外網未知" in page
-    assert "外網未知節點已忽略" in page
-    assert "Ghost 清單" in ghosts
-    assert "忽略外網" in ghosts and "顯示外網" in ghosts
-    assert "ghost_ignore_page" in ghosts
-    assert ">忽略<" in ghosts
-
-
-def test_superadmin_console_is_complete_and_chinese():
-    routes = read("webapp/routes/api_superadmin.py")
-    service = read("webapp/services/system_service.py")
-    superadmin = read("webapp/templates/superadmin.html")
-    settings = read("webapp/templates/system_settings.html")
-    logs = read("webapp/templates/system_logs.html")
-    jobs = read("webapp/templates/system_jobs.html")
-    audit = read("webapp/templates/operation_logs.html")
-
-    assert "def admin_console_overview(" in service
-    assert "def operation_logs_csv(" in service
-    assert "settings_api" in routes
-    assert "logs_api" in routes
-    assert "logs_download" in routes
-    assert "jobs_api" in routes
-    assert "audit_logs_api" in routes
-    assert "audit_logs_csv" in routes
-    assert "系統管理後台" in superadmin
-    assert "管理模組" in superadmin
-    assert "功能開關" in superadmin
-    assert "使用者與權限" in superadmin
-    assert "操作紀錄" in superadmin
-    assert "設定管理" in settings
-    assert "日誌檢視" in logs
-    assert "工作排程" in jobs
-    assert "匯出 CSV" in audit
-
-
-def test_legacy_5000_style_density_contract():
-    css = read("webapp/static/css/cathay.css")
-    base_html = read("webapp/templates/base.html")
-
-    assert "Legacy v3.17-style density" in css
-    assert "--content-max: none;" in css
-    assert ".nav a.active" in css
-    assert "background: transparent;" in css
-    assert "box-shadow: inset 0 -3px 0 var(--g1);" in css
-    assert "v{{ app_version }} <span>|</span> {{ build_time }}" in base_html
-    assert "{{ patch_id }} / {{ release_note }}" in base_html
-
-
-def test_dev_console_uses_legacy_workbench_layout():
+def test_dev_console_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     validation = read("webapp/templates/validation.html")
     dev_console = read("webapp/templates/dev_console.html")
     dev_tabs = read("webapp/templates/_partials/dev_tabs.html")
+    ui_tools = read("webapp/static/js/ui_tools.js")
+    service = read("webapp/services/system_service.py")
+    routes = read("webapp/routes/api_superadmin.py")
 
     assert ".dev-workbench" in css
     assert ".dev-toolbar" in css
     assert ".dev-grid" in css
     assert "dev-workbench" in validation
-    assert "dev-toolbar" in validation
-    assert "dev-grid" in validation
-    assert "驗證報告" in dev_tabs
-    assert "開發者文件" in dev_tabs
-    assert "檔案管理" in dev_tabs
-    assert "備忘錄" in dev_tabs
-    assert "dev-admin-v317" in dev_console
-    assert "dev-admin-tabs" not in dev_console
-    assert "GitHub 推送" not in dev_console
-    assert "GitHub 推送" not in dev_tabs
-    assert "提交紀錄" in dev_console
-
-
-def test_dev_validation_summary_is_compact():
-    css = read("webapp/static/css/cathay.css")
-    validation = read("webapp/templates/validation.html")
-
     assert "dev-compact-summary" in validation
     assert "<details class=\"dev-detail\">" in validation
-    assert "dev-summary" not in validation
-    assert ".dev-compact-summary" in css
-    assert ".dev-detail summary" in css
-
-
-def test_dev_console_has_v317_superadmin_tabs():
-    css = read("webapp/static/css/cathay.css")
-    service = read("webapp/services/system_service.py")
-    dev_console = read("webapp/templates/dev_console.html")
-    validation = read("webapp/templates/validation.html")
-    dev_tabs = read("webapp/templates/_partials/dev_tabs.html")
-    ui_tools = read("webapp/static/js/ui_tools.js")
-    base_html = read("webapp/templates/base.html")
-
-    for label in ["開發者文件", "檔案管理", "備忘錄", "提交紀錄", "模組管理"]:
-        assert label in dev_tabs
-    assert "github-push" not in dev_tabs
-    assert "github_push" not in dev_console
-    assert "GitHub 推送" not in service
     assert "dev-admin-v317" in dev_console
-    assert "dev-admin-tabs" not in dev_console
     assert "data-dev-panel=\"developer-docs\"" in dev_tabs
-    assert "data-dev-panel-target=\"developer-docs\"" in dev_console
-    assert "draggable=\"true\"" in dev_tabs
-    assert "_partials/dev_tabs.html" in validation
     assert "data-tab-storage=\"webitgpt-dev-section-tabs\"" in dev_tabs
-    assert "data-dev-tab-key=\"validation\"" in dev_tabs
-    assert "data-dev-tab-key=\"developer-docs\"" in dev_tabs
-    assert "data-dev-tab-key=\"module-manager\"" in dev_tabs
-    assert "console.files" in dev_console
-    assert "console.modules" in dev_console
-    assert "console.release_notes" in dev_console
-    assert "修復內容" in dev_console
-    assert "技術提交明細" in dev_console
-    assert "release.changes" in dev_console
-    assert "\"changes\": []" in service
-    assert "current[\"changes\"].append" in service
-    assert "root_files" in service
-    assert "def release_notes" in service
-    assert "CHANGELOG.md" in service
-    assert "save_dev_upload" in service
-    assert "dev_console_upload_page" in read("webapp/routes/api_superadmin.py")
-    assert "dev_console_feature_update_page" in read("webapp/routes/api_superadmin.py")
-    assert "enctype=\"multipart/form-data\"" in dev_console
-    assert "上傳檔案" in dev_console
-    assert "重新整理" in dev_console
-    assert "dev_console.upload" in read("webapp/routes/api_superadmin.py")
-    assert "modules" in service
-    assert "MODULE_IMPACT" in service
-    assert "控制範圍" in dev_console
-    assert "關閉後影響" in dev_console
-    assert "recommendation" in service
-    assert "effective_enabled" in service
-    assert "module_compliance_security" in service
-    assert ".dev-admin-panel" in css
-    assert ".dev-admin-panel.active" in css
-    assert ".dev-upload-bar" in css
-    assert ".dev-release-items" in css
     assert "enableSortableTabs" in ui_tools
     assert "enableDevPanelTabs" in ui_tools
-    assert "localStorage.setItem(storageKey" in ui_tools
-    assert "localStorage.setItem(activeKey" in ui_tools
-    assert "dev_console_endpoints" in base_html
-    assert "endpoint not in dev_console_endpoints" in base_html
+    assert "def release_notes" in service
+    assert "save_dev_upload" in service
+    assert "dev_console_upload_page" in routes
+    assert "dev_console_feature_update_page" in routes

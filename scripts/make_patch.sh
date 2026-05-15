@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="${OUT_DIR:-$ROOT/dist}"
-PATCH_NAME="${PATCH_NAME:-patch_webitgpt_v1.0.1.59-topology-filter-hidden-data}"
+PATCH_NAME="${PATCH_NAME:-patch_webitgpt_v1.0.1.60-admin-console-chinese-modules}"
 WORK="$OUT_DIR/$PATCH_NAME"
 
 rm -rf "$WORK"

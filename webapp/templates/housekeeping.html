@@ -1,30 +1,54 @@
 {% extends "base.html" %}
-{% block title %}系統清理 - webitgpt{% endblock %}
+{% block title %}Housekeeping - webitgpt{% endblock %}
 {% block content %}
-<section class="panel">
-  <h1>系統清理</h1>
-  <div class="summary-grid">
-    <div class="metric"><strong>{{ disk.used_pct }}%</strong><span>{{ disk.path }}</span></div>
-    <div class="metric"><strong>{{ disk.free }}</strong><span>可用 bytes</span></div>
+<section class="page-hero">
+  <div>
+    <p class="eyebrow">HOUSEKEEPING</p>
+    <h1>Housekeeping</h1>
+    <p class="muted">清理暫存、歸檔舊報告與檢查磁碟容量。預設以 dry-run 執行，避免誤刪正式資料。</p>
   </div>
-  <table>
-    <thead><tr><th>任務</th><th>排程</th><th>目標</th><th>上次狀態</th><th>操作</th></tr></thead>
+  <button class="btn primary" type="button" data-api-post="/api/housekeeping/run-all">全部試跑</button>
+</section>
+
+<section class="panel">
+  <div class="summary-grid">
+    <div class="metric"><strong>{{ disk.used_pct }}%</strong><span>磁碟使用率</span></div>
+    <div class="metric"><strong>{{ disk.free }}</strong><span>可用 bytes</span></div>
+    <div class="metric"><strong>{{ disk.path }}</strong><span>檢查路徑</span></div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>任務清單</h2>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>任務</th>
+        <th>排程</th>
+        <th>目標</th>
+        <th>最近執行</th>
+        <th>操作</th>
+      </tr>
+    </thead>
     <tbody>
       {% for task in tasks %}
       <tr>
-        <td><strong>{{ task.name }}</strong><br><span class="muted">{{ task.description }}</span></td>
+        <td><strong>{{ task.name }}</strong><div class="text-muted-sm">{{ task.description }}</div></td>
         <td>{{ task.schedule }}</td>
         <td>{{ task.target }}</td>
-        <td>{{ task.last_run.status if task.last_run else "未執行" }}</td>
+        <td>{{ task.last_run.status if task.last_run else "尚未執行" }}</td>
         <td>
           <form method="post" action="{{ url_for('api_housekeeping.run_task_page', task=task.name) }}">
-            <label class="toggle"><input type="checkbox" name="dry_run" checked><span>dry-run</span></label>
-            <button class="btn" type="submit">執行</button>
+            <label class="toggle-label"><input type="checkbox" name="dry_run" checked><span>dry-run</span></label>
+            <button class="btn secondary" type="submit">執行</button>
           </form>
         </td>
       </tr>
+      {% else %}
+      <tr><td colspan="5" class="no-data">尚無 Housekeeping 任務。</td></tr>
       {% endfor %}
     </tbody>
   </table>
 </section>
 {% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/admin_tools.js') }}"></script>{% endblock %}
