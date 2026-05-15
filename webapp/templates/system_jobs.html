@@ -24,11 +24,11 @@
     </div>
   </div>
   <div class="summary-grid">
-    <div class="metric"><strong>{{ jobs.housekeeping }}</strong><span>Housekeeping 執行</span></div>
-    <div class="metric"><strong>{{ jobs.ipam_reports }}</strong><span>IPAM 報告</span></div>
+    <a class="metric" href="#job-details"><strong>{{ jobs.housekeeping }}</strong><span>Housekeeping 執行</span></a>
+    <a class="metric" href="#job-details"><strong>{{ jobs.ipam_reports }}</strong><span>IPAM 報告</span></a>
   </div>
 </section>
-<section class="panel">
+<section class="panel" id="job-details">
   <h2>systemd timers</h2>
   <pre class="detail">{{ jobs.timers }}</pre>
 </section>

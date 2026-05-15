@@ -4,10 +4,10 @@
 <section class="panel">
   <h1>VMware</h1>
   <div class="summary-grid">
-    <div class="metric"><strong>{{ inventory.credentials|length }}</strong><span>vCenter 憑證</span></div>
-    <div class="metric"><strong>{{ inventory.vcenters|length }}</strong><span>vCenter 資產</span></div>
-    <div class="metric"><strong>{{ inventory.hosts|length }}</strong><span>ESXi 主機</span></div>
-    <div class="metric"><strong>{{ inventory.vms|length }}</strong><span>虛擬機</span></div>
+    <a class="metric" href="#vmware-details"><strong>{{ inventory.credentials|length }}</strong><span>vCenter 憑證</span></a>
+    <a class="metric" href="#vmware-details"><strong>{{ inventory.vcenters|length }}</strong><span>vCenter 資產</span></a>
+    <a class="metric" href="#vmware-details"><strong>{{ inventory.hosts|length }}</strong><span>ESXi 主機</span></a>
+    <a class="metric" href="#vmware-details"><strong>{{ inventory.vms|length }}</strong><span>虛擬機</span></a>
   </div>
   <form class="grid-form" method="post" action="{{ url_for('api_platforms.save_vcenter_page') }}">
     <label>名稱<input name="name" required></label>
@@ -17,7 +17,7 @@
     <button class="btn primary" type="submit">儲存 vCenter</button>
   </form>
 </section>
-<section class="panel">
+<section class="panel" id="vmware-details">
   <h2>已設定 vCenter</h2>
   <table>
     <thead><tr><th>名稱</th><th>URL</th><th>帳號</th><th>啟用</th></tr></thead>

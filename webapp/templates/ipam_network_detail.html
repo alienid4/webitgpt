@@ -15,13 +15,13 @@
   </div>
 
   <section class="metric-grid">
-    <div class="metric"><strong>{{ detail.network.total_usable }}</strong><span>可用位址總數</span></div>
-    <div class="metric"><strong>{{ detail.network.used_count }}</strong><span>已納入資產</span></div>
-    <div class="metric"><strong>{{ detail.network.reserved_count }}</strong><span>已保留未納管</span></div>
-    <div class="metric"><strong>{{ detail.network.available_count }}</strong><span>目前可分配</span></div>
+    <a class="metric" href="#ipam-address-details"><strong>{{ detail.network.total_usable }}</strong><span>可用位址總數</span></a>
+    <a class="metric" href="#ipam-address-details"><strong>{{ detail.network.used_count }}</strong><span>已納入資產</span></a>
+    <a class="metric" href="#ipam-address-details"><strong>{{ detail.network.reserved_count }}</strong><span>已保留未納管</span></a>
+    <a class="metric" href="#ipam-address-details"><strong>{{ detail.network.available_count }}</strong><span>目前可分配</span></a>
   </section>
 
-  <section class="table-wrap asset-table-wrap">
+  <section class="table-wrap asset-table-wrap" id="ipam-address-details">
     <h2>IP 明細</h2>
     <table class="data-table">
       <thead>

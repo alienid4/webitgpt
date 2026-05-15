@@ -101,13 +101,13 @@
     </form>
     {% if scan_report %}
     <div class="metric-grid">
-      <div class="metric"><strong>{{ scan_report.discovered_count }}</strong><span>掃描發現</span></div>
-      <div class="metric"><strong>{{ scan_report.cmdb_count }}</strong><span>資產登錄</span></div>
-      <div class="metric"><strong>{{ scan_report.mismatch_count }}</strong><span>不一致項目</span></div>
-      <div class="metric"><strong>{{ scan_report.mode }}</strong><span>掃描模式</span></div>
+      <a class="metric" href="#ipam-scan-details"><strong>{{ scan_report.discovered_count }}</strong><span>掃描發現</span></a>
+      <a class="metric" href="#ipam-scan-details"><strong>{{ scan_report.cmdb_count }}</strong><span>資產登錄</span></a>
+      <a class="metric" href="#ipam-scan-details"><strong>{{ scan_report.mismatch_count }}</strong><span>不一致項目</span></a>
+      <a class="metric" href="#ipam-scan-details"><strong>{{ scan_report.mode }}</strong><span>掃描模式</span></a>
     </div>
     {% if scan_report.error %}<div class="notice danger">{{ scan_report.error }}</div>{% endif %}
-    <table class="data-table">
+    <table class="data-table" id="ipam-scan-details">
       <thead><tr><th>嚴重度</th><th>類型</th><th>IP</th><th>主機</th><th>資產名稱</th><th>OS</th><th>平台</th><th>建議處置</th></tr></thead>
       <tbody>
         {% for row in scan_report.rows %}

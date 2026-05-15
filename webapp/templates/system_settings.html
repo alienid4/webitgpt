@@ -15,12 +15,12 @@
   </div>
   <div class="summary-grid">
     {% for key, value in overview.runtime.items() %}
-    <div class="metric"><strong>{{ value }}</strong><span>{{ key }}</span></div>
+    <a class="metric" href="#settings-details"><strong>{{ value }}</strong><span>{{ key }}</span></a>
     {% endfor %}
   </div>
 </section>
 
-<section class="panel">
+<section class="panel" id="settings-details">
   <h2>Mongo 設定</h2>
   <table class="data-table">
     <thead><tr><th>Key</th><th>Value</th></tr></thead>

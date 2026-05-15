@@ -12,13 +12,13 @@
 
 <section class="panel">
   <div class="summary-grid">
-    <div class="metric"><strong>{{ disk.used_pct }}%</strong><span>磁碟使用率</span></div>
-    <div class="metric"><strong>{{ disk.free }}</strong><span>可用 bytes</span></div>
-    <div class="metric"><strong>{{ disk.path }}</strong><span>檢查路徑</span></div>
+    <a class="metric" href="#housekeeping-details"><strong>{{ disk.used_pct }}%</strong><span>磁碟使用率</span></a>
+    <a class="metric" href="#housekeeping-details"><strong>{{ disk.free }}</strong><span>可用 bytes</span></a>
+    <a class="metric" href="#housekeeping-details"><strong>{{ disk.path }}</strong><span>檢查路徑</span></a>
   </div>
 </section>
 
-<section class="panel">
+<section class="panel" id="housekeeping-details">
   <h2>任務清單</h2>
   <table class="data-table">
     <thead>

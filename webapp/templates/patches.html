@@ -15,14 +15,14 @@
     </div>
   </div>
   <div class="summary-grid">
-    <div class="metric"><strong>{{ inventory.current_version }}</strong><span>目前版本</span></div>
-    <div class="metric"><strong>{{ inventory.patch_id }}</strong><span>Patch ID</span></div>
-    <div class="metric"><strong>{{ inventory.patches|length }}</strong><span>Patch 備份</span></div>
+    <a class="metric" href="#patch-details"><strong>{{ inventory.current_version }}</strong><span>目前版本</span></a>
+    <a class="metric" href="#patch-details"><strong>{{ inventory.patch_id }}</strong><span>Patch ID</span></a>
+    <a class="metric" href="#patch-details"><strong>{{ inventory.patches|length }}</strong><span>Patch 備份</span></a>
   </div>
   <pre class="detail" id="apiResult"></pre>
 </section>
 
-<section class="panel">
+<section class="panel" id="patch-details">
   <h2>Patch 備份清單</h2>
   <table class="data-table">
     <thead><tr><th>名稱</th><th>大小</th><th>修改時間</th></tr></thead>

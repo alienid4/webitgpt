@@ -18,12 +18,12 @@
 </section>
 
 <section class="summary-grid">
-  <div class="metric"><strong>{{ ghosts["summary"]["total"] }}</strong><span>Ghost 總數</span></div>
-  <div class="metric"><strong>{{ ghosts["summary"]["high"] }}</strong><span>內網未納管</span></div>
-  <div class="metric"><strong>{{ ghosts["summary"]["medium"] }}</strong><span>外網未知</span></div>
+  <a class="metric" href="#ghost-details"><strong>{{ ghosts["summary"]["total"] }}</strong><span>Ghost 總數</span></a>
+  <a class="metric" href="#ghost-details"><strong>{{ ghosts["summary"]["high"] }}</strong><span>內網未納管</span></a>
+  <a class="metric" href="#ghost-details"><strong>{{ ghosts["summary"]["medium"] }}</strong><span>外網未知</span></a>
 </section>
 
-<section class="panel">
+<section class="panel" id="ghost-details">
   <table class="data-table">
     <thead>
       <tr>

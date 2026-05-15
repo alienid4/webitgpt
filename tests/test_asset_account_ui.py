@@ -100,19 +100,13 @@ def test_opening_check_is_system_scoped_and_deep_check_supports_aix():
 
 
 def test_metric_cards_are_clickable_across_pages():
-    templates = [
-        "webapp/templates/dashboard.html",
-        "webapp/templates/executive.html",
-        "webapp/templates/reports.html",
-        "webapp/templates/hosts.html",
-        "webapp/templates/inspections.html",
-        "webapp/templates/security_audit.html",
-        "webapp/templates/dependencies.html",
-    ]
-    for path in templates:
+    for path in (ROOT / "webapp/templates").glob("*.html"):
         html = read(path)
-        assert '<div class="metric"' not in html
-        assert '<div class="metric-card"' not in html
+        assert '<div class="metric"' not in html, str(path)
+        assert '<div class="metric-card"' not in html, str(path)
+        if 'class="metric' in html:
+            assert '<a class="metric' in html, str(path)
+            assert 'href="' in html, str(path)
     hosts = read("webapp/templates/hosts.html")
     security = read("webapp/templates/security_audit.html")
     deps = read("webapp/templates/dependencies.html")
@@ -120,3 +114,4 @@ def test_metric_cards_are_clickable_across_pages():
     assert 'id="security-hosts"' in security
     assert 'id="security-rules"' in security
     assert 'id="reconcile-details"' in deps
+    assert "統計格 UI Skill" in read("docs/ui_metric_card_skill.md")

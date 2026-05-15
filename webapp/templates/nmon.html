@@ -21,10 +21,10 @@
     <a class="tab-btn {% if report.period == 'month' %}active{% endif %}" href="{{ url_for('api_operations.nmon_page', period='month') }}">月報</a>
   </div>
   <div class="summary-grid">
-    <div class="metric"><strong>{{ status.enabled_count }}</strong><span>已啟用主機</span></div>
-    <div class="metric"><strong>{{ status.hosts_total }}</strong><span>納管主機</span></div>
-    <div class="metric"><strong>{{ report.count }}</strong><span>採樣筆數</span></div>
-    <div class="metric"><strong>{{ "是" if status.read_only_mode else "否" }}</strong><span>唯讀模式</span></div>
+    <a class="metric" href="#nmon-details"><strong>{{ status.enabled_count }}</strong><span>已啟用主機</span></a>
+    <a class="metric" href="#nmon-details"><strong>{{ status.hosts_total }}</strong><span>納管主機</span></a>
+    <a class="metric" href="#nmon-details"><strong>{{ report.count }}</strong><span>採樣筆數</span></a>
+    <a class="metric" href="#nmon-details"><strong>{{ "是" if status.read_only_mode else "否" }}</strong><span>唯讀模式</span></a>
   </div>
 </section>
 
@@ -34,8 +34,8 @@
     {% for row in report.series %}
     <div class="card">
       <h3>{{ row.host }}</h3>
-      <div class="metric"><strong>{{ row.avg_mem }}%</strong><span>平均記憶體</span></div>
-      <div class="metric"><strong>{{ row.avg_disk }}%</strong><span>平均磁碟</span></div>
+      <a class="metric" href="#nmon-details"><strong>{{ row.avg_mem }}%</strong><span>平均記憶體</span></a>
+      <a class="metric" href="#nmon-details"><strong>{{ row.avg_disk }}%</strong><span>平均磁碟</span></a>
       <div class="bar"><span style="width: {{ row.avg_mem }}%"></span></div>
       <p class="text-muted-sm">樣本 {{ row.samples }} 筆</p>
     </div>
@@ -45,7 +45,7 @@
   </div>
 </section>
 
-<section class="panel">
+<section class="panel" id="nmon-details">
   <h2>NMON 主機狀態</h2>
   <table class="data-table">
     <thead><tr><th>資產編號</th><th>主機名稱</th><th>間隔</th><th>部署時間</th></tr></thead>
