@@ -14,15 +14,17 @@ bp = Blueprint("api_operations", __name__)
 @require_feature("history")
 def inspections_page():
     platform = request.args.get("platform", "linux")
-    return render_template("inspections.html", report=today_report(), diagnostics=daily_diagnostics(platform))
+    system_name = request.args.get("system", "")
+    return render_template("inspections.html", report=today_report(), diagnostics=daily_diagnostics(platform, system_name))
 
 
 @bp.post("/api/inspections/run")
 @require_feature("history")
 @require_role("admin")
 def run_inspection_api():
-    limit = min(max(int((request.get_json(force=True, silent=True) or {}).get("limit", 10)), 1), 100)
-    result = run_daily_inspection(limit=limit, user=current_user()["username"])
+    payload = request.get_json(force=True, silent=True) or {}
+    limit = min(max(int(payload.get("limit", 10)), 1), 100)
+    result = run_daily_inspection(limit=limit, user=current_user()["username"], system_name=str(payload.get("system") or ""))
     audit_log_service.append("inspection.run", current_user()["username"], {"count": result["count"]})
     return jsonify(result)
 
@@ -36,7 +38,7 @@ def today_report_api():
 @bp.get("/api/inspections/diagnostics")
 @require_feature("history")
 def diagnostics_api():
-    return jsonify(daily_diagnostics(request.args.get("platform", "linux")))
+    return jsonify(daily_diagnostics(request.args.get("platform", "linux"), request.args.get("system", "")))
 
 
 @bp.post("/api/inspections/deep/<asset_seq>")

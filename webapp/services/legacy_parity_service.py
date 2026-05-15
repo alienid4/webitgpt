@@ -23,6 +23,8 @@ PLATFORM_TABS = [
     {"key": "as400", "label": "AS400"},
 ]
 
+OPENING_DEFAULT_SYSTEM = "巡檢系統主機"
+
 DIAGNOSTIC_ASPECTS = [
     ("connectivity", "連線狀態"),
     ("resource", "CPU / 記憶體 / 磁碟"),
@@ -67,6 +69,28 @@ def _now() -> datetime:
 
 def _hosts() -> list[dict[str, Any]]:
     return list_hosts(page=1, page_size=10000)["items"]
+
+
+def _system_name(host: dict[str, Any]) -> str:
+    return str(host.get("asset_name") or host.get("system_name") or host.get("group_name") or "未分類系統").strip()
+
+
+def _system_options(hosts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    counts: dict[str, int] = {}
+    for host in hosts:
+        name = _system_name(host)
+        counts[name] = counts.get(name, 0) + 1
+    return [{"name": name, "count": count} for name, count in sorted(counts.items())]
+
+
+def _selected_system(system_name: str, options: list[dict[str, Any]]) -> str:
+    names = {item["name"] for item in options}
+    requested = (system_name or "").strip()
+    if requested and requested in names:
+        return requested
+    if OPENING_DEFAULT_SYSTEM in names:
+        return OPENING_DEFAULT_SYSTEM
+    return sorted(names)[0] if names else ""
 
 
 def _shell(cmd: str, timeout: int = 12) -> tuple[int, str, str]:
@@ -184,9 +208,16 @@ def _ssh_placeholder_diagnostics(host: dict[str, Any]) -> dict[str, Any]:
     })
 
 
-def daily_diagnostics(platform: str = "linux") -> dict[str, Any]:
+def daily_diagnostics(platform: str = "linux", system_name: str = "") -> dict[str, Any]:
     platform = platform or "linux"
-    hosts = [host for host in _hosts() if host.get("host_type") == platform]
+    all_hosts = _hosts()
+    options = _system_options(all_hosts)
+    selected_system = _selected_system(system_name, options)
+    hosts = [
+        host
+        for host in all_hosts
+        if host.get("host_type") == platform and (not selected_system or _system_name(host) == selected_system)
+    ]
     if platform == "linux":
         rows = []
         for host in hosts:
@@ -217,7 +248,15 @@ def daily_diagnostics(platform: str = "linux") -> dict[str, Any]:
         "warn": sum(1 for row in rows for check in row["checks"] if check["status"] == "warn"),
         "pending": sum(1 for row in rows for check in row["checks"] if check["status"] == "pending"),
     }
-    return {"platform": platform, "tabs": PLATFORM_TABS, "aspects": DIAGNOSTIC_ASPECTS, "summary": summary, "items": rows}
+    return {
+        "platform": platform,
+        "tabs": PLATFORM_TABS,
+        "aspects": DIAGNOSTIC_ASPECTS,
+        "summary": summary,
+        "items": rows,
+        "system_options": options,
+        "selected_system": selected_system,
+    }
 
 
 def diagnostic_history(asset_seq: str, days: int = 7, limit: int = 10) -> list[dict[str, Any]]:

@@ -125,8 +125,16 @@ def _inspection_for(host: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def run_daily_inspection(limit: int = 20, user: str = "system") -> dict[str, Any]:
-    hosts = list_hosts(page=1, page_size=limit)["items"]
+def _system_name(host: dict[str, Any]) -> str:
+    return str(host.get("asset_name") or host.get("system_name") or host.get("group_name") or "未分類系統").strip()
+
+
+def run_daily_inspection(limit: int = 20, user: str = "system", system_name: str = "") -> dict[str, Any]:
+    selected_system = (system_name or "").strip()
+    hosts = list_hosts(page=1, page_size=10000)["items"]
+    if selected_system:
+        hosts = [host for host in hosts if _system_name(host) == selected_system]
+    hosts = hosts[:limit]
     results = [_inspection_for(host) for host in hosts]
     now = datetime.now(timezone.utc)
     if results:
@@ -140,7 +148,7 @@ def run_daily_inspection(limit: int = 20, user: str = "system") -> dict[str, Any
     report_path = Path(config.DATA_DIR) / "reports" / f"inspection_{now.strftime('%Y%m%d_%H%M%S')}.json"
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps({"run_at": now.isoformat(), "results": results}, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
-    return {"status": "ok", "count": len(results), "report_path": str(report_path), "results": results}
+    return {"status": "ok", "count": len(results), "system": selected_system, "report_path": str(report_path), "results": results}
 
 
 def today_report() -> dict[str, Any]:

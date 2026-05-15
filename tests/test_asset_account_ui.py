@@ -70,3 +70,21 @@ def test_deep_check_items_are_collapsible_and_have_problem_recommendation():
     assert ".l3-item-summary" in css
     assert "def _problem_summary(" in service
     assert "def _recommendation(" in service
+
+
+def test_opening_check_is_system_scoped_and_deep_check_supports_aix():
+    html = read("webapp/templates/inspections.html")
+    routes = read("webapp/routes/api_operations.py")
+    legacy = read("webapp/services/legacy_parity_service.py")
+    deep = read("webapp/services/deep_check_service.py")
+
+    assert "開門檢查系統" in html
+    assert 'name="system"' in html
+    assert "巡檢目前系統" in html
+    assert "system=diagnostics.selected_system" in html
+    assert 'host.host_type in ["linux", "aix"]' in html
+    assert "daily_diagnostics(platform, system_name)" in routes
+    assert "OPENING_DEFAULT_SYSTEM" in legacy
+    assert "selected_system" in legacy
+    assert "AIX_COMMANDS" in deep
+    assert 'host.get("host_type") not in {"linux", "aix"}' in deep

@@ -91,11 +91,38 @@ FACE_SPECS = [
 ]
 
 
+AIX_COMMANDS = {
+    1: "uptime; vmstat 1 3; svmon -G 2>/dev/null | head -20 || true",
+    2: "netstat -in; netstat -s | egrep -i 'error|drop|retransmit|collision' | head -40 || true",
+    3: "netstat -an | egrep 'LISTEN|\\.22|\\.9444|\\.8002' | head -80; ps -eo pid,comm,pcpu,pmem | sort -k3 -nr | head -12",
+    4: "netstat -an | egrep '\\.${AP_PORT:-8002} .*LISTEN' || true",
+    5: "netstat -an | awk 'NR>2 {print $6}' | sort | uniq -c | sort -nr | head -20",
+    6: "df -g; df -i 2>/dev/null || true",
+    7: "date; lssrc -ls xntpd 2>/dev/null || ntpq -p 2>/dev/null || true",
+    8: "ps -ef | egrep 'oracle|db2sysc|mysqld|postgres|mongod' | grep -v grep || true; netstat -an | egrep '1521|50000|3306|5432|27017' || true",
+    9: "errpt | head -30; lssrc -a | egrep -i 'inoperative|failed' || true",
+    10: "last | head -20; errpt | head -20",
+}
+
+
+def _face_specs_for(host: dict[str, Any]) -> list[dict[str, Any]]:
+    if host.get("host_type") != "aix":
+        return FACE_SPECS
+    specs = []
+    for spec in FACE_SPECS:
+        cloned = dict(spec)
+        cloned["cmd"] = AIX_COMMANDS.get(int(spec["idx"]), str(spec["cmd"]))
+        cloned["baseline"] = f"AIX：{spec['baseline']}"
+        specs.append(cloned)
+    return specs
+
+
 def meta() -> dict[str, Any]:
     return {
         "controller_hostname": _controller_hostname(),
         "role": "L3 on-demand deep check",
         "faces": [{"idx": item["idx"], "name": item["name"], "baseline": item["baseline"]} for item in FACE_SPECS],
+        "supported_platforms": ["linux", "aix"],
         "timeout_seconds": 300,
         "storage": "per-host data/hosts/<asset_seq>/deep_check",
         "job_store": "mongo deep_check_jobs",
@@ -109,8 +136,8 @@ def run(hostname: str, user: str = "system") -> dict[str, Any]:
     host = _get_host_by_hostname(hostname)
     if not host:
         return {"success": False, "error": f"找不到主機：{hostname}"}
-    if host.get("host_type") != "linux":
-        return {"success": False, "error": f"目前 L3 深度檢查只支援 Linux 主機：{hostname}"}
+    if host.get("host_type") not in {"linux", "aix"}:
+        return {"success": False, "error": f"目前 L3 深度檢查支援 Linux/RHEL/Debian/CentOS 與 AIX 主機：{hostname}"}
     if host.get("status") in {"disabled", "retired"}:
         return {"success": False, "error": f"主機狀態不允許檢查：{hostname}"}
 
@@ -222,7 +249,7 @@ def _execute(job: dict[str, Any], host: dict[str, Any]) -> None:
     get_collection("deep_check_jobs").update_one({"job_id": job_id}, {"$set": {"status": "running", "phase": "執行 9 面向檢查", "progress": 5}})
     items = []
     detail_lines = []
-    for spec in FACE_SPECS:
+    for spec in _face_specs_for(host):
         idx = int(spec["idx"])
         rc, out, err = _run_command(host, str(spec["cmd"]))
         raw = out or err or "無輸出"
