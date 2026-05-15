@@ -367,12 +367,22 @@ def software_inventory_view(filters: Any = None) -> dict[str, Any]:
     terms = [term for term in q.lower().split() if term]
     host = filters.get("host") or ""
     rows = list(get_collection("software_inventory").find({}, {"_id": 0}).sort("collected_at", -1).limit(500))
+    host_lookup = _software_host_lookup()
     packages = []
     for row in rows:
         if host and host not in {row.get("hostname"), row.get("asset_seq")}:
             continue
+        host_meta = host_lookup.get(row.get("hostname")) or host_lookup.get(row.get("asset_seq")) or {}
         for item in row.get("items", []):
-            record = {**item, "hostname": row.get("hostname"), "asset_seq": row.get("asset_seq"), "host_type": row.get("host_type"), "collected_at": row.get("collected_at")}
+            record = {
+                **item,
+                "hostname": row.get("hostname"),
+                "asset_seq": row.get("asset_seq"),
+                "ip": row.get("ip") or row.get("primary_ip") or host_meta.get("ip") or "",
+                "ip_addresses": row.get("ip_addresses") or host_meta.get("ip_addresses") or [],
+                "host_type": row.get("host_type"),
+                "collected_at": row.get("collected_at"),
+            }
             if terms and not _software_record_matches(record, terms):
                 continue
             packages.append(record)
@@ -398,11 +408,23 @@ def software_inventory_view(filters: Any = None) -> dict[str, Any]:
     }
 
 
+def _software_host_lookup() -> dict[str, dict[str, Any]]:
+    lookup: dict[str, dict[str, Any]] = {}
+    for host in _hosts():
+        keys = [host.get("hostname"), host.get("asset_seq")]
+        for key in keys:
+            if key:
+                lookup[key] = host
+    return lookup
+
+
 def _software_record_matches(record: dict[str, Any], terms: list[str]) -> bool:
     haystack = " ".join(
         str(record.get(field, ""))
-        for field in ["hostname", "asset_seq", "host_type", "name", "version", "source", "status"]
+        for field in ["hostname", "asset_seq", "ip", "host_type", "name", "version", "source", "status"]
     ).lower()
+    if record.get("ip_addresses"):
+        haystack = f"{haystack} {' '.join(str(ip) for ip in record.get('ip_addresses', []))}".lower()
     return all(term in haystack for term in terms)
 
 
@@ -417,7 +439,7 @@ def _software_change_matches(change: dict[str, Any], terms: list[str]) -> bool:
 def software_csv(filters: Any = None) -> str:
     view = software_inventory_view(filters)
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=["hostname", "asset_seq", "host_type", "name", "version", "source", "status", "collected_at"], extrasaction="ignore")
+    writer = csv.DictWriter(output, fieldnames=["hostname", "asset_seq", "ip", "host_type", "name", "version", "source", "status", "collected_at"], extrasaction="ignore")
     writer.writeheader()
     for item in view["items"]:
         writer.writerow(item)
