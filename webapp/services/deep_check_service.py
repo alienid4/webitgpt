@@ -303,6 +303,8 @@ def _run_command(host: dict[str, Any], cmd: str) -> tuple[int, str, str]:
 
 def _verdict(spec: dict[str, Any], rc: int, text: str) -> str:
     lowered = text.lower()
+    if int(spec["idx"]) == 2:
+        return _network_verdict(rc, text)
     if rc != 0 and int(spec["idx"]) not in {4, 8, 10}:
         return "WARN"
     if int(spec["idx"]) == 6 and re.search(r"\s(8[5-9]|9[0-9]|100)%", text):
@@ -313,6 +315,66 @@ def _verdict(spec: dict[str, Any], rc: int, text: str) -> str:
         if token.lower() in lowered and int(spec["idx"]) in {2, 3, 4, 5, 7, 9, 10}:
             return "WARN"
     return "PASS"
+
+
+def _network_verdict(rc: int, text: str) -> str:
+    lowered = text.lower()
+    if rc != 0:
+        return "WARN"
+    if any(
+        token in lowered
+        for token in [
+            "no route to host",
+            "network is unreachable",
+            "connection timed out",
+            "temporary failure in name resolution",
+        ]
+    ):
+        return "WARN"
+
+    loss_match = re.search(r"(\d+(?:\.\d+)?)%\s+packet loss", lowered)
+    if loss_match and float(loss_match.group(1)) > 0:
+        return "WARN"
+
+    if _link_error_or_drop_seen(text):
+        return "WARN"
+    if _tcp_retransmit_seen(text):
+        return "WARN"
+    return "PASS"
+
+
+def _link_error_or_drop_seen(text: str) -> bool:
+    lines = text.splitlines()
+    for idx, line in enumerate(lines):
+        headers = line.lower().split()
+        if not headers or headers[0].rstrip(":") not in {"rx", "tx"}:
+            continue
+        if not any(header in headers for header in ["errors", "dropped", "drop", "carrier", "collsns", "overruns"]):
+            continue
+        if idx + 1 >= len(lines):
+            continue
+        values = [int(value) for value in re.findall(r"\b\d+\b", lines[idx + 1])]
+        if not values:
+            continue
+        for pos, header in enumerate(headers):
+            normalized = header.rstrip(":")
+            if normalized in {"errors", "dropped", "drop", "carrier", "collsns", "overruns"} and pos < len(values) and values[pos] > 0:
+                return True
+    return False
+
+
+def _tcp_retransmit_seen(text: str) -> bool:
+    lowered = text.lower()
+    patterns = [
+        r"\b(\d+)\s+segments?\s+retransm",
+        r"\bretrans(?:mitted|mits|mission)?\D+(\d+)",
+        r"\b(\d+)\s+listen(?:ing)?\s+drops?",
+    ]
+    for pattern in patterns:
+        for match in re.finditer(pattern, lowered):
+            if int(match.group(1)) > 0:
+                return True
+    return False
 
 
 def _impact(verdict: str, name: str, text: str) -> str:
