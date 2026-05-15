@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, request, send_file
+from flask import Blueprint, Response, jsonify, request, send_file
 
 from webapp.decorators import current_user, require_feature, require_role
 from webapp.services import audit_log_service
@@ -60,7 +60,13 @@ def history_api():
 def preview_api(filename: str):
     result = deep_check_service.preview(filename)
     audit_log_service.append("deep_check.preview", current_user()["username"], {"filename": filename})
-    return jsonify(result)
+    if not result.get("success"):
+        return jsonify(result), 404
+    return Response(
+        result.get("content", ""),
+        content_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f"inline; filename={filename}"},
+    )
 
 
 @bp.get("/api/deep-check/reports/<filename>/parsed")

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from webapp.services.deep_check_service import (
     _ap_listener_verdict,
     _evidence_summary,
@@ -5,6 +7,9 @@ from webapp.services.deep_check_service import (
     _recommendation,
     _session_verdict,
 )
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_pass_evidence_includes_returncode_and_sample_output():
@@ -86,3 +91,15 @@ def test_setroubleshootd_recommendation_is_manager_readable():
     assert "需要就修復服務，不需要就可評估停用" in recommendation
     assert "journalctl" not in recommendation
     assert "systemctl" not in recommendation
+
+
+def test_deep_check_preview_route_returns_plain_text():
+    route = (ROOT / "webapp/routes/api_deep_check.py").read_text(encoding="utf-8")
+    html = (ROOT / "webapp/templates/inspections.html").read_text(encoding="utf-8")
+
+    assert "content_type=\"text/plain; charset=utf-8\"" in route
+    assert "Content-Disposition" in route
+    preview_block = route.split("def preview_api", 1)[1].split("def parsed_api", 1)[0]
+    assert "return Response(" in preview_block
+    assert "result.get(\"content\", \"\")" in preview_block
+    assert "純文字摘要" in html
