@@ -36,3 +36,23 @@ def test_account_metrics_link_to_detail_views():
     assert "window.location.hash" in js
     assert 'metric == "pam_managed"' in service
     assert 'metric == "system_default"' in service
+
+
+def test_inventory_metrics_link_to_details_and_diff_filters():
+    inventory = read("webapp/templates/inventory.html")
+    diff = read("webapp/templates/inventory_diff_report.html")
+    routes = read("webapp/routes/api_inventory.py")
+    service = read("webapp/services/inventory_service.py")
+
+    assert "inventory-metric-link" in inventory
+    assert 'id="software-packages"' in inventory
+    assert 'id="software-history"' in inventory
+    assert 'id="software-changes"' in inventory
+    assert "change_type='新增'" in inventory
+    assert "change_type='移除'" in inventory
+    assert "change_type='變更'" in inventory
+    assert 'id="diff-details"' in diff
+    assert "report.filter.change_type" in diff
+    assert 'request.args.get("change_type", "")' in routes
+    assert "def inventory_diff_report(kind: str, run_id: str = \"\", change_type: str = \"\")" in service
+    assert "filtered_rows" in service

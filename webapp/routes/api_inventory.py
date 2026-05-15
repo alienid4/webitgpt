@@ -161,7 +161,7 @@ def inventory_history_api(kind: str):
 def inventory_diff_report_page(kind: str):
     if kind not in {"accounts", "software", "services", "ssh_keys"}:
         return "unknown inventory kind", 404
-    report = inventory_diff_report(kind, request.args.get("run_id", ""))
+    report = inventory_diff_report(kind, request.args.get("run_id", ""), request.args.get("change_type", ""))
     return render_template("inventory_diff_report.html", title="盤點差異報告", report=report)
 
 
@@ -170,7 +170,7 @@ def inventory_diff_report_csv(kind: str):
     if kind not in {"accounts", "software", "services", "ssh_keys"}:
         return "unknown inventory kind", 404
     return Response(
-        export_inventory_diff_csv(kind, request.args.get("run_id", "")),
+        export_inventory_diff_csv(kind, request.args.get("run_id", ""), request.args.get("change_type", "")),
         mimetype="text/csv",
         headers={"Content-Disposition": f"attachment; filename={kind}_inventory_diff_report.csv"},
     )
@@ -180,7 +180,7 @@ def inventory_diff_report_csv(kind: str):
 def inventory_diff_report_api(kind: str):
     if kind not in {"accounts", "software", "services", "ssh_keys"}:
         return jsonify({"error": "unknown inventory kind"}), 404
-    return jsonify(inventory_diff_report(kind, request.args.get("run_id", "")))
+    return jsonify(inventory_diff_report(kind, request.args.get("run_id", ""), request.args.get("change_type", "")))
 
 
 @bp.post("/api/ssh-keys/plan")

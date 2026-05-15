@@ -112,10 +112,10 @@ def _inventory_diff(kind: str, run_id: str) -> dict[str, Any]:
     }
 
 
-def inventory_diff_report(kind: str, run_id: str = "") -> dict[str, Any]:
+def inventory_diff_report(kind: str, run_id: str = "", change_type: str = "") -> dict[str, Any]:
     current_run = _run_by_id(kind, run_id) if run_id else _latest_run(kind)
     if not current_run:
-        return {"kind": kind, "status": "empty", "run": None, "previous_run": None, "summary": {"added": 0, "removed": 0, "changed": 0}, "rows": []}
+        return {"kind": kind, "status": "empty", "run": None, "previous_run": None, "summary": {"added": 0, "removed": 0, "changed": 0}, "rows": [], "filter": {"change_type": change_type}}
     previous_run = _previous_run(kind, current_run["run_id"])
     if not previous_run:
         return {
@@ -125,6 +125,7 @@ def inventory_diff_report(kind: str, run_id: str = "") -> dict[str, Any]:
             "previous_run": None,
             "summary": {"added": 0, "removed": 0, "changed": 0},
             "rows": [],
+            "filter": {"change_type": change_type},
         }
 
     current = _snapshot_by_run(kind, current_run["run_id"])
@@ -183,18 +184,23 @@ def inventory_diff_report(kind: str, run_id: str = "") -> dict[str, Any]:
                         "after": json.dumps(after_digest, ensure_ascii=False, default=str),
                     }
                 )
+    filtered_rows = rows
+    if change_type:
+        filtered_rows = [row for row in rows if row.get("change_type") == change_type]
     return {
         "kind": kind,
         "status": "compared",
         "run": current_run,
         "previous_run": previous_run,
         "summary": summary,
-        "rows": rows,
+        "rows": filtered_rows,
+        "all_rows_count": len(rows),
+        "filter": {"change_type": change_type},
     }
 
 
-def export_inventory_diff_csv(kind: str, run_id: str = "") -> str:
-    report = inventory_diff_report(kind, run_id)
+def export_inventory_diff_csv(kind: str, run_id: str = "", change_type: str = "") -> str:
+    report = inventory_diff_report(kind, run_id, change_type)
     output = io.StringIO()
     fields = ["change_type", "asset_seq", "hostname", "host_type", "item_name", "changed_fields", "before", "after"]
     writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")

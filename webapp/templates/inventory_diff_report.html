@@ -10,23 +10,26 @@
         類型：{{ report.kind }} /
         本次批次：{{ report.run.run_id if report.run else "-" }} /
         前次批次：{{ report.previous_run.run_id if report.previous_run else "無前次資料" }}
+        {% if report.filter.change_type %} /
+        目前篩選：{{ report.filter.change_type }}
+        {% endif %}
       </p>
     </div>
     <div class="actions">
       <a class="btn secondary" href="{{ url_for('api_inventory.inventory_history_api', kind=report.kind) }}">JSON</a>
-      <a class="btn primary" href="{{ url_for('api_inventory.inventory_diff_report_csv', kind=report.kind, run_id=report.run.run_id if report.run else '') }}">匯出 CSV</a>
+      <a class="btn primary" href="{{ url_for('api_inventory.inventory_diff_report_csv', kind=report.kind, run_id=report.run.run_id if report.run else '', change_type=report.filter.change_type) }}">匯出 CSV</a>
     </div>
   </div>
 
   <div class="summary-grid">
-    <div class="metric"><strong>{{ report.summary.added }}</strong><span>新增</span></div>
-    <div class="metric"><strong>{{ report.summary.removed }}</strong><span>移除</span></div>
-    <div class="metric"><strong>{{ report.summary.changed }}</strong><span>變更</span></div>
-    <div class="metric"><strong>{{ report.rows|length }}</strong><span>差異明細</span></div>
+    <a class="metric inventory-metric-link" href="{{ url_for('api_inventory.inventory_diff_report_page', kind=report.kind, run_id=report.run.run_id if report.run else '', change_type='新增') }}#diff-details"><strong>{{ report.summary.added }}</strong><span>新增</span></a>
+    <a class="metric inventory-metric-link" href="{{ url_for('api_inventory.inventory_diff_report_page', kind=report.kind, run_id=report.run.run_id if report.run else '', change_type='移除') }}#diff-details"><strong>{{ report.summary.removed }}</strong><span>移除</span></a>
+    <a class="metric inventory-metric-link" href="{{ url_for('api_inventory.inventory_diff_report_page', kind=report.kind, run_id=report.run.run_id if report.run else '', change_type='變更') }}#diff-details"><strong>{{ report.summary.changed }}</strong><span>變更</span></a>
+    <a class="metric inventory-metric-link" href="#diff-details"><strong>{{ report.rows|length }}</strong><span>{% if report.filter.change_type %}{{ report.filter.change_type }}明細{% else %}差異明細{% endif %}</span></a>
   </div>
 </section>
 
-<section class="panel">
+<section class="panel" id="diff-details">
   <div class="page-header">
     <div>
       <h2>差異明細</h2>

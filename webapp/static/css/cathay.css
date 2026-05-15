@@ -681,6 +681,9 @@ a.metric:hover {
 .account-metric-link {
   cursor: pointer;
 }
+.inventory-metric-link {
+  cursor: pointer;
+}
 .asset-cia {
   display: flex;
   gap: 6px;

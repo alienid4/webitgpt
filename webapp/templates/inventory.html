@@ -40,25 +40,25 @@
 
 <section class="panel">
   <div class="summary-grid">
-    <div class="metric"><strong>{{ inventory.summary.hosts }}</strong><span>符合主機</span></div>
-    <div class="metric"><strong>{{ inventory.summary.hosts_total }}</strong><span>已採集主機</span></div>
-    <div class="metric"><strong>{{ inventory.summary.packages }}</strong><span>套件筆數</span></div>
-    <div class="metric"><strong>{{ inventory.summary.changes }}</strong><span>版本異動</span></div>
+    <a class="metric inventory-metric-link" href="#software-packages"><strong>{{ inventory.summary.hosts }}</strong><span>符合主機</span></a>
+    <a class="metric inventory-metric-link" href="#software-history"><strong>{{ inventory.summary.hosts_total }}</strong><span>已採集主機</span></a>
+    <a class="metric inventory-metric-link" href="#software-packages"><strong>{{ inventory.summary.packages }}</strong><span>套件筆數</span></a>
+    <a class="metric inventory-metric-link" href="#software-changes"><strong>{{ inventory.summary.changes }}</strong><span>版本異動</span></a>
   </div>
   {% if inventory.history.latest %}
   <p class="text-muted-sm">最近盤點批次：{{ inventory.history.latest.run_id }} / {{ inventory.history.latest.started_at }} / 狀態 {{ inventory.history.latest.status }}。預設 360 分鐘內再次盤點會沿用最近結果，避免造成網路與主機負擔。</p>
   {% endif %}
 </section>
 
-<section class="panel">
+<section class="panel" id="software-history">
   <h2>盤點歷史與差異</h2>
   <div class="summary-grid">
-    <div class="metric"><strong>{{ inventory.history.runs|length }}</strong><span>歷史批次</span></div>
-    <div class="metric"><strong>{{ inventory.history.diff.added if inventory.history.diff else 0 }}</strong><span>新增</span></div>
-    <div class="metric"><strong>{{ inventory.history.diff.removed if inventory.history.diff else 0 }}</strong><span>移除</span></div>
-    <div class="metric"><strong>{{ inventory.history.diff.changed if inventory.history.diff else 0 }}</strong><span>變更</span></div>
+    <a class="metric inventory-metric-link" href="#software-history-table"><strong>{{ inventory.history.runs|length }}</strong><span>歷史批次</span></a>
+    <a class="metric inventory-metric-link" href="{{ url_for('api_inventory.inventory_diff_report_page', kind=kind, change_type='新增') }}#diff-details"><strong>{{ inventory.history.diff.added if inventory.history.diff else 0 }}</strong><span>新增</span></a>
+    <a class="metric inventory-metric-link" href="{{ url_for('api_inventory.inventory_diff_report_page', kind=kind, change_type='移除') }}#diff-details"><strong>{{ inventory.history.diff.removed if inventory.history.diff else 0 }}</strong><span>移除</span></a>
+    <a class="metric inventory-metric-link" href="{{ url_for('api_inventory.inventory_diff_report_page', kind=kind, change_type='變更') }}#diff-details"><strong>{{ inventory.history.diff.changed if inventory.history.diff else 0 }}</strong><span>變更</span></a>
   </div>
-  <table class="data-table">
+  <table class="data-table" id="software-history-table">
     <thead><tr><th>批次</th><th>開始時間</th><th>筆數</th><th>狀態</th><th>模式</th></tr></thead>
     <tbody>
       {% for run in inventory.history.runs %}
@@ -70,7 +70,7 @@
   </table>
 </section>
 
-<section class="panel">
+<section class="panel" id="software-changes">
   <h2>版本變更追蹤</h2>
   <table class="data-table">
     <thead><tr><th>時間</th><th>主機</th><th>變更</th></tr></thead>
@@ -88,7 +88,7 @@
   </table>
 </section>
 
-<section class="panel">
+<section class="panel" id="software-packages">
   <h2>套件清冊</h2>
   <table class="data-table">
     <thead><tr><th>主機</th><th>IP</th><th>平台</th><th>套件</th><th>版本</th><th>來源</th><th>狀態</th><th>採集時間</th></tr></thead>
