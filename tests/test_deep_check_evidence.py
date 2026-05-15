@@ -112,9 +112,11 @@ def test_locked_account_recommendation_lists_real_accounts():
 
     assert "appsvc、batch01" in problem
     assert "<account>" not in recommendation
+    assert "直接解決指令" in recommendation
     assert "id appsvc" in recommendation
     assert "id batch01" in recommendation
     assert "sudo passwd -u appsvc" in recommendation
+    assert "sudo usermod -U batch01" in recommendation
     assert "passwd -S batch01" in recommendation
     assert "appsvc 被鎖定" in evidence
     assert "batch01 被鎖定" in evidence
