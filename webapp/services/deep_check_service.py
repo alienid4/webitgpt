@@ -471,9 +471,25 @@ def _locked_account_names(text: str) -> list[str]:
     names = []
     for line in text.splitlines():
         match = re.match(r"ACCOUNT_LOCKED\s+(\S+)", line.strip())
-        if match:
+        if match and match.group(1) not in names:
             names.append(match.group(1))
     return names
+
+
+def _locked_account_display(text: str, limit: int = 6) -> str:
+    names = _locked_account_names(text)
+    if not names:
+        return "未列出帳號"
+    shown = names[:limit]
+    suffix = f" 等 {len(names)} 個帳號" if len(names) > limit else ""
+    return "、".join(shown) + suffix
+
+
+def _locked_account_command_examples(text: str, command: str, limit: int = 3) -> str:
+    names = _locked_account_names(text)[:limit]
+    if not names:
+        return f"{command} <account>"
+    return "；".join(f"{command} {name}" for name in names)
 
 
 def _locked_account_lines(text: str) -> list[str]:
@@ -514,8 +530,11 @@ def _problem_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) -> 
     if verdict != "PASS" and idx == 9:
         return "緊急判斷：這裡只看會直接證明 OS 不穩的 OOM、硬體 machine check、kernel tainted 與防火牆證據。若懷疑防火牆阻擋 AP，短時間排除可執行 sudo systemctl stop firewalld，測完立即 sudo systemctl start firewalld；正式修復請只開必要 port，不要長期關閉防火牆。"
     if verdict != "PASS" and idx == 10:
-        first_account = (_locked_account_names(text) or ["<account>"])[0]
-        return f"緊急處置：發現可登入帳號被鎖定，可能影響 AP 登入、批次或服務連線。1. 先確認帳號用途：id {first_account}。2. 若確認需要立即恢復，執行 sudo passwd -u {first_account} 或 sudo usermod -U {first_account}。3. 重跑 passwd -S {first_account} 確認不再是 L/LK。4. 若是資安刻意鎖定，不要解鎖，改通知 AP 負責人改用正確帳號。"
+        accounts = _locked_account_display(text)
+        id_examples = _locked_account_command_examples(text, "id")
+        unlock_examples = _locked_account_command_examples(text, "sudo passwd -u")
+        verify_examples = _locked_account_command_examples(text, "passwd -S")
+        return f"緊急處置：發現可登入帳號被鎖定：{accounts}。可能影響 AP 登入、批次或服務連線。1. 先確認帳號用途：{id_examples}。2. 若確認需要立即恢復，只解鎖確認要用的帳號：{unlock_examples}。3. 重跑 {verify_examples}，確認不再是 L/LK。4. 若是資安刻意鎖定，不要解鎖，改通知 AP 負責人改用正確帳號。"
     if verdict == "PASS" and idx == 3:
         return "AP listener 有 LISTEN，主要程序可見；不因無關 failed service 判定 OS 有問題。"
     if verdict == "PASS" and idx == 9:
@@ -527,7 +546,7 @@ def _problem_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) -> 
     if verdict != "PASS" and idx == 10:
         locked = _locked_account_lines(text)
         if locked:
-            return "發現可登入帳號被鎖定：" + "；".join(locked[:5])
+            return "發現可登入帳號被鎖定：" + _locked_account_display(text)
         return "帳號狀態檢查異常，需確認 passwd -S 或 OS 帳號資料是否可讀取。"
     if verdict == "PASS":
         if idx == 3:
@@ -597,8 +616,11 @@ def _recommendation(spec: dict[str, Any], verdict: str, text: str) -> str:
     if verdict != "PASS" and urgent_idx == 9:
         return "緊急判斷：這裡只看會直接證明 OS 不穩的 OOM、硬體 machine check、kernel tainted 與防火牆證據。若懷疑防火牆阻擋 AP，短時間排除可執行 sudo systemctl stop firewalld，測完立即 sudo systemctl start firewalld；正式修復請只開必要 port，不要長期關閉防火牆。"
     if verdict != "PASS" and urgent_idx == 10:
-        first_account = (_locked_account_names(text) or ["<account>"])[0]
-        return f"緊急處置：發現可登入帳號被鎖定，可能影響 AP 登入、批次或服務連線。1. 先確認帳號用途：id {first_account}。2. 若確認需要立即恢復，執行 sudo passwd -u {first_account} 或 sudo usermod -U {first_account}。3. 重跑 passwd -S {first_account} 確認不再是 L/LK。4. 若是資安刻意鎖定，不要解鎖，改通知 AP 負責人改用正確帳號。"
+        accounts = _locked_account_display(text)
+        id_examples = _locked_account_command_examples(text, "id")
+        unlock_examples = _locked_account_command_examples(text, "sudo passwd -u")
+        verify_examples = _locked_account_command_examples(text, "passwd -S")
+        return f"緊急處置：發現可登入帳號被鎖定：{accounts}。可能影響 AP 登入、批次或服務連線。1. 先確認帳號用途：{id_examples}。2. 若確認需要立即恢復，只解鎖確認要用的帳號：{unlock_examples}。3. 重跑 {verify_examples}，確認不再是 L/LK。4. 若是資安刻意鎖定，不要解鎖，改通知 AP 負責人改用正確帳號。"
     if verdict == "PASS":
         return "目前沒有看到需要立即處理的異常，維持例行觀察即可。"
     idx = int(spec["idx"])

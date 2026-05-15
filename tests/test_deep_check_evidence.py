@@ -102,6 +102,24 @@ def test_setroubleshootd_recommendation_is_manager_readable():
     assert "systemctl" not in recommendation
 
 
+def test_locked_account_recommendation_lists_real_accounts():
+    text = "ACCOUNT_LOCKED appsvc\nACCOUNT_LOCKED batch01\nACCOUNT_LOCKED appsvc\n"
+    spec = {"idx": 10, "name": "運維軌跡"}
+
+    problem = _problem_summary(spec, 0, text, "WARN")
+    recommendation = _recommendation(spec, "WARN", text)
+    evidence = _evidence_summary(spec, 0, text, "WARN")
+
+    assert "appsvc、batch01" in problem
+    assert "<account>" not in recommendation
+    assert "id appsvc" in recommendation
+    assert "id batch01" in recommendation
+    assert "sudo passwd -u appsvc" in recommendation
+    assert "passwd -S batch01" in recommendation
+    assert "appsvc 被鎖定" in evidence
+    assert "batch01 被鎖定" in evidence
+
+
 def test_deep_check_preview_route_returns_plain_text():
     route = (ROOT / "webapp/routes/api_deep_check.py").read_text(encoding="utf-8")
     html = (ROOT / "webapp/templates/inspections.html").read_text(encoding="utf-8")
