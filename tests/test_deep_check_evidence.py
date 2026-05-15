@@ -1,12 +1,15 @@
 from pathlib import Path
 
 from webapp.services.deep_check_service import (
+    _ap_endpoint_verdict,
     _ap_listener_verdict,
     _evidence_summary,
     _network_verdict,
+    _performance_verdict,
     _problem_summary,
     _recommendation,
     _session_verdict,
+    _storage_verdict,
     _threshold_summary,
 )
 
@@ -26,6 +29,20 @@ def test_pass_evidence_includes_returncode_and_sample_output():
     assert "rc=0" in evidence
     assert "判定=PASS" in evidence
     assert "load average" in evidence
+
+
+def test_performance_warn_explains_exact_metric_and_action():
+    spec = {"idx": 1, "name": "效能"}
+    text = "load average: 9.00, 4.00, 2.00\n%Cpu(s): 80.0 us, 10.0 sy, 10.0 id\nSwap: 1024 700 324"
+
+    assert _performance_verdict(0, text) == "WARN"
+    problem = _problem_summary(spec, 0, text, "WARN")
+    recommendation = _recommendation(spec, "WARN", text)
+
+    assert "CPU idle=10.0%" in problem
+    assert "Swap 使用率" in problem
+    assert "top -bn1" in recommendation
+    assert "free -m" in recommendation
 
 
 def test_network_evidence_keeps_packet_loss_and_counters():
@@ -82,12 +99,38 @@ TX: bytes packets errors dropped carrier collsns
     assert "忽略 lo" in threshold
 
 
+def test_ap_endpoint_warn_gives_health_and_port_commands():
+    spec = {"idx": 4, "name": "AP 連線"}
+    text = "curl: (7) Failed to connect to 127.0.0.1 port 8002: Connection refused"
+
+    assert _ap_endpoint_verdict(0, text) == "WARN"
+    problem = _problem_summary(spec, 0, text, "WARN")
+    recommendation = _recommendation(spec, "WARN", text)
+
+    assert "health endpoint" in problem
+    assert "ss -ltnp" in recommendation
+    assert "curl -v" in recommendation
+
+
 def test_session_one_close_wait_is_not_warn():
     text = "53 ESTAB\n22 TIME-WAIT\n12 LISTEN\n1 CLOSE-WAIT"
     assert _session_verdict(0, text) == "PASS"
     problem = _problem_summary({"idx": 5, "name": "Session"}, 0, text, "PASS")
     assert "CLOSE-WAIT=1" in problem
     assert "SYN-RECV=0" in problem
+
+
+def test_storage_warn_names_mount_and_cleanup_safely():
+    spec = {"idx": 6, "name": "Storage"}
+    text = "Filesystem Size Used Avail Use% Mounted on\n/dev/sda1 20G 19G 1G 95% /var"
+
+    assert _storage_verdict(0, text) == "WARN"
+    problem = _problem_summary(spec, 0, text, "WARN")
+    recommendation = _recommendation(spec, "WARN", text)
+
+    assert "/var 使用率 95%" in problem
+    assert "df -h" in recommendation
+    assert "不要直接刪除未知檔案" in recommendation
 
 
 def test_ap_listener_ignores_unrelated_failed_unit_when_listener_exists():
@@ -99,11 +142,11 @@ setroubleshootd.service loaded failed failed SETroubleshoot daemon for processin
     assert _ap_listener_verdict(0, text) == "PASS"
     problem = _problem_summary({"idx": 3, "name": "AP Listener"}, 0, text, "PASS")
     evidence = _evidence_summary({"idx": 3, "name": "AP Listener"}, 0, text, "PASS")
-    assert "failed service" in problem
+    assert "LISTEN" in problem
     assert "0.0.0.0:9444" in evidence
 
 
-def test_setroubleshootd_recommendation_is_manager_readable():
+def test_infra_recommendation_is_emergency_os_focused():
     text = "setroubleshootd.service loaded failed failed SETroubleshoot daemon for processing new SELinux denial logs"
     recommendation = _recommendation({"idx": 9, "name": "Infra"}, "WARN", text)
 
@@ -111,17 +154,6 @@ def test_setroubleshootd_recommendation_is_manager_readable():
     assert "machine check" in recommendation
     assert "sudo systemctl stop firewalld" in recommendation
     assert "sudo systemctl start firewalld" in recommendation
-    assert "setroubleshootd" not in recommendation
-    return
-
-    assert "交由 Linux 系統管理者處理" in recommendation
-    assert "先確認公司是否需要 SELinux 事件分析功能" in recommendation
-    assert "若需要，修復並啟動 setroubleshootd 服務" in recommendation
-    assert "若不需要，正式停用此服務並在巡檢例外備註原因" in recommendation
-    assert "重新執行深度檢查" in recommendation
-    assert "不是在說 SELinux 一定有開啟或關閉錯誤" in recommendation
-    assert "journalctl" not in recommendation
-    assert "systemctl" not in recommendation
 
 
 def test_locked_account_recommendation_lists_real_accounts():

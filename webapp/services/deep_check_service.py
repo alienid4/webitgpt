@@ -335,12 +335,20 @@ def _run_command(host: dict[str, Any], cmd: str) -> tuple[int, str, str]:
 
 def _verdict(spec: dict[str, Any], rc: int, text: str) -> str:
     lowered = text.lower()
+    if int(spec["idx"]) == 1:
+        return _performance_verdict(rc, text)
     if int(spec["idx"]) == 2:
         return _network_verdict(rc, text)
     if int(spec["idx"]) == 3:
         return _ap_listener_verdict(rc, text)
+    if int(spec["idx"]) == 4:
+        return _ap_endpoint_verdict(rc, text)
     if int(spec["idx"]) == 5:
         return _session_verdict(rc, text)
+    if int(spec["idx"]) == 6:
+        return _storage_verdict(rc, text)
+    if int(spec["idx"]) == 7:
+        return _time_cert_verdict(rc, text)
     if int(spec["idx"]) == 9:
         return _infra_verdict(rc, text)
     if int(spec["idx"]) == 10:
@@ -357,12 +365,31 @@ def _verdict(spec: dict[str, Any], rc: int, text: str) -> str:
     return "PASS"
 
 
+def _performance_verdict(rc: int, text: str) -> str:
+    if rc != 0:
+        return "WARN"
+    if _performance_issue_lines(text):
+        return "WARN"
+    return "PASS"
+
+
 def _ap_listener_verdict(rc: int, text: str) -> str:
     if rc != 0:
         return "WARN"
     if "listen" not in text.lower():
         return "WARN"
     return "PASS"
+
+
+def _ap_endpoint_verdict(rc: int, text: str) -> str:
+    lowered = text.lower()
+    if rc != 0:
+        return "WARN"
+    if any(token in lowered for token in ("connection refused", "failed", "timeout", "timed out", "not found", "could not connect")):
+        return "WARN"
+    if "listen" in lowered or '"status":"ok"' in lowered or '"status": "ok"' in lowered or "status ok" in lowered:
+        return "PASS"
+    return "WARN"
 
 
 def _session_verdict(rc: int, text: str) -> str:
@@ -374,6 +401,23 @@ def _session_verdict(rc: int, text: str) -> str:
     if counts.get("CLOSE-WAIT", 0) >= 10:
         return "WARN"
     if counts.get("ESTAB", 0) >= 500:
+        return "WARN"
+    return "PASS"
+
+
+def _storage_verdict(rc: int, text: str) -> str:
+    if rc != 0:
+        return "WARN"
+    if _storage_issue_lines(text):
+        return "WARN"
+    return "PASS"
+
+
+def _time_cert_verdict(rc: int, text: str) -> str:
+    lowered = text.lower()
+    if rc != 0:
+        return "WARN"
+    if any(token in lowered for token in ("not synchronized", "unsynchronized", "no server suitable", "clock unsynchronized")):
         return "WARN"
     return "PASS"
 
@@ -508,6 +552,43 @@ def _locked_account_lines(text: str) -> list[str]:
     return [f"{name} 被鎖定" for name in _locked_account_names(text)]
 
 
+def _performance_issue_lines(text: str) -> list[str]:
+    issues: list[str] = []
+    load_match = re.search(r"load average:\s*([0-9.]+),\s*([0-9.]+),\s*([0-9.]+)", text, re.IGNORECASE)
+    cpu_match = re.search(r"%?Cpu\(s\):.*?([0-9.]+)\s*id", text, re.IGNORECASE)
+    if cpu_match and float(cpu_match.group(1)) < 30:
+        issues.append(f"CPU idle={cpu_match.group(1)}%，低於 30%，代表 CPU 可能忙碌。")
+    if load_match and float(load_match.group(1)) >= 8:
+        issues.append(f"load average 1 分鐘={load_match.group(1)}，需確認是否超過主機核心數 2 倍。")
+    swap = _free_swap_usage_pct(text)
+    if swap is not None and swap >= 50:
+        issues.append(f"Swap 使用率={swap:.1f}%，高於 50%，可能代表記憶體壓力。")
+    return issues
+
+
+def _free_swap_usage_pct(text: str) -> Optional[float]:
+    for line in text.splitlines():
+        cleaned = line.strip()
+        if not cleaned.lower().startswith("swap:"):
+            continue
+        values = [float(value) for value in re.findall(r"\b\d+(?:\.\d+)?\b", cleaned)]
+        if len(values) >= 3 and values[0] > 0:
+            return values[1] / values[0] * 100
+    return None
+
+
+def _storage_issue_lines(text: str) -> list[str]:
+    issues: list[str] = []
+    for line in text.splitlines():
+        cleaned = line.strip()
+        if not cleaned or cleaned.lower().startswith("filesystem"):
+            continue
+        match = re.search(r"\s(8[5-9]|9[0-9]|100)%\s+(\S+)$", cleaned)
+        if match:
+            issues.append(f"{match.group(2)} 使用率 {match.group(1)}%，高於 85%。")
+    return issues[:8]
+
+
 def _systemd_failed_issue_lines(text: str) -> list[str]:
     issues: list[str] = []
     for line in text.splitlines():
@@ -537,43 +618,39 @@ def _impact(verdict: str, name: str, text: str) -> str:
 
 def _problem_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) -> str:
     idx = int(spec["idx"])
-    if verdict != "PASS" and idx == 3:
-        return "緊急處置：1. 先確認 AP 程序是否存在：ps -ef | grep <AP關鍵字>。2. 確認監聽埠：ss -ltnp | grep <port>。3. 若 AP 有啟動但外部連不到，先用最短時間排除防火牆：sudo systemctl stop firewalld；測完若確認不是防火牆，立刻 sudo systemctl start firewalld。4. 若停防火牆後恢復，請改為正式開通單一 port：sudo firewall-cmd --permanent --add-port=<port>/tcp && sudo firewall-cmd --reload。"
-    if verdict != "PASS" and idx == 9:
-        return "緊急判斷：這裡只看會直接證明 OS 不穩的 OOM、硬體 machine check、kernel tainted 與防火牆證據。若懷疑防火牆阻擋 AP，短時間排除可執行 sudo systemctl stop firewalld，測完立即 sudo systemctl start firewalld；正式修復請只開必要 port，不要長期關閉防火牆。"
-    if verdict != "PASS" and idx == 10:
-        accounts = _locked_account_display(text)
-        commands = _locked_account_fix_commands(text)
-        return f"緊急處置：發現可登入帳號被鎖定：{accounts}，可能影響 AP 登入、批次或服務連線。直接解決指令：{commands}。說明：先用 id 與 passwd -S 確認用途與鎖定狀態；若確認此帳號應恢復，執行 sudo passwd -u；若仍顯示 L/LK，再執行 sudo usermod -U；最後重跑 passwd -S 驗證。若是資安刻意鎖定，不要解鎖，改通知 AP 負責人改用正確帳號。"
-    if verdict == "PASS" and idx == 3:
-        return "AP listener 有 LISTEN，主要程序可見；不因無關 failed service 判定 OS 有問題。"
-    if verdict == "PASS" and idx == 9:
-        return "未發現 OOM/MCE，kernel tainted 未顯示重大異常；防火牆資訊已列為排除證據。"
-    if verdict == "PASS" and idx == 10:
-        return "未發現可登入帳號被鎖定。"
-    if verdict != "PASS" and idx == 3:
-        return "未看到 AP listener 或主要監聽埠，可能是 AP 未啟動、綁定錯誤或被防火牆/ACL 擋住。"
-    if verdict != "PASS" and idx == 10:
-        locked = _locked_account_lines(text)
-        if locked:
-            return "發現可登入帳號被鎖定：" + _locked_account_display(text)
-        return "帳號狀態檢查異常，需確認 passwd -S 或 OS 帳號資料是否可讀取。"
     if verdict == "PASS":
+        if idx == 1:
+            return "效能檢查目的：確認 CPU、記憶體與 Swap 是否足以支撐 AP。結果未發現 CPU idle 過低、load 明顯過高或 Swap 過量使用。"
         if idx == 2:
             return "網路檢查目的：確認這台主機本身的對外網路品質是否會影響 AP 連線。結果未發現實體網卡 error/drop、TCP 重傳或 ping loss；若輸出只有 lo，那是本機迴圈介面，不代表對外網路異常。"
         if idx == 3:
-            return "AP listener 有偵測到 LISTEN，且未發現 systemd failed unit。"
+            return "AP Listener 檢查目的：確認 AP 或管理服務有在主機上監聽。結果有看到 LISTEN，代表主機端服務入口存在。"
+        if idx == 4:
+            return "AP 連線檢查目的：確認本機可以連到指定 AP port 或 health endpoint。結果有監聽或 health 回應，代表本機端 AP 入口可用。"
         if idx == 5:
             counts = _tcp_state_counts(text)
             return (
-                f"TCP 狀態在門檻內：SYN-RECV={counts.get('SYN-RECV', 0)}、"
+                f"Session 檢查目的：確認 TCP 連線沒有塞車或卡死。結果在門檻內：SYN-RECV={counts.get('SYN-RECV', 0)}、"
                 f"CLOSE-WAIT={counts.get('CLOSE-WAIT', 0)}、ESTAB={counts.get('ESTAB', 0)}。"
             )
+        if idx == 6:
+            return "Storage 檢查目的：確認磁碟與 inode 空間不會讓 AP 寫檔、暫存或 log 失敗。結果未發現 85% 以上使用率。"
+        if idx == 7:
+            return "時間與憑證檢查目的：確認主機時間沒有明顯不同步，避免排程、憑證或稽核時間錯亂。結果未發現時間同步警示。"
+        if idx == 8:
+            return "資料庫檢查目的：確認主機上是否存在常見 DB 程序或 port，供影響判斷使用；沒有命中不代表異常。"
         if idx == 9:
-            return "未發現 OOM/MCE、failed unit 或 kernel tainted 異常。"
+            return "Infra 檢查目的：快速排除 OS 層重大不穩定因素。結果未發現 OOM、machine check 或 kernel tainted 異常；防火牆狀態只作為連線排除證據。"
+        if idx == 10:
+            return "運維軌跡檢查目的：確認可登入帳號沒有被非預期鎖定。結果未發現可登入帳號被鎖定。"
         return "未超過警示門檻。"
     if rc != 0:
         return f"命令回傳碼 rc={rc}，代表採集或檢查命令執行異常。"
+    if idx == 1:
+        issues = _performance_issue_lines(text)
+        if issues:
+            return "效能檢查目的：確認 CPU、記憶體與 Swap 是否影響 AP。發現：" + "；".join(issues)
+        return "效能檢查回報 WARN，但未抓到 CPU idle、load 或 Swap 的明確異常數值。"
     if idx == 2:
         issues = _network_counter_issue_lines(text)
         loss_match = re.search(r"(\d+(?:\.\d+)?)%\s+packet loss", text.lower())
@@ -585,53 +662,72 @@ def _problem_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) -> 
             return "網路檢查目的：確認主機本身網路品質是否影響 AP。發現 TCP retransmit 或 listen drop，代表連線可能有重送或排隊丟棄。"
         return "網路檢查回報 WARN，但未找到實體網卡 error/drop、ping loss 或 TCP 重傳證據；請先確認採集命令是否完整。"
     if idx == 3:
-        issues = _systemd_failed_issue_lines(text)
-        if issues:
-            return "AP 主機存在 failed unit：" + "；".join(issues[:3])
-        return "未找到 LISTEN 服務或 AP listener 輸出異常。"
+        return "AP Listener 檢查目的：確認 AP 或管理服務是否有監聽。結果未看到 LISTEN，可能是服務未啟動、port 綁定錯誤或採集權限不足。"
+    if idx == 4:
+        return "AP 連線檢查目的：確認本機指定 port 或 health endpoint 是否可用。結果未取得明確 LISTEN 或 health ok，可能是 AP 未啟動、port 設錯或本機防火牆阻擋。"
     if idx == 5:
         counts = _tcp_state_counts(text)
         if counts.get("SYN-RECV", 0) > 0:
-            return f"SYN-RECV={counts.get('SYN-RECV')}，門檻為 0。"
+            return f"Session 檢查目的：確認連線沒有卡在半開狀態。發現 SYN-RECV={counts.get('SYN-RECV')}，門檻為 0。"
         if counts.get("CLOSE-WAIT", 0) >= 10:
-            return f"CLOSE-WAIT={counts.get('CLOSE-WAIT')}，門檻為小於 10。"
+            return f"Session 檢查目的：確認連線沒有被 AP 程式卡住。發現 CLOSE-WAIT={counts.get('CLOSE-WAIT')}，門檻為小於 10。"
         if counts.get("ESTAB", 0) >= 500:
-            return f"ESTAB={counts.get('ESTAB')}，門檻為小於 500。"
+            return f"Session 檢查目的：確認連線量沒有異常暴增。發現 ESTAB={counts.get('ESTAB')}，門檻為小於 500。"
+        return "Session 檢查回報 WARN，但未解析到 SYN-RECV、CLOSE-WAIT 或 ESTAB 的明確異常。"
+    if idx == 6:
+        issues = _storage_issue_lines(text)
+        if issues:
+            return "Storage 檢查目的：確認磁碟與 inode 空間是否會影響 AP 寫檔、暫存或 log。發現：" + "；".join(issues)
+        return "Storage 檢查回報 WARN，但未解析到 85% 以上的 filesystem 或 inode 使用率。"
+    if idx == 7:
+        return "時間與憑證檢查目的：確認時間同步是否正常。發現時間未同步或同步來源異常，可能造成排程、憑證驗證或稽核時間不一致。"
+    if idx == 8:
+        return "資料庫檢查回報 WARN；請確認這台主機是否應該存在 DB 程序或 DB port。若不是 DB 主機，通常只需備註主機用途。"
     if idx == 9:
         issues = _systemd_failed_issue_lines(text)
-        if issues:
-            return "Infra failed unit：" + "；".join(issues[:3])
         tainted = _kernel_tainted_value(text)
+        if "oom" in text.lower() or "machine check" in text.lower():
+            return "Infra 檢查目的：快速排除 OS 層重大不穩定因素。發現 OOM 或硬體 machine check 訊號，代表主機曾出現記憶體或硬體層風險。"
         if tainted and tainted != "0":
-            return f"kernel tainted={tainted}，門檻為 0。"
+            return f"Infra 檢查目的：快速排除 OS 層重大不穩定因素。發現 kernel tainted={tainted}，門檻為 0，代表核心載入狀態需由系統管理者確認。"
+        if issues:
+            return "Infra 檢查發現 failed unit，但此項只把它當輔助線索，不直接代表 AP 故障：" + "；".join(issues[:3])
+        return "Infra 檢查回報 WARN，但未抓到 OOM、machine check 或 kernel tainted 的明確證據。"
+    if idx == 10:
+        locked = _locked_account_lines(text)
+        if locked:
+            return "運維軌跡檢查目的：確認 AP 或批次可能使用的可登入帳號沒有被鎖定。發現：" + _locked_account_display(text)
+        return "帳號狀態檢查異常，需確認 passwd -S 或 OS 帳號資料是否可讀取。"
     return "命中警示條件，請查看證據摘要確認異常數值。"
 
 
 def _threshold_summary(spec: dict[str, Any], text: str) -> str:
     idx = int(spec["idx"])
-    if idx == 3:
-        return "AP listener 必須存在；不再以全部 systemd failed unit 作為 AP 異常依據。"
+    if idx == 1:
+        return "用途：判斷主機效能是否會拖慢 AP。門檻：CPU idle 不低於 30%，Swap 使用率低於 50%，load 不應明顯超過主機核心數。"
     if idx == 2:
         return "用途：判斷主機本身對外網路品質是否影響 AP。只看實體網卡 error/drop、TCP retransmit/listen drop、ping loss；忽略 lo 本機迴圈介面。"
+    if idx == 3:
+        return "AP listener 必須存在；不再以全部 systemd failed unit 作為 AP 異常依據。"
+    if idx == 4:
+        return "用途：確認 AP port 或 health endpoint 是否可用。門檻：有 LISTEN 或 health 回應 ok。"
+    if idx == 5:
+        return "用途：判斷 TCP 連線是否卡住。門檻：SYN-RECV 必須為 0，CLOSE-WAIT 小於 10，ESTAB 小於 500。"
+    if idx == 6:
+        return "用途：確認磁碟、inode、/tmp 或 journal 不會讓 AP 寫檔失敗。門檻：主要 filesystem 與 inode 使用率低於 85%。"
+    if idx == 7:
+        return "用途：確認主機時間可信。門檻：時間同步不可顯示 unsynchronized 或 not synchronized。"
+    if idx == 8:
+        return "用途：辨識這台主機是否有 DB 程序或常見 DB port，供影響判斷使用；不是 DB 主機時不視為異常。"
     if idx == 9:
         return "無 OOM / machine check；kernel tainted 為 0；防火牆狀態只作為連線排除證據。"
     if idx == 10:
         return "可登入帳號不應被非預期鎖定，尤其 AP 或批次使用帳號。"
-    if idx == 3:
-        return "需有 LISTEN 服務；systemd failed unit 必須為 0。"
-    if idx == 5:
-        return "SYN-RECV 必須為 0；CLOSE-WAIT 小於 10；ESTAB 小於 500。"
-    if idx == 9:
-        return "無 OOM / MCE / failed unit；kernel tainted 必須為 0。"
     return str(spec.get("baseline") or "")
 
 
 def _recommendation(spec: dict[str, Any], verdict: str, text: str) -> str:
     urgent_idx = int(spec["idx"])
-    if verdict != "PASS" and urgent_idx == 3:
-        return "緊急處置：1. 先確認 AP 程序是否存在：ps -ef | grep <AP關鍵字>。2. 確認監聽埠：ss -ltnp | grep <port>。3. 若 AP 有啟動但外部連不到，先用最短時間排除防火牆：sudo systemctl stop firewalld；測完若確認不是防火牆，立刻 sudo systemctl start firewalld。4. 若停防火牆後恢復，請改為正式開通單一 port：sudo firewall-cmd --permanent --add-port=<port>/tcp && sudo firewall-cmd --reload。"
-    if verdict != "PASS" and urgent_idx == 9:
-        return "緊急判斷：這裡只看會直接證明 OS 不穩的 OOM、硬體 machine check、kernel tainted 與防火牆證據。若懷疑防火牆阻擋 AP，短時間排除可執行 sudo systemctl stop firewalld，測完立即 sudo systemctl start firewalld；正式修復請只開必要 port，不要長期關閉防火牆。"
     if verdict != "PASS" and urgent_idx == 10:
         accounts = _locked_account_display(text)
         commands = _locked_account_fix_commands(text)
@@ -639,6 +735,8 @@ def _recommendation(spec: dict[str, Any], verdict: str, text: str) -> str:
     if verdict == "PASS":
         return "目前沒有看到需要立即處理的異常，維持例行觀察即可。"
     idx = int(spec["idx"])
+    if idx == 1:
+        return "建議處置：先確認是否為短暫尖峰。可執行 uptime、top -bn1、free -m、vmstat 1 3；若 CPU idle 持續低於 30%，找出耗用最高程序；若 Swap 高於 50%，確認 AP 是否記憶體不足或有異常批次。處理後重跑深度檢查。"
     if idx == 2:
         issues = _network_counter_issue_lines(text)
         loss_match = re.search(r"(\d+(?:\.\d+)?)%\s+packet loss", text.lower())
@@ -650,13 +748,19 @@ def _recommendation(spec: dict[str, Any], verdict: str, text: str) -> str:
             return "建議處置：偵測到 TCP 重傳或 listen drop。請先確認是否為單一 AP 服務過載，再檢查網路延遲、防火牆或連線佇列；處理後重跑深度檢查確認重傳或 drop 不再增加。"
         return "建議處置：目前沒有明確網路異常證據。若畫面只看到 lo，代表本機迴圈介面，不需通知網路單位；請重新執行深度檢查或補抓實體網卡資料。"
     if idx == 3:
-        return "請交由該主機的系統管理者處理：1. 找出失敗服務名稱；2. 判斷它是否為正式應用服務。若是正式服務，先查原因並通知系統負責人後再重啟；若不是正式服務，評估停用或列入例外；3. 處理後重新檢查，確認 failed unit 清為 0。"
+        return "緊急處置：1. 確認 AP 程序是否存在：ps -ef | grep <AP關鍵字>。2. 確認監聽埠：ss -ltnp | grep <port>。3. 若 AP 有啟動但外部連不到，短時間排除防火牆可執行 sudo systemctl stop firewalld；測完立即 sudo systemctl start firewalld。4. 若停防火牆後恢復，改用正式規則開單一 port：sudo firewall-cmd --permanent --add-port=<port>/tcp && sudo firewall-cmd --reload。"
+    if idx == 4:
+        return "建議處置：1. 確認 AP_PORT 是否正確。2. 執行 ss -ltnp | grep <port> 看本機是否監聽。3. 執行 curl -v http://127.0.0.1:<port>/health 看 health 是否回應。4. 若本機可通但外部不通，再檢查防火牆或 ACL。"
     if idx == 5:
         return "請交由應用系統負責人與系統管理者共同確認：1. 找出大量異常連線的來源程式與對象；2. 若是程式未正常關閉連線，安排應用修正或重啟服務；3. 若是外部連線不穩，請網路單位確認路徑與防火牆。"
+    if idx == 6:
+        return "建議處置：先確認是哪個掛載點或 inode 高於門檻。可執行 df -h、df -i、du -xh <path> | sort -h | tail。若是 log 或暫存檔，先備份再清理；若是 AP 資料目錄，先擴容或搬移，不要直接刪除未知檔案。"
+    if idx == 7:
+        return "建議處置：先確認時間服務狀態。Linux 可執行 timedatectl、chronyc tracking 或 ntpq -p；若未同步，修復 NTP/Chrony 設定並重啟時間服務。時間修正後，重新檢查憑證、排程與稽核時間是否一致。"
+    if idx == 8:
+        return "建議處置：若這台是 DB 主機，確認 DB process 與 port 是否符合預期；若不是 DB 主機，將結果作為用途備註即可。不要因未看到 DB process 直接判斷 OS 異常。"
     if idx == 9:
-        if "setroubleshootd" in text.lower():
-            return "請交由 Linux 系統管理者處理：1. 先確認公司是否需要 SELinux 事件分析功能。2. 若需要，修復並啟動 setroubleshootd 服務，讓 SELinux 事件能被整理分析。3. 若不需要，正式停用此服務並在巡檢例外備註原因。4. 處理後重新執行深度檢查，確認 setroubleshootd 不再出現在 failed unit。注意：這不是在說 SELinux 一定有開啟或關閉錯誤，而是事件分析輔助服務失敗。"
-        return "請交由 Linux 系統管理者處理：1. 找出 failed unit 服務名稱與用途；2. 判斷是否影響正式服務、監控、備份或稽核紀錄；3. 需要的服務就修復，不需要的服務就停用並留下例外原因；4. 重新執行深度檢查確認告警消失。"
+        return "緊急判斷：這裡只處理能直接證明 OS 不穩的 OOM、硬體 machine check、kernel tainted 或防火牆阻擋證據。若懷疑防火牆阻擋 AP，短時間排除可執行 sudo systemctl stop firewalld，測完立即 sudo systemctl start firewalld；正式修復請只開必要 port，不要長期關閉防火牆。"
     return "請先確認影響範圍與備份，再安排修復；不建議未確認原因就直接變更系統。"
 
 
