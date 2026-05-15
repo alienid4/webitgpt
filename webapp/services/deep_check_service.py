@@ -17,6 +17,17 @@ from webapp.services.remedy_kb import match_remedies
 REPORT_RE = re.compile(r"^ts_[\w\-.]+_\d{8}_\d{6}_(summary|detail)\.txt$")
 
 
+NETWORK_CHECKPOINTS = [
+    ("NET-01", "網卡 errors", "實體網卡 errors 應為 0 或不再增加。"),
+    ("NET-02", "網卡 dropped", "實體網卡 dropped 應為 0 或不再增加。"),
+    ("NET-03", "TCP retransmit", "TCP retransmit 應無明顯增加。"),
+    ("NET-04", "Ping loss", "ping packet loss 應為 0%。"),
+    ("NET-05", "conntrack 用量", "nf_conntrack_count 不應接近 nf_conntrack_max。"),
+    ("NET-06", "TIME_WAIT / port range", "TIME_WAIT 不應造成 ephemeral port 耗盡。"),
+    ("NET-07", "SYN backlog / listen drops", "SYN backlog 與 listen drops 不應出現堆積或丟棄。"),
+]
+
+
 FACE_SPECS = [
     {
         "idx": 1,
@@ -457,13 +468,7 @@ def _network_verdict(rc: int, text: str) -> str:
     ):
         return "WARN"
 
-    loss_match = re.search(r"(\d+(?:\.\d+)?)%\s+packet loss", lowered)
-    if loss_match and float(loss_match.group(1)) > 0:
-        return "WARN"
-
-    if _link_error_or_drop_seen(text):
-        return "WARN"
-    if _tcp_retransmit_seen(text):
+    if any(item["status"] == "WARN" for item in _network_checkpoint_statuses(text)):
         return "WARN"
     return "PASS"
 
@@ -486,13 +491,66 @@ def _tcp_retransmit_seen(text: str) -> bool:
     patterns = [
         r"\b(\d+)\s+segments?\s+retransm",
         r"\bretrans(?:mitted|mits|mission)?\D+(\d+)",
-        r"\b(\d+)\s+listen(?:ing)?\s+drops?",
     ]
     for pattern in patterns:
         for match in re.finditer(pattern, lowered):
             if int(match.group(1)) > 0:
                 return True
     return False
+
+
+def _listen_drop_seen(text: str) -> bool:
+    lowered = text.lower()
+    patterns = [
+        r"\b(\d+)\s+listen(?:ing)?\s+drops?",
+        r"\blisten(?:ing)?\s+drops?\D+(\d+)",
+        r"\bsyn(?:-|_)?recv\D+(\d+)",
+    ]
+    for pattern in patterns:
+        for match in re.finditer(pattern, lowered):
+            if int(match.group(1)) > 0:
+                return True
+    return False
+
+
+def _ping_loss_pct(text: str) -> Optional[float]:
+    match = re.search(r"(\d+(?:\.\d+)?)%\s+packet loss", text.lower())
+    if match:
+        return float(match.group(1))
+    return None
+
+
+def _network_reachability_error_seen(text: str) -> bool:
+    lowered = text.lower()
+    return any(
+        token in lowered
+        for token in [
+            "no route to host",
+            "network is unreachable",
+            "connection timed out",
+            "temporary failure in name resolution",
+        ]
+    )
+
+
+def _conntrack_usage(text: str) -> Optional[tuple[int, int, float]]:
+    count_match = re.search(r"nf_conntrack_count\s*[=:]\s*(\d+)", text)
+    max_match = re.search(r"nf_conntrack_max\s*[=:]\s*(\d+)", text)
+    if not count_match or not max_match:
+        return None
+    count = int(count_match.group(1))
+    maximum = int(max_match.group(1))
+    if maximum <= 0:
+        return None
+    return count, maximum, count / maximum * 100
+
+
+def _time_wait_count(text: str) -> int:
+    counts = _tcp_state_counts(text)
+    if counts.get("TIME-WAIT", 0):
+        return counts["TIME-WAIT"]
+    match = re.search(r"\btimewait\s+(\d+)", text, re.IGNORECASE)
+    return int(match.group(1)) if match else 0
 
 
 def _tcp_state_counts(text: str) -> dict[str, int]:
@@ -628,7 +686,7 @@ def _problem_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) -> 
         if idx == 1:
             return "效能檢查目的：確認 CPU、記憶體與 Swap 是否足以支撐 AP。結果未發現 CPU idle 過低、load 明顯過高或 Swap 過量使用。"
         if idx == 2:
-            return "網路檢查目的：確認這台主機本身的對外網路品質是否會影響 AP 連線。結果未發現實體網卡 error/drop、TCP 重傳或 ping loss；若輸出只有 lo，那是本機迴圈介面，不代表對外網路異常。"
+            return "網路檢查目的：確認這台主機本身的對外網路品質是否會影響 AP 連線。7 個檢查點均未命中 WARN；若輸出只有 lo，那是本機迴圈介面，不代表對外網路異常。"
         if idx == 3:
             return "AP Listener 檢查目的：確認 AP 或管理服務有在主機上監聽。結果有看到 LISTEN，代表主機端服務入口存在。"
         if idx == 4:
@@ -658,14 +716,9 @@ def _problem_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) -> 
             return "效能檢查目的：確認 CPU、記憶體與 Swap 是否影響 AP。發現：" + "；".join(issues)
         return "效能檢查回報 WARN，但未抓到 CPU idle、load 或 Swap 的明確異常數值。"
     if idx == 2:
-        issues = _network_counter_issue_lines(text)
-        loss_match = re.search(r"(\d+(?:\.\d+)?)%\s+packet loss", text.lower())
-        if issues:
-            return "網路檢查目的：確認主機本身網路品質是否影響 AP。發現實體網卡異常：" + "；".join(line for line in issues if line.startswith("異常 counter"))
-        if loss_match and float(loss_match.group(1)) > 0:
-            return f"網路檢查目的：確認主機本身網路品質是否影響 AP。發現 ping packet loss={loss_match.group(1)}%，代表封包傳輸有遺失。"
-        if _tcp_retransmit_seen(text):
-            return "網路檢查目的：確認主機本身網路品質是否影響 AP。發現 TCP retransmit 或 listen drop，代表連線可能有重送或排隊丟棄。"
+        warn_lines = _network_warn_checkpoint_lines(text)
+        if warn_lines:
+            return "網路檢查目的：確認主機本身網路品質是否影響 AP。命中檢查點：" + "；".join(warn_lines)
         return "網路檢查回報 WARN，但未找到實體網卡 error/drop、ping loss 或 TCP 重傳證據；請先確認採集命令是否完整。"
     if idx == 3:
         return "AP Listener 檢查目的：確認 AP 或管理服務是否有監聽。結果未看到 LISTEN，可能是服務未啟動、port 綁定錯誤或採集權限不足。"
@@ -712,7 +765,8 @@ def _threshold_summary(spec: dict[str, Any], text: str) -> str:
     if idx == 1:
         return "用途：判斷主機效能是否會拖慢 AP。門檻：CPU idle 不低於 30%，Swap 使用率低於 50%，load 不應明顯超過主機核心數。"
     if idx == 2:
-        return "用途：判斷主機本身對外網路品質是否影響 AP。只看實體網卡 error/drop、TCP retransmit/listen drop、ping loss；忽略 lo 本機迴圈介面。"
+        checkpoint_text = "；".join(f"{sn} {name}" for sn, name, _ in NETWORK_CHECKPOINTS)
+        return "用途：判斷主機本身對外網路品質是否影響 AP。網路共 7 個檢查點：" + checkpoint_text + "。忽略 lo 本機迴圈介面。"
     if idx == 3:
         return "AP listener 必須存在；不再以全部 systemd failed unit 作為 AP 異常依據。"
     if idx == 4:
@@ -779,22 +833,24 @@ def _recommendation(spec: dict[str, Any], verdict: str, text: str) -> str:
         )
     if idx == 2:
         issues = _network_counter_issue_lines(text)
-        loss_match = re.search(r"(\d+(?:\.\d+)?)%\s+packet loss", text.lower())
+        loss = _ping_loss_pct(text)
         if issues:
             return "\n".join(
                 [
-                    "狀況：發現實體網卡 counter 異常，可能影響 AP 連線品質。",
+                    "狀況：網路檢查命中 SN：" + "、".join(line.split(" ", 1)[0] for line in _network_warn_checkpoint_lines(text)) + "，可能影響 AP 連線品質。",
                     "1. 先確認是哪張網卡與哪個 counter 在增加。",
                     "2. 若 dropped/errors/carrier 持續增加，交由 VM/網路管理者檢查虛擬網卡、交換器埠、線路或速率/雙工設定。",
-                    "3. 修正後重跑深度檢查，確認 counter 不再增加。",
+                    "3. 如果同時命中 conntrack 或 TIME_WAIT，也要一併確認是否有大量短連線或連線池異常。",
+                    "4. 修正後重跑深度檢查，確認 counter 與連線壓力不再增加。",
                     "可直接執行指令：",
                     _network_fix_commands(text),
+                    _network_pressure_fix_commands(text),
                 ]
             )
-        if loss_match and float(loss_match.group(1)) > 0:
+        if loss is not None and loss > 0:
             return "\n".join(
                 [
-                    f"狀況：偵測到 ping loss {loss_match.group(1)}%，代表封包有遺失。",
+                    f"狀況：NET-04 Ping loss 偵測到 {loss:g}%，代表封包有遺失。",
                     "1. 先確認目標 IP 是否正確。",
                     "2. 檢查路由、交換器、防火牆與主機負載。",
                     "3. 處理後重跑深度檢查，確認 loss 回到 0%。",
@@ -806,7 +862,7 @@ def _recommendation(spec: dict[str, Any], verdict: str, text: str) -> str:
         if _tcp_retransmit_seen(text):
             return "\n".join(
                 [
-                    "狀況：偵測到 TCP 重傳或 listen drop，可能是連線重送、佇列滿或服務過載。",
+                    "狀況：NET-03 TCP retransmit 偵測到重傳，可能是連線重送、佇列滿或服務過載。",
                     "1. 先確認是否為單一 AP 服務過載。",
                     "2. 檢查網路延遲、防火牆或連線佇列。",
                     "3. 處理後重跑深度檢查，確認重傳或 drop 不再增加。",
@@ -815,11 +871,54 @@ def _recommendation(spec: dict[str, Any], verdict: str, text: str) -> str:
                     "netstat -s | egrep -i 'retrans|listen|drop'",
                 ]
             )
+        if _listen_drop_seen(text):
+            return "\n".join(
+                [
+                    "狀況：NET-07 SYN backlog / listen drops 命中，可能有連線排隊或被丟棄。",
+                    "1. 先確認 AP listener 是否過載。",
+                    "2. 檢查 TCP backlog、服務連線佇列與防火牆。",
+                    "3. 處理後重跑深度檢查，確認 listen drops 不再增加。",
+                    "可直接執行指令：",
+                    "ss -s",
+                    "netstat -s | egrep -i 'listen|drop|syn'",
+                ]
+            )
+        conntrack = _conntrack_usage(text)
+        if conntrack is not None and conntrack[2] >= 80:
+            return "\n".join(
+                [
+                    f"狀況：NET-05 conntrack 用量已達 {conntrack[2]:.1f}% ({conntrack[0]}/{conntrack[1]})，新連線可能被丟棄。",
+                    "1. 先確認是否有大量短連線或異常來源。",
+                    "2. 若 AP 連線受影響，先找出連線最多的來源 IP，再決定是否阻擋或調整 AP 連線池。",
+                    "3. 若確認是正常尖峰，請由系統管理者評估提高 nf_conntrack_max，並記錄變更。",
+                    "4. 處理後重跑深度檢查，確認 conntrack 使用率低於 80%。",
+                    "可直接執行指令：",
+                    "sysctl net.netfilter.nf_conntrack_count net.netfilter.nf_conntrack_max",
+                    "sudo conntrack -S 2>/dev/null || true",
+                    "ss -tan | awk 'NR>1 {print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr | head -20",
+                ]
+            )
+        time_wait = _time_wait_count(text)
+        if time_wait >= 1000:
+            return "\n".join(
+                [
+                    f"狀況：NET-06 TIME_WAIT / port range 偵測到 TIME_WAIT={time_wait}，可能代表短連線過多或連線釋放壓力。",
+                    "1. 先確認是否為批次、AP 或代理服務大量建立短連線。",
+                    "2. 找出連線最多的本機程序與遠端 IP。",
+                    "3. 若 AP 連線受影響，優先調整 AP 連線池或 keepalive，不要直接改 kernel 參數。",
+                    "4. 處理後重跑深度檢查，確認 TIME_WAIT 回到合理範圍。",
+                    "可直接執行指令：",
+                    "ss -tan state time-wait | wc -l",
+                    "ss -tanp | awk 'NR>1 {print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr | head -20",
+                    "cat /proc/sys/net/ipv4/ip_local_port_range",
+                ]
+            )
         return "\n".join(
             [
                 "狀況：目前沒有明確網路異常證據。",
-                "1. 若畫面只看到 lo，代表本機迴圈介面，不需通知網路單位。",
-                "2. 重新執行深度檢查或補抓實體網卡資料。",
+                "1. 網路共 7 個檢查點，請先看 NET-01 到 NET-07 的 SN 結果。",
+                "2. 若畫面只看到 lo，代表本機迴圈介面，不需通知網路單位。",
+                "3. 重新執行深度檢查或補抓實體網卡資料。",
                 "可直接執行指令：",
                 "ip -s link",
                 "ss -s",
@@ -897,6 +996,8 @@ def _evidence_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) ->
             lines.extend(_matching_lines(text, [r"ACCOUNT_LOCKED|logged|reboot"], limit=6))
     if len(lines) == 1:
         lines.extend(_first_nonempty_lines(text, limit=4))
+    if idx == 2:
+        return "\n".join(lines[:18])
     return "\n".join(lines[:8])
 
 
@@ -924,13 +1025,16 @@ def _first_nonempty_lines(text: str, limit: int = 4) -> list[str]:
 
 
 def _network_evidence(text: str) -> list[str]:
-    evidence = _matching_lines(text, [r"packet loss", r"retrans", r"listen.*drop", r"no route|unreachable|timed out"], limit=4)
+    evidence = _network_checkpoint_lines(text)
+    evidence.extend(_matching_lines(text, [r"packet loss", r"retrans", r"listen.*drop", r"no route|unreachable|timed out"], limit=4))
     issue_lines = _network_counter_issue_lines(text)
     if issue_lines:
-        return (evidence + issue_lines)[:8]
+        return (evidence + issue_lines)[:17]
 
     lines = text.splitlines()
     current_iface = ""
+    saw_non_loopback = False
+    raw_lines: list[str] = []
     for idx, line in enumerate(lines):
         cleaned = line.strip()
         lowered = cleaned.lower()
@@ -938,15 +1042,19 @@ def _network_evidence(text: str) -> list[str]:
             current_iface = cleaned
             if _is_loopback_iface(cleaned):
                 continue
-            evidence.append(cleaned[:220])
+            saw_non_loopback = True
+            raw_lines.append(cleaned[:220])
         elif (not current_iface or not _is_loopback_iface(current_iface)) and (lowered.startswith(("rx:", "tx:")) or re.search(r"\b(errors|dropped|carrier|collsns|overruns)\b", lowered)):
-            evidence.append(cleaned[:220])
+            raw_lines.append(cleaned[:220])
             if idx + 1 < len(lines):
                 value_line = lines[idx + 1].strip()
                 if value_line and re.search(r"\d", value_line):
-                    evidence.append(value_line[:220])
-        if len(evidence) >= 7:
+                    raw_lines.append(value_line[:220])
+        if len(raw_lines) >= 8:
             break
+    evidence.extend(raw_lines[:8])
+    if not saw_non_loopback and "lo:" in text:
+        evidence.append("只看到 lo 本機迴圈介面，不代表對外網路異常；需補抓實體網卡資料才可判斷外部連線品質。")
     if not evidence:
         return ["未發現實體網卡 error/drop、TCP 重傳或 ping loss；若只有 lo，代表本機迴圈介面，不代表對外網路異常。"]
     return evidence
@@ -990,6 +1098,77 @@ def _network_counter_issue_lines(text: str) -> list[str]:
     return issues
 
 
+def _network_counter_trigger_tokens(text: str) -> set[str]:
+    tokens: set[str] = set()
+    for line in _network_counter_issue_lines(text):
+        if not line.startswith("異常 counter:"):
+            continue
+        tokens.update(re.findall(r"([A-Za-z_-]+)=", line))
+    return {token.lower() for token in tokens}
+
+
+def _network_checkpoint_statuses(text: str) -> list[dict[str, str]]:
+    tokens = _network_counter_trigger_tokens(text)
+    loss = _ping_loss_pct(text)
+    conntrack = _conntrack_usage(text)
+    time_wait = _time_wait_count(text)
+    reachability_error = _network_reachability_error_seen(text)
+
+    statuses = [
+        {
+            "sn": "NET-01",
+            "name": "網卡 errors",
+            "status": "WARN" if "errors" in tokens else "PASS",
+            "evidence": "errors counter > 0" if "errors" in tokens else "未看到實體網卡 errors 增加",
+        },
+        {
+            "sn": "NET-02",
+            "name": "網卡 dropped",
+            "status": "WARN" if tokens.intersection({"dropped", "drop", "carrier", "collsns", "overruns"}) else "PASS",
+            "evidence": "dropped/drop/carrier/collsns/overruns counter > 0" if tokens.intersection({"dropped", "drop", "carrier", "collsns", "overruns"}) else "未看到實體網卡 dropped 類 counter 增加",
+        },
+        {
+            "sn": "NET-03",
+            "name": "TCP retransmit",
+            "status": "WARN" if _tcp_retransmit_seen(text) else "PASS",
+            "evidence": "偵測到 TCP retransmit" if _tcp_retransmit_seen(text) else "未看到 TCP retransmit 警示",
+        },
+        {
+            "sn": "NET-04",
+            "name": "Ping loss",
+            "status": "WARN" if (loss is not None and loss > 0) or reachability_error else "PASS",
+            "evidence": f"packet loss={loss:g}%" if loss is not None else ("連線或 DNS 可達性失敗" if reachability_error else "未看到 ping loss 資料"),
+        },
+        {
+            "sn": "NET-05",
+            "name": "conntrack 用量",
+            "status": "WARN" if conntrack is not None and conntrack[2] >= 80 else "PASS",
+            "evidence": f"nf_conntrack_count={conntrack[0]} / max={conntrack[1]} ({conntrack[2]:.1f}%)" if conntrack else "未取得 conntrack 資料",
+        },
+        {
+            "sn": "NET-06",
+            "name": "TIME_WAIT / port range",
+            "status": "WARN" if time_wait >= 1000 else "PASS",
+            "evidence": f"TIME_WAIT={time_wait}" if time_wait else "未看到 TIME_WAIT 過量",
+        },
+        {
+            "sn": "NET-07",
+            "name": "SYN backlog / listen drops",
+            "status": "WARN" if _listen_drop_seen(text) else "PASS",
+            "evidence": "偵測到 SYN backlog 或 listen drops" if _listen_drop_seen(text) else "未看到 SYN backlog 或 listen drops",
+        },
+    ]
+    return statuses
+
+
+def _network_checkpoint_lines(text: str) -> list[str]:
+    return [f"{item['sn']} {item['name']}：{item['status']} - {item['evidence']}" for item in _network_checkpoint_statuses(text)]
+
+
+def _network_warn_checkpoint_lines(text: str) -> list[str]:
+    return [line for line in _network_checkpoint_lines(text) if "：WARN -" in line]
+
+
 def _network_issue_interfaces(text: str) -> list[str]:
     interfaces: list[str] = []
     issue_lines = _network_counter_issue_lines(text)
@@ -1021,6 +1200,30 @@ def _network_fix_commands(text: str) -> str:
                 f"ethtool {iface} 2>/dev/null | egrep -i 'Speed|Duplex|Link detected' || true",
                 "ss -s",
                 "ping -c 5 ${PING_TGT:-127.0.0.1}",
+            ]
+        )
+    return "\n".join(commands)
+
+
+def _network_pressure_fix_commands(text: str) -> str:
+    commands: list[str] = []
+    conntrack = _conntrack_usage(text)
+    if conntrack is not None and conntrack[2] >= 80:
+        commands.extend(
+            [
+                "# NET-05 conntrack 用量",
+                "sysctl net.netfilter.nf_conntrack_count net.netfilter.nf_conntrack_max",
+                "sudo conntrack -S 2>/dev/null || true",
+                "ss -tan | awk 'NR>1 {print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr | head -20",
+            ]
+        )
+    if _time_wait_count(text) >= 1000:
+        commands.extend(
+            [
+                "# NET-06 TIME_WAIT / port range",
+                "ss -tan state time-wait | wc -l",
+                "ss -tanp | awk 'NR>1 {print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr | head -20",
+                "cat /proc/sys/net/ipv4/ip_local_port_range",
             ]
         )
     return "\n".join(commands)

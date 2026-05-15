@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from webapp.services.deep_check_service import (
+    NETWORK_CHECKPOINTS,
     _ap_endpoint_verdict,
     _ap_listener_verdict,
     _evidence_summary,
@@ -11,6 +12,7 @@ from webapp.services.deep_check_service import (
     _session_verdict,
     _storage_verdict,
     _threshold_summary,
+    _network_checkpoint_lines,
 )
 
 
@@ -55,6 +57,7 @@ def test_network_evidence_keeps_packet_loss_and_counters():
     )
 
     assert "rc=0" in evidence
+    assert "NET-04 Ping loss" in evidence
     assert "packet loss" in evidence
     assert "RX:" in evidence
 
@@ -74,6 +77,7 @@ def test_network_evidence_includes_interface_and_counter_values():
     )
 
     assert "ens33" in evidence
+    assert "NET-02 網卡 dropped：WARN" in evidence
     assert "615350 1035 0 4 0 0" in evidence
     assert "dropped=4" in evidence
     assert "lo:" not in evidence
@@ -97,6 +101,44 @@ TX: bytes packets errors dropped carrier collsns
     assert "本機迴圈介面" in problem
     assert "不代表對外網路異常" in evidence
     assert "忽略 lo" in threshold
+
+
+def test_network_has_seven_sn_checkpoints():
+    assert len(NETWORK_CHECKPOINTS) == 7
+    assert [item[0] for item in NETWORK_CHECKPOINTS] == [f"NET-0{i}" for i in range(1, 8)]
+    lines = _network_checkpoint_lines("3 packets transmitted, 2 received, 33% packet loss")
+    assert len(lines) == 7
+    assert any(line.startswith("NET-04 Ping loss：WARN") for line in lines)
+
+
+def test_network_conntrack_checkpoint_has_sn_and_commands():
+    spec = {"idx": 2, "name": "網路"}
+    text = "net.netfilter.nf_conntrack_count = 900\nnet.netfilter.nf_conntrack_max = 1000"
+
+    assert _network_verdict(0, text) == "WARN"
+    problem = _problem_summary(spec, 0, text, "WARN")
+    evidence = _evidence_summary(spec, 0, text, "WARN")
+    recommendation = _recommendation(spec, "WARN", text)
+
+    assert "NET-05" in problem
+    assert "NET-05 conntrack 用量：WARN" in evidence
+    assert "900/1000" in recommendation
+    assert "nf_conntrack_count" in recommendation
+    assert "ss -tan" in recommendation
+
+
+def test_network_time_wait_checkpoint_has_sn_and_commands():
+    spec = {"idx": 2, "name": "網路"}
+    text = "2500 TIME-WAIT\n10 ESTAB\n"
+
+    assert _network_verdict(0, text) == "WARN"
+    problem = _problem_summary(spec, 0, text, "WARN")
+    recommendation = _recommendation(spec, "WARN", text)
+
+    assert "NET-06" in problem
+    assert "TIME_WAIT=2500" in recommendation
+    assert "ss -tan state time-wait" in recommendation
+    assert "ip_local_port_range" in recommendation
 
 
 def test_ap_endpoint_warn_gives_health_and_port_commands():
@@ -195,10 +237,28 @@ TX: bytes packets errors dropped carrier collsns
 129959 420 0 0 0 0"""
     recommendation = _recommendation(spec, "WARN", text)
 
+    assert "NET-02" in recommendation
     assert "1. 先確認是哪張網卡" in recommendation
     assert "ip -s link show dev ens33" in recommendation
     assert "ethtool -S ens33" in recommendation
     assert "<nic>" not in recommendation
+
+
+def test_network_counter_recommendation_keeps_other_sn_commands():
+    spec = {"idx": 2, "name": "網路"}
+    text = """2: ens33: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500
+RX: bytes packets errors dropped missed mcast
+615350 1035 0 17 0 0
+net.netfilter.nf_conntrack_count = 900
+net.netfilter.nf_conntrack_max = 1000
+2500 TIME-WAIT"""
+    recommendation = _recommendation(spec, "WARN", text)
+
+    assert "NET-02" in recommendation
+    assert "# NET-05 conntrack 用量" in recommendation
+    assert "# NET-06 TIME_WAIT / port range" in recommendation
+    assert "nf_conntrack_count" in recommendation
+    assert "ss -tan state time-wait" in recommendation
 
 
 def test_inspection_template_preserves_recommendation_line_breaks():
