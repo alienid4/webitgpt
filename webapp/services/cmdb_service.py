@@ -381,6 +381,79 @@ def latest_network_reconcile(cidr: str = "") -> Optional[dict[str, Any]]:
     return _public(get_collection("network_scan_reports").find_one(query, sort=[("started_at", -1)]))
 
 
+def _unique_scan_hostname(ip_text: str) -> str:
+    base = f"scan-{ip_text.replace('.', '-').replace(':', '-')}"
+    hostname = base
+    index = 2
+    while host_service.get_host(hostname):
+        hostname = f"{base}-{index}"
+        index += 1
+    return hostname
+
+
+def create_asset_drafts_from_scan(cidr: str, user: str, ips: Optional[list[str]] = None) -> dict[str, Any]:
+    network = ipaddress.ip_network(cidr, strict=False)
+    report = latest_network_reconcile(str(network))
+    if not report:
+        raise ValueError("尚未有此網段掃描報告，請先執行 IPAM 網段對帳。")
+
+    requested = {str(ip).strip() for ip in (ips or []) if str(ip).strip()}
+    candidates = []
+    for row in report.get("rows") or []:
+        if row.get("type") != "scan_not_in_cmdb":
+            continue
+        ip_text = str(row.get("ip") or "").strip()
+        if not ip_text:
+            continue
+        if requested and ip_text not in requested:
+            continue
+        candidates.append(ip_text)
+
+    network_doc = get_collection("ipam_networks").find_one({"cidr": str(network)}) or {}
+    created = []
+    skipped = []
+    used = _used_ips()
+    now = _now()
+    for ip_text in sorted(set(candidates), key=lambda value: ipaddress.ip_address(value)):
+        if ip_text in used:
+            skipped.append({"ip": ip_text, "reason": "IP 已存在於資產或保留清單"})
+            continue
+        hostname = _unique_scan_hostname(ip_text)
+        doc = {
+            "division": "待補",
+            "department": "待補",
+            "asset_seq": f"DISC-{now.strftime('%Y%m%d%H%M%S')}-{ip_text.replace('.', '-')}",
+            "status": "draft",
+            "group_name": "H4",
+            "asset_name": f"掃描發現 {ip_text}",
+            "device_type": "待分類",
+            "quantity": 1,
+            "owner": "待補",
+            "environment": network_doc.get("environment") or "DEV",
+            "hostname": hostname,
+            "ip": ip_text,
+            "ip_addresses": [ip_text],
+            "network_segments": [str(network)],
+            "custodian": "待補",
+            "company": "待補",
+            "host_type": "end_device",
+            "dc": network_doc.get("dc") or "dunan",
+            "integrity": 1,
+            "confidentiality": 1,
+            "availability": 1,
+            "note": f"由 IPAM/nmap 掃描發現後建立草稿。來源網段：{network}",
+            "import_source": "ipam_scan",
+        }
+        try:
+            host = host_service.create_host(doc, user=user)
+            created.append({"ip": ip_text, "hostname": host.get("hostname"), "asset_seq": host.get("asset_seq")})
+            used.add(ip_text)
+        except Exception as exc:
+            skipped.append({"ip": ip_text, "reason": str(exc)})
+
+    return {"cidr": str(network), "created": created, "skipped": skipped, "created_count": len(created), "skipped_count": len(skipped)}
+
+
 def assign_ip_to_host(host_key: str, cidr: str, user: str) -> dict[str, Any]:
     ip_text = find_next_ip(cidr)
     host = host_service.get_host(host_key)

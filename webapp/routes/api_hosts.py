@@ -501,6 +501,27 @@ def ipam_scan_report_submit():
     return redirect(url_for("api_hosts.ipam_page", cidr=report.get("cidr", "")))
 
 
+@bp.post("/cmdb/ipam/scan-report/create-drafts")
+@require_feature("cmdb_network_scan")
+@require_role("admin")
+def ipam_scan_create_drafts_submit():
+    ips = request.form.getlist("ip")
+    result = cmdb_service.create_asset_drafts_from_scan(request.form.get("cidr", ""), user=current_user()["username"], ips=ips)
+    audit_log_service.append(
+        "ipam.network_scan.create_drafts",
+        current_user()["username"],
+        {"cidr": result.get("cidr"), "created": result.get("created_count"), "skipped": result.get("skipped_count")},
+    )
+    return redirect(
+        url_for(
+            "api_hosts.ipam_page",
+            cidr=result.get("cidr", ""),
+            scan_draft_created=result.get("created_count", 0),
+            scan_draft_skipped=result.get("skipped_count", 0),
+        )
+    )
+
+
 @bp.get("/api/cmdb/ipam/scan-report")
 @require_feature("cmdb_network_scan")
 def ipam_scan_report_api():

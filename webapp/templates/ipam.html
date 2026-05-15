@@ -100,6 +100,9 @@
       {% endif %}
     </form>
     {% if scan_report %}
+    {% if request.args.get("scan_draft_created") or request.args.get("scan_draft_skipped") %}
+    <div class="notice">掃描建檔結果：建立 {{ request.args.get("scan_draft_created", 0) }} 筆草稿，略過 {{ request.args.get("scan_draft_skipped", 0) }} 筆。</div>
+    {% endif %}
     <div class="metric-grid">
       <a class="metric" href="#ipam-scan-details"><strong>{{ scan_report.discovered_count }}</strong><span>掃描發現</span></a>
       <a class="metric" href="#ipam-scan-details"><strong>{{ scan_report.cmdb_count }}</strong><span>資產登錄</span></a>
@@ -107,6 +110,14 @@
       <a class="metric" href="#ipam-scan-details"><strong>{{ scan_report.mode }}</strong><span>掃描模式</span></a>
     </div>
     {% if scan_report.error %}<div class="notice danger">{{ scan_report.error }}</div>{% endif %}
+    <form class="inline-form" method="post" action="{{ url_for('api_hosts.ipam_scan_create_drafts_submit') }}">
+      <input type="hidden" name="cidr" value="{{ scan_report.cidr }}">
+      {% for row in scan_report.rows %}
+      {% if row.type == "scan_not_in_cmdb" %}<input type="hidden" name="ip" value="{{ row.ip }}">{% endif %}
+      {% endfor %}
+      <button class="btn primary" type="submit">將未納管 IP 建立草稿</button>
+      <span class="text-muted-sm">只會建立草稿資產，需人工補齊欄位後才正式納管。</span>
+    </form>
     <table class="data-table" id="ipam-scan-details">
       <thead><tr><th>嚴重度</th><th>類型</th><th>IP</th><th>主機</th><th>資產名稱</th><th>OS</th><th>平台</th><th>建議處置</th></tr></thead>
       <tbody>

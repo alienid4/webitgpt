@@ -51,6 +51,10 @@ def test_ipam_reconcile_and_schedule_contracts_exist():
     assert 'select name="weekday"' in ipam_html
     assert 'input name="time" type="time"' in ipam_html
     assert "ipam_scan_report_submit" in routes
+    assert "ipam_scan_create_drafts_submit" in routes
+    assert "create_asset_drafts_from_scan" in service
+    assert "將未納管 IP 建立草稿" in ipam_html
+    assert "ipam.network_scan.create_drafts" in routes
     assert "ipam_schedule_submit" in routes
 
 
