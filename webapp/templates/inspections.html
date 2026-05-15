@@ -8,7 +8,7 @@
     <p class="muted">開門檢查以系統範圍為主，例如巡檢系統主機；深度檢查以單台主機為主，Linux / RHEL / Debian / CentOS / AIX 可依平台執行 L3。</p>
   </div>
   <div class="actions">
-    <button class="btn primary" type="button" data-api-post="/api/inspections/run" data-payload='{"limit":100,"system":"{{ diagnostics.selected_system }}"}' data-reload-on-success="true" data-busy-text="巡檢中">巡檢目前系統</button>
+    <button class="btn primary" type="button" data-api-post="/api/inspections/run" data-payload='{"limit":100,"system":"{{ diagnostics.selected_system }}"}' data-reload-on-success="true" data-busy-text="巡檢中">巡檢目前範圍</button>
     <a class="btn secondary" href="{{ url_for('api_operations.today_report_api') }}">JSON API</a>
   </div>
 </section>
@@ -20,6 +20,7 @@
     <input type="hidden" name="platform" value="{{ diagnostics.platform }}">
     <label>開門檢查系統
       <select name="system">
+        <option value="{{ diagnostics.all_systems_value }}" {% if not diagnostics.selected_system %}selected{% endif %}>全部系統（{{ diagnostics.all_systems_count }} 台）</option>
         {% for option in diagnostics.system_options %}
         <option value="{{ option.name }}" {% if diagnostics.selected_system == option.name %}selected{% endif %}>{{ option.name }}（{{ option.count }} 台）</option>
         {% endfor %}
@@ -28,7 +29,7 @@
     <button class="btn-sm" type="submit">套用</button>
   </form>
   <div class="summary-grid">
-    <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.hosts }}</strong><span>{{ diagnostics.selected_system }} / {{ diagnostics.platform|upper }}</span></a>
+    <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.hosts }}</strong><span>{{ diagnostics.selected_system_label }} / {{ diagnostics.platform|upper }}</span></a>
     <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.ok }}</strong><span>正常項目</span></a>
     <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.warn }}</strong><span>警示項目</span></a>
     <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.pending }}</strong><span>待檢項目</span></a>
@@ -38,7 +39,7 @@
 <section class="panel compact">
   <div class="tab-row">
     {% for tab in diagnostics.tabs %}
-    <a class="tab-btn {% if diagnostics.platform == tab.key %}active{% endif %}" href="{{ url_for('api_operations.inspections_page', platform=tab.key, system=diagnostics.selected_system) }}">{{ tab.label }}</a>
+    <a class="tab-btn {% if diagnostics.platform == tab.key %}active{% endif %}" href="{{ url_for('api_operations.inspections_page', platform=tab.key, system=diagnostics.selected_system if diagnostics.selected_system else diagnostics.all_systems_value) }}">{{ tab.label }}</a>
     {% endfor %}
   </div>
 </section>

@@ -24,6 +24,7 @@ PLATFORM_TABS = [
 ]
 
 OPENING_DEFAULT_SYSTEM = "巡檢系統主機"
+OPENING_ALL_SYSTEMS_VALUE = "__all__"
 
 DIAGNOSTIC_ASPECTS = [
     ("connectivity", "連線狀態"),
@@ -86,6 +87,8 @@ def _system_options(hosts: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _selected_system(system_name: str, options: list[dict[str, Any]]) -> str:
     names = {item["name"] for item in options}
     requested = (system_name or "").strip()
+    if requested == OPENING_ALL_SYSTEMS_VALUE:
+        return ""
     if requested and requested in names:
         return requested
     if OPENING_DEFAULT_SYSTEM in names:
@@ -256,6 +259,9 @@ def daily_diagnostics(platform: str = "linux", system_name: str = "") -> dict[st
         "items": rows,
         "system_options": options,
         "selected_system": selected_system,
+        "all_systems_value": OPENING_ALL_SYSTEMS_VALUE,
+        "all_systems_count": sum(item["count"] for item in options),
+        "selected_system_label": selected_system or "全部系統",
     }
 
 

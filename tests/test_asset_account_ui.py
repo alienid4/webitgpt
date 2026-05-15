@@ -86,14 +86,21 @@ def test_opening_check_is_system_scoped_and_deep_check_supports_aix():
 
     assert "開門檢查系統" in html
     assert 'name="system"' in html
-    assert "巡檢目前系統" in html
-    assert "system=diagnostics.selected_system" in html
+    assert "巡檢目前範圍" in html
+    assert "全部系統" in html
+    assert "diagnostics.all_systems_value" in html
+    assert "diagnostics.all_systems_count" in html
+    assert "diagnostics.selected_system_label" in html
+    assert "system=diagnostics.selected_system if diagnostics.selected_system else diagnostics.all_systems_value" in html
     assert 'host.host_type in ["linux", "aix"]' in html
     assert "data-l3-filter" in html
     assert "data-l3-verdict" in html
     assert "[data-l3-filter]" in read("webapp/static/js/admin_tools.js")
     assert "daily_diagnostics(platform, system_name)" in routes
     assert "OPENING_DEFAULT_SYSTEM" in legacy
+    assert "OPENING_ALL_SYSTEMS_VALUE" in legacy
+    assert "if requested == OPENING_ALL_SYSTEMS_VALUE:" in legacy
+    assert '"all_systems_count": sum(item["count"] for item in options)' in legacy
     assert "selected_system" in legacy
     assert "AIX_COMMANDS" in deep
     assert 'host.get("host_type") not in {"linux", "aix"}' in deep
