@@ -1,3 +1,22 @@
+document.addEventListener("input", (event) => {
+  const search = event.target.closest("[data-opening-system-search]");
+  if (!search) return;
+
+  const form = search.closest("form");
+  const select = form?.querySelector("[data-opening-system-select]");
+  if (!select) return;
+
+  const keyword = search.value.trim().toLowerCase();
+  Array.from(select.options).forEach((option) => {
+    if (option.value === "__all__") {
+      option.hidden = false;
+      return;
+    }
+    const label = option.textContent.toLowerCase();
+    option.hidden = Boolean(keyword) && !label.includes(keyword);
+  });
+});
+
 document.addEventListener("click", async (event) => {
   const l3Filter = event.target.closest("[data-l3-filter]");
   if (l3Filter) {

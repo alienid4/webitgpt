@@ -18,8 +18,11 @@
 <section class="panel compact">
   <form class="filter-bar" method="get" action="{{ url_for('api_operations.inspections_page') }}">
     <input type="hidden" name="platform" value="{{ diagnostics.platform }}">
+    <label>搜尋系統
+      <input type="search" data-opening-system-search placeholder="輸入系統名稱">
+    </label>
     <label>開門檢查系統
-      <select name="system">
+      <select name="system" data-opening-system-select>
         <option value="{{ diagnostics.all_systems_value }}" {% if not diagnostics.selected_system %}selected{% endif %}>全部系統（{{ diagnostics.all_systems_count }} 台）</option>
         {% for option in diagnostics.system_options %}
         <option value="{{ option.name }}" {% if diagnostics.selected_system == option.name %}selected{% endif %}>{{ option.name }}（{{ option.count }} 台）</option>

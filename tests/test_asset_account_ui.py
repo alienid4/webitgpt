@@ -88,6 +88,9 @@ def test_opening_check_is_system_scoped_and_deep_check_supports_aix():
     assert 'name="system"' in html
     assert "巡檢目前範圍" in html
     assert "全部系統" in html
+    assert "搜尋系統" in html
+    assert "data-opening-system-search" in html
+    assert "data-opening-system-select" in html
     assert "diagnostics.all_systems_value" in html
     assert "diagnostics.all_systems_count" in html
     assert "diagnostics.selected_system_label" in html
@@ -96,6 +99,8 @@ def test_opening_check_is_system_scoped_and_deep_check_supports_aix():
     assert "data-l3-filter" in html
     assert "data-l3-verdict" in html
     assert "[data-l3-filter]" in read("webapp/static/js/admin_tools.js")
+    assert "[data-opening-system-search]" in read("webapp/static/js/admin_tools.js")
+    assert 'option.value === "__all__"' in read("webapp/static/js/admin_tools.js")
     assert "daily_diagnostics(platform, system_name)" in routes
     assert "OPENING_DEFAULT_SYSTEM" in legacy
     assert "OPENING_ALL_SYSTEMS_VALUE" in legacy
