@@ -8,10 +8,11 @@
     <p class="muted">提供 nmon 真實採樣入口、日 / 週 / 月報表與簡易趨勢圖。</p>
   </div>
   <div class="actions">
-    <form method="post" action="{{ url_for('api_operations.nmon_sample_page') }}"><button class="btn primary" type="submit">立即採樣</button></form>
-    <button class="btn" type="button" data-api-post="/api/nmon/deploy-plan" data-payload='{"limit":20}'>部署計畫</button>
+    <form method="post" action="{{ url_for('api_operations.nmon_sample_page') }}" data-submit-status data-submit-message="正在執行 nmon 採樣，請稍候。"><button class="btn primary" type="submit">立即採樣</button></form>
+    <button class="btn" type="button" data-busy-text="產生中" data-submit-message="正在產生 nmon 部署計畫，請稍候。" data-api-post="/api/nmon/deploy-plan" data-payload='{"limit":20}'>部署計畫</button>
     <a class="btn" href="{{ url_for('api_operations.nmon_report_api', period=report.period) }}">JSON</a>
   </div>
+  <div class="submit-status" hidden aria-live="polite"></div>
 </section>
 
 <section class="panel">

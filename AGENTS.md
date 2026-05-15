@@ -76,3 +76,9 @@
   - 後續追蹤方式
 
 更多細節見 `docs/codex_working_rules.md`。
+
+## 長時間操作按鈕規則
+
+- 掃描、盤點、巡檢、採樣、修補、回滾、備份、DR、匯入、上傳等按鈕必須顯示處理中狀態。
+- 表單使用 `data-submit-status` / `data-submit-message`，API 按鈕使用 `data-api-post` / `data-submit-message` / `data-busy-text`。
+- 新增同類按鈕時，要一起檢查是否有狀態回報，不能只讓使用者猜是否有送出。

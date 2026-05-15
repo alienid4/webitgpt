@@ -45,11 +45,12 @@
       <a class="btn secondary" href="{{ url_for('api_hosts.csv_export') }}">匯出現有資產</a>
     </div>
   </div>
-  <form class="form" method="post" action="{{ url_for('api_hosts.host_import_csv_page') }}" enctype="multipart/form-data">
+  <form class="form" method="post" action="{{ url_for('api_hosts.host_import_csv_page') }}" enctype="multipart/form-data" data-submit-status data-submit-message="正在匯入 CSV，請稍候。">
     <label>CSV 檔案<input type="file" name="csv_file" accept=".csv,text/csv"></label>
     <label>或貼上 CSV 內容<textarea name="csv_text" rows="8" placeholder="asset_seq,hostname,ip,host_type,os,..."></textarea></label>
     <button class="btn primary" type="submit">匯入 CSV</button>
   </form>
+  <div class="submit-status" hidden aria-live="polite"></div>
 </section>
 
 <section class="panel" id="network-scan">
@@ -92,7 +93,7 @@
     掃描結果：{{ scan_report.cidr }}，發現 {{ scan_report.discovered_count }} 個回應 IP，未納管 {{ scan_report.mismatch_count }} 個。
     模式：{{ scan_report.mode }}{% if scan_report.error %}，訊息：{{ scan_report.error }}{% endif %}
   </div>
-  <form method="post" action="{{ url_for('api_hosts.host_new_discovery_create_drafts_page') }}">
+  <form method="post" action="{{ url_for('api_hosts.host_new_discovery_create_drafts_page') }}" data-submit-status data-submit-message="正在將勾選 IP 建立為資產草稿，請稍候。">
     <input type="hidden" name="cidr" value="{{ scan_report.cidr }}">
     <table class="data-table">
       <thead>

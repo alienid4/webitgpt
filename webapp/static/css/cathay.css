@@ -874,6 +874,12 @@ a.metric:hover {
   font-weight: 700;
 }
 
+.submit-status.danger {
+  border-color: var(--red);
+  background: var(--white);
+  color: var(--red);
+}
+
 .btn.is-busy,
 button.is-busy {
   cursor: wait;

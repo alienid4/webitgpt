@@ -6,9 +6,9 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.1.86"
-PATCH_ID = "submit-status-feedback"
-RELEASE_NOTE = "長時間操作新增送出狀態回報，資產網段掃描會顯示掃描中並停用按鈕避免重複點擊"
+VERSION = "1.0.1.87"
+PATCH_ID = "long-action-status-feedback"
+RELEASE_NOTE = "長時間操作按鈕統一顯示處理中與停用狀態，涵蓋盤點、巡檢、掃描、修補、備份、DR、匯入與上傳"
 BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-15 23:45:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):

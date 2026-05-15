@@ -9,16 +9,17 @@
   </div>
   <div class="actions">
     {% if kind == "software" %}
-    <form method="post" action="{{ url_for('api_inventory.software_collect_page') }}"><button class="btn primary" type="submit">沿用冷卻規則採集</button></form>
-    <form method="post" action="{{ url_for('api_inventory.software_collect_page') }}"><input type="hidden" name="force" value="1"><button class="btn secondary" type="submit">強制重新盤點</button></form>
+    <form method="post" action="{{ url_for('api_inventory.software_collect_page') }}" data-submit-status data-submit-message="正在採集軟體盤點資料，請稍候。"><button class="btn primary" type="submit">沿用冷卻規則採集</button></form>
+    <form method="post" action="{{ url_for('api_inventory.software_collect_page') }}" data-submit-status data-submit-message="正在採集軟體盤點資料，請稍候。"><input type="hidden" name="force" value="1"><button class="btn secondary" type="submit">強制重新盤點</button></form>
     <a class="btn" href="{{ url_for('api_inventory.software_csv_page', q=inventory.filters.q, host=inventory.filters.host) }}">匯出 CSV</a>
     <a class="btn" href="{{ url_for('api_inventory.software_json_page', q=inventory.filters.q, host=inventory.filters.host) }}">JSON</a>
     <a class="btn secondary" href="{{ url_for('api_inventory.inventory_diff_report_page', kind=kind) }}">差異報告</a>
     {% else %}
-    <button class="btn primary" type="button" data-api-post="/api/inventory/{{ kind }}/collect" data-payload='{"limit":50}' data-reload-on-success="true">立即採集</button>
+    <button class="btn primary" type="button" data-api-post="/api/inventory/{{ kind }}/collect" data-payload='{"limit":50}' data-reload-on-success="true" data-busy-text="採集中" data-submit-message="正在採集盤點資料，請稍候。">立即採集</button>
     <a class="btn" href="/api/inventory/{{ kind }}">JSON API</a>
     {% endif %}
   </div>
+  <div class="submit-status" hidden aria-live="polite"></div>
 </section>
 
 {% if kind == "software" %}
@@ -36,6 +37,7 @@
       {% if inventory.filters.q %} / 關鍵字="{{ inventory.filters.q }}"{% endif %}
     </span>
   </div>
+  <div class="submit-status" hidden aria-live="polite"></div>
 </section>
 
 <section class="panel">

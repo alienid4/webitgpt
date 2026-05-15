@@ -37,16 +37,17 @@
     <p class="muted">以 ss -tunp 採集結果為主，呈現系統、主機、IP 的連線關係；若尚未重新採集，會沿用最近一次資料。</p>
   </div>
   <div class="actions">
-    <form method="post" action="{{ url_for('api_dependencies.collect_trigger_page') }}">
+    <form method="post" action="{{ url_for('api_dependencies.collect_trigger_page') }}" data-submit-status data-submit-message="正在執行 ss -tunp 採集，請稍候。">
       <input type="hidden" name="view" value="{{ topology.view }}">
       <button class="btn primary" type="submit">立即 ss 採集</button>
     </form>
-    <form method="post" action="{{ url_for('api_dependencies.reconcile_trigger_page') }}">
+    <form method="post" action="{{ url_for('api_dependencies.reconcile_trigger_page') }}" data-submit-status data-submit-message="正在執行 ss+nmap 對帳，請稍候。">
       <input type="hidden" name="view" value="{{ topology.view }}">
       <button class="btn" type="submit">ss+nmap 對帳</button>
     </form>
     <a class="btn" href="{{ url_for('api_reports.dependencies_api') }}">JSON API</a>
   </div>
+  <div class="submit-status" hidden aria-live="polite"></div>
 </section>
 
 <section class="panel compact-panel topology-status-panel">

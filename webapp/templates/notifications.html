@@ -18,9 +18,10 @@
             <label class="toggle"><input type="checkbox" name="enabled" {% if channel.enabled %}checked{% endif %}><span>啟用</span></label>
             <button class="btn" type="submit">儲存</button>
           </form>
+          <div class="submit-status" hidden aria-live="polite"></div>
         </td>
         <td>
-          <form method="post" action="{{ url_for('api_notifications.send_test_page', channel=channel.channel) }}">
+          <form method="post" action="{{ url_for('api_notifications.send_test_page', channel=channel.channel) }}" data-submit-status data-submit-message="正在送出通知測試，請稍候。">
             <button class="btn" type="submit">送出測試</button>
           </form>
         </td>

@@ -8,7 +8,7 @@
     <p class="muted">開門檢查以系統範圍為主，例如巡檢系統主機；深度檢查以單台主機為主，Linux / RHEL / Debian / CentOS / AIX 可依平台執行 L3。</p>
   </div>
   <div class="actions">
-    <button class="btn primary" type="button" data-api-post="/api/inspections/run" data-payload='{"limit":100,"system":"{{ diagnostics.selected_system }}"}' data-reload-on-success="true" data-busy-text="巡檢中">巡檢目前範圍</button>
+    <button class="btn primary" type="button" data-submit-message="正在執行開門檢查，請稍候。" data-api-post="/api/inspections/run" data-payload='{"limit":100,"system":"{{ diagnostics.selected_system }}"}' data-reload-on-success="true" data-busy-text="巡檢中">巡檢目前範圍</button>
     <a class="btn secondary" href="{{ url_for('api_operations.today_report_api') }}">JSON API</a>
   </div>
 </section>
@@ -98,7 +98,7 @@
           {% endif %}
         </div>
         {% if host.host_type in ["linux", "aix"] %}
-        <button class="btn-sm btn-primary" type="button" data-api-post="/api/deep-check/run" data-payload='{"hostname":"{{ host.hostname }}"}' data-reload-on-success="true" data-busy-text="檢查中">執行 L3</button>
+        <button class="btn-sm btn-primary" type="button" data-submit-message="正在執行 L3 深度檢查，請稍候。" data-api-post="/api/deep-check/run" data-payload='{"hostname":"{{ host.hostname }}"}' data-reload-on-success="true" data-busy-text="檢查中">執行 L3</button>
         {% elif host.host_type in ["windows"] %}
         <span class="badge-warn">WinRM 待接</span>
         {% else %}
@@ -178,7 +178,7 @@
     </section>
 
     <div class="gauge-actions">
-      <form method="post" action="{{ url_for('api_operations.deep_diagnostic_page', asset_seq=host.asset_seq) }}">
+      <form method="post" action="{{ url_for('api_operations.deep_diagnostic_page', asset_seq=host.asset_seq) }}" data-submit-status data-submit-message="正在執行 L1 快速檢查，請稍候。">
         <button class="btn-sm btn-secondary" type="submit">L1 快速檢查</button>
       </form>
       <a class="btn-sm" href="/api/deep-check/history?hostname={{ host.hostname }}">L3 歷史 API</a>

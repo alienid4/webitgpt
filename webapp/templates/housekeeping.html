@@ -7,7 +7,8 @@
     <h1>Housekeeping</h1>
     <p class="muted">清理暫存、歸檔舊報告與檢查磁碟容量。預設以 dry-run 執行，避免誤刪正式資料。</p>
   </div>
-  <button class="btn primary" type="button" data-api-post="/api/housekeeping/run-all">全部試跑</button>
+  <button class="btn primary" type="button" data-busy-text="試跑中" data-submit-message="正在執行全部 housekeeping dry-run，請稍候。" data-api-post="/api/housekeeping/run-all">全部試跑</button>
+  <div class="submit-status" hidden aria-live="polite"></div>
 </section>
 
 <section class="panel">

@@ -10,8 +10,8 @@
     </div>
     <div class="actions">
       <a class="btn secondary" href="{{ url_for('api_superadmin.superadmin_page') }}">回系統管理</a>
-      <button class="btn primary" type="button" data-api-post="/api/superadmin/backup/manifest">產生備份 manifest</button>
-      <button class="btn" type="button" data-api-post="/api/superadmin/dr-drill">執行 DR dry-run</button>
+      <button class="btn primary" type="button" data-busy-text="產生中" data-submit-message="正在產生備份 manifest，請稍候。" data-api-post="/api/superadmin/backup/manifest">產生備份 manifest</button>
+      <button class="btn" type="button" data-busy-text="試跑中" data-submit-message="正在執行 DR dry-run，請稍候。" data-api-post="/api/superadmin/dr-drill">執行 DR dry-run</button>
     </div>
   </div>
   <pre class="detail" id="apiResult"></pre>

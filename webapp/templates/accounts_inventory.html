@@ -44,9 +44,10 @@
       <a class="btn secondary" href="{{ url_for('api_inventory.accounts_page') }}">清除</a>
       <a class="btn" href="{{ url_for('api_inventory.accounts_csv', **account_view.filters) }}">CSV</a>
       <a class="btn secondary" href="{{ url_for('api_inventory.inventory_diff_report_page', kind=kind) }}">差異報告</a>
-      <button class="btn primary" type="button" data-api-post="/api/inventory/accounts/collect" data-payload='{"limit":50}' data-reload-on-success="true">依冷卻規則盤點</button>
-      <button class="btn secondary" type="button" data-api-post="/api/inventory/accounts/collect" data-payload='{"limit":50,"force":true}' data-reload-on-success="true">強制重新盤點</button>
+      <button class="btn primary" type="button" data-api-post="/api/inventory/accounts/collect" data-payload='{"limit":50}' data-reload-on-success="true" data-busy-text="盤點中" data-submit-message="正在執行帳號盤點，請稍候。">依冷卻規則盤點</button>
+      <button class="btn secondary" type="button" data-api-post="/api/inventory/accounts/collect" data-payload='{"limit":50,"force":true}' data-reload-on-success="true" data-busy-text="盤點中" data-submit-message="正在強制重新盤點帳號，請稍候。">強制重新盤點</button>
     </form>
+    <div class="submit-status" hidden aria-live="polite"></div>
     <nav class="account-tabs" aria-label="帳號盤點分頁">
       <button class="account-tab active" type="button" data-account-tab="overview">總覽</button>
       <button class="account-tab" type="button" data-account-tab="departments">部門設備</button>

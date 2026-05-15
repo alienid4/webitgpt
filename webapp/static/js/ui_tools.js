@@ -179,9 +179,16 @@ document.querySelectorAll("form[data-submit-status]").forEach((form) => {
     if (form.dataset.submitting === "true") return;
     form.dataset.submitting = "true";
 
-    const status = form.nextElementSibling?.classList.contains("submit-status")
+    let status = form.nextElementSibling?.classList.contains("submit-status")
       ? form.nextElementSibling
-      : form.querySelector(".submit-status");
+      : form.querySelector(".submit-status") || form.closest("section, article, tr, .panel")?.querySelector(".submit-status");
+    if (!status) {
+      status = document.createElement("div");
+      status.className = "submit-status";
+      status.hidden = true;
+      status.setAttribute("aria-live", "polite");
+      form.insertAdjacentElement("afterend", status);
+    }
     if (status) {
       status.hidden = false;
       status.innerHTML = `<span class="spinner-sm" aria-hidden="true"></span><span>${form.dataset.submitMessage || "已送出，正在處理中，請稍候。"}</span>`;

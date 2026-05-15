@@ -88,7 +88,7 @@
   <section class="panel">
     <h2>網段掃描對帳報告</h2>
     <p class="text-muted-sm">手動產生單一網段對帳報告；每週排程則會掃描所有已建立的 IPAM 網段。</p>
-    <form class="inline-form" method="post" action="{{ url_for('api_hosts.ipam_scan_report_submit') }}">
+    <form class="inline-form" method="post" action="{{ url_for('api_hosts.ipam_scan_report_submit') }}" data-submit-status data-submit-message="正在執行 IPAM 網段掃描對帳，請稍候。">
       <select name="cidr" required>
         {% for item in networks %}
         <option value="{{ item.cidr }}" {% if selected_cidr == item.cidr %}selected{% endif %}>{{ item.name }} / {{ item.cidr }}</option>
@@ -99,6 +99,7 @@
       <a class="btn secondary" href="{{ url_for('api_hosts.ipam_scan_report_csv', cidr=scan_report.cidr) }}">匯出 CSV</a>
       {% endif %}
     </form>
+    <div class="submit-status" hidden aria-live="polite"></div>
     {% if scan_report %}
     {% if request.args.get("scan_draft_created") or request.args.get("scan_draft_skipped") %}
     <div class="notice">掃描建檔結果：建立 {{ request.args.get("scan_draft_created", 0) }} 筆草稿，略過 {{ request.args.get("scan_draft_skipped", 0) }} 筆。</div>
@@ -110,7 +111,7 @@
       <a class="metric" href="#ipam-scan-details"><strong>{{ scan_report.mode }}</strong><span>掃描模式</span></a>
     </div>
     {% if scan_report.error %}<div class="notice danger">{{ scan_report.error }}</div>{% endif %}
-    <form class="inline-form" method="post" action="{{ url_for('api_hosts.ipam_scan_create_drafts_submit') }}">
+    <form class="inline-form" method="post" action="{{ url_for('api_hosts.ipam_scan_create_drafts_submit') }}" data-submit-status data-submit-message="正在將未納管 IP 建立為資產草稿，請稍候。">
       <input type="hidden" name="cidr" value="{{ scan_report.cidr }}">
       {% for row in scan_report.rows %}
       {% if row.type == "scan_not_in_cmdb" %}<input type="hidden" name="ip" value="{{ row.ip }}">{% endif %}

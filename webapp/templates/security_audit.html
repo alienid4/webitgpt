@@ -42,8 +42,8 @@
         <td>{{ item.open_count }}<div class="text-muted-sm">Critical {{ item.severity_counts.critical }} / High {{ item.severity_counts.high }} / Medium {{ item.severity_counts.medium }} / Low {{ item.severity_counts.low }}</div></td>
         <td>{{ item.last_compliance_at or "尚未稽核" }}</td>
         <td class="actions">
-          <form method="post" action="{{ url_for('api_compliance.evaluate_host_page', asset_seq=item.asset_seq) }}"><button class="btn-sm" type="submit">重新稽核</button></form>
-          {% if item.open_count %}<form method="post" action="{{ url_for('api_compliance.remediate_all_page', asset_seq=item.asset_seq) }}"><button class="btn-sm btn-fix" type="submit">全修補</button></form>{% endif %}
+          <form method="post" action="{{ url_for('api_compliance.evaluate_host_page', asset_seq=item.asset_seq) }}" data-submit-status data-submit-message="正在重新執行安全稽核，請稍候。"><button class="btn-sm" type="submit">重新稽核</button></form>
+          {% if item.open_count %}<form method="post" action="{{ url_for('api_compliance.remediate_all_page', asset_seq=item.asset_seq) }}" data-submit-status data-submit-message="正在產生全修補計畫與備份，請稍候。"><button class="btn-sm btn-fix" type="submit">全修補</button></form>{% endif %}
         </td>
       </tr>
       {% if item.findings %}
@@ -51,7 +51,7 @@
         {% for finding in item.findings %}
         <div class="finding-item">
           <div><strong>{{ finding.rule_id }}</strong> <span class="badge-warn">{{ finding.severity_label }}</span><div class="muted">{{ finding.violation }}</div><div class="text-muted-sm">修補：{{ finding.remediation.command or "人工確認" }}</div></div>
-          <form method="post" action="{{ url_for('api_compliance.remediate_one_page', asset_seq=item.asset_seq, rule_id=finding.rule_id) }}"><button class="btn-sm btn-fix" type="submit">單項修補</button></form>
+          <form method="post" action="{{ url_for('api_compliance.remediate_one_page', asset_seq=item.asset_seq, rule_id=finding.rule_id) }}" data-submit-status data-submit-message="正在產生單項修補計畫與備份，請稍候。"><button class="btn-sm btn-fix" type="submit">單項修補</button></form>
         </div>
         {% endfor %}
       </div></td></tr>
@@ -75,7 +75,7 @@
         <td>{{ "全修補" if plan.mode == "all" else "單項修補" }} / {{ plan.finding_count }} 項</td>
         <td>{{ plan.backup_path }}</td>
         <td>{{ plan.rollback_path }}</td>
-        <td><form method="post" action="{{ url_for('api_compliance.rollback_page', plan_id=plan.plan_id) }}"><button class="btn-sm" type="submit">提出 rollback</button></form></td>
+        <td><form method="post" action="{{ url_for('api_compliance.rollback_page', plan_id=plan.plan_id) }}" data-submit-status data-submit-message="正在提出 rollback，請稍候。"><button class="btn-sm" type="submit">提出 rollback</button></form></td>
       </tr>
       {% else %}
       <tr><td colspan="6" class="no-data">尚無修補計畫。</td></tr>

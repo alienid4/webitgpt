@@ -192,7 +192,7 @@
             <button class="btn-sm btn-secondary" data-debug="{{ host.asset_seq }}" type="button">Debug</button>
             {% endif %}
             {% if current_user.role == "superadmin" and feature_enabled("module_compliance_security", default=false) %}
-            <form method="post" action="{{ url_for('api_compliance.evaluate_host_page', asset_seq=host.asset_seq) }}">
+            <form method="post" action="{{ url_for('api_compliance.evaluate_host_page', asset_seq=host.asset_seq) }}" data-submit-status data-submit-message="正在執行資安稽核，請稍候。">
               <button class="btn-sm btn-secondary">資安</button>
             </form>
             {% endif %}

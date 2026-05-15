@@ -5,8 +5,8 @@
   <h1>SSH Key 管理</h1>
   <div class="notice">平行評選期間不會派送金鑰到受管主機；此頁提供盤點與 dry-run plan。</div>
   <div class="actions">
-    <button class="btn primary" type="button" data-api-post="/api/ssh-keys/plan">預覽金鑰計畫</button>
-    <button class="btn" type="button" data-api-post="/api/inventory/ssh_keys/collect" data-payload='{"limit":50}'>採集 SSH 紀錄</button>
+    <button class="btn primary" type="button" data-busy-text="產生中" data-submit-message="正在產生 SSH Key 計畫，請稍候。" data-api-post="/api/ssh-keys/plan">預覽金鑰計畫</button>
+    <button class="btn" type="button" data-busy-text="採集中" data-submit-message="正在採集 SSH 紀錄，請稍候。" data-api-post="/api/inventory/ssh_keys/collect" data-payload='{"limit":50}'>採集 SSH 紀錄</button>
   </div>
   <pre class="detail" id="apiResult"></pre>
   <table class="data-table">

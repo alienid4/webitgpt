@@ -74,3 +74,9 @@
 - 不因 unrelated failed service 讓深度檢查誤判 OS 異常。
 - 不長期建議關閉防火牆；只能作為緊急短時間排除，正式作法是開必要 port。
 - 不改動 legacy 5000、`inspection` DB、Claude 版路徑或無關服務。
+
+## 8. 長時間操作按鈕
+
+- 會觸發掃描、盤點、巡檢、採樣、修補、回滾、備份、DR、匯入或檔案上傳的按鈕，都要有明確狀態回報。
+- 一般 POST 表單使用 `data-submit-status` 與 `data-submit-message`；API 按鈕使用 `data-api-post` 搭配 `data-submit-message`、`data-busy-text`。
+- 按下後必須停用按鈕並顯示「處理中」訊息，避免使用者以為沒反應而重複點擊。

@@ -41,7 +41,7 @@
       <h2>檔案管理</h2>
       <span class="code-inline">{{ console.docs_dir }}</span>
     </div>
-    <form class="dev-upload-bar" method="post" action="{{ url_for('api_superadmin.dev_console_upload_page') }}" enctype="multipart/form-data">
+    <form class="dev-upload-bar" method="post" action="{{ url_for('api_superadmin.dev_console_upload_page') }}" enctype="multipart/form-data" data-submit-status data-submit-message="正在上傳檔案，請稍候。">
       <label class="btn primary">
         上傳檔案
         <input class="visually-hidden" type="file" name="file" required>
@@ -50,6 +50,7 @@
       <a class="btn secondary" href="{{ url_for('api_superadmin.dev_console_page') }}#file-manager">重新整理</a>
       <span class="text-muted-sm">上傳到開發文件目錄，單檔上限 20MB。</span>
     </form>
+    <div class="submit-status" hidden aria-live="polite"></div>
     <table class="data-table dev-table">
       <thead><tr><th>名稱</th><th>類型</th><th>大小</th><th>修改時間</th></tr></thead>
       <tbody>

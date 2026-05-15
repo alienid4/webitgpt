@@ -95,11 +95,19 @@ def test_asset_new_workbench_has_csv_and_scan_entrypoints():
 
 def test_long_running_submit_feedback_contract_exists():
     js = read("webapp/static/js/ui_tools.js")
+    admin_js = read("webapp/static/js/admin_tools.js")
     css = read("webapp/static/css/cathay.css")
     rules = read("docs/codex_working_rules.md")
 
     assert 'form[data-submit-status]' in js
     assert "dataset.submitting" in js
+    assert "createElement(\"div\")" in js
+    assert "[data-api-post]" in admin_js
+    assert "findApiStatus" in admin_js
+    assert "data-submit-message" in read("webapp/templates/accounts_inventory.html")
+    assert "data-submit-message" in read("webapp/templates/dependencies.html")
+    assert "data-submit-message" in read("webapp/templates/ipam.html")
+    assert "data-submit-message" in read("webapp/templates/security_audit.html")
     assert "submit-status" in css
     assert "長時間操作" in rules
     assert "停用按鈕" in rules

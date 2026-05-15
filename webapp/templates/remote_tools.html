@@ -3,12 +3,13 @@
 {% block content %}
 <section class="panel report-hero"><div><p class="eyebrow">REMOTE OPERATIONS</p><h1>Linux 初始化 / 遠端工具 / 服務啟停</h1><p class="muted">目前先以 dry-run 產生執行計畫，後續需 ticket 與備份後才開放真正執行。</p></div></section>
 <section class="panel">
-  <form class="asset-edit-grid" method="post" action="{{ url_for('api_superadmin.remote_tools_plan_page') }}">
+  <form class="asset-edit-grid" method="post" action="{{ url_for('api_superadmin.remote_tools_plan_page') }}" data-submit-status data-submit-message="正在產生遠端操作計畫，請稍候。">
     <label><span>動作</span><select name="action"><option value="linux_init">Linux 初始化</option><option value="service_start">服務啟動</option><option value="service_stop">服務停止</option><option value="service_restart">服務重啟</option><option value="remote_command">遠端命令</option></select></label>
     <label><span>目標主機</span><input name="target" placeholder="hostname / IP"></label>
     <label><span>服務名稱</span><input name="service" placeholder="例如 nginx / webitgpt"></label>
     <div class="asset-edit-actions"><button class="btn primary" type="submit">產生計畫</button></div>
   </form>
+  <div class="submit-status" hidden aria-live="polite"></div>
 </section>
 {% if plan %}
 <section class="panel"><h2>{{ plan.action_label }}</h2><p>{{ plan.message }}</p><ol>{% for step in plan.steps %}<li>{{ step }}</li>{% endfor %}</ol><pre class="detail">{{ plan | tojson(indent=2) }}</pre></section>
