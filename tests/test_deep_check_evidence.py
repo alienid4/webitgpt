@@ -166,7 +166,8 @@ def test_locked_account_recommendation_lists_real_accounts():
 
     assert "appsvc、batch01" in problem
     assert "<account>" not in recommendation
-    assert "直接執行下列指令" in recommendation
+    assert "1. 先確認帳號用途" in recommendation
+    assert "可直接執行指令" in recommendation
     assert "id appsvc" in recommendation
     assert "id batch01" in recommendation
     assert "# appsvc" in recommendation
@@ -180,7 +181,7 @@ def test_locked_account_recommendation_lists_real_accounts():
 def test_locked_account_without_name_does_not_offer_placeholder_unlock():
     recommendation = _recommendation({"idx": 10, "name": "運維軌跡"}, "WARN", "bash: -c: line 1: syntax error")
 
-    assert "不能給解鎖指令" in recommendation
+    assert "1. 不能使用 <account>" in recommendation
     assert "sudo passwd -u <account>" not in recommendation
     assert "sudo awk -F:" in recommendation
 
@@ -194,9 +195,19 @@ TX: bytes packets errors dropped carrier collsns
 129959 420 0 0 0 0"""
     recommendation = _recommendation(spec, "WARN", text)
 
+    assert "1. 先確認是哪張網卡" in recommendation
     assert "ip -s link show dev ens33" in recommendation
     assert "ethtool -S ens33" in recommendation
     assert "<nic>" not in recommendation
+
+
+def test_inspection_template_preserves_recommendation_line_breaks():
+    html = (ROOT / "webapp/templates/inspections.html").read_text(encoding="utf-8")
+    css = (ROOT / "webapp/static/css/cathay.css").read_text(encoding="utf-8")
+
+    assert '<div class="l3-recommendation"><strong>建議處置：</strong><pre>' in html
+    assert ".l3-recommendation pre" in css
+    assert "white-space: pre-wrap" in css
 
 
 def test_deep_check_preview_route_returns_plain_text():

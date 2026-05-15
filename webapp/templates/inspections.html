@@ -128,7 +128,7 @@
             <div class="l3-focus">
               <p class="l3-problem"><strong>問題點：</strong>{{ item.problem or item.impact }}</p>
               <p class="l3-threshold"><strong>警示門檻：</strong>{{ item.threshold or item.baseline }}</p>
-              <p class="l3-recommendation"><strong>建議處置：</strong>{{ item.recommendation or item.action }}</p>
+              <div class="l3-recommendation"><strong>建議處置：</strong><pre>{{ item.recommendation or item.action }}</pre></div>
             </div>
             <details class="l3-raw-output">
               <summary>查看判定證據與命令</summary>

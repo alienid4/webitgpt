@@ -2191,6 +2191,14 @@ textarea,
   background: var(--g-light);
 }
 
+.l3-recommendation pre {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: "Noto Sans TC", sans-serif;
+  line-height: 1.7;
+}
+
 .l3-warn { border-color: var(--orange); }
 .l3-fail { border-color: var(--red); }
 .l3-pass { border-color: var(--g1); }

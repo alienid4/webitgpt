@@ -738,27 +738,123 @@ def _recommendation(spec: dict[str, Any], verdict: str, text: str) -> str:
         accounts = _locked_account_display(text)
         commands = _locked_account_fix_commands(text)
         if _locked_account_names(text):
-            return f"緊急處置：發現可登入帳號被鎖定：{accounts}，可能影響 AP 登入、批次或服務連線。直接執行下列指令逐一確認與解鎖：\n{commands}\n若 passwd -S 最後仍是 L/LK，代表帳號仍鎖定；若是資安刻意鎖定，不要解鎖，改通知 AP 負責人改用正確帳號。"
-        return f"緊急處置：這次沒有抓到實際帳號名稱，不能給解鎖指令，避免誤解鎖。請先執行採集確認指令：\n{commands}"
+            return "\n".join(
+                [
+                    f"狀況：發現可登入帳號被鎖定：{accounts}，可能影響 AP 登入、批次或服務連線。",
+                    "1. 先確認帳號用途與目前狀態。",
+                    "2. 若確認需要立即恢復，只解鎖確認要用的帳號。",
+                    "3. 解鎖後重跑 passwd -S，確認不再是 L/LK。",
+                    "4. 若是資安刻意鎖定，不要解鎖，改通知 AP 負責人改用正確帳號。",
+                    "可直接執行指令：",
+                    commands,
+                ]
+            )
+        return "\n".join(
+            [
+                "狀況：帳號鎖定檢查失敗，這次沒有抓到實際帳號名稱。",
+                "1. 不能使用 <account> 這種占位文字解鎖，避免誤解鎖未知帳號。",
+                "2. 先執行下列採集確認指令，取得真實帳號名稱。",
+                "3. 有真實帳號名稱後，再依帳號用途決定是否解鎖。",
+                "採集確認指令：",
+                commands,
+            ]
+        )
     if verdict == "PASS":
         return "目前沒有看到需要立即處理的異常，維持例行觀察即可。"
     idx = int(spec["idx"])
     if idx == 1:
-        return "建議處置：先確認是否為短暫尖峰。可執行 uptime、top -bn1、free -m、vmstat 1 3；若 CPU idle 持續低於 30%，找出耗用最高程序；若 Swap 高於 50%，確認 AP 是否記憶體不足或有異常批次。處理後重跑深度檢查。"
+        return "\n".join(
+            [
+                "狀況：效能數據超過門檻，可能造成 AP 反應變慢。",
+                "1. 先確認是否為短暫尖峰。",
+                "2. 找出 CPU 或記憶體用量最高的程序。",
+                "3. 若 Swap 高於 50%，確認 AP 是否記憶體不足或有異常批次。",
+                "4. 處理後重跑深度檢查。",
+                "可直接執行指令：",
+                "uptime",
+                "top -bn1 | head -20",
+                "free -m",
+                "vmstat 1 3",
+            ]
+        )
     if idx == 2:
         issues = _network_counter_issue_lines(text)
         loss_match = re.search(r"(\d+(?:\.\d+)?)%\s+packet loss", text.lower())
         if issues:
-            return "建議處置：發現實體網卡 counter 異常，請直接執行下列指令確認是哪張網卡與哪個計數器在增加：\n" + _network_fix_commands(text) + "\n若重新執行後 counter 持續增加，交由 VM/網路管理者檢查虛擬網卡、交換器埠、線路或速率/雙工設定。"
+            return "\n".join(
+                [
+                    "狀況：發現實體網卡 counter 異常，可能影響 AP 連線品質。",
+                    "1. 先確認是哪張網卡與哪個 counter 在增加。",
+                    "2. 若 dropped/errors/carrier 持續增加，交由 VM/網路管理者檢查虛擬網卡、交換器埠、線路或速率/雙工設定。",
+                    "3. 修正後重跑深度檢查，確認 counter 不再增加。",
+                    "可直接執行指令：",
+                    _network_fix_commands(text),
+                ]
+            )
         if loss_match and float(loss_match.group(1)) > 0:
-            return f"建議處置：偵測到 ping loss {loss_match.group(1)}%。請先確認目標 IP 是否正確，再由網路或系統管理者檢查路由、交換器、防火牆與主機負載；處理後重跑深度檢查確認 loss 回到 0%。"
+            return "\n".join(
+                [
+                    f"狀況：偵測到 ping loss {loss_match.group(1)}%，代表封包有遺失。",
+                    "1. 先確認目標 IP 是否正確。",
+                    "2. 檢查路由、交換器、防火牆與主機負載。",
+                    "3. 處理後重跑深度檢查，確認 loss 回到 0%。",
+                    "可直接執行指令：",
+                    "ping -c 5 ${PING_TGT:-127.0.0.1}",
+                    "tracepath ${PING_TGT:-127.0.0.1} 2>/dev/null || traceroute ${PING_TGT:-127.0.0.1}",
+                ]
+            )
         if _tcp_retransmit_seen(text):
-            return "建議處置：偵測到 TCP 重傳或 listen drop。請先確認是否為單一 AP 服務過載，再檢查網路延遲、防火牆或連線佇列；處理後重跑深度檢查確認重傳或 drop 不再增加。"
-        return "建議處置：目前沒有明確網路異常證據。若畫面只看到 lo，代表本機迴圈介面，不需通知網路單位；請重新執行深度檢查或補抓實體網卡資料。"
+            return "\n".join(
+                [
+                    "狀況：偵測到 TCP 重傳或 listen drop，可能是連線重送、佇列滿或服務過載。",
+                    "1. 先確認是否為單一 AP 服務過載。",
+                    "2. 檢查網路延遲、防火牆或連線佇列。",
+                    "3. 處理後重跑深度檢查，確認重傳或 drop 不再增加。",
+                    "可直接執行指令：",
+                    "ss -s",
+                    "netstat -s | egrep -i 'retrans|listen|drop'",
+                ]
+            )
+        return "\n".join(
+            [
+                "狀況：目前沒有明確網路異常證據。",
+                "1. 若畫面只看到 lo，代表本機迴圈介面，不需通知網路單位。",
+                "2. 重新執行深度檢查或補抓實體網卡資料。",
+                "可直接執行指令：",
+                "ip -s link",
+                "ss -s",
+            ]
+        )
     if idx == 3:
-        return "緊急處置：1. 確認 AP 程序是否存在：ps -ef | grep <AP關鍵字>。2. 確認監聽埠：ss -ltnp | grep <port>。3. 若 AP 有啟動但外部連不到，短時間排除防火牆可執行 sudo systemctl stop firewalld；測完立即 sudo systemctl start firewalld。4. 若停防火牆後恢復，改用正式規則開單一 port：sudo firewall-cmd --permanent --add-port=<port>/tcp && sudo firewall-cmd --reload。"
+        return "\n".join(
+            [
+                "狀況：未確認到 AP listener，可能是 AP 未啟動、port 綁定錯誤或被防火牆擋住。",
+                "1. 確認 AP 程序是否存在。",
+                "2. 確認 AP port 是否有監聽。",
+                "3. 若 AP 有啟動但外部連不到，短時間排除防火牆；測完立即恢復。",
+                "4. 若停防火牆後恢復，改用正式規則只開必要 port。",
+                "可直接執行指令：",
+                "ps -ef | grep <AP關鍵字>",
+                "ss -ltnp | grep <port>",
+                "sudo systemctl stop firewalld",
+                "sudo systemctl start firewalld",
+                "sudo firewall-cmd --permanent --add-port=<port>/tcp && sudo firewall-cmd --reload",
+            ]
+        )
     if idx == 4:
-        return "建議處置：1. 確認 AP_PORT 是否正確。2. 執行 ss -ltnp | grep <port> 看本機是否監聽。3. 執行 curl -v http://127.0.0.1:<port>/health 看 health 是否回應。4. 若本機可通但外部不通，再檢查防火牆或 ACL。"
+        return "\n".join(
+            [
+                "狀況：本機 AP port 或 health endpoint 沒有正常回應。",
+                "1. 確認 AP_PORT 是否正確。",
+                "2. 確認本機是否監聽該 port。",
+                "3. 確認 health endpoint 是否回應。",
+                "4. 若本機可通但外部不通，再檢查防火牆或 ACL。",
+                "可直接執行指令：",
+                "echo ${AP_PORT:-8002}",
+                "ss -ltnp | grep ${AP_PORT:-8002}",
+                "curl -v http://127.0.0.1:${AP_PORT:-8002}/health",
+            ]
+        )
     if idx == 5:
         return "請交由應用系統負責人與系統管理者共同確認：1. 找出大量異常連線的來源程式與對象；2. 若是程式未正常關閉連線，安排應用修正或重啟服務；3. 若是外部連線不穩，請網路單位確認路徑與防火牆。"
     if idx == 6:
