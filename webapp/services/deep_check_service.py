@@ -311,7 +311,7 @@ def _execute(job: dict[str, Any], host: dict[str, Any]) -> None:
 
 
 def _run_command(host: dict[str, Any], cmd: str) -> tuple[int, str, str]:
-    env_cmd = f"AP_PORT={os.environ.get('AP_PORT', str(config.WEB_PORT))} {cmd}"
+    env_cmd = f"AP_PORT={os.environ.get('AP_PORT', str(config.WEB_PORT))}; PING_TGT={os.environ.get('PING_TGT', '127.0.0.1')}; {cmd}"
     if host.get("connection") == "local":
         completed = subprocess.run(env_cmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=35)
         return completed.returncode, completed.stdout.strip(), completed.stderr.strip()
@@ -532,11 +532,17 @@ def _locked_account_command_examples(text: str, command: str, limit: int = 3) ->
 def _locked_account_fix_commands(text: str, limit: int = 6) -> str:
     names = _locked_account_names(text)[:limit]
     if not names:
-        return "尚未取得帳號名稱，請先查看證據摘要。"
+        return "\n".join(
+            [
+                "sudo awk -F: '($7 !~ /(nologin|false)$/ && $3 >= 0){print $1}' /etc/passwd | while read u; do passwd -S \"$u\" 2>/dev/null; done",
+                "若上一行仍沒有帳號名稱，代表帳號狀態採集失敗，請先重跑 L3，不要直接解鎖未知帳號。",
+            ]
+        )
     commands: list[str] = []
     for name in names:
         commands.extend(
             [
+                f"# {name}",
                 f"id {name}",
                 f"passwd -S {name}",
                 f"sudo passwd -u {name}",
@@ -545,7 +551,7 @@ def _locked_account_fix_commands(text: str, limit: int = 6) -> str:
                 f"passwd -S {name}",
             ]
         )
-    return "；".join(commands)
+    return "\n".join(commands)
 
 
 def _locked_account_lines(text: str) -> list[str]:
@@ -731,7 +737,9 @@ def _recommendation(spec: dict[str, Any], verdict: str, text: str) -> str:
     if verdict != "PASS" and urgent_idx == 10:
         accounts = _locked_account_display(text)
         commands = _locked_account_fix_commands(text)
-        return f"緊急處置：發現可登入帳號被鎖定：{accounts}，可能影響 AP 登入、批次或服務連線。直接解決指令：{commands}。說明：先用 id 與 passwd -S 確認用途與鎖定狀態；若確認此帳號應恢復，執行 sudo passwd -u；若仍顯示 L/LK，再執行 sudo usermod -U；最後重跑 passwd -S 驗證。若是資安刻意鎖定，不要解鎖，改通知 AP 負責人改用正確帳號。"
+        if _locked_account_names(text):
+            return f"緊急處置：發現可登入帳號被鎖定：{accounts}，可能影響 AP 登入、批次或服務連線。直接執行下列指令逐一確認與解鎖：\n{commands}\n若 passwd -S 最後仍是 L/LK，代表帳號仍鎖定；若是資安刻意鎖定，不要解鎖，改通知 AP 負責人改用正確帳號。"
+        return f"緊急處置：這次沒有抓到實際帳號名稱，不能給解鎖指令，避免誤解鎖。請先執行採集確認指令：\n{commands}"
     if verdict == "PASS":
         return "目前沒有看到需要立即處理的異常，維持例行觀察即可。"
     idx = int(spec["idx"])
@@ -741,7 +749,7 @@ def _recommendation(spec: dict[str, Any], verdict: str, text: str) -> str:
         issues = _network_counter_issue_lines(text)
         loss_match = re.search(r"(\d+(?:\.\d+)?)%\s+packet loss", text.lower())
         if issues:
-            return "建議處置：1. 先看證據摘要中的實體網卡名稱與異常 counter；2. 若是 dropped/errors/carrier 增加，請檢查 VM 網卡、交換器埠、線路或速率/雙工設定；3. 修正後重新跑深度檢查，確認 counter 不再增加。若只有 lo，先不要報網路異常，lo 是本機迴圈介面。"
+            return "建議處置：發現實體網卡 counter 異常，請直接執行下列指令確認是哪張網卡與哪個計數器在增加：\n" + _network_fix_commands(text) + "\n若重新執行後 counter 持續增加，交由 VM/網路管理者檢查虛擬網卡、交換器埠、線路或速率/雙工設定。"
         if loss_match and float(loss_match.group(1)) > 0:
             return f"建議處置：偵測到 ping loss {loss_match.group(1)}%。請先確認目標 IP 是否正確，再由網路或系統管理者檢查路由、交換器、防火牆與主機負載；處理後重跑深度檢查確認 loss 回到 0%。"
         if _tcp_retransmit_seen(text):
@@ -884,6 +892,42 @@ def _network_counter_issue_lines(text: str) -> list[str]:
             issues.append(value_line[:220])
             issues.append("異常 counter: " + ", ".join(triggered))
     return issues
+
+
+def _network_issue_interfaces(text: str) -> list[str]:
+    interfaces: list[str] = []
+    issue_lines = _network_counter_issue_lines(text)
+    for line in issue_lines:
+        iface = _iface_name(line)
+        if iface and iface not in interfaces:
+            interfaces.append(iface)
+    return interfaces
+
+
+def _network_fix_commands(text: str) -> str:
+    interfaces = _network_issue_interfaces(text)
+    if not interfaces:
+        return "\n".join(
+            [
+                "ip -s link",
+                "ss -s",
+                "ping -c 5 ${PING_TGT:-127.0.0.1}",
+                "若只看到 lo，代表本機迴圈介面，不要當成對外網路異常。",
+            ]
+        )
+    commands: list[str] = []
+    for iface in interfaces[:3]:
+        commands.extend(
+            [
+                f"# {iface}",
+                f"ip -s link show dev {iface}",
+                f"ethtool -S {iface} 2>/dev/null | egrep -i 'error|drop|crc|timeout|collision|carrier' || true",
+                f"ethtool {iface} 2>/dev/null | egrep -i 'Speed|Duplex|Link detected' || true",
+                "ss -s",
+                "ping -c 5 ${PING_TGT:-127.0.0.1}",
+            ]
+        )
+    return "\n".join(commands)
 
 
 def _format_item(item: dict[str, Any], raw: str) -> str:

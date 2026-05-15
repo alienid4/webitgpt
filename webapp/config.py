@@ -6,9 +6,9 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.1.91"
-PATCH_ID = "deep-check-l3-logic"
-RELEASE_NOTE = "全面整理 L3 深度檢查邏輯，補齊目的、門檻、證據與可執行處置"
+VERSION = "1.0.1.92"
+PATCH_ID = "deep-check-exact-commands"
+RELEASE_NOTE = "L3 深度檢查補上精準可貼上指令，修正帳號鎖定採集命令執行方式"
 BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-15 23:45:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):

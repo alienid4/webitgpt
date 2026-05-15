@@ -166,14 +166,37 @@ def test_locked_account_recommendation_lists_real_accounts():
 
     assert "appsvc、batch01" in problem
     assert "<account>" not in recommendation
-    assert "直接解決指令" in recommendation
+    assert "直接執行下列指令" in recommendation
     assert "id appsvc" in recommendation
     assert "id batch01" in recommendation
+    assert "# appsvc" in recommendation
     assert "sudo passwd -u appsvc" in recommendation
     assert "sudo usermod -U batch01" in recommendation
     assert "passwd -S batch01" in recommendation
     assert "appsvc 被鎖定" in evidence
     assert "batch01 被鎖定" in evidence
+
+
+def test_locked_account_without_name_does_not_offer_placeholder_unlock():
+    recommendation = _recommendation({"idx": 10, "name": "運維軌跡"}, "WARN", "bash: -c: line 1: syntax error")
+
+    assert "不能給解鎖指令" in recommendation
+    assert "sudo passwd -u <account>" not in recommendation
+    assert "sudo awk -F:" in recommendation
+
+
+def test_network_counter_recommendation_includes_interface_commands():
+    spec = {"idx": 2, "name": "網路"}
+    text = """2: ens33: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500
+RX: bytes packets errors dropped missed mcast
+615350 1035 0 17 0 0
+TX: bytes packets errors dropped carrier collsns
+129959 420 0 0 0 0"""
+    recommendation = _recommendation(spec, "WARN", text)
+
+    assert "ip -s link show dev ens33" in recommendation
+    assert "ethtool -S ens33" in recommendation
+    assert "<nic>" not in recommendation
 
 
 def test_deep_check_preview_route_returns_plain_text():
