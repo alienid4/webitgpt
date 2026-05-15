@@ -174,6 +174,28 @@ document.querySelectorAll(".dev-admin-tabs[data-tab-storage]").forEach((tabs) =>
   enableDevPanelTabs(tabs);
 });
 
+document.querySelectorAll("form[data-submit-status]").forEach((form) => {
+  form.addEventListener("submit", () => {
+    if (form.dataset.submitting === "true") return;
+    form.dataset.submitting = "true";
+
+    const status = form.nextElementSibling?.classList.contains("submit-status")
+      ? form.nextElementSibling
+      : form.querySelector(".submit-status");
+    if (status) {
+      status.hidden = false;
+      status.innerHTML = `<span class="spinner-sm" aria-hidden="true"></span><span>${form.dataset.submitMessage || "已送出，正在處理中，請稍候。"}</span>`;
+    }
+
+    form.querySelectorAll("button[type='submit']").forEach((button) => {
+      button.dataset.originalText = button.textContent || "";
+      button.disabled = true;
+      button.classList.add("is-busy");
+      button.textContent = button.dataset.busyText || "處理中";
+    });
+  });
+});
+
 function setTopologyFullscreen(panel, enabled) {
   if (!panel) return;
   panel.classList.toggle("topology-client-fullscreen", enabled);

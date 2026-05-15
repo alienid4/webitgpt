@@ -861,6 +861,25 @@ a.metric:hover {
 .spinner { width: 20px; height: 20px; }
 .spinner-sm { width: 16px; height: 16px; }
 
+.submit-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--g1);
+  border-radius: var(--radius-xs);
+  background: var(--g-light);
+  color: var(--g-text);
+  font-weight: 700;
+}
+
+.btn.is-busy,
+button.is-busy {
+  cursor: wait;
+  opacity: .82;
+}
+
 .bar {
   height: 10px;
   border: 1px solid var(--c4);

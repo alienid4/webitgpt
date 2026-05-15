@@ -40,6 +40,7 @@
 - 「搜尋功能」不是只加 input，而是能輸入關鍵字、縮小結果、仍能清除或套用。
 - 「深度檢查」不是只顯示 PASS/WARN，而是要有判斷標準、證據、建議處置與驗證方式。
 - 「部署完成」不是只重啟服務，而是 `/health` 正確、版本正確、pytest 正確、必要時 functional validation 正確。
+- 「長時間操作」不是只有按鈕，而是送出後要有狀態回報、停用按鈕、防止重複提交，讓使用者知道系統正在處理。
 
 ## 5. webitgpt 驗證矩陣
 
@@ -47,6 +48,7 @@
 | --- | --- |
 | Python service / route | `python -m compileall webapp scripts tests`、`python -m pytest -q` |
 | UI template / JS / CSS | pytest，加瀏覽器或 HTTP 檢查實際字串/互動 |
+| 掃描 / 盤點 / 巡檢 / 修補按鈕 | 確認有送出狀態、busy 文字、停用按鈕與可理解的等待說明 |
 | 版本或部署腳本 | `/health`、`scripts/functional_validation.py`、patch tarball |
 | 深度檢查判斷 | 單元測試覆蓋 PASS/WARN 條件與證據文字 |
 | 資產 / 帳號 / IPAM | 確認不產生假資料、不重複建檔、不誤刪真資料 |

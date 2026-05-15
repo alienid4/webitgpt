@@ -60,7 +60,7 @@
       <p class="text-muted-sm">注意：這是從 221 的網路角度掃描。VM 沒開機、使用 host-only/NAT、沒有接到 192.168.1.0/24，或完全沒有任何回應，就不會出現在掃描結果。</p>
     </div>
   </div>
-  <form class="grid-form" method="post" action="{{ url_for('api_hosts.host_new_discovery_scan_page') }}">
+  <form class="grid-form" method="post" action="{{ url_for('api_hosts.host_new_discovery_scan_page') }}" data-submit-status data-submit-message="正在掃描網段，可能需要 10 到 60 秒；請勿重複點選。">
     <label>掃描網段 CIDR<input name="cidr" value="{{ scan_report.cidr if scan_report else '192.168.1.0/24' }}" placeholder="192.168.1.0/24" required></label>
     <label>預設環境
       <select name="environment">
@@ -83,8 +83,9 @@
         <option value="tcp">強制 TCP：不回 ping 也嘗試常見服務</option>
       </select>
     </label>
-    <button class="btn primary" type="submit">開始掃描</button>
+    <button class="btn primary" type="submit" data-busy-text="掃描中">開始掃描</button>
   </form>
+  <div class="submit-status" hidden aria-live="polite"></div>
 
   {% if scan_report %}
   <div class="notice">

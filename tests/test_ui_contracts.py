@@ -15,6 +15,7 @@ def test_codex_working_rules_are_documented():
     assert "版本只能使用 `1.X.X.X`" in agents
     assert "深度檢查目標是緊急時快速證明 OS 基礎狀態" in agents
     assert "CodeRabbit" in agents
+    assert "長時間操作按鈕必須有狀態回報" in agents
     assert "Goal-Driven Execution" in rules
     assert "避免只說「好了」" in rules
 
@@ -77,6 +78,8 @@ def test_asset_new_workbench_has_csv_and_scan_entrypoints():
     assert "CSV 大量匯入" in host_new
     assert "網段掃描後新增" in host_new
     assert "將勾選 IP 建立草稿" in host_new
+    assert "data-submit-status" in host_new
+    assert "正在掃描網段" in host_new
     assert "混合掃描：ARP/Ping + TCP 常見服務" in host_new
     assert "開放服務" in host_new
     assert "發現方式" in host_new
@@ -88,6 +91,18 @@ def test_asset_new_workbench_has_csv_and_scan_entrypoints():
     assert '"nmap", "-Pn", "-R", "-p"' in cmdb
     assert '"hostname": item.get("hostname", "")' in cmdb
     assert '"os": item.get("os") or "未偵測"' in cmdb
+
+
+def test_long_running_submit_feedback_contract_exists():
+    js = read("webapp/static/js/ui_tools.js")
+    css = read("webapp/static/css/cathay.css")
+    rules = read("docs/codex_working_rules.md")
+
+    assert 'form[data-submit-status]' in js
+    assert "dataset.submitting" in js
+    assert "submit-status" in css
+    assert "長時間操作" in rules
+    assert "停用按鈕" in rules
 
 
 def test_dashboard_parity_and_legacy_pages_are_wired():
