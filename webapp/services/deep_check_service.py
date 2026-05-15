@@ -35,9 +35,9 @@ FACE_SPECS = [
     {
         "idx": 3,
         "name": "AP Listener",
-        "cmd": "ss -ltnp 2>/dev/null | head -80; ps -eo pid,comm,%cpu,%mem --sort=-%cpu | head -12; systemctl --failed --no-pager || true",
+        "cmd": "ss -ltnp 2>/dev/null | head -80; ps -eo pid,comm,%cpu,%mem --sort=-%cpu | head -12",
         "baseline": "AP listener 存在，程序資源合理，systemd 無 failed unit。",
-        "warn_patterns": ["failed"],
+        "warn_patterns": [],
     },
     {
         "idx": 4,
@@ -77,16 +77,16 @@ FACE_SPECS = [
     {
         "idx": 9,
         "name": "Infra",
-        "cmd": "dmesg -T 2>/dev/null | egrep -i 'oom|mce|machine check' | tail -20 || true; systemctl --failed --no-pager || true; cat /proc/sys/kernel/tainted 2>/dev/null || true",
+        "cmd": "dmesg -T 2>/dev/null | egrep -i 'oom|mce|machine check' | tail -20 || true; cat /proc/sys/kernel/tainted 2>/dev/null || true; systemctl is-active firewalld 2>/dev/null || true; firewall-cmd --state 2>/dev/null || true; nft list ruleset 2>/dev/null | head -40 || iptables -S 2>/dev/null | head -40 || true",
         "baseline": "無 OOM / MCE / failed unit，kernel tainted 為 0。",
-        "warn_patterns": ["oom", "machine check", "failed"],
+        "warn_patterns": ["oom", "machine check"],
     },
     {
         "idx": 10,
         "name": "運維軌跡",
-        "cmd": "last -n 10; find /etc /opt -xdev -mtime -1 -type f 2>/dev/null | head -30; journalctl --since '24 hours ago' 2>/dev/null | egrep -i 'started|stopped|restart|failed' | tail -40 || true",
+        "cmd": "for u in $(awk -F: '($7 !~ /(nologin|false)$/ && $3 >= 0){print $1}' /etc/passwd); do s=$(passwd -S \"$u\" 2>/dev/null | awk '{print $2}'); if [ \"$s\" = \"L\" ] || [ \"$s\" = \"LK\" ]; then echo \"ACCOUNT_LOCKED $u\"; fi; done; last -n 10",
         "baseline": "近期登入、設定異動與服務啟停都有可追溯紀錄。",
-        "warn_patterns": ["failed"],
+        "warn_patterns": ["ACCOUNT_LOCKED"],
     },
 ]
 
@@ -343,6 +343,8 @@ def _verdict(spec: dict[str, Any], rc: int, text: str) -> str:
         return _session_verdict(rc, text)
     if int(spec["idx"]) == 9:
         return _infra_verdict(rc, text)
+    if int(spec["idx"]) == 10:
+        return _account_lock_verdict(rc, text)
     if rc != 0 and int(spec["idx"]) not in {4, 8, 10}:
         return "WARN"
     if int(spec["idx"]) == 6 and re.search(r"\s(8[5-9]|9[0-9]|100)%", text):
@@ -357,8 +359,6 @@ def _verdict(spec: dict[str, Any], rc: int, text: str) -> str:
 
 def _ap_listener_verdict(rc: int, text: str) -> str:
     if rc != 0:
-        return "WARN"
-    if _systemd_failed_issue_lines(text):
         return "WARN"
     if "listen" not in text.lower():
         return "WARN"
@@ -384,10 +384,16 @@ def _infra_verdict(rc: int, text: str) -> str:
         return "WARN"
     if any(token in lowered for token in ("oom", "machine check")):
         return "WARN"
-    if _systemd_failed_issue_lines(text):
-        return "WARN"
     tainted = _kernel_tainted_value(text)
     if tainted and tainted != "0":
+        return "WARN"
+    return "PASS"
+
+
+def _account_lock_verdict(rc: int, text: str) -> str:
+    if rc != 0:
+        return "WARN"
+    if re.search(r"^ACCOUNT_LOCKED\s+\S+", text, re.MULTILINE):
         return "WARN"
     return "PASS"
 
@@ -461,6 +467,19 @@ def _tcp_state_counts(text: str) -> dict[str, int]:
     return counts
 
 
+def _locked_account_names(text: str) -> list[str]:
+    names = []
+    for line in text.splitlines():
+        match = re.match(r"ACCOUNT_LOCKED\s+(\S+)", line.strip())
+        if match:
+            names.append(match.group(1))
+    return names
+
+
+def _locked_account_lines(text: str) -> list[str]:
+    return [f"{name} 被鎖定" for name in _locked_account_names(text)]
+
+
 def _systemd_failed_issue_lines(text: str) -> list[str]:
     issues: list[str] = []
     for line in text.splitlines():
@@ -490,6 +509,26 @@ def _impact(verdict: str, name: str, text: str) -> str:
 
 def _problem_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) -> str:
     idx = int(spec["idx"])
+    if verdict != "PASS" and idx == 3:
+        return "緊急處置：1. 先確認 AP 程序是否存在：ps -ef | grep <AP關鍵字>。2. 確認監聽埠：ss -ltnp | grep <port>。3. 若 AP 有啟動但外部連不到，先用最短時間排除防火牆：sudo systemctl stop firewalld；測完若確認不是防火牆，立刻 sudo systemctl start firewalld。4. 若停防火牆後恢復，請改為正式開通單一 port：sudo firewall-cmd --permanent --add-port=<port>/tcp && sudo firewall-cmd --reload。"
+    if verdict != "PASS" and idx == 9:
+        return "緊急判斷：這裡只看會直接證明 OS 不穩的 OOM、硬體 machine check、kernel tainted 與防火牆證據。若懷疑防火牆阻擋 AP，短時間排除可執行 sudo systemctl stop firewalld，測完立即 sudo systemctl start firewalld；正式修復請只開必要 port，不要長期關閉防火牆。"
+    if verdict != "PASS" and idx == 10:
+        first_account = (_locked_account_names(text) or ["<account>"])[0]
+        return f"緊急處置：發現可登入帳號被鎖定，可能影響 AP 登入、批次或服務連線。1. 先確認帳號用途：id {first_account}。2. 若確認需要立即恢復，執行 sudo passwd -u {first_account} 或 sudo usermod -U {first_account}。3. 重跑 passwd -S {first_account} 確認不再是 L/LK。4. 若是資安刻意鎖定，不要解鎖，改通知 AP 負責人改用正確帳號。"
+    if verdict == "PASS" and idx == 3:
+        return "AP listener 有 LISTEN，主要程序可見；不因無關 failed service 判定 OS 有問題。"
+    if verdict == "PASS" and idx == 9:
+        return "未發現 OOM/MCE，kernel tainted 未顯示重大異常；防火牆資訊已列為排除證據。"
+    if verdict == "PASS" and idx == 10:
+        return "未發現可登入帳號被鎖定。"
+    if verdict != "PASS" and idx == 3:
+        return "未看到 AP listener 或主要監聽埠，可能是 AP 未啟動、綁定錯誤或被防火牆/ACL 擋住。"
+    if verdict != "PASS" and idx == 10:
+        locked = _locked_account_lines(text)
+        if locked:
+            return "發現可登入帳號被鎖定：" + "；".join(locked[:5])
+        return "帳號狀態檢查異常，需確認 passwd -S 或 OS 帳號資料是否可讀取。"
     if verdict == "PASS":
         if idx == 3:
             return "AP listener 有偵測到 LISTEN，且未發現 systemd failed unit。"
@@ -537,6 +576,12 @@ def _problem_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) -> 
 def _threshold_summary(spec: dict[str, Any], text: str) -> str:
     idx = int(spec["idx"])
     if idx == 3:
+        return "AP listener 必須存在；不再以全部 systemd failed unit 作為 AP 異常依據。"
+    if idx == 9:
+        return "無 OOM / machine check；kernel tainted 為 0；防火牆狀態只作為連線排除證據。"
+    if idx == 10:
+        return "可登入帳號不應被非預期鎖定，尤其 AP 或批次使用帳號。"
+    if idx == 3:
         return "需有 LISTEN 服務；systemd failed unit 必須為 0。"
     if idx == 5:
         return "SYN-RECV 必須為 0；CLOSE-WAIT 小於 10；ESTAB 小於 500。"
@@ -546,6 +591,14 @@ def _threshold_summary(spec: dict[str, Any], text: str) -> str:
 
 
 def _recommendation(spec: dict[str, Any], verdict: str, text: str) -> str:
+    urgent_idx = int(spec["idx"])
+    if verdict != "PASS" and urgent_idx == 3:
+        return "緊急處置：1. 先確認 AP 程序是否存在：ps -ef | grep <AP關鍵字>。2. 確認監聽埠：ss -ltnp | grep <port>。3. 若 AP 有啟動但外部連不到，先用最短時間排除防火牆：sudo systemctl stop firewalld；測完若確認不是防火牆，立刻 sudo systemctl start firewalld。4. 若停防火牆後恢復，請改為正式開通單一 port：sudo firewall-cmd --permanent --add-port=<port>/tcp && sudo firewall-cmd --reload。"
+    if verdict != "PASS" and urgent_idx == 9:
+        return "緊急判斷：這裡只看會直接證明 OS 不穩的 OOM、硬體 machine check、kernel tainted 與防火牆證據。若懷疑防火牆阻擋 AP，短時間排除可執行 sudo systemctl stop firewalld，測完立即 sudo systemctl start firewalld；正式修復請只開必要 port，不要長期關閉防火牆。"
+    if verdict != "PASS" and urgent_idx == 10:
+        first_account = (_locked_account_names(text) or ["<account>"])[0]
+        return f"緊急處置：發現可登入帳號被鎖定，可能影響 AP 登入、批次或服務連線。1. 先確認帳號用途：id {first_account}。2. 若確認需要立即恢復，執行 sudo passwd -u {first_account} 或 sudo usermod -U {first_account}。3. 重跑 passwd -S {first_account} 確認不再是 L/LK。4. 若是資安刻意鎖定，不要解鎖，改通知 AP 負責人改用正確帳號。"
     if verdict == "PASS":
         return "目前沒有看到需要立即處理的異常，維持例行觀察即可。"
     idx = int(spec["idx"])
@@ -570,11 +623,7 @@ def _evidence_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) ->
     elif idx == 2:
         lines.extend(_network_evidence(text))
     elif idx == 3:
-        failed = _systemd_failed_issue_lines(text)
-        if failed:
-            lines.extend(failed[:5])
-        else:
-            lines.extend(_matching_lines(text, [r"listening|listen", r"0 loaded units listed|unit"], limit=5))
+        lines.extend(_matching_lines(text, [r"listening|listen|:\d+"], limit=5))
     elif idx == 4:
         lines.extend(_matching_lines(text, [r"status|ok|health|refused|failed|timeout|not found"], limit=5))
     elif idx == 5:
@@ -586,13 +635,13 @@ def _evidence_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) ->
     elif idx == 8:
         lines.extend(_matching_lines(text, [r"oracle|sql|mysql|mariadb|postgres|mongod|1521|1433|3306|5432|27017"], limit=6))
     elif idx == 9:
-        failed = _systemd_failed_issue_lines(text)
-        if failed:
-            lines.extend(failed[:5])
-        else:
-            lines.extend(_matching_lines(text, [r"oom|machine check|tainted|0 loaded units listed"], limit=6))
+        lines.extend(_matching_lines(text, [r"oom|machine check|tainted|firewalld|running|not running|table|chain|^-A"], limit=6))
     elif idx == 10:
-        lines.extend(_matching_lines(text, [r"logged|reboot|started|stopped|restart|failed"], limit=6))
+        locked = _locked_account_lines(text)
+        if locked:
+            lines.extend(locked[:6])
+        else:
+            lines.extend(_matching_lines(text, [r"ACCOUNT_LOCKED|logged|reboot"], limit=6))
     if len(lines) == 1:
         lines.extend(_first_nonempty_lines(text, limit=4))
     return "\n".join(lines[:8])

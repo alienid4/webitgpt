@@ -68,23 +68,29 @@ def test_session_one_close_wait_is_not_warn():
     assert "SYN-RECV=0" in problem
 
 
-def test_ap_listener_warn_points_to_failed_unit_not_listen_lines():
+def test_ap_listener_ignores_unrelated_failed_unit_when_listener_exists():
     text = """
 LISTEN 0 128 0.0.0.0:9444 0.0.0.0:*
 UNIT LOAD ACTIVE SUB DESCRIPTION
 setroubleshootd.service loaded failed failed SETroubleshoot daemon for processing new SELinux denial logs
 """
-    assert _ap_listener_verdict(0, text) == "WARN"
-    problem = _problem_summary({"idx": 3, "name": "AP Listener"}, 0, text, "WARN")
-    evidence = _evidence_summary({"idx": 3, "name": "AP Listener"}, 0, text, "WARN")
-    assert "setroubleshootd.service" in problem
-    assert "setroubleshootd.service" in evidence
-    assert "0.0.0.0:9444" not in evidence
+    assert _ap_listener_verdict(0, text) == "PASS"
+    problem = _problem_summary({"idx": 3, "name": "AP Listener"}, 0, text, "PASS")
+    evidence = _evidence_summary({"idx": 3, "name": "AP Listener"}, 0, text, "PASS")
+    assert "failed service" in problem
+    assert "0.0.0.0:9444" in evidence
 
 
 def test_setroubleshootd_recommendation_is_manager_readable():
     text = "setroubleshootd.service loaded failed failed SETroubleshoot daemon for processing new SELinux denial logs"
     recommendation = _recommendation({"idx": 9, "name": "Infra"}, "WARN", text)
+
+    assert "OOM" in recommendation
+    assert "machine check" in recommendation
+    assert "sudo systemctl stop firewalld" in recommendation
+    assert "sudo systemctl start firewalld" in recommendation
+    assert "setroubleshootd" not in recommendation
+    return
 
     assert "交由 Linux 系統管理者處理" in recommendation
     assert "先確認公司是否需要 SELinux 事件分析功能" in recommendation
