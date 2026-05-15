@@ -425,23 +425,16 @@ def _network_verdict(rc: int, text: str) -> str:
 
 
 def _link_error_or_drop_seen(text: str) -> bool:
-    lines = text.splitlines()
-    for idx, line in enumerate(lines):
-        headers = line.lower().split()
-        if not headers or headers[0].rstrip(":") not in {"rx", "tx"}:
-            continue
-        if not any(header in headers for header in ["errors", "dropped", "drop", "carrier", "collsns", "overruns"]):
-            continue
-        if idx + 1 >= len(lines):
-            continue
-        values = [int(value) for value in re.findall(r"\b\d+\b", lines[idx + 1])]
-        if not values:
-            continue
-        value_headers = [header.rstrip(":") for header in headers[1:]]
-        for pos, normalized in enumerate(value_headers):
-            if normalized in {"errors", "dropped", "drop", "carrier", "collsns", "overruns"} and pos < len(values) and values[pos] > 0:
-                return True
-    return False
+    return bool(_network_counter_issue_lines(text))
+
+
+def _iface_name(line: str) -> str:
+    match = re.match(r"^\d+:\s+([^:@]+)", line.strip())
+    return match.group(1) if match else ""
+
+
+def _is_loopback_iface(line: str) -> bool:
+    return _iface_name(line) == "lo"
 
 
 def _tcp_retransmit_seen(text: str) -> bool:
@@ -566,6 +559,8 @@ def _problem_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) -> 
             return "發現可登入帳號被鎖定：" + _locked_account_display(text)
         return "帳號狀態檢查異常，需確認 passwd -S 或 OS 帳號資料是否可讀取。"
     if verdict == "PASS":
+        if idx == 2:
+            return "網路檢查目的：確認這台主機本身的對外網路品質是否會影響 AP 連線。結果未發現實體網卡 error/drop、TCP 重傳或 ping loss；若輸出只有 lo，那是本機迴圈介面，不代表對外網路異常。"
         if idx == 3:
             return "AP listener 有偵測到 LISTEN，且未發現 systemd failed unit。"
         if idx == 5:
@@ -583,9 +578,12 @@ def _problem_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) -> 
         issues = _network_counter_issue_lines(text)
         loss_match = re.search(r"(\d+(?:\.\d+)?)%\s+packet loss", text.lower())
         if issues:
-            return "網路介面 counter 有非 0 異常值：" + "；".join(line for line in issues if line.startswith("異常 counter"))
+            return "網路檢查目的：確認主機本身網路品質是否影響 AP。發現實體網卡異常：" + "；".join(line for line in issues if line.startswith("異常 counter"))
         if loss_match and float(loss_match.group(1)) > 0:
-            return f"Ping packet loss={loss_match.group(1)}%，高於 0% 門檻。"
+            return f"網路檢查目的：確認主機本身網路品質是否影響 AP。發現 ping packet loss={loss_match.group(1)}%，代表封包傳輸有遺失。"
+        if _tcp_retransmit_seen(text):
+            return "網路檢查目的：確認主機本身網路品質是否影響 AP。發現 TCP retransmit 或 listen drop，代表連線可能有重送或排隊丟棄。"
+        return "網路檢查回報 WARN，但未找到實體網卡 error/drop、ping loss 或 TCP 重傳證據；請先確認採集命令是否完整。"
     if idx == 3:
         issues = _systemd_failed_issue_lines(text)
         if issues:
@@ -613,6 +611,8 @@ def _threshold_summary(spec: dict[str, Any], text: str) -> str:
     idx = int(spec["idx"])
     if idx == 3:
         return "AP listener 必須存在；不再以全部 systemd failed unit 作為 AP 異常依據。"
+    if idx == 2:
+        return "用途：判斷主機本身對外網路品質是否影響 AP。只看實體網卡 error/drop、TCP retransmit/listen drop、ping loss；忽略 lo 本機迴圈介面。"
     if idx == 9:
         return "無 OOM / machine check；kernel tainted 為 0；防火牆狀態只作為連線排除證據。"
     if idx == 10:
@@ -640,7 +640,15 @@ def _recommendation(spec: dict[str, Any], verdict: str, text: str) -> str:
         return "目前沒有看到需要立即處理的異常，維持例行觀察即可。"
     idx = int(spec["idx"])
     if idx == 2:
-        return "請交由網路或系統管理者處理：1. 確認是哪張網卡出現 error/drop；2. 檢查交換器埠、線路與網卡設定；3. 修正後重新執行深度檢查，確認錯誤計數沒有再增加。"
+        issues = _network_counter_issue_lines(text)
+        loss_match = re.search(r"(\d+(?:\.\d+)?)%\s+packet loss", text.lower())
+        if issues:
+            return "建議處置：1. 先看證據摘要中的實體網卡名稱與異常 counter；2. 若是 dropped/errors/carrier 增加，請檢查 VM 網卡、交換器埠、線路或速率/雙工設定；3. 修正後重新跑深度檢查，確認 counter 不再增加。若只有 lo，先不要報網路異常，lo 是本機迴圈介面。"
+        if loss_match and float(loss_match.group(1)) > 0:
+            return f"建議處置：偵測到 ping loss {loss_match.group(1)}%。請先確認目標 IP 是否正確，再由網路或系統管理者檢查路由、交換器、防火牆與主機負載；處理後重跑深度檢查確認 loss 回到 0%。"
+        if _tcp_retransmit_seen(text):
+            return "建議處置：偵測到 TCP 重傳或 listen drop。請先確認是否為單一 AP 服務過載，再檢查網路延遲、防火牆或連線佇列；處理後重跑深度檢查確認重傳或 drop 不再增加。"
+        return "建議處置：目前沒有明確網路異常證據。若畫面只看到 lo，代表本機迴圈介面，不需通知網路單位；請重新執行深度檢查或補抓實體網卡資料。"
     if idx == 3:
         return "請交由該主機的系統管理者處理：1. 找出失敗服務名稱；2. 判斷它是否為正式應用服務。若是正式服務，先查原因並通知系統負責人後再重啟；若不是正式服務，評估停用或列入例外；3. 處理後重新檢查，確認 failed unit 清為 0。"
     if idx == 5:
@@ -714,19 +722,25 @@ def _network_evidence(text: str) -> list[str]:
         return (evidence + issue_lines)[:8]
 
     lines = text.splitlines()
+    current_iface = ""
     for idx, line in enumerate(lines):
         cleaned = line.strip()
         lowered = cleaned.lower()
         if re.match(r"^\d+:\s+\S+:", cleaned):
+            current_iface = cleaned
+            if _is_loopback_iface(cleaned):
+                continue
             evidence.append(cleaned[:220])
-        elif lowered.startswith(("rx:", "tx:")) or re.search(r"\b(errors|dropped|carrier|collsns|overruns)\b", lowered):
+        elif (not current_iface or not _is_loopback_iface(current_iface)) and (lowered.startswith(("rx:", "tx:")) or re.search(r"\b(errors|dropped|carrier|collsns|overruns)\b", lowered)):
             evidence.append(cleaned[:220])
             if idx + 1 < len(lines):
                 value_line = lines[idx + 1].strip()
-                if value_line:
+                if value_line and re.search(r"\d", value_line):
                     evidence.append(value_line[:220])
         if len(evidence) >= 7:
             break
+    if not evidence:
+        return ["未發現實體網卡 error/drop、TCP 重傳或 ping loss；若只有 lo，代表本機迴圈介面，不代表對外網路異常。"]
     return evidence
 
 
@@ -739,6 +753,8 @@ def _network_counter_issue_lines(text: str) -> list[str]:
         iface_match = re.match(r"^\d+:\s+([^:]+):", cleaned)
         if iface_match:
             current_iface = cleaned
+            continue
+        if current_iface and _is_loopback_iface(current_iface):
             continue
 
         headers = cleaned.lower().split()

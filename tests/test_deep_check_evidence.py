@@ -3,9 +3,11 @@ from pathlib import Path
 from webapp.services.deep_check_service import (
     _ap_listener_verdict,
     _evidence_summary,
+    _network_verdict,
     _problem_summary,
     _recommendation,
     _session_verdict,
+    _threshold_summary,
 )
 
 
@@ -58,6 +60,26 @@ def test_network_evidence_includes_interface_and_counter_values():
     assert "615350 1035 0 4 0 0" in evidence
     assert "dropped=4" in evidence
     assert "lo:" not in evidence
+
+
+def test_network_loopback_only_is_not_warn_and_is_explained():
+    spec = {"idx": 2, "name": "網路"}
+    text = """1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536
+RX: bytes packets errors dropped missed mcast
+1000 10 0 0 0 0
+TX: bytes packets errors dropped carrier collsns
+1000 10 0 0 0 0"""
+
+    assert _network_verdict(0, text) == "PASS"
+    problem = _problem_summary(spec, 0, text, "PASS")
+    evidence = _evidence_summary(spec, 0, text, "PASS")
+    threshold = _threshold_summary(spec, text)
+
+    assert "目的" in problem
+    assert "lo" in problem
+    assert "本機迴圈介面" in problem
+    assert "不代表對外網路異常" in evidence
+    assert "忽略 lo" in threshold
 
 
 def test_session_one_close_wait_is_not_warn():

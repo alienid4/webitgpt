@@ -6,9 +6,9 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.1.89"
-PATCH_ID = "deep-check-locked-account-commands"
-RELEASE_NOTE = "深度檢查運維軌跡針對被鎖定帳號直接列出查證、解鎖與驗證指令"
+VERSION = "1.0.1.90"
+PATCH_ID = "deep-check-network-purpose"
+RELEASE_NOTE = "深度檢查網路項目補上目的與判定邏輯，忽略 lo 迴圈介面避免誤判"
 BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-15 23:45:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
