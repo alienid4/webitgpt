@@ -11,7 +11,6 @@ document.addEventListener("click", (event) => {
     const name = metricJump.dataset.accountTabJump;
     activateAccountTab(name);
     history.replaceState(null, "", `#${name}`);
-    document.querySelector(`[data-account-panel="${name}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
 
@@ -55,6 +54,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const initial = window.location.hash.replace("#", "");
   if (initial && document.querySelector(`[data-account-panel="${initial}"]`)) {
     activateAccountTab(initial);
+    return;
+  }
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("metric")) {
+    activateAccountTab("list");
   }
 });
 

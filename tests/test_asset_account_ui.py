@@ -25,11 +25,16 @@ def test_asset_actions_are_consistent_and_superadmin_only_for_sensitive_buttons(
 def test_account_metrics_link_to_detail_views():
     html = read("webapp/templates/accounts_inventory.html")
     js = read("webapp/static/js/account_inventory.js")
+    css = read("webapp/static/css/cathay.css")
     service = read("webapp/services/inventory_service.py")
 
     assert "account-metric-link" in html
+    assert "account-summary-shell" in html
     assert 'data-account-tab-jump="host"' in html
     assert 'data-account-tab-jump="departments"' in html
+    assert "scrollIntoView" not in js
+    assert "account-summary-shell" in css
+    assert "position: sticky" in css
     for metric in ["abnormal", "privileged", "never_login", "service_login", "pam_managed", "system_default"]:
         assert f"metric='{metric}'" in html
     assert "activateAccountTab" in js

@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="${OUT_DIR:-$ROOT/dist}"
-PATCH_NAME="${PATCH_NAME:-patch_webitgpt_v1.0.1.71-opening-system-scope}"
+PATCH_NAME="${PATCH_NAME:-patch_webitgpt_v1.0.1.72-account-summary-fixed}"
 WORK="$OUT_DIR/$PATCH_NAME"
 
 rm -rf "$WORK"

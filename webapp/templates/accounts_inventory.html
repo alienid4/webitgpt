@@ -73,18 +73,25 @@
     </div>
   </div>
 
-  <section class="account-tab-panel active" data-account-panel="overview">
+<section class="account-summary-shell panel compact">
     <div class="summary-grid account-summary">
       <a class="metric account-metric-link" href="#host" data-account-tab-jump="host"><strong>{{ account_view.summary.managed_hosts }}</strong><span>總盤點設備</span></a>
       <a class="metric account-metric-link" href="#host" data-account-tab-jump="host"><strong>{{ account_view.summary.inventoried_hosts }}</strong><span>已盤點設備</span></a>
       <a class="metric account-metric-link" href="#departments" data-account-tab-jump="departments"><strong>{{ account_view.summary.departments }}</strong><span>參與部門</span></a>
-      <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults','')) }}#list"><strong>{{ account_view.summary.total }}</strong><span>帳號總數</span></a>
-      <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='abnormal') }}#list"><strong>{{ account_view.summary.abnormal }}</strong><span>異常帳號</span></a>
-      <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='privileged') }}#list"><strong>{{ account_view.summary.privileged }}</strong><span>高權限</span></a>
-      <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='never_login') }}#list"><strong>{{ account_view.summary.never_login }}</strong><span>長期未登入</span></a>
-      <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='service_login') }}#list"><strong>{{ account_view.summary.service_login }}</strong><span>服務帳號可登入</span></a>
-      <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='pam_managed') }}#list"><strong>{{ account_view.summary.pam_managed }}</strong><span>PAM 納管</span></a>
-      <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults='1', metric='system_default') }}#list"><strong>{{ account_view.summary.system_default_hidden }}</strong><span>隱藏系統帳號</span></a>
+      <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults','')) }}"><strong>{{ account_view.summary.total }}</strong><span>帳號總數</span></a>
+      <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='abnormal') }}"><strong>{{ account_view.summary.abnormal }}</strong><span>異常帳號</span></a>
+      <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='privileged') }}"><strong>{{ account_view.summary.privileged }}</strong><span>高權限</span></a>
+      <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='never_login') }}"><strong>{{ account_view.summary.never_login }}</strong><span>長期未登入</span></a>
+      <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='service_login') }}"><strong>{{ account_view.summary.service_login }}</strong><span>服務帳號可登入</span></a>
+      <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='pam_managed') }}"><strong>{{ account_view.summary.pam_managed }}</strong><span>PAM 納管</span></a>
+      <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults='1', metric='system_default') }}"><strong>{{ account_view.summary.system_default_hidden }}</strong><span>隱藏系統帳號</span></a>
+    </div>
+</section>
+
+  <section class="account-tab-panel active" data-account-panel="overview">
+    <div class="panel account-panel account-overview-hint">
+      <h2>帳號盤點總覽</h2>
+      <p class="text-muted-sm">上方統計列會保留在頁面上方；點選任一統計後，下方切換到對應明細，不再把畫面捲到最底部。</p>
     </div>
   </section>
 

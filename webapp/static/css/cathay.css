@@ -510,7 +510,28 @@ a.metric:hover {
   gap: 10px;
   align-items: end;
 }
-.account-summary { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.account-summary-shell {
+  position: sticky;
+  top: 136px;
+  z-index: 5;
+  padding: 8px 12px;
+}
+.account-summary {
+  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+.account-summary .metric {
+  min-height: 58px;
+  padding: 8px 10px;
+}
+.account-summary .metric strong { font-size: 22px; }
+.account-summary .metric span {
+  font-size: 11px;
+  line-height: 1.25;
+  text-transform: none;
+}
+.account-overview-hint { padding: 12px 16px; }
 .account-filter-form label { display: grid; gap: 6px; color: var(--c2); font-weight: 700; }
 .account-system-toggle { min-height: 38px; align-content: center; }
 .account-table-wrap { padding: 18px; }
