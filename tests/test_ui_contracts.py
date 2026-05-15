@@ -8,6 +8,17 @@ def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
+def test_codex_working_rules_are_documented():
+    agents = read("AGENTS.md")
+    rules = read("docs/codex_working_rules.md")
+
+    assert "版本只能使用 `1.X.X.X`" in agents
+    assert "深度檢查目標是緊急時快速證明 OS 基礎狀態" in agents
+    assert "CodeRabbit" in agents
+    assert "Goal-Driven Execution" in rules
+    assert "避免只說「好了」" in rules
+
+
 def test_base_shell_keeps_navigation_theme_and_shortcuts():
     base_html = read("webapp/templates/base.html")
     js = read("webapp/static/js/ui_tools.js")
