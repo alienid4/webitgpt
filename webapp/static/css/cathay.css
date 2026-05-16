@@ -701,8 +701,85 @@ a.metric:hover {
 .asset-filter-compact .btn,
 .asset-filter-compact button { min-height: 34px; padding: 8px 14px; }
 .asset-summary { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-.asset-table-wrap { padding: 16px; overflow-x: auto; }
+.asset-table-wrap { padding: 12px; overflow-x: auto; }
 .asset-table { min-width: 1180px; }
+.asset-table-compact {
+  min-width: 960px;
+  table-layout: fixed;
+}
+.asset-table-compact th,
+.asset-table-compact td {
+  padding: 7px 10px;
+  vertical-align: middle;
+}
+.asset-table-compact .asset-col-select { width: 52px; }
+.asset-table-compact .asset-col-name { width: 260px; }
+.asset-table-compact .asset-col-hostname { width: 210px; }
+.asset-table-compact .asset-col-ip { width: 150px; }
+.asset-table-compact .asset-col-os { width: 210px; }
+.asset-table-compact .asset-col-env { width: 90px; }
+.asset-table-compact .asset-col-dc { width: 90px; }
+.asset-table-compact .asset-col-actions { width: 90px; }
+.asset-name-cell strong {
+  display: inline-block;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.asset-missing-inline {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--orange);
+  border-radius: var(--radius-xs);
+  color: var(--orange);
+  font-size: 12px;
+  font-weight: 800;
+}
+.asset-row-menu {
+  position: relative;
+}
+.asset-row-menu summary {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-xs);
+  background: var(--bg);
+  font-weight: 800;
+}
+.asset-row-menu[open] {
+  z-index: 5;
+}
+.asset-row-menu[open] summary {
+  border-color: var(--g1);
+  color: var(--g-text);
+}
+.asset-row-menu[open]::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 34px;
+  width: 150px;
+  min-height: 40px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .08);
+}
+.asset-row-menu[open] > .btn-sm,
+.asset-row-menu[open] > form {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  width: 132px;
+  margin: 5px 8px 0 auto;
+}
 .asset-bulk-actions {
   display: flex;
   align-items: center;

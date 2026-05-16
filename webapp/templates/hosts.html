@@ -144,17 +144,17 @@
     </div>
     <form id="bulkDraftDeleteForm" method="post" action="{{ url_for('api_hosts.host_bulk_delete_drafts_submit') }}" data-submit-status data-submit-message="正在批次刪除草稿，正式資產會自動略過。"></form>
     {% endif %}
-    <table class="data-table asset-table">
+    <table class="data-table asset-table asset-table-compact">
       <thead>
         <tr>
-          {% if current_user.role in ["admin", "super", "superadmin"] %}<th>選取</th>{% endif %}
-          <th>主機唯一索引</th>
-          <th>資產資料</th>
-          <th>IP / 網段</th>
-          <th>部門 / 機房</th>
-          <th>平台 / 狀態</th>
-          <th>資產完整度</th>
-          <th>操作</th>
+          {% if current_user.role in ["admin", "super", "superadmin"] %}<th class="asset-col-select">選取</th>{% endif %}
+          <th class="asset-col-name">資產名稱 *</th>
+          <th class="asset-col-hostname">Hostname</th>
+          <th class="asset-col-ip">IP</th>
+          <th class="asset-col-os">OS</th>
+          <th class="asset-col-env">環境</th>
+          <th class="asset-col-dc">機房</th>
+          <th class="asset-col-actions">操作</th>
         </tr>
       </thead>
       <tbody>
@@ -173,57 +173,44 @@
             {% endif %}
           </td>
           {% endif %}
-          <td class="sticky-col">
-            <strong class="code-inline">{{ host.hostname or "-" }}</strong>
-            <div class="text-muted-sm">資產編號：{{ host.asset_seq or "-" }}</div>
-            <div class="text-muted-sm">{{ host.asset_name or "-" }}</div>
-          </td>
-          <td>
-            <div>{{ host.system_name or host.asset_usage or "-" }}</div>
-            <div class="text-muted-sm">保管人：{{ host.custodian or "-" }}</div>
-            <div class="text-muted-sm">管理者：{{ host.sys_admin or "-" }}</div>
-          </td>
-          <td>
-            <div>主要：{{ host.ip or "-" }}</div>
-            <div class="asset-chip-row">
-              {% for ip in host.ip_addresses or [] %}
-              <span class="asset-chip">{{ ip }}</span>
-              {% else %}
-              <span class="text-muted-sm">尚無多 IP 設定</span>
-              {% endfor %}
-            </div>
-            <div class="text-muted-sm">網段：{{ (host.network_segments or [])|join("、") if host.network_segments else "-" }}</div>
-          </td>
-          <td>
-            <div>{{ host.department or "-" }}</div>
-            <div class="text-muted-sm">{{ host.division or "-" }} / {{ dc_labels.get(host.dc, host.dc or "-") }}</div>
-          </td>
-          <td>
-            <strong>{{ host_type_labels.get(host.host_type, host.host_type or "-") }}</strong>
-            <div class="text-muted-sm">{{ host.os or "-" }}</div>
-            <div class="text-muted-sm">{{ host.environment or "-" }} / {{ status_labels.get(host.status, host.status or "-") }}</div>
-          </td>
-          <td>
+          <td class="sticky-col asset-name-cell">
+            <strong>{{ host.asset_name or "-" }}</strong>
             {% if missing %}
-              <span class="badge-warn">缺 {{ missing|length }} 欄</span>
-              <div class="text-muted-sm">{{ missing[:3]|join(", ") }}{% if missing|length > 3 %}...{% endif %}</div>
-            {% else %}
-              <span class="badge-ok">完整</span>
-              <div class="text-muted-sm">必填欄位已完成</div>
+            <span class="asset-missing-inline">缺 {{ missing|length }} 欄</span>
             {% endif %}
           </td>
+          <td>
+            <strong class="code-inline">{{ host.hostname or "-" }}</strong>
+            <div class="text-muted-sm">{{ host.asset_seq or "-" }}</div>
+          </td>
+          <td>
+            <span class="code-inline">{{ host.ip or "-" }}</span>
+            {% if (host.ip_addresses or [])|length > 1 %}
+            <span class="text-muted-sm">+{{ (host.ip_addresses or [])|length - 1 }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <strong>{{ host.os or host_type_labels.get(host.host_type, host.host_type or "-") }}</strong>
+          </td>
+          <td>{{ host.environment or "-" }}</td>
+          <td>{{ dc_labels.get(host.dc, host.dc or "-") }}</td>
           <td class="actions asset-row-actions">
             {% if current_user.role in ["admin", "super", "superadmin"] %}
-            <a class="btn-sm btn-secondary" href="{{ url_for('api_hosts.host_edit_page', asset_seq=host.hostname or host.asset_seq) }}">編輯</a>
-            <button class="btn-sm btn-secondary" data-self-check="{{ host.asset_seq }}" type="button">自檢</button>
-            {% endif %}
-            {% if current_user.role == "superadmin" %}
-            <button class="btn-sm btn-secondary" data-debug="{{ host.asset_seq }}" type="button">Debug</button>
-            {% endif %}
-            {% if current_user.role == "superadmin" and feature_enabled("module_compliance_security", default=false) %}
-            <form method="post" action="{{ url_for('api_compliance.evaluate_host_page', asset_seq=host.asset_seq) }}" data-submit-status data-submit-message="正在執行資安稽核，請稍候。">
-              <button class="btn-sm btn-secondary">資安</button>
-            </form>
+            <details class="asset-row-menu">
+              <summary>動作</summary>
+              <a class="btn-sm btn-secondary" href="{{ url_for('api_hosts.host_edit_page', asset_seq=host.hostname or host.asset_seq) }}">編輯</a>
+              <button class="btn-sm btn-secondary" data-self-check="{{ host.asset_seq }}" type="button">自檢</button>
+              {% if current_user.role == "superadmin" %}
+              <button class="btn-sm btn-secondary" data-debug="{{ host.asset_seq }}" type="button">Debug</button>
+              {% endif %}
+              {% if current_user.role == "superadmin" and feature_enabled("module_compliance_security", default=false) %}
+              <form method="post" action="{{ url_for('api_compliance.evaluate_host_page', asset_seq=host.asset_seq) }}" data-submit-status data-submit-message="正在執行資安稽核，請稍候。">
+                <button class="btn-sm btn-secondary">資安</button>
+              </form>
+              {% endif %}
+            </details>
+            {% else %}
+            <span class="text-muted-sm">-</span>
             {% endif %}
           </td>
         </tr>
