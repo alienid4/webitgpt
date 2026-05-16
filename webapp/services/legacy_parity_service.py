@@ -250,17 +250,93 @@ def _connectivity_detail(status: str, raw: str) -> str:
     )
 
 
+def _max_percent(text: str):
+    values = [int(value) for value in re.findall(r"\b(\d{1,3})%", text or "") if int(value) <= 100]
+    return max(values) if values else None
+
+
+def _package_count(text: str) -> int:
+    return len([line for line in (text or "").splitlines() if line.strip()])
+
+
+def _listen_ports(text: str, limit: int = 6) -> list[str]:
+    ports: list[str] = []
+    for match in re.finditer(r":(\d{2,5})\b", text or ""):
+        port = match.group(1)
+        if port not in ports:
+            ports.append(port)
+        if len(ports) >= limit:
+            break
+    return ports
+
+
+def _failed_service_names(text: str) -> list[str]:
+    names: list[str] = []
+    for line in (text or "").splitlines():
+        cleaned = line.strip()
+        if not cleaned or "failed" not in cleaned.lower():
+            continue
+        match = re.match(r"([A-Za-z0-9_.@:-]+\.service)\b", cleaned)
+        if match and match.group(1) not in names:
+            names.append(match.group(1))
+    return names
+
+
+def _account_count(text: str) -> str:
+    match = re.search(r"\busers=(\d+)\b", text or "")
+    if match:
+        return f"帳號總數 {match.group(1)} 個"
+    lines = [line for line in (text or "").splitlines() if ":" in line]
+    if lines:
+        return f"已取得帳號清冊，抽樣 {len(lines)} 筆"
+    return "已取得帳號狀態"
+
+
+def _human_diagnostic_detail(key: str, status: str, raw: str) -> str:
+    if key == "connectivity":
+        return _connectivity_detail(status, raw)
+    if status != "ok":
+        return "\n".join(
+            [
+                "檢查狀態：此項目回應異常，可能需要 IT 人員確認。",
+                "建議處置：先看原始證據中的錯誤訊息，修正後重新執行開門檢查。",
+            ]
+        )
+    if key == "resource":
+        max_use = _max_percent(raw)
+        usage = f"最高使用率約 {max_use}%" if max_use is not None else "已取得 CPU、記憶體與磁碟狀態"
+        return "\n".join(["資源狀態：主機資源可正常讀取。", f"重點：{usage}。", "建議處置：目前不需立即處置，維持例行觀察。"])
+    if key == "filesystem":
+        max_use = _max_percent(raw)
+        usage = f"最高檔案系統使用率約 {max_use}%" if max_use is not None else "已取得檔案系統與掛載資訊"
+        return "\n".join(["檔案系統：可正常讀取。", f"重點：{usage}。", "建議處置：若使用率接近 90%，再安排清理或擴充。"])
+    if key == "process":
+        return "\n".join(["程序狀態：可正常取得程序清單。", "重點：高資源程序已記錄於原始證據。", "建議處置：目前不需立即處置；若 AP 異常，再查看高 CPU/記憶體程序。"])
+    if key == "service":
+        failed = _failed_service_names(raw)
+        if failed:
+            return "\n".join(["服務狀態：發現啟動失敗的服務。", f"重點：{', '.join(failed[:5])}。", "建議處置：先確認是否為正式服務，再查 systemctl status 與 journalctl。"])
+        return "\n".join(["服務狀態：未發現 failed service。", "重點：系統服務清單可正常讀取。", "建議處置：目前不需立即處置。"])
+    if key == "account":
+        return "\n".join(["帳號狀態：帳號資訊可正常讀取。", f"重點：{_account_count(raw)}。", "建議處置：如需盤點異常帳號，請到帳號盤點模組查看完整清冊與差異。"])
+    if key == "security":
+        ports = _listen_ports(raw)
+        port_text = f"偵測到 listen port：{', '.join(ports)}" if ports else "未整理出 listen port"
+        return "\n".join(["安全設定：網路服務與 SSH 設定可正常讀取。", f"重點：{port_text}。", "建議處置：若出現未核准 port，請交由系統或資安管理者確認。"])
+    if key == "package":
+        count = _package_count(raw)
+        return "\n".join(["套件狀態：套件清單可正常讀取。", f"重點：本次抽樣列出 {count} 筆套件資訊。", "建議處置：版本差異請到軟體盤點模組查看完整變更。"])
+    return raw or "無輸出"
+
+
 def _build_diagnostic_check(key: str, label: str, rc: int, out: str, err: str) -> dict[str, Any]:
     raw = out or err or ""
     if key == "log":
         status = _log_check_status(rc, raw)
         detail = _log_check_detail(status, raw)
-    elif key == "connectivity":
-        status = "ok" if rc == 0 else "warn"
-        detail = _connectivity_detail(status, raw)
     else:
         status = "ok" if rc == 0 else "warn"
-        detail = raw or "無輸出"
+        detail = _human_diagnostic_detail(key, status, raw)
     return {"key": key, "label": label, "status": status, "detail": detail[:1800], "raw_detail": raw[:1800]}
 
 
@@ -275,10 +351,10 @@ def _normalize_diagnostic_row(row: dict[str, Any]) -> dict[str, Any]:
             normalized = {**check, "status": status, "detail": detail[:1800], "raw_detail": raw[:1800]}
             checks.append(normalized)
             changed = True
-        elif check.get("key") == "connectivity":
+        elif check.get("key") in {key for key, _label in DIAGNOSTIC_ASPECTS}:
             raw = check.get("raw_detail") or check.get("detail") or ""
             status = check.get("status") or "ok"
-            detail = _connectivity_detail(status, raw)
+            detail = _human_diagnostic_detail(check.get("key"), status, raw)
             normalized = {**check, "detail": detail[:1800], "raw_detail": raw[:1800]}
             checks.append(normalized)
             changed = True
