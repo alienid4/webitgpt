@@ -57,6 +57,17 @@ def test_account_metrics_link_to_detail_views():
     assert 'metric == "system_default"' in service
 
 
+def test_account_checkboxes_use_inline_left_layout():
+    html = read("webapp/templates/accounts_inventory.html")
+    css = read("webapp/static/css/cathay.css")
+
+    assert "checkbox-line account-system-toggle" in html
+    assert html.count('class="toggle-label checkbox-line"') >= 2
+    assert ".checkbox-line" in css
+    assert 'input[type="checkbox"]' in css
+    assert "inline-size: 16px" in css
+
+
 def test_global_pam_governance_is_not_hidden_by_host_note(monkeypatch):
     from webapp.services import inventory_service
 

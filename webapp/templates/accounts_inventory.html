@@ -36,7 +36,7 @@
       <label class="account-search-field">搜尋
         <input name="q" value="{{ account_view.filters.q or '' }}" placeholder="帳號 / 主機 / 備註">
       </label>
-      <label class="toggle-label account-system-toggle">
+      <label class="toggle-label checkbox-line account-system-toggle">
         <input type="checkbox" name="include_system_defaults" value="1" {% if not account_view.hide_system_defaults %}checked{% endif %}>
         <span>顯示系統預設帳號</span>
       </label>
@@ -299,11 +299,11 @@
     <label>管理者 / 保管人
       <input name="owner" placeholder="例如：sysinfra 管理小組 / PAM / AP Owner">
     </label>
-    <label class="toggle-label">
+    <label class="toggle-label checkbox-line">
       <input type="checkbox" name="pam_managed" value="1">
       <span>此帳號已納入高權限代登入系統 PAM</span>
     </label>
-    <label class="toggle-label">
+    <label class="toggle-label checkbox-line">
       <input type="checkbox" name="apply_all" value="1">
       <span>套用到同帳號、同平台所有主機</span>
     </label>
