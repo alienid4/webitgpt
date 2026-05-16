@@ -9,6 +9,75 @@ from webapp.runners.base_runner import Runner
 
 
 class AnsibleRunner(Runner):
+    def collect_identity(self) -> dict[str, Any]:
+        target = self.host.get("ip") or self.host.get("hostname")
+        if not target:
+            return self._identity_error("missing host address")
+        script = (
+            "printf 'HOSTNAME=%s\\n' \"$(hostname -s 2>/dev/null || hostname 2>/dev/null)\"; "
+            "printf 'FQDN=%s\\n' \"$(hostname -f 2>/dev/null || hostname 2>/dev/null)\"; "
+            "if [ -r /etc/os-release ]; then . /etc/os-release; printf 'OS=%s\\n' \"$PRETTY_NAME\"; "
+            "else printf 'OS=%s\\n' \"$(uname -s 2>/dev/null)\"; fi; "
+            "printf 'KERNEL=%s\\n' \"$(uname -r 2>/dev/null)\""
+        )
+        if self.host.get("connection") == "local":
+            completed = subprocess.run(script, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10)
+        else:
+            ssh_user = self.host.get("ssh_user") or "sysinfra"
+            ssh_port = str(self.host.get("ssh_port") or 22)
+            completed = subprocess.run(
+                [
+                    "ssh",
+                    "-o",
+                    "BatchMode=yes",
+                    "-o",
+                    "StrictHostKeyChecking=no",
+                    "-o",
+                    "ConnectTimeout=5",
+                    "-p",
+                    ssh_port,
+                    f"{ssh_user}@{target}",
+                    script,
+                ],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=15,
+            )
+        return self._parse_identity(completed, "ansible")
+
+    def _identity_error(self, error: str) -> dict[str, Any]:
+        return {
+            "asset_seq": self.host.get("asset_seq"),
+            "hostname": "",
+            "os": "",
+            "runner": "ansible",
+            "source": "actual_runner",
+            "trusted": False,
+            "collected_at": datetime.now(timezone.utc).isoformat(),
+            "error": error,
+        }
+
+    def _parse_identity(self, completed: subprocess.CompletedProcess, runner: str) -> dict[str, Any]:
+        if completed.returncode != 0:
+            return self._identity_error(completed.stderr.strip()[:200] or "identity probe failed")
+        values = {}
+        for line in completed.stdout.splitlines():
+            if "=" in line:
+                key, value = line.split("=", 1)
+                values[key.strip()] = value.strip()
+        return {
+            "asset_seq": self.host.get("asset_seq"),
+            "hostname": values.get("HOSTNAME", ""),
+            "fqdn": values.get("FQDN", ""),
+            "os": values.get("OS", ""),
+            "kernel": values.get("KERNEL", ""),
+            "runner": runner,
+            "source": "actual_runner",
+            "trusted": bool(values.get("HOSTNAME") or values.get("OS")),
+            "collected_at": datetime.now(timezone.utc).isoformat(),
+        }
+
     def self_check(self) -> dict:
         host = self.host.get("ip") or self.host.get("hostname")
         status = "warn"

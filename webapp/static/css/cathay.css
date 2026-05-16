@@ -737,6 +737,27 @@ a.metric:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.asset-source-pill {
+  display: inline-flex;
+  margin-left: 4px;
+  padding: 1px 5px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-xs);
+  color: var(--c3);
+  font-size: 11px;
+  line-height: 1.5;
+  vertical-align: middle;
+}
+.asset-source-pill.verified {
+  border-color: var(--g1);
+  color: var(--g-text);
+  background: var(--g-light);
+}
+.asset-source-pill.unverified {
+  border-color: var(--orange);
+  color: var(--orange);
+  background: #fff;
+}
 .asset-missing-inline {
   display: inline-flex;
   align-items: center;

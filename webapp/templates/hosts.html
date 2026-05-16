@@ -185,6 +185,9 @@
           </td>
           <td>
             <strong class="code-inline">{{ host.hostname or "-" }}</strong>
+            <span class="asset-source-pill {% if host.hostname_source == 'actual_runner' %}verified{% else %}unverified{% endif %}" title="Hostname 來源：{{ host.hostname_source or host.import_source or 'manual' }}">
+              {% if host.hostname_source == "actual_runner" %}實採{% else %}未驗證{% endif %}
+            </span>
             <div class="text-muted-sm">{{ host.asset_seq or "-" }}</div>
           </td>
           <td>
@@ -195,6 +198,9 @@
           </td>
           <td>
             <strong>{{ host.os or host_type_labels.get(host.host_type, host.host_type or "-") }}</strong>
+            <span class="asset-source-pill {% if host.os_source == 'actual_runner' %}verified{% else %}unverified{% endif %}" title="OS 來源：{{ host.os_source or host.import_source or 'manual' }}">
+              {% if host.os_source == "actual_runner" %}實採{% else %}未驗證{% endif %}
+            </span>
           </td>
           <td>{{ host.device_type or "-" }}</td>
           <td>{{ host.rack_no or "-" }}</td>
@@ -206,6 +212,9 @@
             <details class="asset-row-menu">
               <summary>動作</summary>
               <a class="btn-sm btn-secondary" href="{{ url_for('api_hosts.host_edit_page', asset_seq=host.hostname or host.asset_seq) }}">編輯</a>
+              <form method="post" action="{{ url_for('api_hosts.host_verify_identity_submit', asset_seq=host.hostname or host.asset_seq) }}" data-submit-status data-submit-message="正在連線採集真實 Hostname / OS，請稍候。">
+                <button class="btn-sm btn-secondary" type="submit">驗證名稱/OS</button>
+              </form>
               <button class="btn-sm btn-secondary" data-self-check="{{ host.asset_seq }}" type="button">自檢</button>
               {% if current_user.role == "superadmin" %}
               <button class="btn-sm btn-secondary" data-debug="{{ host.asset_seq }}" type="button">Debug</button>

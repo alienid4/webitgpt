@@ -678,6 +678,39 @@ def host_edit_submit(asset_seq: str):
         ), 400
 
 
+@bp.post("/hosts/<asset_seq>/verify-identity")
+@require_feature("cmdb_manual_input")
+@require_role("admin")
+def host_verify_identity_submit(asset_seq: str):
+    try:
+        result = cmdb_service.verify_host_identity(asset_seq, user=current_user()["username"])
+        host = result["host"]
+        audit_log_service.append(
+            "host.identity.verify",
+            current_user()["username"],
+            {
+                "asset_seq": host.get("asset_seq"),
+                "hostname": host.get("hostname"),
+                "os": host.get("os"),
+                "trusted": result["identity"].get("trusted"),
+            },
+        )
+        return redirect(url_for("api_hosts.host_edit_page", asset_seq=host["hostname"]))
+    except Exception as exc:
+        host = host_service.get_host(asset_seq) or {"asset_seq": asset_seq}
+        return render_template(
+            "host_edit.html",
+            host=host,
+            edit_fields=EDIT_FIELDS,
+            field_labels=ASSET_FIELD_LABELS,
+            required_fields=REQUIRED_FIELDS,
+            ipam_networks=cmdb_service.list_networks(),
+            extension_definitions=cmdb_service.list_extension_definitions(),
+            mode="edit",
+            errors=[f"主機名稱/OS 驗證失敗：{exc}"],
+        ), 400
+
+
 @bp.post("/hosts/drafts")
 @require_feature("cmdb_manual_input")
 @require_role("admin")

@@ -128,6 +128,40 @@ def update_host(asset_seq: str, changes: dict[str, Any], user: str = "system") -
     return result
 
 
+def apply_verified_identity(asset_seq: str, identity: dict[str, Any], user: str = "system") -> dict[str, Any]:
+    existing = get_collection("hosts").find_one(_identity_query(asset_seq))
+    if not existing:
+        raise KeyError(f"host not found: {asset_seq}")
+    now = _now()
+    observed_hostname = str(identity.get("hostname") or "").strip()
+    observed_os = str(identity.get("os") or "").strip()
+    trusted = bool(identity.get("trusted"))
+    changes: dict[str, Any] = {
+        "hostname_observed": observed_hostname,
+        "os_observed": observed_os,
+        "identity_source": identity.get("source") or "actual_runner",
+        "identity_runner": identity.get("runner") or "",
+        "identity_verified_at": now,
+        "identity_verified_by": user,
+        "identity_confidence": "verified" if trusted else "failed",
+        "identity_error": identity.get("error", ""),
+    }
+    warnings: list[str] = []
+    if trusted and observed_os:
+        changes["os"] = observed_os
+        changes["os_source"] = "actual_runner"
+    if trusted and observed_hostname:
+        conflict = get_collection("hosts").find_one({"hostname": observed_hostname, "_id": {"$ne": existing["_id"]}})
+        if conflict:
+            warnings.append(f"observed hostname conflicts with existing host: {observed_hostname}")
+        else:
+            changes["hostname"] = observed_hostname
+            changes["hostname_source"] = "actual_runner"
+    updated = update_host(existing.get("hostname") or existing.get("asset_seq"), changes, user=user)
+    updated["_identity_warnings"] = warnings
+    return updated
+
+
 def delete_host(asset_seq: str, user: str = "system", soft: bool = True) -> bool:
     if soft:
         update_host(asset_seq, {"status": "retired"}, user=user)

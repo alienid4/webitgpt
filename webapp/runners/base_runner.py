@@ -43,5 +43,17 @@ class Runner(ABC):
             "settings": {},
         }
 
+    def collect_identity(self) -> dict[str, Any]:
+        return {
+            "asset_seq": self.host.get("asset_seq"),
+            "hostname": "",
+            "os": "",
+            "runner": self.__class__.__name__,
+            "source": "not_collected",
+            "trusted": False,
+            "collected_at": datetime.now(timezone.utc).isoformat(),
+            "error": "identity collection is not implemented for this runner",
+        }
+
     def write_operation(self, name: str) -> dict[str, Any]:
         raise NotImplementedError("Monitored-host writes are disabled in parallel review mode")

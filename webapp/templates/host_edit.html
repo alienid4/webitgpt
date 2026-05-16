@@ -15,6 +15,7 @@
       <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">返回列表</a>
       <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM</a>
       {% if mode != "new" and current_user.role in ["admin", "super", "superadmin"] %}
+      <button class="btn secondary" form="verifyIdentityForm" type="submit">驗證名稱/OS</button>
       <button class="btn secondary" data-self-check="{{ host.asset_seq }}" type="button">自檢</button>
       {% endif %}
       {% if mode != "new" and current_user.role == "superadmin" %}
@@ -154,8 +155,21 @@
     </div>
   </form>
   {% if mode != "new" %}
+  <div class="panel asset-identity-panel">
+    <h2>主機名稱 / OS 可信度</h2>
+    <div class="asset-tech-grid">
+      <div><span>Hostname 來源</span><strong>{{ "實際採集" if host.hostname_source == "actual_runner" else "尚未驗證" }}</strong></div>
+      <div><span>OS 來源</span><strong>{{ "實際採集" if host.os_source == "actual_runner" else "尚未驗證" }}</strong></div>
+      <div><span>最後驗證</span><strong>{{ host.identity_verified_at or "-" }}</strong></div>
+      <div><span>採集器</span><strong>{{ host.identity_runner or "-" }}</strong></div>
+      <div><span>觀察到 Hostname</span><strong>{{ host.hostname_observed or "-" }}</strong></div>
+      <div><span>觀察到 OS</span><strong>{{ host.os_observed or "-" }}</strong></div>
+    </div>
+    <p class="text-muted-sm">nmap 與人工輸入只當作草稿線索；正式納管後請用「驗證名稱/OS」透過 SSH、SSH Raw、WinRM 或 vCenter 取得真實資料。</p>
+  </div>
   <form id="allocateIpForm" method="post" action="{{ url_for('api_hosts.host_allocate_ip', asset_seq=host.hostname or host.asset_seq) }}"></form>
   <form id="assetLifecycleForm" method="post" action="{{ url_for('api_hosts.host_lifecycle_submit', asset_seq=host.hostname or host.asset_seq) }}"></form>
+  <form id="verifyIdentityForm" method="post" action="{{ url_for('api_hosts.host_verify_identity_submit', asset_seq=host.hostname or host.asset_seq) }}" data-submit-status data-submit-message="正在連線採集真實 Hostname / OS，請稍候。"></form>
   {% endif %}
 </section>
 <script src="{{ url_for('static', filename='js/hosts.js') }}"></script>

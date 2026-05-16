@@ -305,6 +305,7 @@ def test_asset_governance_status_admin_contracts_exist():
     hosts_template = read("webapp/templates/hosts.html")
     host_service = read("webapp/services/host_service.py")
     hosts_js = read("webapp/static/js/hosts.js")
+    host_edit = read("webapp/templates/host_edit.html")
     for text in ["批次草稿處理", "全選本頁草稿", "刪除勾選草稿", "bulkDraftDeleteForm"]:
         assert text in hosts_template
     for text in ["asset-table-compact", "資產名稱 *", "Hostname", "asset-row-menu"]:
@@ -313,6 +314,10 @@ def test_asset_governance_status_admin_contracts_exist():
         assert text in hosts_template
     for text in ["設備類型", "機櫃", "備註", "asset-note-cell"]:
         assert text in hosts_template
+    for text in ["asset-source-pill", "驗證名稱/OS", "host_verify_identity_submit"]:
+        assert text in hosts_template or text in host_routes
+    for text in ["主機名稱 / OS 可信度", "Hostname 來源", "OS 來源", "verifyIdentityForm"]:
+        assert text in host_edit
     assert '<span>草稿</span>' in hosts_template
     assert "host_bulk_delete_drafts_submit" in host_routes
     assert "bulk_delete_draft_hosts" in host_service
@@ -324,7 +329,6 @@ def test_asset_governance_status_admin_contracts_exist():
     host_service = read("webapp/services/host_service.py")
     assert "transition_lifecycle" in host_service
     assert "delete_draft_host" in host_service
-    host_edit = read("webapp/templates/host_edit.html")
     for text in ["資產生命週期", "刪除草稿", "申請下線", "下線封存", "處理原因"]:
         assert text in host_edit
     for text in ["請先修正以下欄位", "field-has-error", "這個欄位需要修正"]:

@@ -9,6 +9,7 @@ from typing import Any, Optional
 
 from webapp.services import host_service
 from webapp.services.mongo_service import get_collection
+from webapp.services.runner_dispatcher import get_runner
 
 
 def _now() -> datetime:
@@ -837,6 +838,10 @@ def create_asset_drafts_from_scan(cidr: str, user: str, ips: Optional[list[str]]
             "environment": report.get("default_environment") or network_doc.get("environment") or "DEV",
             "hostname": hostname,
             "os": os_text,
+            "hostname_source": "nmap_dns" if source_hostname else "scan_placeholder",
+            "os_source": "nmap_guess" if os_text else "unknown",
+            "identity_confidence": "low",
+            "identity_verified_at": None,
             "ip": ip_text,
             "ip_addresses": [ip_text],
             "network_segments": [str(network)],
@@ -858,6 +863,31 @@ def create_asset_drafts_from_scan(cidr: str, user: str, ips: Optional[list[str]]
             skipped.append({"ip": ip_text, "reason": str(exc)})
 
     return {"cidr": str(network), "created": created, "skipped": skipped, "created_count": len(created), "skipped_count": len(skipped)}
+
+
+def verify_host_identity(host_key: str, user: str = "system") -> dict[str, Any]:
+    host = host_service.get_host(host_key)
+    if not host:
+        raise KeyError(f"host not found: {host_key}")
+    identity = get_runner(host).collect_identity()
+    updated = host_service.apply_verified_identity(host_key, identity, user=user)
+    get_collection("host_identity_checks").insert_one(
+        {
+            "asset_seq": host.get("asset_seq"),
+            "hostname_before": host.get("hostname"),
+            "os_before": host.get("os"),
+            "identity": identity,
+            "updated": {
+                "hostname": updated.get("hostname"),
+                "os": updated.get("os"),
+                "hostname_observed": updated.get("hostname_observed"),
+                "os_observed": updated.get("os_observed"),
+            },
+            "created_at": _now(),
+            "created_by": user,
+        }
+    )
+    return {"identity": identity, "host": updated}
 
 
 def assign_ip_to_host(host_key: str, cidr: str, user: str) -> dict[str, Any]:
