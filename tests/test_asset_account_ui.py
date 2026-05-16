@@ -108,6 +108,9 @@ def test_opening_check_is_system_scoped_and_deep_check_supports_aix():
     assert "data-l3-verdict" in html
     assert "data-score-ring" in html
     assert "data-score=\"{{ host.summary.score if host.summary else 0 }}\"" in html
+    assert "{{ host.asset_name or host.system_name or host.hostname }}" in html
+    assert "{{ host.hostname or \"-\" }} / {{ host.ip or \"-\" }} / {{ host.os or host.host_type }}" in html
+    assert "{{ host.asset_seq }} / {{ host.ip or \"-\" }} / {{ host.host_type }}" not in html
     assert "conic-gradient" in read("webapp/static/css/cathay.css")
     assert "refreshScoreRings" in read("webapp/static/js/admin_tools.js")
     assert "api_superadmin.log_exceptions_page" in html
@@ -122,6 +125,7 @@ def test_opening_check_is_system_scoped_and_deep_check_supports_aix():
     assert "daily_diagnostics(platform, system_name)" in routes
     assert "OPENING_DEFAULT_SYSTEM" in legacy
     assert "OPENING_ALL_SYSTEMS_VALUE" in legacy
+    assert "_with_host_display_fields" in legacy
     assert "if requested == OPENING_ALL_SYSTEMS_VALUE:" in legacy
     assert '"all_systems_count": sum(item["count"] for item in options)' in legacy
     assert "selected_system" in legacy

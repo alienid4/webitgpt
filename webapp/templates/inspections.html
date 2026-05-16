@@ -53,8 +53,8 @@
     <div class="gauge-head">
       <div>
         <p class="eyebrow">HOST DASHBOARD</p>
-        <h2>{{ host.hostname }}</h2>
-        <div class="text-muted-sm">{{ host.asset_seq }} / {{ host.ip or "-" }} / {{ host.host_type }}</div>
+        <h2>{{ host.asset_name or host.system_name or host.hostname }}</h2>
+        <div class="text-muted-sm">{{ host.hostname or "-" }} / {{ host.ip or "-" }} / {{ host.os or host.host_type }}</div>
       </div>
       <span class="gauge-state">{{ host.overall_label or "待檢" }}</span>
     </div>

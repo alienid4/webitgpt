@@ -628,6 +628,16 @@ def _ssh_placeholder_diagnostics(host: dict[str, Any]) -> dict[str, Any]:
     })
 
 
+def _with_host_display_fields(row: dict[str, Any], host: dict[str, Any]) -> dict[str, Any]:
+    row["asset_name"] = host.get("asset_name") or row.get("asset_name") or host.get("system_name") or host.get("hostname")
+    row["hostname"] = host.get("hostname") or row.get("hostname")
+    row["ip"] = host.get("ip") or row.get("ip")
+    row["os"] = host.get("os") or row.get("os") or host.get("host_type") or row.get("host_type")
+    row["host_type"] = host.get("host_type") or row.get("host_type")
+    row["system_name"] = host.get("system_name") or row.get("system_name")
+    return row
+
+
 def daily_diagnostics(platform: str = "linux", system_name: str = "") -> dict[str, Any]:
     platform = platform or "linux"
     all_hosts = _hosts()
@@ -644,16 +654,19 @@ def daily_diagnostics(platform: str = "linux", system_name: str = "") -> dict[st
             latest = get_collection("diagnostic_results").find_one({"asset_seq": host.get("asset_seq")}, {"_id": 0}, sort=[("checked_at", -1)])
             if latest:
                 latest = _normalize_diagnostic_row(latest)
+                latest = _with_host_display_fields(latest, host)
                 latest["recent"] = diagnostic_history(host.get("asset_seq"), days=7, limit=6)
                 latest["latest_deep_check"] = latest_report(host.get("hostname"))
                 rows.append(latest)
             elif host.get("connection") == "local":
                 row = _local_linux_diagnostics(host)
+                row = _with_host_display_fields(row, host)
                 row["recent"] = diagnostic_history(host.get("asset_seq"), days=7, limit=6)
                 row["latest_deep_check"] = latest_report(host.get("hostname"))
                 rows.append(row)
             else:
                 row = _ssh_placeholder_diagnostics(host)
+                row = _with_host_display_fields(row, host)
                 row["recent"] = diagnostic_history(host.get("asset_seq"), days=7, limit=6)
                 row["latest_deep_check"] = latest_report(host.get("hostname"))
                 rows.append(row)
@@ -661,6 +674,7 @@ def daily_diagnostics(platform: str = "linux", system_name: str = "") -> dict[st
         rows = []
         for host in hosts:
             row = _ssh_placeholder_diagnostics(host)
+            row = _with_host_display_fields(row, host)
             row["latest_deep_check"] = latest_report(host.get("hostname"))
             rows.append(row)
     summary = {
