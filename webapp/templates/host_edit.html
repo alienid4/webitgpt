@@ -23,8 +23,22 @@
     </div>
   </div>
 
-  {% if errors %}<div class="notice danger">{{ errors|join(' / ') }}</div>{% endif %}
-  {% if warnings %}<div class="notice">{{ warnings|join(' / ') }}</div>{% endif %}
+  {% if errors %}
+  <div class="notice danger form-message-list">
+    <strong>請先修正以下欄位：</strong>
+    <ul>
+      {% for item in errors %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  {% if warnings %}
+  <div class="notice form-message-list">
+    <strong>提醒：</strong>
+    <ul>
+      {% for item in warnings %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
 
   <form class="panel asset-edit-form" method="post">
     <div class="asset-edit-section">
@@ -32,8 +46,11 @@
       <div class="asset-edit-grid">
         {% for field in edit_fields %}
           {% set value = host.get(field, "") %}
-          <label class="{% if field in ['note','ip_addresses','network_segments'] %}span-2{% endif %}">
+          {% set has_error = field in (error_fields or []) %}
+          {% set has_warning = field in (warning_fields or []) %}
+          <label class="{% if field in ['note','ip_addresses','network_segments'] %}span-2{% endif %} {% if has_error %}field-has-error{% elif has_warning %}field-has-warning{% endif %}" id="field-{{ field }}">
             <span>{{ field_labels.get(field, field) }}{% if field in required_fields %}<b>*</b>{% endif %}</span>
+            {% if has_error %}<em class="field-help danger">這個欄位需要修正</em>{% elif has_warning %}<em class="field-help">請確認這個欄位</em>{% endif %}
             {% if field in ["note","ip_addresses","network_segments"] %}
               <textarea name="{{ field }}" rows="3" {% if field in required_fields %}required{% endif %}>{{ value|join('\n') if value is iterable and value is not string else value }}</textarea>
             {% elif field == "status" %}

@@ -109,6 +109,18 @@ ASSET_STATUS_LABELS = {
     "pending_retire": "待汰除",
 }
 
+HOST_FORM_ERROR_MESSAGES = {
+    "server hosts require connection": ("connection", "連線方式未設定：Linux / Windows / AIX / AS400 等伺服器主機，請選擇 SSH、WinRM、SSH Raw、本機等連線方式。"),
+    "server hosts require os": ("os", "作業系統未填：伺服器主機請填寫實際 OS，例如 Rocky Linux 9.7、Debian 13、Windows Server 2019。"),
+    "hostname is required and must be unique": ("hostname", "主機名稱未填或重複：主機名稱是唯一索引，請填寫不重複的 hostname。"),
+    "ip must be a valid IPv4/IPv6 address": ("ip", "主要 IP 格式不正確：請填 IPv4 或 IPv6，例如 192.168.1.110。"),
+    "vmware hosts require connection=vcenter_api": ("connection", "VMware 資產的連線方式需選 vCenter API，或先保持草稿狀態。"),
+}
+
+HOST_FORM_WARNING_MESSAGES = {
+    "asset_seq should look like HW-XXXXXXXX": ("asset_seq", "資產編號格式提醒：正式資產建議使用 HW-XXXXXXXX。掃描草稿若還沒有正式資產編號，可先保持草稿或待補資料。"),
+}
+
 HOST_TYPE_LABELS = {
     "linux": "Linux",
     "windows": "Windows",
@@ -128,6 +140,33 @@ def _role_allowed(required: str) -> bool:
     role_order = {"viewer": 0, "admin": 1, "super": 2, "superadmin": 3}
     user_role = current_user().get("role", "viewer")
     return role_order.get(user_role, 0) >= role_order.get(required, 0)
+
+
+def _translate_host_form_messages(messages: list[str], warning: bool = False) -> tuple[list[str], list[str]]:
+    translated: list[str] = []
+    fields: list[str] = []
+    mapping = HOST_FORM_WARNING_MESSAGES if warning else HOST_FORM_ERROR_MESSAGES
+    for message in messages or []:
+        field = ""
+        text = message
+        if message in mapping:
+            field, text = mapping[message]
+        elif message.endswith(" is required"):
+            field = message.removesuffix(" is required")
+            text = f"{ASSET_FIELD_LABELS.get(field, field)}未填：請補齊這個必填欄位。"
+        elif message.startswith("ip_addresses contains invalid IP:"):
+            field = "ip_addresses"
+            text = f"所有 IP 內有格式不正確的 IP：{message.split(':', 1)[1].strip()}。"
+        elif message.startswith("network_segments contains invalid CIDR:"):
+            field = "network_segments"
+            text = f"網段格式不正確：{message.split(':', 1)[1].strip()}。"
+        elif " must be an integer 0-3" in message or " must be 0-3" in message:
+            field = message.split(" ", 1)[0]
+            text = f"{ASSET_FIELD_LABELS.get(field, field)}請填 0 到 3 的數字。"
+        if field:
+            fields.append(field)
+        translated.append(text)
+    return translated, sorted(set(fields))
 
 
 def _normalize_search_text(value: str) -> str:
@@ -361,6 +400,8 @@ def host_new_submit():
         audit_log_service.append("host.create", current_user()["username"], {"hostname": host["hostname"], "asset_seq": host["asset_seq"]})
         return redirect(url_for("api_hosts.host_edit_page", asset_seq=host["hostname"]))
     except ValidationError as exc:
+        errors, error_fields = _translate_host_form_messages(exc.errors)
+        warnings, warning_fields = _translate_host_form_messages(exc.warnings, warning=True)
         return render_template(
             "host_edit.html",
             host=_host_form_data(),
@@ -370,8 +411,10 @@ def host_new_submit():
             ipam_networks=cmdb_service.list_networks(),
             extension_definitions=cmdb_service.list_extension_definitions(),
             mode="new",
-            errors=exc.errors,
-            warnings=exc.warnings,
+            errors=errors,
+            warnings=warnings,
+            error_fields=error_fields,
+            warning_fields=warning_fields,
         ), 400
 
 
@@ -616,6 +659,8 @@ def host_edit_submit(asset_seq: str):
         audit_log_service.append("host.update", current_user()["username"], {"hostname": host["hostname"], "asset_seq": host["asset_seq"]})
         return redirect(url_for("api_hosts.host_edit_page", asset_seq=host["hostname"]))
     except ValidationError as exc:
+        errors, error_fields = _translate_host_form_messages(exc.errors)
+        warnings, warning_fields = _translate_host_form_messages(exc.warnings, warning=True)
         form_host = {**_host_form_data(), "asset_seq": request.form.get("asset_seq", asset_seq)}
         return render_template(
             "host_edit.html",
@@ -626,8 +671,10 @@ def host_edit_submit(asset_seq: str):
             ipam_networks=cmdb_service.list_networks(),
             extension_definitions=cmdb_service.list_extension_definitions(),
             mode="edit",
-            errors=exc.errors,
-            warnings=exc.warnings,
+            errors=errors,
+            warnings=warnings,
+            error_fields=error_fields,
+            warning_fields=warning_fields,
         ), 400
 
 

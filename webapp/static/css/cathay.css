@@ -795,6 +795,29 @@ a.metric:hover {
   align-content: start;
   font-weight: 800;
 }
+.form-message-list ul {
+  margin: 8px 0 0;
+  padding-left: 22px;
+}
+.field-help {
+  color: var(--orange);
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 800;
+}
+.field-help.danger { color: var(--red); }
+.asset-edit-grid label.field-has-error input,
+.asset-edit-grid label.field-has-error select,
+.asset-edit-grid label.field-has-error textarea {
+  border-color: var(--red);
+  box-shadow: 0 0 0 2px rgba(224, 11, 0, .12);
+}
+.asset-edit-grid label.field-has-warning input,
+.asset-edit-grid label.field-has-warning select,
+.asset-edit-grid label.field-has-warning textarea {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 2px rgba(232, 124, 7, .12);
+}
 .asset-edit-grid label span b { color: var(--red); margin-left: 2px; }
 .asset-edit-grid input,
 .asset-edit-grid select,

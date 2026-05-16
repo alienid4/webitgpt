@@ -321,6 +321,10 @@ def test_asset_governance_status_admin_contracts_exist():
     host_edit = read("webapp/templates/host_edit.html")
     for text in ["資產生命週期", "刪除草稿", "申請下線", "下線封存", "處理原因"]:
         assert text in host_edit
+    for text in ["請先修正以下欄位", "field-has-error", "這個欄位需要修正"]:
+        assert text in host_edit
+    for text in ["HOST_FORM_ERROR_MESSAGES", "連線方式未設定", "_translate_host_form_messages", "error_fields"]:
+        assert text in host_routes
     assert 'current_user.role in ["admin", "super", "superadmin"]' in read("webapp/templates/hosts.html")
     assert 'current_user.role in ["admin", "super", "superadmin"]' in read("webapp/templates/asset_quality.html")
     assert "asset_quality_report" in Path("webapp/services/cmdb_service.py").read_text(encoding="utf-8")
