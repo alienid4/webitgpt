@@ -278,10 +278,14 @@ def main() -> int:
     check(report, "api_v1_hosts_before", status == 200 and before_total >= 3, {"total": before_total})
 
     status, home_page, _ = request(opener, "GET", f"{base}/hosts")
-    check(report, "ui_version_visible", status == 200 and "webitgpt v1.0.2.25" in home_page and "global-search-admin-routing" in home_page and "IT 巡檢系統" in home_page, {"status": status})
+    check(report, "ui_version_visible", status == 200 and "webitgpt v1.0.2.26" in home_page and "global-search-expanded-index" in home_page and "IT 巡檢系統" in home_page, {"status": status})
     check(report, "ui_asset_nav_active", status == 200 and 'class="nav-warn active"' in home_page and "▣ 資產管理" in home_page, {"status": status})
     status, search_page, _ = request(opener, "GET", f"{base}/search?q={urllib.parse.quote('資產治理狀態')}")
     check(report, "global_search_asset_governance_route", status == 200 and "資產治理狀態" in search_page and "等待 PAM 納管" in search_page, {"status": status})
+    status, search_page, _ = request(opener, "GET", f"{base}/search?q={urllib.parse.quote('開發後台')}")
+    check(report, "global_search_dev_console_route", status == 200 and "開發後台" in search_page and "模組管理" in search_page, {"status": status})
+    status, search_page, _ = request(opener, "GET", f"{base}/search?q={urllib.parse.quote('IPAM')}")
+    check(report, "global_search_ipam_route", status == 200 and "網段" in search_page and "帳號盤點工作台" not in search_page, {"status": status})
 
     view_name = f"validation-{random.randint(1000, 9999)}"
     status, _, saved_view = request(

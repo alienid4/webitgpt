@@ -276,5 +276,7 @@ def test_asset_governance_status_admin_contracts_exist():
     assert "等待防火牆" in host_routes
     assert "等待弱掃" in host_routes
     assert "PAM 納管" in host_routes
+    for text in ["開發後台", "IPAM", "系統拓撲", "操作紀錄", "重要服務設定", "新增主機"]:
+        assert text in host_routes
     assert "資產治理狀態" in superadmin
     assert "資產治理狀態" in system_service

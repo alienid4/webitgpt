@@ -17,46 +17,41 @@ bp = Blueprint("api_hosts", __name__)
 MANUAL_MULTI_FIELDS = ["asset_seq", "hostname", "ip", "host_type", "os", "connection"]
 
 GLOBAL_SEARCH_TARGETS = [
-    {
-        "endpoint": "api_superadmin.asset_governance_statuses_page",
-        "keywords": ["資產治理狀態", "治理狀態", "等待防火牆", "等待弱掃", "等待 PAM", "PAM 納管", "asset governance"],
-        "role": "superadmin",
-    },
-    {
-        "endpoint": "api_superadmin.important_services_page",
-        "keywords": ["重要服務設定", "重要服務", "sshd", "cron", "rsyslog", "AP service"],
-        "role": "superadmin",
-    },
-    {
-        "endpoint": "api_superadmin.log_exceptions_page",
-        "keywords": ["系統日誌白名單", "日誌白名單", "例外管理", "log exception"],
-        "role": "superadmin",
-    },
-    {
-        "endpoint": "api_hosts.ipam_page",
-        "keywords": ["IPAM", "網段管理", "網段掃描", "IP 分配", "IP 保留"],
-        "role": "viewer",
-    },
-    {
-        "endpoint": "api_hosts.host_new_page",
-        "keywords": ["新增主機", "新增資產", "CSV 匯入", "掃描新增", "建立草稿"],
-        "role": "admin",
-    },
-    {
-        "endpoint": "api_inventory.accounts_page",
-        "keywords": ["帳號盤點", "PAM", "高權限帳號", "帳號清冊"],
-        "role": "viewer",
-    },
-    {
-        "endpoint": "api_operations.inspections_page",
-        "keywords": ["開門檢查", "L3", "深度檢查", "巡檢"],
-        "role": "viewer",
-    },
-    {
-        "endpoint": "api_reports.dependencies_page",
-        "keywords": ["系統拓撲", "拓撲", "關聯圖", "依賴圖", "ss nmap"],
-        "role": "viewer",
-    },
+    {"endpoint": "api_reports.dashboard_page", "keywords": ["儀表板", "dashboard", "首頁"], "role": "viewer"},
+    {"endpoint": "api_reports.executive_page", "keywords": ["主管儀表板", "主管", "高階主管", "executive"], "role": "viewer"},
+    {"endpoint": "api_operations.inspections_page", "keywords": ["開門檢查", "今日巡檢", "巡檢", "L1", "L3", "深度檢查", "deep check"], "role": "viewer"},
+    {"endpoint": "api_inventory.accounts_page", "keywords": ["帳號盤點", "帳號清冊", "高權限帳號", "PAM", "pam納管", "pam 納管"], "role": "viewer"},
+    {"endpoint": "api_inventory.software_page", "keywords": ["軟體盤點", "套件搜尋", "版本變更", "套件", "package", "software"], "role": "viewer"},
+    {"endpoint": "api_operations.nmon_page", "keywords": ["效能月報", "效能", "nmon", "CPU", "記憶體", "磁碟趨勢"], "role": "viewer"},
+    {"endpoint": "api_compliance.security_audit_page", "keywords": ["TWGCB", "合規", "安全稽核", "資安", "修補", "rollback", "弱掃"], "role": "viewer"},
+    {"endpoint": "api_reports.dependencies_page", "keywords": ["系統拓撲", "拓撲", "關聯圖", "依賴圖", "系統依賴", "ss nmap", "nmap", "ghost"], "role": "viewer"},
+    {"endpoint": "api_hosts.hosts_page", "keywords": ["資產管理", "主機管理", "CMDB", "資產清冊", "主機清冊", "資產列表"], "role": "viewer"},
+    {"endpoint": "api_hosts.host_new_page", "keywords": ["新增主機", "新增資產", "CSV 匯入", "CSV匯入", "大量匯入", "掃描新增", "建立草稿", "新增"], "role": "admin"},
+    {"endpoint": "api_hosts.ipam_page", "keywords": ["IPAM", "網段管理", "網段掃描", "IP 分配", "IP 保留", "未納管 IP", "未納管"], "role": "viewer"},
+    {"endpoint": "api_hosts.extension_fields_page", "keywords": ["擴充欄位", "自訂欄位", "欄位管理", "新增欄位"], "role": "superadmin"},
+    {"endpoint": "api_inventory.services_page", "keywords": ["服務管理", "服務盤點", "服務啟停", "service", "systemctl"], "role": "viewer"},
+    {"endpoint": "api_inventory.ssh_keys_page", "keywords": ["SSH Key", "ssh key", "金鑰", "遠端金鑰"], "role": "viewer"},
+    {"endpoint": "api_inventory.changes_page", "keywords": ["變更管理", "ticket", "rollback plan", "變更單"], "role": "viewer"},
+    {"endpoint": "api_platforms.platforms_page", "keywords": ["平台支援", "Linux", "Windows", "AIX", "AS400", "VMware"], "role": "viewer"},
+    {"endpoint": "api_platforms.vmware_page", "keywords": ["VMware", "vCenter", "虛擬化"], "role": "viewer"},
+    {"endpoint": "api_superadmin.superadmin_page", "keywords": ["系統管理", "後台", "后台", "superadmin", "超級管理員", "功能開關", "模組管理"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.feature_parity_page", "keywords": ["功能驗證", "功能旗標", "feature flag", "feature flags", "開關"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.users_page", "keywords": ["使用者", "權限", "使用者與權限", "帳號權限", "角色"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.tokens_page", "keywords": ["API Token", "token", "MCP token", "對外 API"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.ai_page", "keywords": ["AI 供應商", "AI設定", "LLM", "Ollama", "OpenAI"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.system_health_page", "keywords": ["健康檢查", "health", "ready", "metrics", "系統健康"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.settings_page", "keywords": ["設定管理", "系統設定", "settings", "Mongo 設定"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.logs_page", "keywords": ["日誌檢視", "log", "error log", "access log", "日誌"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.log_exceptions_page", "keywords": ["系統日誌白名單", "日誌白名單", "例外管理", "log exception", "系統日誌例外"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.important_services_page", "keywords": ["重要服務設定", "重要服務", "sshd", "cron", "rsyslog", "AP service", "服務白名單"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.asset_governance_statuses_page", "keywords": ["資產治理狀態", "治理狀態", "等待防火牆", "防火牆開通", "等待弱掃", "弱掃完成", "等待 PAM", "PAM 納管", "asset governance"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.jobs_page", "keywords": ["工作排程", "排程", "scheduler", "timer", "systemd timer", "每週掃描"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.audit_logs_page", "keywords": ["操作紀錄", "稽核紀錄", "audit log", "hash chain", "操作日誌"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.backup_dr_page", "keywords": ["備份", "DR", "backup", "restore", "災難復原"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.patches_page", "keywords": ["Patch", "patch", "回滾", "版本", "release", "rollback"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.remote_tools_page", "keywords": ["遠端工具", "遠端", "remote tool", "Linux 初始化", "服務啟停"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.validation_page", "keywords": ["驗證報告", "功能驗證報告", "validation", "測試報告"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.dev_console_page", "keywords": ["開發後台", "開發后台", "developer", "dev console", "開發者文件", "文件", "檔案管理", "備忘錄", "提交紀錄", "模組管理"], "role": "superadmin"},
 ]
 
 ASSET_FIELD_LABELS = {
@@ -138,6 +133,17 @@ def _normalize_search_text(value: str) -> str:
     return " ".join((value or "").strip().lower().split())
 
 
+def _keyword_matches(query: str, keyword: str) -> bool:
+    key = _normalize_search_text(keyword)
+    if not key:
+        return False
+    if query == key:
+        return True
+    if len(key) <= 3 or len(query) <= 3:
+        return False
+    return key in query or query in key
+
+
 @bp.get("/search")
 @require_role("viewer")
 def global_search_page():
@@ -150,8 +156,7 @@ def global_search_page():
         if not _role_allowed(target["role"]):
             continue
         for keyword in target["keywords"]:
-            key = _normalize_search_text(keyword)
-            if key and (key in normalized or normalized in key):
+            if _keyword_matches(normalized, keyword):
                 return redirect(url_for(target["endpoint"]))
 
     return redirect(url_for("api_hosts.hosts_page", q=query))
