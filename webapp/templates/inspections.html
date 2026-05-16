@@ -112,7 +112,11 @@
         <button type="button" data-l3-filter="FAIL"><b>{{ l3.parsed.stats.fail }}</b><span>FAIL</span></button>
         <button type="button" data-l3-filter="N/A"><b>{{ l3.parsed.stats.na }}</b><span>N/A</span></button>
       </div>
-      <p class="text-muted-sm">{{ l3.parsed.customer_impact }}</p>
+      <ul class="l3-impact-summary">
+        {% for line in l3.parsed.customer_impact_lines or [l3.parsed.customer_impact] %}
+        <li>{{ line }}</li>
+        {% endfor %}
+      </ul>
       <details class="diagnostic-history">
         <summary>展開 L3 9 面向與 Remedy</summary>
         <div class="l3-items">

@@ -1319,6 +1319,7 @@ def _parsed_data(host: dict[str, Any], job_ts: str, items: list[dict[str, Any]])
     status_level = "fail" if stats["fail"] else "warn" if stats["warn"] else "pass"
     status = "異常" if status_level == "fail" else "警示" if status_level == "warn" else "正常"
     impacts = [item["impact"] for item in items if item["verdict"] in {"WARN", "FAIL"}]
+    impact_lines = _customer_impact_lines(items)
     return {
         "hostname": host["hostname"],
         "asset_seq": host["asset_seq"],
@@ -1331,8 +1332,21 @@ def _parsed_data(host: dict[str, Any], job_ts: str, items: list[dict[str, Any]])
         "status_level": status_level,
         "stats": stats,
         "customer_impact": "；".join(impacts)[:1000] if impacts else "未發現明顯服務影響。",
+        "customer_impact_lines": impact_lines,
         "items": items,
     }
+
+
+def _customer_impact_lines(items: list[dict[str, Any]]) -> list[str]:
+    lines = []
+    for item in items:
+        if item.get("verdict") not in {"WARN", "FAIL"}:
+            continue
+        text = str(item.get("impact") or item.get("problem") or "").strip()
+        if not text:
+            continue
+        lines.append(f"{item.get('idx')}. {item.get('name')}：{text}")
+    return lines or ["未發現明顯服務影響。"]
 
 
 def _summary_text(data: dict[str, Any]) -> str:
@@ -1370,6 +1384,7 @@ def _normalize_report_doc(report: dict[str, Any]) -> dict[str, Any]:
     parsed = report.get("parsed")
     if isinstance(parsed, dict):
         parsed["display_timestamp"] = _display_timestamp(report.get("timestamp") or parsed.get("timestamp"))
+        parsed.setdefault("customer_impact_lines", _customer_impact_lines(parsed.get("items") or []))
     return report
 
 

@@ -4,6 +4,7 @@ from webapp.services.deep_check_service import (
     NETWORK_CHECKPOINTS,
     _ap_endpoint_verdict,
     _ap_listener_verdict,
+    _customer_impact_lines,
     _evidence_summary,
     _display_timestamp,
     _network_verdict,
@@ -307,6 +308,16 @@ def test_l3_evidence_boxes_do_not_overflow_panel():
     assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in css
     assert "overflow-wrap: anywhere" in css
     assert "box-sizing: border-box" in css
+
+
+def test_l3_customer_impact_summary_is_line_based():
+    items = [
+        {"idx": 1, "name": "效能", "verdict": "PASS", "impact": "正常"},
+        {"idx": 2, "name": "網路", "verdict": "WARN", "impact": "dropped=17"},
+        {"idx": 4, "name": "AP 連線", "verdict": "WARN", "impact": "curl failed"},
+    ]
+
+    assert _customer_impact_lines(items) == ["2. 網路：dropped=17", "4. AP 連線：curl failed"]
 
 
 def test_deep_check_preview_route_returns_plain_text():

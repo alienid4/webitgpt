@@ -2118,6 +2118,21 @@ textarea,
   font-size: 11px;
 }
 
+.l3-impact-summary {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--c2);
+  font-size: 13px;
+  line-height: 1.6;
+  max-height: 110px;
+  overflow: auto;
+}
+
+.l3-impact-summary li {
+  margin: 0 0 3px;
+  word-break: break-word;
+}
+
 .l3-items {
   display: grid;
   gap: 8px;
