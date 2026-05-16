@@ -309,6 +309,8 @@ def test_asset_governance_status_admin_contracts_exist():
         assert text in hosts_template
     for text in ["asset-table-compact", "資產名稱 *", "Hostname", "asset-row-menu"]:
         assert text in hosts_template
+    for text in ["asset-col-expand", "data-asset-detail-toggle", "asset-detail-panel"]:
+        assert text in hosts_template
     assert '<span>草稿</span>' in hosts_template
     assert "host_bulk_delete_drafts_submit" in host_routes
     assert "bulk_delete_draft_hosts" in host_service

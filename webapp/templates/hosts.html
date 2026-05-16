@@ -155,6 +155,7 @@
           <th class="asset-col-env">環境</th>
           <th class="asset-col-dc">機房</th>
           <th class="asset-col-actions">操作</th>
+          <th class="asset-col-expand">展開</th>
         </tr>
       </thead>
       <tbody>
@@ -213,11 +214,14 @@
             <span class="text-muted-sm">-</span>
             {% endif %}
           </td>
+          <td>
+            <button class="btn-sm btn-secondary asset-detail-toggle" type="button" data-asset-detail-toggle="asset-detail-{{ loop.index }}">展開</button>
+          </td>
         </tr>
-        <tr class="asset-detail-row">
-          <td colspan="{% if current_user.role in ["admin", "super", "superadmin"] %}8{% else %}7{% endif %}">
-            <details>
-              <summary>展開資產明細：{{ host.hostname or host.asset_seq }}</summary>
+        <tr class="asset-detail-row" id="asset-detail-{{ loop.index }}" hidden>
+          <td colspan="{% if current_user.role in ["admin", "super", "superadmin"] %}9{% else %}8{% endif %}">
+            <div class="asset-detail-panel">
+              <h3>資產明細：{{ host.hostname or host.asset_seq }}</h3>
               <div class="asset-detail-grid">
                 {% for field in asset_fields %}
                 <div class="asset-detail-item {% if field in required_fields %}required{% endif %}">
@@ -234,11 +238,11 @@
                 <div><span>最後自檢</span><strong>{{ host.last_self_check_at or "-" }}</strong></div>
                 <div><span>更新時間</span><strong>{{ host.updated_at or "-" }}</strong></div>
               </div>
-            </details>
+            </div>
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="{% if current_user.role in ["admin", "super", "superadmin"] %}8{% else %}7{% endif %}" class="no-data">尚無資產資料，請先從 CMDB 匯入或新增資產。</td></tr>
+        <tr><td colspan="{% if current_user.role in ["admin", "super", "superadmin"] %}9{% else %}8{% endif %}" class="no-data">尚無資產資料，請先從 CMDB 匯入或新增資產。</td></tr>
         {% endfor %}
       </tbody>
     </table>

@@ -720,6 +720,7 @@ a.metric:hover {
 .asset-table-compact .asset-col-env { width: 90px; }
 .asset-table-compact .asset-col-dc { width: 90px; }
 .asset-table-compact .asset-col-actions { width: 90px; }
+.asset-table-compact .asset-col-expand { width: 72px; }
 .asset-name-cell strong {
   display: inline-block;
   max-width: 190px;
@@ -779,6 +780,23 @@ a.metric:hover {
   display: flex;
   width: 132px;
   margin: 5px 8px 0 auto;
+}
+.asset-detail-row[hidden] {
+  display: none;
+}
+.asset-detail-panel {
+  padding: 12px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+.asset-detail-panel h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+.asset-detail-toggle {
+  min-width: 54px;
+  justify-content: center;
 }
 .asset-bulk-actions {
   display: flex;

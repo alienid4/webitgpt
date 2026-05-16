@@ -7,6 +7,16 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
+  const detailToggle = event.target.closest("[data-asset-detail-toggle]");
+  if (detailToggle) {
+    const detailRow = document.getElementById(detailToggle.dataset.assetDetailToggle);
+    if (!detailRow) return;
+    const nextHidden = !detailRow.hidden;
+    detailRow.hidden = nextHidden;
+    detailToggle.textContent = nextHidden ? "展開" : "收合";
+    return;
+  }
+
   const selfCheck = event.target.closest("[data-self-check]");
   const debug = event.target.closest("[data-debug]");
   if (!selfCheck && !debug) return;
