@@ -30,6 +30,7 @@ def test_base_shell_keeps_navigation_theme_and_shortcuts():
     assert 'draggable="true"' in base_html
     assert "IT 巡檢系統" in base_html
     assert "themeToggle" in base_html
+    assert "api_hosts.global_search_page" in base_html
     assert "webitgpt-theme" in js
     assert "webitgpt-nav-order" in js
     assert "event.altKey" in js
@@ -250,6 +251,7 @@ def test_dev_console_contracts_exist():
 def test_asset_governance_status_admin_contracts_exist():
     service = read("webapp/services/asset_governance_status_service.py")
     routes = read("webapp/routes/api_superadmin.py")
+    host_routes = read("webapp/routes/api_hosts.py")
     template = read("webapp/templates/asset_governance_statuses.html")
     superadmin = read("webapp/templates/superadmin.html")
     system_service = read("webapp/services/system_service.py")
@@ -270,5 +272,9 @@ def test_asset_governance_status_admin_contracts_exist():
     assert "ensure_default_statuses" in bootstrap
     assert "asset_governance_statuses_page" in routes
     assert "asset_governance_statuses_api" in routes
+    assert "global_search_page" in host_routes
+    assert "等待防火牆" in host_routes
+    assert "等待弱掃" in host_routes
+    assert "PAM 納管" in host_routes
     assert "資產治理狀態" in superadmin
     assert "資產治理狀態" in system_service

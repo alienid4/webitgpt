@@ -18,7 +18,7 @@
     <div class="header-main">
       <a class="brand" href="{{ url_for('api_hosts.hosts_page') }}">IT 巡檢系統</a>
       {% if show_app_shell %}
-      <form class="quick-search" method="get" action="{{ url_for('api_hosts.hosts_page') }}">
+      <form class="quick-search" method="get" action="{{ url_for('api_hosts.global_search_page') }}">
         <span aria-hidden="true">搜尋</span>
         <input name="q" placeholder="搜尋資產 / 主機 / IP..." autocomplete="off">
       </form>

@@ -16,6 +16,49 @@ bp = Blueprint("api_hosts", __name__)
 
 MANUAL_MULTI_FIELDS = ["asset_seq", "hostname", "ip", "host_type", "os", "connection"]
 
+GLOBAL_SEARCH_TARGETS = [
+    {
+        "endpoint": "api_superadmin.asset_governance_statuses_page",
+        "keywords": ["資產治理狀態", "治理狀態", "等待防火牆", "等待弱掃", "等待 PAM", "PAM 納管", "asset governance"],
+        "role": "superadmin",
+    },
+    {
+        "endpoint": "api_superadmin.important_services_page",
+        "keywords": ["重要服務設定", "重要服務", "sshd", "cron", "rsyslog", "AP service"],
+        "role": "superadmin",
+    },
+    {
+        "endpoint": "api_superadmin.log_exceptions_page",
+        "keywords": ["系統日誌白名單", "日誌白名單", "例外管理", "log exception"],
+        "role": "superadmin",
+    },
+    {
+        "endpoint": "api_hosts.ipam_page",
+        "keywords": ["IPAM", "網段管理", "網段掃描", "IP 分配", "IP 保留"],
+        "role": "viewer",
+    },
+    {
+        "endpoint": "api_hosts.host_new_page",
+        "keywords": ["新增主機", "新增資產", "CSV 匯入", "掃描新增", "建立草稿"],
+        "role": "admin",
+    },
+    {
+        "endpoint": "api_inventory.accounts_page",
+        "keywords": ["帳號盤點", "PAM", "高權限帳號", "帳號清冊"],
+        "role": "viewer",
+    },
+    {
+        "endpoint": "api_operations.inspections_page",
+        "keywords": ["開門檢查", "L3", "深度檢查", "巡檢"],
+        "role": "viewer",
+    },
+    {
+        "endpoint": "api_reports.dependencies_page",
+        "keywords": ["系統拓撲", "拓撲", "關聯圖", "依賴圖", "ss nmap"],
+        "role": "viewer",
+    },
+]
+
 ASSET_FIELD_LABELS = {
     "division": "組織-處別",
     "department": "組織-部門",
@@ -83,6 +126,35 @@ HOST_TYPE_LABELS = {
 }
 
 DC_LABELS = {"dunan": "敦南", "neihu": "內湖", "banciao": "板橋"}
+
+
+def _role_allowed(required: str) -> bool:
+    role_order = {"viewer": 0, "admin": 1, "super": 2, "superadmin": 3}
+    user_role = current_user().get("role", "viewer")
+    return role_order.get(user_role, 0) >= role_order.get(required, 0)
+
+
+def _normalize_search_text(value: str) -> str:
+    return " ".join((value or "").strip().lower().split())
+
+
+@bp.get("/search")
+@require_role("viewer")
+def global_search_page():
+    query = request.args.get("q", "").strip()
+    normalized = _normalize_search_text(query)
+    if not normalized:
+        return redirect(url_for("api_hosts.hosts_page"))
+
+    for target in GLOBAL_SEARCH_TARGETS:
+        if not _role_allowed(target["role"]):
+            continue
+        for keyword in target["keywords"]:
+            key = _normalize_search_text(keyword)
+            if key and (key in normalized or normalized in key):
+                return redirect(url_for(target["endpoint"]))
+
+    return redirect(url_for("api_hosts.hosts_page", q=query))
 
 EDIT_FIELDS = [
     "division", "department", "asset_seq", "status", "group_name", "apid",
