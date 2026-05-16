@@ -2171,6 +2171,59 @@ textarea,
   font-size: 12px;
 }
 
+.aspect-visual {
+  border-top: 1px solid var(--c4);
+  background: var(--bg2);
+  padding: 7px;
+  display: grid;
+  gap: 7px;
+}
+
+.aspect-row {
+  display: grid;
+  grid-template-columns: minmax(54px, 0.9fr) minmax(42px, 1fr);
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.aspect-row span {
+  color: var(--c2);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.aspect-row strong {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.aspect-row.has-bar {
+  grid-template-columns: minmax(54px, 0.8fr) minmax(42px, 0.7fr);
+}
+
+.mini-bar {
+  grid-column: 1 / -1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--c4);
+  overflow: hidden;
+}
+
+.mini-bar i {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: var(--g1);
+}
+
+.aspect-warn .mini-bar i { background: var(--orange); }
+.aspect-fail .mini-bar i,
+.aspect-error .mini-bar i { background: var(--red); }
+
 .aspect-ok { border-color: var(--g1); }
 .aspect-warn { border-color: var(--orange); }
 .aspect-fail,

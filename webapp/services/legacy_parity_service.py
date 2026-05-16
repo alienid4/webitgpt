@@ -251,6 +251,27 @@ def _short_percent(label: str, value) -> str:
     return f"{label}:{value if value is not None else '-'}%"
 
 
+def _visual_rows(detail: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for line in (detail or "").splitlines():
+        if ":" not in line:
+            continue
+        label, value = line.split(":", 1)
+        label = label.strip()
+        value = value.strip()
+        if not label:
+            continue
+        percent_match = re.search(r"(-?\d{1,3})%", value)
+        rows.append(
+            {
+                "label": label,
+                "value": value or "-",
+                "percent": max(0, min(100, int(percent_match.group(1)))) if percent_match else None,
+            }
+        )
+    return rows
+
+
 def _package_count(text: str) -> int:
     match = re.search(r"\bpackages=(\d+)\b", text or "")
     if match:
@@ -461,7 +482,7 @@ def _build_diagnostic_check(key: str, label: str, rc: int, out: str, err: str) -
     else:
         status = "ok" if rc == 0 else "warn"
         detail = _human_diagnostic_detail(key, status, raw)
-    return {"key": key, "label": label, "status": status, "detail": detail[:1800], "raw_detail": raw[:1800]}
+    return {"key": key, "label": label, "status": status, "detail": detail[:1800], "raw_detail": raw[:1800], "visual_rows": _visual_rows(detail)}
 
 
 def _normalize_diagnostic_row(row: dict[str, Any]) -> dict[str, Any]:
@@ -472,14 +493,14 @@ def _normalize_diagnostic_row(row: dict[str, Any]) -> dict[str, Any]:
             raw = check.get("raw_detail") or check.get("detail") or ""
             status = _log_check_status(0, raw)
             detail = _log_check_detail(status, raw)
-            normalized = {**check, "status": status, "detail": detail[:1800], "raw_detail": raw[:1800]}
+            normalized = {**check, "status": status, "detail": detail[:1800], "raw_detail": raw[:1800], "visual_rows": _visual_rows(detail)}
             checks.append(normalized)
             changed = True
         elif check.get("key") in {key for key, _label in DIAGNOSTIC_ASPECTS}:
             raw = check.get("raw_detail") or check.get("detail") or ""
             status = check.get("status") or "ok"
             detail = _human_diagnostic_detail(check.get("key"), status, raw)
-            normalized = {**check, "detail": detail[:1800], "raw_detail": raw[:1800]}
+            normalized = {**check, "detail": detail[:1800], "raw_detail": raw[:1800], "visual_rows": _visual_rows(detail)}
             checks.append(normalized)
             changed = True
         else:

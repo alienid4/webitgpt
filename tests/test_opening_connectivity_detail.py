@@ -8,6 +8,7 @@ def test_connectivity_detail_is_human_readable():
 
     assert check["status"] == "ok"
     assert check["detail"] == "連線:可連線\n開機:7 小時 2 分鐘\n登入:0人"
+    assert check["visual_rows"][0]["label"] == "連線"
     assert "load average" not in check["detail"]
     assert check["raw_detail"] == raw
 
@@ -61,6 +62,8 @@ def test_resource_and_filesystem_cards_are_compact_metrics():
 
     assert resource["detail"] == "CPU:12%\nMEMORY:36%\nSWAP:2%"
     assert filesystem["detail"] == "Filesystem:15%\nIO:2%"
+    assert resource["visual_rows"][0] == {"label": "CPU", "value": "12%", "percent": 12}
+    assert filesystem["visual_rows"][0] == {"label": "Filesystem", "value": "15%", "percent": 15}
     assert "建議處置" not in resource["detail"]
     assert "建議處置" not in filesystem["detail"]
 

@@ -88,7 +88,23 @@
             </strong>
             <em>{{ check.status }}</em>
           </summary>
+          {% if check.visual_rows %}
+          <div class="aspect-visual">
+            {% for row in check.visual_rows %}
+            <div class="aspect-row {% if row.percent is not none %}has-bar{% endif %}">
+              <span>{{ row.label }}</span>
+              <strong>{{ row.value }}</strong>
+              {% if row.percent is not none %}
+              <div class="mini-bar" aria-label="{{ row.label }} {{ row.percent }}%">
+                <i style="width: {{ row.percent }}%"></i>
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
           <pre class="detail">{{ check.detail }}</pre>
+          {% endif %}
         </details>
         {% endfor %}
       </div>
