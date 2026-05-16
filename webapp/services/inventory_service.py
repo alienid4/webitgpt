@@ -300,6 +300,27 @@ def normalize_account_risk(name: str, item: dict[str, Any], system_default: bool
     return risk
 
 
+def is_validation_inventory_row(row: dict[str, Any]) -> bool:
+    hostname = str(row.get("hostname") or "")
+    asset_seq = str(row.get("asset_seq") or "")
+    return hostname.startswith(("func-", "manual-", "json-", "validation-")) or asset_seq.startswith(("HW-96", "HW-97", "HW-98", "HW-99", "DISC-", "JSON-", "CSV-"))
+
+
+def is_account_abnormal(item: dict[str, Any]) -> bool:
+    risk = item.get("risk") or "正常"
+    if risk in {"正常", "高權限"}:
+        return False
+    return True
+
+
+def account_review_class(item: dict[str, Any]) -> str:
+    if is_account_abnormal(item):
+        return "異常"
+    if item.get("privileged"):
+        return "需複核"
+    return "正常"
+
+
 def _account_note_key(hostname: str, asset_seq: str, name: str) -> str:
     return f"{hostname or asset_seq}:{name}"
 
@@ -457,7 +478,7 @@ def latest_inventory(kind: str, limit: int = 50) -> dict[str, Any]:
 
 def account_inventory_view(filters: Optional[dict[str, str]] = None) -> dict[str, Any]:
     filters = filters or {}
-    rows = latest_inventory("accounts", limit=200)["items"]
+    rows = [row for row in latest_inventory("accounts", limit=200)["items"] if not is_validation_inventory_row(row)]
     accounts = []
     governance = _load_account_governance()
     for row in rows:
@@ -504,6 +525,7 @@ def account_inventory_view(filters: Optional[dict[str, str]] = None) -> dict[str
                 "password_expires": item.get("password_expires") or "-",
                 "last_login": last_login,
                 "risk": risk,
+                "review_class": account_review_class({"risk": risk, "privileged": bool(item.get("privileged")) or name == "root"}),
                 "is_system_default": system_default,
                 "collected_at": row.get("collected_at"),
             }
@@ -522,7 +544,7 @@ def account_inventory_view(filters: Optional[dict[str, str]] = None) -> dict[str
         "inventoried_hosts": len(inventoried_host_keys),
         "departments": len(department_hosts),
         "system_default_hidden": sum(1 for item in all_accounts if item["is_system_default"]) if hide_system_defaults else 0,
-        "abnormal": sum(1 for item in accounts if item["risk"] != "正常"),
+        "abnormal": sum(1 for item in accounts if is_account_abnormal(item)),
         "privileged": sum(1 for item in accounts if "高權限" in item["risk"]),
         "never_login": sum(1 for item in accounts if "從未登入" in item["risk"] or item["last_login"] == "從未登入"),
         "password_old": sum(1 for item in accounts if "密碼超過90天" in item["risk"]),
@@ -545,7 +567,7 @@ def account_inventory_view(filters: Optional[dict[str, str]] = None) -> dict[str
         accounts = [item for item in accounts if item["department"] == department]
     if risk:
         if risk == "異常":
-            accounts = [item for item in accounts if item["risk"] != "正常"]
+            accounts = [item for item in accounts if is_account_abnormal(item)]
         else:
             accounts = [item for item in accounts if risk in item["risk"]]
     if metric == "pam_managed":
@@ -559,7 +581,7 @@ def account_inventory_view(filters: Optional[dict[str, str]] = None) -> dict[str
     elif metric == "privileged":
         accounts = [item for item in accounts if "高權限" in item["risk"]]
     elif metric == "abnormal":
-        accounts = [item for item in accounts if item["risk"] != "正常"]
+        accounts = [item for item in accounts if is_account_abnormal(item)]
     if q:
         accounts = [
             item
@@ -634,7 +656,7 @@ def account_host_summary(items: list[dict[str, Any]], managed_hosts: list[dict[s
             {"host": key, "asset_seq": item.get("asset_seq", ""), "total": 0, "abnormal": 0, "no_owner": 0, "never_login": 0, "privileged": 0, "status": "已盤點", "last_collected": item.get("collected_at") or "-"},
         )
         row["total"] += 1
-        row["abnormal"] += 1 if item["risk"] != "正常" else 0
+        row["abnormal"] += 1 if is_account_abnormal(item) else 0
         row["no_owner"] += 1 if item["hr_name"] in {"", "-"} and not item["is_system_default"] else 0
         row["never_login"] += 1 if item["last_login"] == "從未登入" and item["can_login"] else 0
         row["privileged"] += 1 if item["privileged"] else 0
@@ -691,7 +713,7 @@ def account_compliance_summary(items: list[dict[str, Any]]) -> list[dict[str, An
 def account_action_plan(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     plans = []
     for item in items:
-        if item["risk"] == "正常":
+        if not is_account_abnormal(item):
             continue
         action = "人工確認"
         if "服務帳號可登入" in item["risk"]:
