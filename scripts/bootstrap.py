@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from webapp import config
+from webapp.services.asset_governance_status_service import ensure_default_statuses
 from webapp.services.compliance_service import ensure_default_rules
 from webapp.services.feature_flags import ensure_feature_flags
 from webapp.services.host_dir_service import init_dir
@@ -72,6 +73,7 @@ COLLECTIONS = [
     "dependency_collect_runs",
     "dependency_reconcile_reports",
     "dependency_ghost_ignored",
+    "asset_governance_statuses",
 ]
 
 BASE_HOST = {
@@ -470,6 +472,7 @@ def main() -> None:
     flag_count = ensure_feature_flags()
     otp_disabled_users = disable_otp_verification()
     rule_count = ensure_default_rules()
+    ensure_default_statuses()
     user_created = seed_superadmin()
     write_runtime_files()
     print(
@@ -484,6 +487,7 @@ def main() -> None:
                 "feature_flags_inserted": flag_count,
                 "otp_disabled_users": otp_disabled_users,
                 "compliance_rules_inserted": rule_count,
+                "asset_governance_statuses_seeded": True,
                 "superadmin_created": user_created,
             },
             ensure_ascii=False,

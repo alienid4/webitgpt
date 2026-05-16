@@ -10,6 +10,9 @@ from webapp import config
 from webapp.decorators import current_user, require_role
 from webapp.services import audit_log_service
 from webapp.services.api_token_service import issue_token
+from webapp.services.asset_governance_status_service import list_statuses as list_governance_statuses
+from webapp.services.asset_governance_status_service import save_status as save_governance_status
+from webapp.services.asset_governance_status_service import set_status_enabled as set_governance_status_enabled
 from webapp.services.auth_service import generate_backup_codes, list_users, reset_password, set_user_locked, upsert_user
 from webapp.services.feature_flags import DEFAULT_FLAGS, is_enabled, set_enabled, snapshot
 from webapp.services.important_service_service import delete_rule as delete_service_rule
@@ -498,6 +501,55 @@ def important_services_delete_page(rule_id: str):
 @require_role("superadmin")
 def important_services_api():
     return jsonify({"items": list_service_rules()})
+
+
+@bp.get("/superadmin/asset-governance-statuses")
+@require_role("superadmin")
+def asset_governance_statuses_page():
+    return render_template("asset_governance_statuses.html", statuses=list_governance_statuses(), saved=None, error="")
+
+
+@bp.post("/superadmin/asset-governance-statuses")
+@require_role("superadmin")
+def asset_governance_statuses_save_page():
+    try:
+        status = save_governance_status(
+            {
+                "code": request.form.get("code", ""),
+                "name": request.form.get("name", ""),
+                "category": request.form.get("category", "待處理"),
+                "risk": request.form.get("risk", "中"),
+                "color": request.form.get("color", "orange"),
+                "sort_order": request.form.get("sort_order", "500"),
+                "visible_in_report": request.form.get("visible_in_report") == "on",
+                "blocks_activation": request.form.get("blocks_activation") == "on",
+                "requires_reason": request.form.get("requires_reason") == "on",
+                "requires_expiry": request.form.get("requires_expiry") == "on",
+                "auto_assignable": request.form.get("auto_assignable") == "on",
+                "enabled": request.form.get("enabled") == "on",
+                "description": request.form.get("description", ""),
+            },
+            current_user()["username"],
+        )
+        audit_log_service.append("asset_governance_status.save", current_user()["username"], {"code": status["code"], "name": status["name"]})
+        return render_template("asset_governance_statuses.html", statuses=list_governance_statuses(), saved=status, error="")
+    except Exception as exc:
+        return render_template("asset_governance_statuses.html", statuses=list_governance_statuses(), saved=None, error=str(exc)), 400
+
+
+@bp.post("/superadmin/asset-governance-statuses/<code>/toggle")
+@require_role("superadmin")
+def asset_governance_statuses_toggle_page(code: str):
+    enabled = request.form.get("enabled") == "on"
+    set_governance_status_enabled(code, enabled, current_user()["username"])
+    audit_log_service.append("asset_governance_status.toggle", current_user()["username"], {"code": code, "enabled": enabled})
+    return redirect(url_for("api_superadmin.asset_governance_statuses_page"))
+
+
+@bp.get("/api/superadmin/asset-governance-statuses")
+@require_role("superadmin")
+def asset_governance_statuses_api():
+    return jsonify({"items": list_governance_statuses()})
 
 
 @bp.get("/superadmin/jobs")

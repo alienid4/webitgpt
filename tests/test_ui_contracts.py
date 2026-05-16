@@ -245,3 +245,30 @@ def test_dev_console_contracts_exist():
     assert "save_dev_upload" in service
     assert "dev_console_upload_page" in routes
     assert "dev_console_feature_update_page" in routes
+
+
+def test_asset_governance_status_admin_contracts_exist():
+    service = read("webapp/services/asset_governance_status_service.py")
+    routes = read("webapp/routes/api_superadmin.py")
+    template = read("webapp/templates/asset_governance_statuses.html")
+    superadmin = read("webapp/templates/superadmin.html")
+    system_service = read("webapp/services/system_service.py")
+    bootstrap = read("scripts/bootstrap.py")
+
+    for text in ["等待防火牆開通", "等待弱掃完成", "等待 PAM 納管", "例外保留"]:
+        assert text in service
+    for text in [
+        "visible_in_report",
+        "blocks_activation",
+        "requires_reason",
+        "requires_expiry",
+        "auto_assignable",
+    ]:
+        assert text in service
+        assert text in template
+    assert "asset_governance_statuses" in bootstrap
+    assert "ensure_default_statuses" in bootstrap
+    assert "asset_governance_statuses_page" in routes
+    assert "asset_governance_statuses_api" in routes
+    assert "資產治理狀態" in superadmin
+    assert "資產治理狀態" in system_service
