@@ -280,6 +280,8 @@ def test_asset_governance_status_admin_contracts_exist():
         assert text in host_routes
     for text in ['"SA.A"', '"SA.B"', '"SA.C"', '"SA.D"', '"SA.E"', '"SA.F"', '"SA.G"', '"SA.H"']:
         assert text in host_routes
+    assert '"日"' in host_routes
+    assert '"誌"' in host_routes
     for text in ["開發後台", "IPAM", "系統拓撲", "操作紀錄", "重要服務設定", "新增主機"]:
         assert text in host_routes
     assert "資產治理狀態" in superadmin

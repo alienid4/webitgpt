@@ -40,7 +40,7 @@ GLOBAL_SEARCH_TARGETS = [
     {"endpoint": "api_superadmin.ai_page", "keywords": ["SA.D", "SA-D", "系統D", "AI 供應商", "AI設定", "LLM", "Ollama", "OpenAI"], "role": "superadmin"},
     {"endpoint": "api_superadmin.system_health_page", "keywords": ["SA.E", "SA-E", "系統E", "健康檢查", "health", "ready", "metrics", "系統健康"], "role": "superadmin"},
     {"endpoint": "api_superadmin.settings_page", "keywords": ["SA.F", "SA-F", "系統F", "設定管理", "系統設定", "settings", "Mongo 設定"], "role": "superadmin"},
-    {"endpoint": "api_superadmin.logs_page", "keywords": ["SA.G", "SA-G", "系統G", "日誌檢視", "log", "error log", "access log", "日誌"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.logs_page", "keywords": ["SA.G", "SA-G", "系統G", "日", "誌", "日誌檢視", "log", "error log", "access log", "日誌"], "role": "superadmin"},
     {"endpoint": "api_superadmin.jobs_page", "keywords": ["SA.H", "SA-H", "系統H", "工作排程", "排程", "scheduler", "timer", "systemd timer", "每週掃描"], "role": "superadmin"},
     {"endpoint": "api_superadmin.feature_parity_page", "keywords": ["功能驗證", "功能旗標", "feature flag", "feature flags", "開關"], "role": "superadmin"},
     {"endpoint": "api_superadmin.log_exceptions_page", "keywords": ["系統日誌白名單", "日誌白名單", "例外管理", "log exception", "系統日誌例外"], "role": "superadmin"},
