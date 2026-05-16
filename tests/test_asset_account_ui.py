@@ -98,6 +98,9 @@ def test_opening_check_is_system_scoped_and_deep_check_supports_aix():
     assert 'host.host_type in ["linux", "aix"]' in html
     assert "data-l3-filter" in html
     assert "data-l3-verdict" in html
+    assert "api_superadmin.log_exceptions_page" in html
+    assert "aspect-helper-link" in html
+    assert ".aspect-helper-link" in read("webapp/static/css/cathay.css")
     assert "[data-l3-filter]" in read("webapp/static/js/admin_tools.js")
     assert "[data-opening-system-search]" in read("webapp/static/js/admin_tools.js")
     assert 'option.value === "__all__"' in read("webapp/static/js/admin_tools.js")

@@ -77,7 +77,12 @@
         <details class="aspect-light aspect-{{ check.status }}">
           <summary>
             <span class="light {% if check.status == 'ok' %}light-pass{% elif check.status == 'warn' %}light-exception{% elif check.status in ['fail', 'error'] %}light-fail{% else %}light-na{% endif %}"></span>
-            <strong>{{ check.label }}</strong>
+            <strong>
+              {{ check.label }}
+              {% if check.key == "log" %}
+              <a class="aspect-helper-link" href="{{ url_for('api_superadmin.log_exceptions_page') }}">系統日誌白名單 / 例外管理</a>
+              {% endif %}
+            </strong>
             <em>{{ check.status }}</em>
           </summary>
           <pre class="detail">{{ check.detail }}</pre>
