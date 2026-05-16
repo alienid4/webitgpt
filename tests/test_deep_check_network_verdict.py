@@ -14,13 +14,13 @@ def test_loopback_and_zero_link_counters_are_not_warn():
     assert _network_verdict(0, text) == "PASS"
 
 
-def test_nonzero_link_drop_is_warn():
+def test_nonzero_link_drop_without_growth_is_not_warn():
     text = """
 2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500
     RX: bytes  packets  errors  dropped missed  mcast
     1000       10       0       2       0       0
 """
-    assert _network_verdict(0, text) == "WARN"
+    assert _network_verdict(0, text) == "PASS"
 
 
 def test_ping_loss_is_warn():

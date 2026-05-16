@@ -1136,7 +1136,10 @@ def _network_counter_issue_lines(text: str) -> list[str]:
         headers = cleaned.lower().split()
         if not headers or headers[0].rstrip(":") not in {"rx", "tx"}:
             continue
-        watched = {"errors", "dropped", "drop", "carrier", "collsns", "overruns"}
+        # `dropped` is cumulative since boot. A one-shot non-zero value is often
+        # historical noise on VMs, so it should not be a current WARN unless a
+        # future trend check proves it is still increasing.
+        watched = {"errors", "carrier", "collsns", "overruns"}
         if not any(header.rstrip(":") in watched for header in headers):
             continue
         if idx + 1 >= len(lines):
@@ -1184,8 +1187,8 @@ def _network_checkpoint_statuses(text: str) -> list[dict[str, str]]:
         {
             "sn": "NET-02",
             "name": "網卡 dropped",
-            "status": "WARN" if tokens.intersection({"dropped", "drop", "carrier", "collsns", "overruns"}) else "PASS",
-            "evidence": "dropped/drop/carrier/collsns/overruns counter > 0" if tokens.intersection({"dropped", "drop", "carrier", "collsns", "overruns"}) else "未看到實體網卡 dropped 類 counter 增加",
+            "status": "WARN" if tokens.intersection({"carrier", "collsns", "overruns"}) else "PASS",
+            "evidence": "carrier/collsns/overruns counter > 0" if tokens.intersection({"carrier", "collsns", "overruns"}) else "dropped 為開機後累積值，未看到持續增加證據",
         },
         {
             "sn": "NET-03",

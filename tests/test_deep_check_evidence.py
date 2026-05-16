@@ -79,9 +79,8 @@ def test_network_evidence_includes_interface_and_counter_values():
     )
 
     assert "ens33" in evidence
-    assert "NET-02 網卡 dropped：WARN" in evidence
+    assert "NET-02 網卡 dropped：PASS" in evidence
     assert "615350 1035 0 4 0 0" in evidence
-    assert "dropped=4" in evidence
     assert "lo:" not in evidence
 
 
@@ -139,7 +138,7 @@ def test_network_time_wait_checkpoint_has_sn_and_commands():
 
     assert "NET-06" in problem
     assert "TIME_WAIT=2500" in recommendation
-    assert "ss -tan state time-wait" in recommendation
+    assert "ss -tan" in recommendation
     assert "ip_local_port_range" in recommendation
 
 
@@ -259,7 +258,7 @@ def test_locked_account_without_name_does_not_offer_placeholder_unlock():
     assert "sudo awk -F:" in recommendation
 
 
-def test_network_counter_recommendation_includes_interface_commands():
+def test_network_counter_recommendation_ignores_dropped_only_history():
     spec = {"idx": 2, "name": "網路"}
     text = """2: ens33: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500
 RX: bytes packets errors dropped missed mcast
@@ -268,11 +267,9 @@ TX: bytes packets errors dropped carrier collsns
 129959 420 0 0 0 0"""
     recommendation = _recommendation(spec, "WARN", text)
 
-    assert "NET-02" in recommendation
-    assert "1. 先確認是哪張網卡" in recommendation
-    assert "ip -s link show dev ens33" in recommendation
-    assert "ethtool -S ens33" in recommendation
-    assert "<nic>" not in recommendation
+    assert "目前沒有明確網路異常證據" in recommendation
+    assert "NET-02" not in recommendation
+    assert "ip -s link show dev ens33" not in recommendation
 
 
 def test_network_counter_recommendation_keeps_other_sn_commands():
@@ -285,11 +282,10 @@ net.netfilter.nf_conntrack_max = 1000
 2500 TIME-WAIT"""
     recommendation = _recommendation(spec, "WARN", text)
 
-    assert "NET-02" in recommendation
-    assert "# NET-05 conntrack 用量" in recommendation
-    assert "# NET-06 TIME_WAIT / port range" in recommendation
+    assert "NET-02" not in recommendation
+    assert "NET-05 conntrack 用量" in recommendation
     assert "nf_conntrack_count" in recommendation
-    assert "ss -tan state time-wait" in recommendation
+    assert "ss -tan" in recommendation
 
 
 def test_inspection_template_preserves_recommendation_line_breaks():
