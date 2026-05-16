@@ -6,13 +6,15 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.1.108"
-PATCH_ID = "opening-log-exception-link"
-RELEASE_NOTE = "開門檢查系統日誌旁新增白名單 / 例外管理入口，方便從警示直接進入管理頁"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-16 11:10:00 +08:00")
+VERSION = "1.0.2.9"
+PATCH_ID = "version-segment-cap"
+RELEASE_NOTE = "修正版號進位規則：第四段最多 99，超過需進位到第三段"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-16 11:20:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")
+if any(int(part) > 99 for part in VERSION.split(".")[1:]):
+    raise RuntimeError("webitgpt version segments must stay within 0-99 after major version")
 
 INSPECTION_HOME = os.environ.get("INSPECTION_HOME", "/opt/webitgpt")
 WEB_PORT = int(os.environ.get("WEBITGPT_PORT", "8002"))
