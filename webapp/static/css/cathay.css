@@ -2205,9 +2205,11 @@ textarea,
 
 .l3-evidence {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-top: 8px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .l3-evidence > div,
@@ -2216,6 +2218,21 @@ textarea,
   border-radius: var(--radius-xs);
   background: var(--bg2);
   padding: 8px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.l3-evidence .detail,
+.l3-raw-output .detail {
+  width: 100%;
+  max-width: 100%;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  box-sizing: border-box;
 }
 
 .l3-evidence b {

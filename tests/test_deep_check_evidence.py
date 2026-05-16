@@ -300,6 +300,15 @@ def test_inspection_template_preserves_recommendation_line_breaks():
     assert "white-space: pre-wrap" in css
 
 
+def test_l3_evidence_boxes_do_not_overflow_panel():
+    css = (ROOT / "webapp/static/css/cathay.css").read_text(encoding="utf-8")
+
+    assert ".l3-evidence .detail" in css
+    assert "grid-template-columns: repeat(2, minmax(0, 1fr))" in css
+    assert "overflow-wrap: anywhere" in css
+    assert "box-sizing: border-box" in css
+
+
 def test_deep_check_preview_route_returns_plain_text():
     route = (ROOT / "webapp/routes/api_deep_check.py").read_text(encoding="utf-8")
     html = (ROOT / "webapp/templates/inspections.html").read_text(encoding="utf-8")
