@@ -61,7 +61,7 @@
 
     <div class="gauge-body">
       <div class="score-meter">
-        <div class="score-ring">
+        <div class="score-ring" data-score-ring data-score="{{ host.summary.score if host.summary else 0 }}" aria-label="健康分數 {{ host.summary.score if host.summary else 0 }}">
           <strong>{{ host.summary.score if host.summary else 0 }}</strong>
           <span>健康分數</span>
         </div>

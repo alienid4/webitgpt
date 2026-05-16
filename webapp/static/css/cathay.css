@@ -1971,18 +1971,19 @@ textarea,
 .score-ring {
   width: 76px;
   aspect-ratio: 1;
-  border: 7px solid var(--c4);
-  border-top-color: var(--g1);
-  border-right-color: var(--g1);
+  --score-angle: 0deg;
+  --score-color: var(--g1);
   border-radius: 50%;
   display: grid;
   place-content: center;
   text-align: center;
-  background: var(--bg);
+  background:
+    radial-gradient(circle at center, var(--bg) 0 54%, transparent 55%),
+    conic-gradient(var(--score-color) var(--score-angle), var(--c4) 0);
 }
 
-.gauge-warn .score-ring { border-top-color: var(--orange); border-right-color: var(--orange); }
-.gauge-fail .score-ring { border-top-color: var(--red); border-right-color: var(--red); }
+.gauge-warn .score-ring { --score-color: var(--orange); }
+.gauge-fail .score-ring { --score-color: var(--red); }
 
 .score-ring strong {
   font-family: "JetBrains Mono", monospace;

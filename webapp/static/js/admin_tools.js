@@ -17,6 +17,17 @@ document.addEventListener("input", (event) => {
   });
 });
 
+function refreshScoreRings() {
+  document.querySelectorAll("[data-score-ring]").forEach((ring) => {
+    const raw = Number.parseFloat(ring.dataset.score || "0");
+    const score = Math.max(0, Math.min(100, Number.isFinite(raw) ? raw : 0));
+    ring.style.setProperty("--score-angle", `${score * 3.6}deg`);
+    ring.setAttribute("aria-label", `健康分數 ${score}`);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", refreshScoreRings);
+
 function findApiStatus(button) {
   if (button.dataset.statusTarget) {
     return document.getElementById(button.dataset.statusTarget);
