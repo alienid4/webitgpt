@@ -263,8 +263,9 @@ def _package_changes(text: str) -> int:
     return int(match.group(1)) if match else 0
 
 
-def _high_processes(text: str, column: str, threshold: float = 70.0) -> list[str]:
-    hits: list[str] = []
+def _top_process(text: str, column: str) -> str:
+    best_name = ""
+    best_value = -1.0
     for line in (text or "").splitlines():
         parts = line.split()
         if len(parts) < 4 or not parts[0].isdigit():
@@ -275,9 +276,12 @@ def _high_processes(text: str, column: str, threshold: float = 70.0) -> list[str
         except ValueError:
             continue
         value = cpu if column == "cpu" else mem
-        if value >= threshold:
-            hits.append(f"{parts[1]} {round(value)}%")
-    return hits[:3]
+        if value > best_value:
+            best_name = parts[1]
+            best_value = value
+    if not best_name:
+        return "無資料"
+    return f"{best_name} {round(best_value)}%"
 
 
 def _listen_ports(text: str, limit: int = 6) -> list[str]:
@@ -416,12 +420,10 @@ def _human_diagnostic_detail(key: str, status: str, raw: str) -> str:
             ]
         )
     if key == "process":
-        high_cpu = _high_processes(raw, "cpu")
-        high_mem = _high_processes(raw, "mem")
         return "\n".join(
             [
-                f"高CPU:{', '.join(high_cpu) if high_cpu else '無'}",
-                f"高MEM:{', '.join(high_mem) if high_mem else '無'}",
+                f"CPU最高:{_top_process(raw, 'cpu')}",
+                f"MEM最高:{_top_process(raw, 'mem')}",
             ]
         )
     if key == "service":

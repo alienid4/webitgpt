@@ -67,7 +67,7 @@ def test_resource_and_filesystem_cards_are_compact_metrics():
 
 def test_opening_normal_cards_stay_compact():
     samples = {
-        "process": "PID COMMAND %CPU %MEM\n1 systemd 0.0 1.0\n2 python 5.0 3.0",
+        "process": "PID COMMAND %CPU %MEM\n1 systemd 0.0 1.0\n2 python 5.0 3.0\n3 java 2.0 9.0",
         "service": "0 loaded units listed.\n__IMPORTANT_SERVICES__\nsshd=active\ncron=active",
         "account": "users=29\n",
         "security": "FIREWALL_PORTS=22/tcp 8002/tcp\nJAVA_CERT=not_installed",
@@ -75,7 +75,7 @@ def test_opening_normal_cards_stay_compact():
         "log": "",
     }
     expected = {
-        "process": "高CPU:無\n高MEM:無",
+        "process": "CPU最高:python 5%\nMEM最高:java 9%",
         "service": "失敗服務:無\n重要服務未啟動:無",
         "account": "帳號總數:29\n鎖定帳號:無",
         "security": "防火牆Port:22, 8002\nJava憑證:未安裝",
