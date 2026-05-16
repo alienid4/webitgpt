@@ -36,6 +36,9 @@ def list_rules(include_disabled: bool = True) -> list[dict[str, Any]]:
     now = _now()
     for rule in rules:
         expires_at = rule.get("expires_at")
+        if expires_at and expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+            rule["expires_at"] = expires_at
         rule["expired"] = bool(expires_at and expires_at < now)
     return rules
 
@@ -94,6 +97,8 @@ def _rule_active(rule: dict[str, Any], scope: str, now: datetime) -> bool:
     if rule.get("scope") not in {scope, "all", ""}:
         return False
     expires_at = rule.get("expires_at")
+    if expires_at and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
     return not bool(expires_at and expires_at < now)
 
 

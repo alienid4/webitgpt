@@ -415,6 +415,18 @@ def _java_cert_status(text: str) -> str:
     return f"{days}天"
 
 
+def _account_check_command() -> str:
+    return (
+        "printf 'users='; getent passwd | wc -l; "
+        "if sudo -n true 2>/dev/null; then "
+        "awk -F: '($7 !~ /(nologin|false)$/){print $1}' /etc/passwd | while read u; do "
+        "s=$(sudo -n passwd -S \"$u\" 2>/dev/null | awk '{print $2}'); "
+        "if [ \"$s\" = \"L\" ] || [ \"$s\" = \"LK\" ]; then echo locked=$u; fi; "
+        "done; "
+        "else echo locked_check=需要sudo; fi"
+    )
+
+
 def _human_diagnostic_detail(key: str, status: str, raw: str) -> str:
     if key == "connectivity":
         return _connectivity_detail(status, raw)
@@ -518,7 +530,7 @@ def _local_linux_diagnostics(host: dict[str, Any]) -> dict[str, Any]:
         "filesystem": "top -bn1 | awk -F',' '/Cpu\\(s\\)|%Cpu/ {print $0; exit}'; df -hT | head -10",
         "process": "ps -eo pid,comm,%cpu,%mem --sort=-%cpu | head -10",
         "service": _service_check_command(),
-        "account": "printf 'users='; getent passwd | wc -l; awk -F: '($7 !~ /(nologin|false)$/){print $1}' /etc/passwd | while read u; do s=$(passwd -S \"$u\" 2>/dev/null | awk '{print $2}'); if [ \"$s\" = \"L\" ] || [ \"$s\" = \"LK\" ]; then echo locked=$u; fi; done",
+        "account": _account_check_command(),
         "security": "printf 'FIREWALL_PORTS='; firewall-cmd --list-ports 2>/dev/null || true; command -v keytool >/dev/null 2>&1 || { echo JAVA_CERT=not_installed; exit 0; }; find /etc /opt -name '*.jks' -o -name '*.p12' 2>/dev/null | head -1 | grep -q . || echo JAVA_CERT=not_installed",
         "package": "printf 'packages='; (rpm -qa 2>/dev/null || dpkg-query -W -f='${Package}\\n' 2>/dev/null) | wc -l; echo changed_7d=0",
         "log": "journalctl -p warning --since '-24 hours' -n 10 --no-pager || true",
@@ -571,7 +583,7 @@ def _linux_deep_diagnostics(host: dict[str, Any]) -> dict[str, Any]:
         "filesystem": "top -bn1 | awk -F',' '/Cpu\\(s\\)|%Cpu/ {print $0; exit}'; df -hT; findmnt -rno TARGET,SOURCE,FSTYPE,OPTIONS | head -20",
         "process": "ps -eo pid,comm,%cpu,%mem --sort=-%cpu | head -15",
         "service": _service_check_command(deep=True),
-        "account": "printf 'users='; getent passwd | wc -l; awk -F: '($7 !~ /(nologin|false)$/){print $1}' /etc/passwd | while read u; do s=$(passwd -S \"$u\" 2>/dev/null | awk '{print $2}'); if [ \"$s\" = \"L\" ] || [ \"$s\" = \"LK\" ]; then echo locked=$u; fi; done",
+        "account": _account_check_command(),
         "security": "printf 'FIREWALL_PORTS='; firewall-cmd --list-ports 2>/dev/null || true; command -v keytool >/dev/null 2>&1 || { echo JAVA_CERT=not_installed; exit 0; }; find /etc /opt -name '*.jks' -o -name '*.p12' 2>/dev/null | head -1 | grep -q . || echo JAVA_CERT=not_installed",
         "package": "printf 'packages='; (rpm -qa 2>/dev/null || dpkg-query -W -f='${Package}\\n' 2>/dev/null) | wc -l; echo changed_7d=0",
         "log": "journalctl -p warning --since '-24 hours' -n 20 --no-pager 2>/dev/null || tail -50 /var/log/syslog 2>/dev/null || tail -50 /var/log/messages 2>/dev/null",
