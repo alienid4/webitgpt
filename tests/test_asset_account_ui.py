@@ -52,6 +52,44 @@ def test_account_metrics_link_to_detail_views():
     assert 'metric == "system_default"' in service
 
 
+def test_global_pam_governance_is_not_hidden_by_host_note(monkeypatch):
+    from webapp.services import inventory_service
+
+    def fake_latest_inventory(kind, limit=200):
+        return {
+            "items": [
+                {
+                    "asset_seq": "HW-1",
+                    "hostname": "app1",
+                    "host_type": "linux",
+                    "department": "IT",
+                    "items": [{"name": "root", "can_login": True, "privileged": True, "risk": "高權限"}],
+                }
+            ]
+        }
+
+    def fake_hosts(limit=100):
+        return [{"asset_seq": "HW-1", "hostname": "app1", "host_type": "linux", "department": "IT"}]
+
+    monkeypatch.setattr(inventory_service, "latest_inventory", fake_latest_inventory)
+    monkeypatch.setattr(inventory_service, "_hosts", fake_hosts)
+    monkeypatch.setattr(
+        inventory_service,
+        "_load_account_governance",
+        lambda: {
+            "*:linux:root": {"scope": "platform_account", "owner": "PAM Team", "pam_managed": True, "usage_note": "PAM 納管"},
+            "app1:root": {"scope": "host_account", "owner": "", "pam_managed": False, "usage_note": ""},
+        },
+    )
+    monkeypatch.setattr(inventory_service, "inventory_history", lambda kind, limit=10: {"latest": None, "diff": None, "runs": []})
+
+    view = inventory_service.account_inventory_view({"include_system_defaults": "1"})
+
+    assert view["items"][0]["pam_managed"] is True
+    assert view["items"][0]["account_owner"] == "PAM Team"
+    assert view["items"][0]["usage_note"] == "PAM 納管"
+
+
 def test_inventory_metrics_link_to_details_and_diff_filters():
     inventory = read("webapp/templates/inventory.html")
     diff = read("webapp/templates/inventory_diff_report.html")

@@ -474,8 +474,10 @@ def account_inventory_view(filters: Optional[dict[str, str]] = None) -> dict[str
             usage_note = account_usage_note(name, item, system_default, risk)
             global_governance = governance.get(_account_global_key(name, platform_scope), {})
             host_governance = governance.get(_account_note_key(row.get("hostname", ""), row.get("asset_seq", ""), name), {})
-            merged_governance = {**global_governance, **host_governance}
-            usage_note = merged_governance.get("usage_note") or usage_note
+            usage_note = host_governance.get("usage_note") or global_governance.get("usage_note") or usage_note
+            account_owner = host_governance.get("owner") or global_governance.get("owner") or "-"
+            pam_managed = bool(global_governance.get("pam_managed")) or bool(host_governance.get("pam_managed"))
+            governance_scope = host_governance.get("scope") or global_governance.get("scope") or "default"
             account = {
                 "asset_seq": row.get("asset_seq", ""),
                 "hostname": row.get("hostname", ""),
@@ -493,9 +495,9 @@ def account_inventory_view(filters: Optional[dict[str, str]] = None) -> dict[str
                 "locked": bool(item.get("locked", False)),
                 "note": item.get("account_type") or "-",
                 "usage_note": usage_note,
-                "account_owner": merged_governance.get("owner") or "-",
-                "pam_managed": bool(merged_governance.get("pam_managed", False)),
-                "governance_scope": merged_governance.get("scope") or "default",
+                "account_owner": account_owner,
+                "pam_managed": pam_managed,
+                "governance_scope": governance_scope,
                 "hr_name": gecos.split(",", 1)[0] if gecos else "-",
                 "password_changed": item.get("password_changed") or "-",
                 "password_age_days": item.get("password_age_days"),
