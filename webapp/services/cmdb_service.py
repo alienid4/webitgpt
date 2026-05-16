@@ -541,6 +541,7 @@ def run_asset_discovery_scan(cidr: str, user: str = "system", environment: str =
             "source": "asset_new_workbench",
             "default_environment": environment,
             "default_dc": dc,
+            "scan_mode": scan_mode,
         }
         get_collection("network_scan_reports").insert_one(report)
         return _public(report) or report
@@ -617,6 +618,7 @@ def run_asset_discovery_scan(cidr: str, user: str = "system", environment: str =
         "source": "asset_new_workbench",
         "default_environment": environment,
         "default_dc": dc,
+        "scan_mode": mode,
     }
     get_collection("network_scan_reports").insert_one(report)
     return _public(report) or report

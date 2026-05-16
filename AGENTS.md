@@ -82,3 +82,4 @@
 - 掃描、盤點、巡檢、採樣、修補、回滾、備份、DR、匯入、上傳等按鈕必須顯示處理中狀態。
 - 表單使用 `data-submit-status` / `data-submit-message`，API 按鈕使用 `data-api-post` / `data-submit-message` / `data-busy-text`。
 - 新增同類按鈕時，要一起檢查是否有狀態回報，不能只讓使用者猜是否有送出。
+- 有掃描、盤點、採集結果的頁面，預設要保留並顯示上次結果；重新執行時只更新狀態提示，不可讓舊結果消失成空白等待頁。詳細規則見 `docs/scan_state_skill.md`。

@@ -83,7 +83,10 @@ def test_asset_new_workbench_has_csv_and_scan_entrypoints():
     assert "將勾選 IP 建立草稿" in host_new
     assert "選擇已建立網段" in host_new
     assert "data-submit-status" in host_new
+    assert "data-preserve-results" in host_new
     assert "正在掃描網段" in host_new
+    assert "下方會先保留上次掃描結果" in host_new
+    assert "上次掃描結果" in host_new
     assert "混合掃描：ARP/Ping + TCP 常見服務" in host_new
     assert "開放服務" in host_new
     assert "發現方式" in host_new
@@ -92,8 +95,13 @@ def test_asset_new_workbench_has_csv_and_scan_entrypoints():
     assert "host_new_full_page" in routes
     assert "host_new_discovery_scan_page" in routes
     assert "host_new_discovery_create_drafts_page" in routes
+    assert "latest_network_reconcile" in routes
     assert "run_asset_discovery_scan" in cmdb
     assert "scan_mode" in cmdb
+    assert '"scan_mode": mode' in cmdb
+    skill = read("docs/scan_state_skill.md")
+    assert "預設顯示最近一次" in skill
+    assert "data-preserve-results" in skill
     assert '"nmap", "-Pn", "-R", "-p"' in cmdb
     assert '"hostname": item.get("hostname", "")' in cmdb
     assert '"os": item.get("os") or' in cmdb

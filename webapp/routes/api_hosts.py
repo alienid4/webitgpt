@@ -260,10 +260,11 @@ def _host_form_data() -> dict:
 
 
 def _host_new_context(**extra: dict) -> dict:
+    last_scan_report = cmdb_service.latest_network_reconcile("") or None
     context = {
         "errors": None,
         "import_result": None,
-        "scan_report": None,
+        "scan_report": last_scan_report,
         "scan_created": None,
         "scan_skipped": None,
         "ipam_networks": cmdb_service.list_networks(),
@@ -497,7 +498,8 @@ def host_new_discovery_scan_page():
         )
         return render_template("host_new.html", **_host_new_context(scan_report=report))
     except Exception as exc:
-        return render_template("host_new.html", **_host_new_context(errors=[str(exc)])), 400
+        last_report = cmdb_service.latest_network_reconcile(cidr) or cmdb_service.latest_network_reconcile("")
+        return render_template("host_new.html", **_host_new_context(scan_report=last_report, errors=[str(exc)])), 400
 
 
 @bp.post("/hosts/new/discovery-create-drafts")

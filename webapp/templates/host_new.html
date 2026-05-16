@@ -81,7 +81,7 @@
       <p class="text-muted-sm">掃描結果會盡量列出 IP、hostname、OS 判斷、開放服務與是否已納管；不同網段、NAT 或防火牆可能讓結果少於 VM 清單。</p>
     </div>
   </div>
-  <form class="grid-form" method="post" action="{{ url_for('api_hosts.host_new_discovery_scan_page') }}" data-submit-status data-submit-message="正在掃描網段，可能需要 10 到 60 秒；請勿重複點選。">
+  <form class="grid-form" method="post" action="{{ url_for('api_hosts.host_new_discovery_scan_page') }}" data-submit-status data-preserve-results data-submit-message="正在掃描網段，可能需要 10 到 60 秒；下方會先保留上次掃描結果。">
     <label>選擇已建立網段
       <select data-fill-target="cidr">
         <option value="">手動輸入 CIDR</option>
@@ -94,22 +94,22 @@
     <label>預設環境
       <select name="environment">
         {% for option in ["DEV","TEST","UAT","PROD","BACKUP","OA"] %}
-        <option value="{{ option }}">{{ option }}</option>
+        <option value="{{ option }}" {% if scan_report and scan_report.default_environment == option %}selected{% endif %}>{{ option }}</option>
         {% endfor %}
       </select>
     </label>
     <label>預設機房
       <select name="dc">
         {% for value, label in dc_labels.items() %}
-        <option value="{{ value }}">{{ label }}</option>
+        <option value="{{ value }}" {% if scan_report and scan_report.default_dc == value %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
     </label>
     <label>掃描模式
       <select name="scan_mode">
-        <option value="combined">混合掃描：ARP/Ping + TCP 常見服務</option>
-        <option value="ping">快速掃描：ARP/Ping</option>
-        <option value="tcp">TCP 探測：主機禁止 ping 時使用</option>
+        <option value="combined" {% if scan_report and scan_report.scan_mode == "combined" %}selected{% endif %}>混合掃描：ARP/Ping + TCP 常見服務</option>
+        <option value="ping" {% if scan_report and scan_report.scan_mode == "ping" %}selected{% endif %}>快速掃描：ARP/Ping</option>
+        <option value="tcp" {% if scan_report and scan_report.scan_mode == "tcp" %}selected{% endif %}>TCP 探測：主機禁止 ping 時使用</option>
       </select>
     </label>
     <button class="btn primary" type="submit" data-busy-text="掃描中">開始掃描</button>
@@ -118,7 +118,7 @@
 
   {% if scan_report %}
   <div class="notice">
-    掃描結果：{{ scan_report.cidr }}，發現 {{ scan_report.discovered_count }} 個回應 IP，未納管 {{ scan_report.mismatch_count }} 個。
+    上次掃描結果：{{ scan_report.cidr }}，發現 {{ scan_report.discovered_count }} 個回應 IP，未納管 {{ scan_report.mismatch_count }} 個。
     模式：{{ scan_report.mode }}{% if scan_report.error %}，訊息：{{ scan_report.error }}{% endif %}
   </div>
   <form method="post" action="{{ url_for('api_hosts.host_new_discovery_create_drafts_page') }}" data-submit-status data-submit-message="正在將勾選 IP 建立為資產草稿，請稍候。">
