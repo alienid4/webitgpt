@@ -21,7 +21,7 @@ GLOBAL_SEARCH_TARGETS = [
     {"endpoint": "api_hosts.hosts_page", "keywords": ["B", "B.", "資產管理", "主機管理", "CMDB", "資產清冊", "主機清冊", "資產列表"], "role": "viewer"},
     {"endpoint": "api_inventory.accounts_page", "keywords": ["C", "C.", "帳號盤點", "帳號清冊", "高權限帳號", "PAM", "pam納管", "pam 納管"], "role": "viewer"},
     {"endpoint": "api_inventory.software_page", "keywords": ["D", "D.", "軟體盤點", "套件搜尋", "版本變更", "套件", "package", "software"], "role": "viewer"},
-    {"endpoint": "api_operations.inspections_page", "keywords": ["E", "E.", "開門檢查", "今日巡檢", "巡檢", "L1", "L3", "深度檢查", "deep check"], "role": "viewer"},
+    {"endpoint": "api_operations.inspections_page", "title": "開門檢查", "group": "巡檢", "keywords": ["E", "E.", "開門檢查", "今日巡檢", "巡檢", "L1", "L3", "深度檢查", "deep check"], "role": "viewer"},
     {"endpoint": "api_reports.dependencies_page", "keywords": ["F", "F.", "系統拓撲", "拓撲", "關聯圖", "依賴圖", "系統依賴", "ss nmap", "nmap", "ghost"], "role": "viewer"},
     {"endpoint": "api_operations.nmon_page", "keywords": ["G", "G.", "效能月報", "效能", "nmon", "CPU", "記憶體", "磁碟趨勢"], "role": "viewer"},
     {"endpoint": "api_compliance.security_audit_page", "keywords": ["H", "H.", "TWGCB", "合規", "安全稽核", "資安", "修補", "rollback", "弱掃"], "role": "viewer"},
@@ -40,13 +40,13 @@ GLOBAL_SEARCH_TARGETS = [
     {"endpoint": "api_superadmin.ai_page", "keywords": ["SA.D", "SA-D", "系統D", "AI 供應商", "AI設定", "LLM", "Ollama", "OpenAI"], "role": "superadmin"},
     {"endpoint": "api_superadmin.system_health_page", "keywords": ["SA.E", "SA-E", "系統E", "健康檢查", "health", "ready", "metrics", "系統健康"], "role": "superadmin"},
     {"endpoint": "api_superadmin.settings_page", "keywords": ["SA.F", "SA-F", "系統F", "設定管理", "系統設定", "settings", "Mongo 設定"], "role": "superadmin"},
-    {"endpoint": "api_superadmin.logs_page", "keywords": ["SA.G", "SA-G", "系統G", "日", "誌", "日誌檢視", "log", "error log", "access log", "日誌"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.logs_page", "title": "日誌檢視", "group": "系統管理", "keywords": ["SA.G", "SA-G", "系統G", "日", "誌", "日誌檢視", "log", "error log", "access log", "日誌"], "role": "superadmin"},
     {"endpoint": "api_superadmin.jobs_page", "keywords": ["SA.H", "SA-H", "系統H", "工作排程", "排程", "scheduler", "timer", "systemd timer", "每週掃描"], "role": "superadmin"},
     {"endpoint": "api_superadmin.feature_parity_page", "keywords": ["功能驗證", "功能旗標", "feature flag", "feature flags", "開關"], "role": "superadmin"},
-    {"endpoint": "api_superadmin.log_exceptions_page", "keywords": ["系統日誌白名單", "日誌白名單", "例外管理", "log exception", "系統日誌例外"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.log_exceptions_page", "title": "系統日誌白名單 / 例外管理", "group": "系統管理", "keywords": ["系統日誌白名單", "日誌白名單", "例外管理", "log exception", "系統日誌例外"], "role": "superadmin"},
     {"endpoint": "api_superadmin.important_services_page", "keywords": ["重要服務設定", "重要服務", "sshd", "cron", "rsyslog", "AP service", "服務白名單"], "role": "superadmin"},
     {"endpoint": "api_superadmin.asset_governance_statuses_page", "keywords": ["資產治理狀態", "治理狀態", "等待防火牆", "防火牆開通", "等待弱掃", "弱掃完成", "等待 PAM", "PAM 納管", "asset governance"], "role": "superadmin"},
-    {"endpoint": "api_superadmin.audit_logs_page", "keywords": ["操作紀錄", "稽核紀錄", "audit log", "hash chain", "操作日誌"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.audit_logs_page", "title": "操作紀錄", "group": "系統管理", "keywords": ["操作紀錄", "稽核紀錄", "audit log", "hash chain", "操作日誌"], "role": "superadmin"},
     {"endpoint": "api_superadmin.backup_dr_page", "keywords": ["備份", "DR", "backup", "restore", "災難復原"], "role": "superadmin"},
     {"endpoint": "api_superadmin.patches_page", "keywords": ["Patch", "patch", "回滾", "版本", "release", "rollback"], "role": "superadmin"},
     {"endpoint": "api_superadmin.remote_tools_page", "keywords": ["遠端工具", "遠端", "remote tool", "Linux 初始化", "服務啟停"], "role": "superadmin"},
@@ -144,6 +144,39 @@ def _keyword_matches(query: str, keyword: str) -> bool:
     return key in query or query in key
 
 
+def _keyword_related(query: str, keyword: str) -> bool:
+    key = _normalize_search_text(keyword)
+    if not key:
+        return False
+    if query == key:
+        return True
+    if len(query) == 1:
+        return query in key
+    if len(key) <= 3 or len(query) <= 3:
+        return False
+    return key in query or query in key
+
+
+def _is_direct_search_code(value: str) -> bool:
+    text = _normalize_search_text(value).replace("-", ".")
+    if len(text) == 1 and text.isascii() and text.isalnum():
+        return True
+    if "." in text:
+        left, _, right = text.partition(".")
+        return bool(left and right) and left.isascii() and right.isascii()
+    return False
+
+
+def _search_target_title(target: dict, fallback_keyword: str) -> str:
+    if target.get("title"):
+        return target["title"]
+    for keyword in target["keywords"]:
+        normalized = _normalize_search_text(keyword)
+        if normalized and not _is_direct_search_code(normalized) and len(normalized) > 1:
+            return keyword
+    return fallback_keyword
+
+
 @bp.get("/search")
 @require_role("viewer")
 def global_search_page():
@@ -152,12 +185,35 @@ def global_search_page():
     if not normalized:
         return redirect(url_for("api_hosts.hosts_page"))
 
+    exact_matches = []
+    related_results = []
+    seen_endpoints = set()
     for target in GLOBAL_SEARCH_TARGETS:
         if not _role_allowed(target["role"]):
             continue
         for keyword in target["keywords"]:
-            if _keyword_matches(normalized, keyword):
-                return redirect(url_for(target["endpoint"]))
+            exact = _keyword_matches(normalized, keyword)
+            related = exact or _keyword_related(normalized, keyword)
+            if exact:
+                exact_matches.append(target)
+            if related and target["endpoint"] not in seen_endpoints:
+                seen_endpoints.add(target["endpoint"])
+                related_results.append({
+                    "title": _search_target_title(target, keyword),
+                    "group": target.get("group", "功能"),
+                    "role": target["role"],
+                    "matched_keyword": keyword,
+                    "url": url_for(target["endpoint"]),
+                })
+            if related:
+                break
+
+    if len(exact_matches) == 1 and _is_direct_search_code(normalized):
+        return redirect(url_for(exact_matches[0]["endpoint"]))
+    if len(related_results) == 1 and len(normalized) > 1:
+        return redirect(related_results[0]["url"])
+    if related_results:
+        return render_template("search_results.html", query=query, results=related_results)
 
     return redirect(url_for("api_hosts.hosts_page", q=query))
 

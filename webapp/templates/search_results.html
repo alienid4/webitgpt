@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}搜尋結果 - webitgpt{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="card-title">GLOBAL SEARCH</p>
+    <h1>搜尋結果</h1>
+    <p class="muted">搜尋「{{ query }}」找到 {{ results|length }} 個相關功能，請選擇要前往的頁面。</p>
+  </div>
+</section>
+
+<section class="admin-module-grid">
+  {% for item in results %}
+  <a class="admin-module-card" href="{{ item.url }}">
+    <em>{{ item.group }}</em>
+    <strong>{{ item.title }}</strong>
+    <span>命中：{{ item.matched_keyword }}</span>
+    <span class="text-muted-sm">權限：{{ item.role }}</span>
+  </a>
+  {% endfor %}
+</section>
+{% endblock %}
