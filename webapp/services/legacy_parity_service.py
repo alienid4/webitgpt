@@ -255,6 +255,35 @@ def _max_percent(text: str):
     return max(values) if values else None
 
 
+def _cpu_usage_percent(text: str):
+    line = next((item for item in (text or "").splitlines() if "Cpu" in item or "%Cpu" in item), "")
+    idle = re.search(r"([0-9.]+)\s*id\b", line)
+    if idle:
+        return round(max(0, 100 - float(idle.group(1))))
+    usage = re.search(r"CPU[:\s]+([0-9.]+)%", text or "", re.IGNORECASE)
+    return round(float(usage.group(1))) if usage else None
+
+
+def _iowait_percent(text: str):
+    match = re.search(r"([0-9.]+)\s*wa\b", text or "")
+    return round(float(match.group(1))) if match else None
+
+
+def _free_percent(text: str, label: str):
+    for line in (text or "").splitlines():
+        if not line.strip().lower().startswith(label.lower() + ":"):
+            continue
+        parts = line.replace(":", " ").split()
+        numbers = [float(part) for part in parts if re.fullmatch(r"\d+(?:\.\d+)?", part)]
+        if len(numbers) >= 2 and numbers[0] > 0:
+            return round((numbers[1] / numbers[0]) * 100)
+    return None
+
+
+def _short_percent(label: str, value) -> str:
+    return f"{label}:{value if value is not None else '-'}%"
+
+
 def _package_count(text: str) -> int:
     return len([line for line in (text or "").splitlines() if line.strip()])
 
@@ -303,13 +332,20 @@ def _human_diagnostic_detail(key: str, status: str, raw: str) -> str:
             ]
         )
     if key == "resource":
-        max_use = _max_percent(raw)
-        usage = f"最高使用率約 {max_use}%" if max_use is not None else "已取得 CPU、記憶體與磁碟狀態"
-        return "\n".join(["資源狀態：主機資源可正常讀取。", f"重點：{usage}。", "建議處置：目前不需立即處置，維持例行觀察。"])
+        return "\n".join(
+            [
+                _short_percent("CPU", _cpu_usage_percent(raw)),
+                _short_percent("MEMORY", _free_percent(raw, "Mem")),
+                _short_percent("SWAP", _free_percent(raw, "Swap")),
+            ]
+        )
     if key == "filesystem":
-        max_use = _max_percent(raw)
-        usage = f"最高檔案系統使用率約 {max_use}%" if max_use is not None else "已取得檔案系統與掛載資訊"
-        return "\n".join(["檔案系統：可正常讀取。", f"重點：{usage}。", "建議處置：若使用率接近 90%，再安排清理或擴充。"])
+        return "\n".join(
+            [
+                _short_percent("Filesystem", _max_percent(raw)),
+                _short_percent("IO", _iowait_percent(raw)),
+            ]
+        )
     if key == "process":
         return "\n".join(["程序狀態：可正常取得程序清單。", "重點：高資源程序已記錄於原始證據。", "建議處置：目前不需立即處置；若 AP 異常，再查看高 CPU/記憶體程序。"])
     if key == "service":
@@ -370,7 +406,7 @@ def _local_linux_diagnostics(host: dict[str, Any]) -> dict[str, Any]:
     commands = {
         "connectivity": "hostname && uptime",
         "resource": "top -bn1 | head -5; df -h /",
-        "filesystem": "df -hT | head -10",
+        "filesystem": "top -bn1 | awk -F',' '/Cpu\\(s\\)|%Cpu/ {print $0; exit}'; df -hT | head -10",
         "process": "ps -eo pid,comm,%cpu,%mem --sort=-%cpu | head -10",
         "service": "systemctl --failed --no-pager || true",
         "account": "getent passwd | head -10",
@@ -423,7 +459,7 @@ def _linux_deep_diagnostics(host: dict[str, Any]) -> dict[str, Any]:
     commands = {
         "connectivity": "hostname; uptime; who | wc -l",
         "resource": "printf 'CPU '; top -bn1 | awk -F',' '/Cpu\\(s\\)|%Cpu/ {print $0; exit}'; free -m; df -P /",
-        "filesystem": "df -hT; findmnt -rno TARGET,SOURCE,FSTYPE,OPTIONS | head -20",
+        "filesystem": "top -bn1 | awk -F',' '/Cpu\\(s\\)|%Cpu/ {print $0; exit}'; df -hT; findmnt -rno TARGET,SOURCE,FSTYPE,OPTIONS | head -20",
         "process": "ps -eo pid,ppid,user,comm,%cpu,%mem --sort=-%cpu | head -15",
         "service": "systemctl --failed --no-pager || true; systemctl list-units --type=service --state=running --no-pager | head -20",
         "account": "printf 'users='; getent passwd | wc -l; printf 'sudo/wheel='; getent group sudo wheel 2>/dev/null || true; lastlog | head -15",
