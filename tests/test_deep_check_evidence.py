@@ -313,11 +313,43 @@ def test_l3_evidence_boxes_do_not_overflow_panel():
 def test_l3_customer_impact_summary_is_line_based():
     items = [
         {"idx": 1, "name": "效能", "verdict": "PASS", "impact": "正常"},
-        {"idx": 2, "name": "網路", "verdict": "WARN", "impact": "dropped=17"},
-        {"idx": 4, "name": "AP 連線", "verdict": "WARN", "impact": "curl failed"},
+        {"idx": 2, "name": "網路", "verdict": "WARN", "evidence": "NET-02 網卡 dropped：WARN - dropped=17"},
+        {"idx": 4, "name": "AP 連線", "verdict": "WARN", "evidence": "curl: (7) Failed to connect to 127.0.0.1 port 8002: Connection refused"},
     ]
 
-    assert _customer_impact_lines(items) == ["2. 網路：dropped=17", "4. AP 連線：curl failed"]
+    assert _customer_impact_lines(items) == ["2. 網路：NET-02 dropped=17", "4. AP 連線：本機 health port 8002 連線被拒絕。"]
+
+
+def test_l3_network_summary_removes_raw_warning_text():
+    items = [
+        {
+            "idx": 2,
+            "name": "網路",
+            "verdict": "WARN",
+            "evidence": "\n".join(
+                [
+                    "NET-02 網卡 dropped：WARN - dropped/drop/carrier/collsns/overruns counter > 0",
+                    "NET-03 TCP retransmit：WARN - 偵測到 TCP retransmit",
+                    "NET-07 SYN backlog / listen drops：WARN - 偵測到 SYN backlog 或 listen drops",
+                ]
+            ),
+        }
+    ]
+
+    assert _customer_impact_lines(items) == ["2. 網路：NET-02 dropped/drop、NET-03 TCP retransmit、NET-07 listen drops"]
+
+
+def test_l3_customer_impact_summary_extracts_human_metrics():
+    items = [
+        {
+            "idx": 1,
+            "name": "效能",
+            "verdict": "WARN",
+            "evidence": "top - 09:00:00 up 7 days, 3 users, load average: 0.12, 0.09, 0.04",
+        }
+    ]
+
+    assert _customer_impact_lines(items) == ["1. 效能：開機時間 7D、在線人數 3、Load 0.12, 0.09, 0.04"]
 
 
 def test_deep_check_preview_route_returns_plain_text():

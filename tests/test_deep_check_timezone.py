@@ -20,3 +20,16 @@ def test_deep_check_report_prefers_stored_utc_timestamp_for_display():
     normalized = _normalize_report_doc(report)
 
     assert normalized["parsed"]["display_timestamp"] == "20260516 09:11"
+
+
+def test_deep_check_report_recomputes_old_customer_impact_lines():
+    report = {
+        "parsed": {
+            "customer_impact_lines": ["舊版 raw summary"],
+            "items": [{"idx": 4, "name": "AP 連線", "verdict": "WARN", "evidence": "curl: (7) Failed to connect to 127.0.0.1 port 8002: Connection refused"}],
+        }
+    }
+
+    normalized = _normalize_report_doc(report)
+
+    assert normalized["parsed"]["customer_impact_lines"] == ["4. AP 連線：本機 health port 8002 連線被拒絕。"]

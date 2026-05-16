@@ -1342,11 +1342,149 @@ def _customer_impact_lines(items: list[dict[str, Any]]) -> list[str]:
     for item in items:
         if item.get("verdict") not in {"WARN", "FAIL"}:
             continue
-        text = str(item.get("impact") or item.get("problem") or "").strip()
+        text = _compact_impact_line(item)
         if not text:
             continue
-        lines.append(f"{item.get('idx')}. {item.get('name')}：{text}")
+        lines.append(text)
     return lines or ["未發現明顯服務影響。"]
+
+
+def _compact_impact_line(item: dict[str, Any]) -> str:
+    idx = int(item.get("idx") or 0)
+    name = str(item.get("name") or f"面向 {idx}")
+    text = "\n".join(
+        str(item.get(key) or "")
+        for key in ("evidence", "actual", "problem", "impact")
+    )
+    lowered = text.lower()
+    prefix = f"{idx}. {name}："
+    if idx == 1:
+        parts = []
+        uptime = _uptime_summary(text)
+        if uptime:
+            parts.append(f"開機時間 {uptime}")
+        users = _online_user_summary(text)
+        if users:
+            parts.append(f"在線人數 {users}")
+        load = _load_summary(text)
+        if load:
+            parts.append(f"Load {load}")
+        return prefix + ("、".join(parts) if parts else "效能數值超過門檻，請看明細。")
+    if idx == 2:
+        issues = _network_evidence_checkpoint_lines(text) or _network_warn_checkpoint_lines(text)
+        if issues:
+            compact = []
+            for issue in issues[:3]:
+                matched = re.search(r"(NET-\d+)\s+([^：:]+)[：:]\s*(.+)", issue)
+                if matched:
+                    sn = matched.group(1)
+                    title = matched.group(2).strip()
+                    detail = matched.group(3).strip()
+                    value = _short_network_issue_value(title, detail)
+                    compact.append(f"{sn} {value}")
+                else:
+                    compact.append(issue.split(" - ", 1)[0][:60])
+            return prefix + "、".join(compact)
+        counters = re.findall(r"\b(errors|dropped|drop|carrier|collsns|overruns|retransmit)\b[^0-9]*(\d+)", lowered)
+        if counters:
+            return prefix + "、".join(f"{key}={value}" for key, value in counters[:4])
+        return prefix + "網路品質有警示，請看明細確認網卡或交換器。"
+    if idx == 3:
+        ports = sorted(set(re.findall(r":(\d{2,5})\b", text)))[:5]
+        return prefix + (f"Listener/程序需確認，涉及 port {', '.join(ports)}。" if ports else "Listener 或程序狀態需確認。")
+    if idx == 4:
+        port = re.search(r"port\s+(\d{2,5})", text, re.IGNORECASE)
+        if "refused" in lowered or "could not connect" in lowered or "failed to connect" in lowered:
+            return prefix + f"本機 health port {port.group(1) if port else 'AP'} 連線被拒絕。"
+        if "timeout" in lowered:
+            return prefix + "health endpoint 逾時。"
+        return prefix + "AP health endpoint 未通過。"
+    if idx == 5:
+        counts = _tcp_state_counts(text)
+        parts = [f"{key}={value}" for key, value in counts.items() if value]
+        return prefix + ("、".join(parts[:4]) if parts else "TCP session 分布異常。")
+    if idx == 6:
+        issues = _storage_issue_lines(text)
+        return prefix + ("、".join(issues[:3]) if issues else "磁碟或 inode 使用率超過門檻。")
+    if idx == 7:
+        if "unsynchronized" in lowered or "not synchronized" in lowered:
+            return prefix + "時間同步異常。"
+        return prefix + "時間或憑證需確認。"
+    if idx == 8:
+        db_hits = sorted(set(re.findall(r"\b(oracle|sqlservr|mysqld|mariadbd|db2sysc|postgres|mongod|1521|1433|3306|50000|5432|27017)\b", lowered)))[:5]
+        return prefix + (f"DB process/port 需確認：{', '.join(db_hits)}。" if db_hits else "DB process 或 DB port 需確認。")
+    if idx == 9:
+        failed = _systemd_failed_issue_lines(text)
+        if failed:
+            services = [line.split()[0] for line in failed[:3] if line.split()]
+            return prefix + f"服務啟動失敗：{', '.join(services)}。"
+        tainted = _kernel_tainted_value(text)
+        if tainted and tainted != "0":
+            return prefix + f"kernel tainted={tainted}。"
+        if "oom" in lowered:
+            return prefix + "發現 OOM 記錄。"
+        return prefix + "OS infra 訊息需確認。"
+    if idx == 10:
+        accounts = _locked_account_names(text)
+        return prefix + (f"可登入帳號被鎖定：{', '.join(accounts[:6])}。" if accounts else "登入軌跡或帳號狀態需確認。")
+    fallback = str(item.get("problem") or item.get("impact") or "").strip()
+    fallback = fallback.split("摘要：", 1)[0].strip()
+    return prefix + (fallback[:90] if fallback else "需確認。")
+
+
+def _uptime_summary(text: str) -> str:
+    match = re.search(r"\bup\s+(\d+)\s+days?\b", text, re.IGNORECASE)
+    if match:
+        return f"{match.group(1)}D"
+    match = re.search(r"\bup\s+(\d+):(\d+)\b", text, re.IGNORECASE)
+    if match:
+        return f"{match.group(1)}H{match.group(2)}M"
+    return ""
+
+
+def _online_user_summary(text: str) -> str:
+    matches = re.findall(r"\b(\d+)\s+users?\b", text, re.IGNORECASE)
+    return matches[-1] if matches else ""
+
+
+def _load_summary(text: str) -> str:
+    match = re.search(r"load average:\s*([0-9.]+,\s*[0-9.]+,\s*[0-9.]+)", text, re.IGNORECASE)
+    return match.group(1) if match else ""
+
+
+def _network_evidence_checkpoint_lines(text: str) -> list[str]:
+    lines = []
+    for line in text.splitlines():
+        cleaned = line.strip()
+        if re.match(r"^NET-\d+", cleaned) and re.search(r"\bWARN\b", cleaned, re.IGNORECASE):
+            lines.append(cleaned)
+    return lines
+
+
+def _short_network_issue_value(title: str, detail: str) -> str:
+    lowered = f"{title} {detail}".lower()
+    assigned = re.search(r"\b(errors|dropped|drop|carrier|collsns|overruns|retransmit)\s*=\s*(\d+)", lowered)
+    if assigned:
+        return f"{assigned.group(1)}={assigned.group(2)}"
+    if "syn" in lowered or "listen" in lowered:
+        return "listen drops"
+    if "counter > 0" in lowered:
+        if "dropped" in lowered or "drop" in lowered:
+            return "dropped/drop"
+        if "error" in lowered:
+            return "errors"
+    numeric = re.search(r"\b(errors|dropped|drop|carrier|collsns|overruns|retransmit)\b[^0-9]*(\d+)", lowered)
+    if numeric:
+        return f"{numeric.group(1)}={numeric.group(2)}"
+    if "dropped" in lowered or "drop" in lowered:
+        return "dropped/drop"
+    if "retransmit" in lowered or "retrans" in lowered:
+        return "TCP retransmit"
+    if "ping" in lowered or "loss" in lowered:
+        return "ping loss"
+    if "conntrack" in lowered:
+        return "conntrack"
+    return title
 
 
 def _summary_text(data: dict[str, Any]) -> str:
@@ -1384,7 +1522,7 @@ def _normalize_report_doc(report: dict[str, Any]) -> dict[str, Any]:
     parsed = report.get("parsed")
     if isinstance(parsed, dict):
         parsed["display_timestamp"] = _display_timestamp(report.get("timestamp") or parsed.get("timestamp"))
-        parsed.setdefault("customer_impact_lines", _customer_impact_lines(parsed.get("items") or []))
+        parsed["customer_impact_lines"] = _customer_impact_lines(parsed.get("items") or [])
     return report
 
 
