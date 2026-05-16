@@ -278,7 +278,7 @@ def main() -> int:
     check(report, "api_v1_hosts_before", status == 200 and before_total >= 3, {"total": before_total})
 
     status, home_page, _ = request(opener, "GET", f"{base}/hosts")
-    check(report, "ui_version_visible", status == 200 and "webitgpt v1.0.2.27" in home_page and "global-search-letter-shortcuts" in home_page and "IT 巡檢系統" in home_page, {"status": status})
+    check(report, "ui_version_visible", status == 200 and "webitgpt v1.0.2.28" in home_page and "system-admin-search-shortcuts" in home_page and "IT 巡檢系統" in home_page, {"status": status})
     check(report, "ui_asset_nav_active", status == 200 and 'class="nav-warn active"' in home_page and "▣ 資產管理" in home_page, {"status": status})
     status, search_page, _ = request(opener, "GET", f"{base}/search?q={urllib.parse.quote('資產治理狀態')}")
     check(report, "global_search_asset_governance_route", status == 200 and "資產治理狀態" in search_page and "等待 PAM 納管" in search_page, {"status": status})
@@ -290,6 +290,10 @@ def main() -> int:
     check(report, "global_search_a_shortcut_route", status == 200 and "儀表板" in search_page, {"status": status})
     status, search_page, _ = request(opener, "GET", f"{base}/search?q={urllib.parse.quote('B.')}")
     check(report, "global_search_b_shortcut_route", status == 200 and "資產管理" in search_page, {"status": status})
+    status, search_page, _ = request(opener, "GET", f"{base}/search?q={urllib.parse.quote('SA.A')}")
+    check(report, "global_search_sa_a_shortcut_route", status == 200 and "系統管理" in search_page and "功能開關" in search_page, {"status": status})
+    status, search_page, _ = request(opener, "GET", f"{base}/search?q={urllib.parse.quote('SA.H')}")
+    check(report, "global_search_sa_h_shortcut_route", status == 200 and "工作排程" in search_page, {"status": status})
 
     view_name = f"validation-{random.randint(1000, 9999)}"
     status, _, saved_view = request(
