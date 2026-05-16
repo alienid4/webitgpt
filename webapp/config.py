@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.1.102"
-PATCH_ID = "deep-check-mongo-utc-time"
-RELEASE_NOTE = "L3 深度檢查將 Mongo 儲存的 UTC 時間正確轉為台北時間，修正最近時間顯示 8 小時落差"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-16 10:00:00 +08:00")
+VERSION = "1.0.1.103"
+PATCH_ID = "opening-log-exceptions"
+RELEASE_NOTE = "新增系統日誌白名單 / 例外管理，開門檢查可將已確認無害的日誌訊息逐行降噪"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-16 10:15:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

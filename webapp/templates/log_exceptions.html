@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}系統日誌例外 - webitgpt{% endblock %}
+{% block content %}
+<section class="admin-page">
+  <div class="admin-content full-width">
+    <section class="admin-hero">
+      <div>
+        <p class="eyebrow">OPENING CHECK LOG EXCEPTIONS</p>
+        <h1>系統日誌白名單 / 例外管理</h1>
+        <p class="muted">只處理開門檢查的「系統日誌」面向。每一行 warning/error 都必須命中例外規則，才會降為正常；未命中的新訊息仍會顯示警示。</p>
+      </div>
+      <a class="btn secondary" href="{{ url_for('api_superadmin.superadmin_page') }}">回系統管理</a>
+    </section>
+
+    {% if saved %}<div class="notice success">已儲存例外規則：{{ saved.name }}</div>{% endif %}
+    {% if error %}<div class="notice danger">{{ error }}</div>{% endif %}
+
+    <section class="admin-section">
+      <h2>新增例外規則</h2>
+      <form class="form-grid" method="post" action="{{ url_for('api_superadmin.log_exceptions_save_page') }}">
+        <div class="form-group">
+          <label>規則名稱</label>
+          <input class="input-field" name="name" placeholder="例如：setroubleshootd 已知輔助服務訊息">
+        </div>
+        <div class="form-group">
+          <label>比對方式</label>
+          <select class="input-field" name="match_type">
+            <option value="contains">包含文字</option>
+            <option value="regex">Regex</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>比對內容</label>
+          <input class="input-field" name="pattern" required placeholder="例如：setroubleshootd.service loaded failed">
+        </div>
+        <div class="form-group">
+          <label>有效天數</label>
+          <input class="input-field" name="expires_days" type="number" min="1" placeholder="空白代表不自動到期">
+        </div>
+        <div class="form-group">
+          <label>負責人</label>
+          <input class="input-field" name="owner" placeholder="例如：Linux 管理者 / AP 負責人">
+        </div>
+        <div class="form-group">
+          <label>例外原因</label>
+          <input class="input-field" name="reason" placeholder="說明為什麼可忽略，避免日後看不懂">
+        </div>
+        <input type="hidden" name="scope" value="opening_log">
+        <label class="toggle-label"><input type="checkbox" name="enabled" checked><span>啟用</span></label>
+        <button class="btn btn-primary" type="submit">儲存例外</button>
+      </form>
+    </section>
+
+    <section class="admin-section">
+      <h2>目前例外規則</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>規則</th><th>比對</th><th>原因 / 負責人</th><th>到期</th><th>狀態</th><th>操作</th></tr>
+          </thead>
+          <tbody>
+            {% for rule in rules %}
+            <tr>
+              <td><strong>{{ rule.name }}</strong><div class="text-muted-sm code-inline">{{ rule.rule_id }}</div></td>
+              <td><span class="badge-warn">{{ rule.match_type }}</span><div class="code-inline">{{ rule.pattern }}</div></td>
+              <td>{{ rule.reason or "-" }}<div class="text-muted-sm">{{ rule.owner or "未指定負責人" }}</div></td>
+              <td>{{ rule.expires_at or "不自動到期" }}{% if rule.expired %}<div class="badge-error">已到期</div>{% endif %}</td>
+              <td><span class="{{ 'badge-ok' if rule.enabled and not rule.expired else 'badge-warn' }}">{{ "啟用" if rule.enabled and not rule.expired else "停用/到期" }}</span></td>
+              <td>
+                <form class="inline-form" method="post" action="{{ url_for('api_superadmin.log_exceptions_toggle_page', rule_id=rule.rule_id) }}">
+                  <label class="toggle-label"><input type="checkbox" name="enabled" {% if not rule.enabled %}checked{% endif %}><span>{{ "停用" if rule.enabled else "啟用" }}</span></label>
+                  <button class="btn-sm" type="submit">套用</button>
+                </form>
+                <form class="inline-form" method="post" action="{{ url_for('api_superadmin.log_exceptions_delete_page', rule_id=rule.rule_id) }}">
+                  <button class="btn-sm btn-danger" type="submit">刪除</button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="no-data">尚未建立例外規則。</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</section>
+{% endblock %}

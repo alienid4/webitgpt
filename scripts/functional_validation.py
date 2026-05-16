@@ -200,6 +200,7 @@ def main() -> int:
     page_checks = [
         ("/superadmin/users", "users_page_loads", "使用者與權限"),
         ("/superadmin/system-health", "system_health_page_loads", "健康檢查"),
+        ("/superadmin/log-exceptions", "log_exceptions_page_loads", "系統日誌白名單"),
         ("/superadmin/backup-dr", "backup_dr_page_loads", "備份 / DR"),
         ("/superadmin/patches", "patches_page_loads", "Patch / 回滾"),
         ("/superadmin/ai", "ai_provider_page_loads", "AI 供應商"),
@@ -276,7 +277,7 @@ def main() -> int:
     check(report, "api_v1_hosts_before", status == 200 and before_total >= 3, {"total": before_total})
 
     status, home_page, _ = request(opener, "GET", f"{base}/hosts")
-    check(report, "ui_version_visible", status == 200 and "webitgpt v1.0.1.102" in home_page and "deep-check-mongo-utc-time" in home_page and "IT 巡檢系統" in home_page, {"status": status})
+    check(report, "ui_version_visible", status == 200 and "webitgpt v1.0.1.103" in home_page and "opening-log-exceptions" in home_page and "IT 巡檢系統" in home_page, {"status": status})
     check(report, "ui_asset_nav_active", status == 200 and 'class="nav-warn active"' in home_page and "▣ 資產管理" in home_page, {"status": status})
 
     view_name = f"validation-{random.randint(1000, 9999)}"

@@ -13,6 +13,7 @@ from webapp.services.api_token_service import issue_token
 from webapp.services.auth_service import generate_backup_codes, list_users, reset_password, set_user_locked, upsert_user
 from webapp.services.feature_flags import DEFAULT_FLAGS, is_enabled, set_enabled, snapshot
 from webapp.services.llm_provider import get_settings, save_settings
+from webapp.services.log_exception_service import delete_rule, list_rules, save_rule, set_rule_enabled
 from webapp.services.mongo_service import get_collection
 from webapp.services.system_service import (
     MODULE_CATEGORY_LABELS,
@@ -389,6 +390,59 @@ def logs_api():
 def logs_download():
     log = log_tail(request.args.get("name", "error"), int(request.args.get("lines", 1000)))
     return Response(log["content"], mimetype="text/plain", headers={"Content-Disposition": f"attachment; filename=webitgpt_{log['name']}.log"})
+
+
+@bp.get("/superadmin/log-exceptions")
+@require_role("superadmin")
+def log_exceptions_page():
+    return render_template("log_exceptions.html", rules=list_rules(), saved=None, error="")
+
+
+@bp.post("/superadmin/log-exceptions")
+@require_role("superadmin")
+def log_exceptions_save_page():
+    try:
+        rule = save_rule(
+            {
+                "rule_id": request.form.get("rule_id", ""),
+                "name": request.form.get("name", ""),
+                "pattern": request.form.get("pattern", ""),
+                "match_type": request.form.get("match_type", "contains"),
+                "scope": request.form.get("scope", "opening_log"),
+                "reason": request.form.get("reason", ""),
+                "owner": request.form.get("owner", ""),
+                "enabled": request.form.get("enabled") == "on",
+                "expires_days": request.form.get("expires_days", ""),
+            },
+            current_user()["username"],
+        )
+        audit_log_service.append("log_exception.save", current_user()["username"], {"rule_id": rule["rule_id"], "pattern": rule["pattern"]})
+        return render_template("log_exceptions.html", rules=list_rules(), saved=rule, error="")
+    except Exception as exc:
+        return render_template("log_exceptions.html", rules=list_rules(), saved=None, error=str(exc)), 400
+
+
+@bp.post("/superadmin/log-exceptions/<rule_id>/toggle")
+@require_role("superadmin")
+def log_exceptions_toggle_page(rule_id: str):
+    enabled = request.form.get("enabled") == "on"
+    set_rule_enabled(rule_id, enabled, current_user()["username"])
+    audit_log_service.append("log_exception.toggle", current_user()["username"], {"rule_id": rule_id, "enabled": enabled})
+    return redirect(url_for("api_superadmin.log_exceptions_page"))
+
+
+@bp.post("/superadmin/log-exceptions/<rule_id>/delete")
+@require_role("superadmin")
+def log_exceptions_delete_page(rule_id: str):
+    deleted = delete_rule(rule_id)
+    audit_log_service.append("log_exception.delete", current_user()["username"], {"rule_id": rule_id, "deleted": deleted})
+    return redirect(url_for("api_superadmin.log_exceptions_page"))
+
+
+@bp.get("/api/superadmin/log-exceptions")
+@require_role("superadmin")
+def log_exceptions_api():
+    return jsonify({"items": list_rules()})
 
 
 @bp.get("/superadmin/jobs")

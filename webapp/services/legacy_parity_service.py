@@ -14,6 +14,7 @@ from webapp.services.host_service import get_host
 from webapp.services.host_service import list_hosts
 from webapp.services.deep_check_service import latest_report
 from webapp.services.inventory_service import DEFAULT_MIN_INTERVAL_MINUTES, inventory_history
+from webapp.services.log_exception_service import assess_lines
 from webapp.services.mongo_service import get_collection
 
 
@@ -132,15 +133,35 @@ def _passwd_account_warning_names(text: str) -> list[str]:
     return names
 
 
+def _log_exception_assessment(detail: str) -> dict[str, Any]:
+    lines = _first_log_lines(detail, limit=50)
+    return assess_lines(lines, scope="opening_log")
+
+
 def _log_check_status(rc: int, detail: str) -> str:
     if rc != 0:
         return "warn"
-    return "ok" if _is_empty_log_output(detail) else "warn"
+    if _is_empty_log_output(detail):
+        return "ok"
+    assessment = _log_exception_assessment(detail)
+    return "ok" if assessment.get("all_matched") else "warn"
 
 
 def _log_check_detail(status: str, detail: str) -> str:
     evidence = _first_log_lines(detail)
     passwd_names = _passwd_account_warning_names(detail)
+    exception_assessment = _log_exception_assessment(detail) if not _is_empty_log_output(detail) else {}
+    if exception_assessment.get("all_matched"):
+        rule_names = "、".join(exception_assessment.get("matched_rule_names") or [])
+        return "\n".join(
+            [
+                "問題點：最近 24 小時有系統日誌訊息，但全部已命中系統日誌白名單 / 例外管理規則，故不列為本次開門檢查異常。",
+                "證據：",
+                *[f"- {line}" for line in evidence],
+                f"套用例外：{rule_names or '未命名規則'}",
+                "解決方式：目前不需立即處置；若同類訊息數量突然增加、主機服務異常，請停用該例外後重新執行開門檢查。",
+            ]
+        )
     if status == "ok":
         return "\n".join(
             [

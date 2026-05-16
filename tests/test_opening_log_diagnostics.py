@@ -81,3 +81,25 @@ def test_passwd_account_log_warning_explains_system_accounts():
     assert "需人工確認帳號：alien" in check["detail"]
     assert "不要重啟 AP 或 OS 服務" in check["detail"]
     assert "getent passwd <account>" in check["detail"]
+
+
+def test_opening_log_whitelist_exception_downgrades_known_noise(monkeypatch):
+    def fake_assess(lines, scope="opening_log"):
+        return {
+            "matched_lines": lines,
+            "unmatched_lines": [],
+            "matched_rule_ids": ["logex-test"],
+            "matched_rule_names": ["已確認 setroubleshootd 雜訊"],
+            "all_matched": True,
+            "has_match": True,
+        }
+
+    monkeypatch.setattr("webapp.services.legacy_parity_service.assess_lines", fake_assess)
+    raw = "May 16 09:21:01 secansible setroubleshootd[123]: failed to process SELinux denial logs"
+
+    check = _build_diagnostic_check("log", "系統日誌", 0, raw, "")
+
+    assert check["status"] == "ok"
+    assert "系統日誌白名單 / 例外管理" in check["detail"]
+    assert "已確認 setroubleshootd 雜訊" in check["detail"]
+    assert "未命中的新訊息仍會顯示警示" not in check["detail"]
