@@ -386,7 +386,7 @@ def seed_superadmin() -> bool:
                 "username": "superadmin",
                 "display_name": "Super Admin",
                 "role": "superadmin",
-                "password_hash": generate_password_hash("change-me"),
+                "password_hash": generate_password_hash("1qaz@WSX"),
                 "must_change": True,
                 "mfa_enabled": False,
                 "mfa_secret": None,

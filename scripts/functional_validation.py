@@ -171,7 +171,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run webitgpt v1.0 functional validation.")
     parser.add_argument("--base-url", default="http://127.0.0.1:8002")
     parser.add_argument("--username", default="superadmin")
-    parser.add_argument("--password", default="change-me")
+    parser.add_argument("--password", default="1qaz@WSX")
     parser.add_argument("--output", default="")
     args = parser.parse_args()
 
@@ -278,7 +278,7 @@ def main() -> int:
     check(report, "api_v1_hosts_before", status == 200 and before_total >= 3, {"total": before_total})
 
     status, home_page, _ = request(opener, "GET", f"{base}/hosts")
-    check(report, "ui_version_visible", status == 200 and "webitgpt v1.0.2.32" in home_page and "asset-guest-action-guard" in home_page and "IT 巡檢系統" in home_page, {"status": status})
+    check(report, "ui_version_visible", status == 200 and "webitgpt v1.0.2.33" in home_page and "dev-login-default-password" in home_page and "IT 巡檢系統" in home_page, {"status": status})
     check(report, "ui_asset_nav_active", status == 200 and 'class="nav-warn active"' in home_page and "▣ 資產管理" in home_page, {"status": status})
     status, quality_page, _ = request(opener, "GET", f"{base}/hosts/quality")
     check(report, "asset_quality_page_loads", status == 200 and "資產異常清單" in quality_page and "納管資產" in quality_page, {"status": status})
