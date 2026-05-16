@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, Response, jsonify, redirect, render_template, request, url_for
 
 from webapp.decorators import current_user, require_feature, require_role
 from webapp.services import audit_log_service
 from webapp.services.inspection_service import nmon_deploy_plan, nmon_status, run_daily_inspection, today_report
-from webapp.services.legacy_parity_service import collect_nmon_sample, daily_diagnostics, diagnostic_history, nmon_report, run_deep_diagnostic
+from webapp.services.legacy_parity_service import collect_nmon_sample, daily_diagnostics, diagnostic_history, nmon_monthly_plan, nmon_report, nmon_report_csv, run_deep_diagnostic
 
 bp = Blueprint("api_operations", __name__)
 
@@ -110,3 +110,20 @@ def nmon_sample_api():
 @require_feature("perf")
 def nmon_report_api():
     return jsonify(nmon_report(request.args.get("period", "day")))
+
+
+@bp.get("/nmon/report.csv")
+@require_feature("perf")
+def nmon_report_csv_page():
+    period = request.args.get("period", "day")
+    return Response(
+        nmon_report_csv(period),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=nmon_{period}_report.csv"},
+    )
+
+
+@bp.get("/api/nmon/monthly-plan")
+@require_feature("perf")
+def nmon_monthly_plan_api():
+    return jsonify(nmon_monthly_plan())

@@ -5,11 +5,14 @@
   <div>
     <p class="eyebrow">NMON PERFORMANCE</p>
     <h1>效能月報</h1>
-    <p class="muted">提供 nmon 真實採樣入口、日 / 週 / 月報表與簡易趨勢圖。</p>
+    <p class="muted">彙整 CPU、記憶體、磁碟與採樣狀態，提供日報、週報、月報與 CSV/JSON 匯出。</p>
   </div>
   <div class="actions">
-    <form method="post" action="{{ url_for('api_operations.nmon_sample_page') }}" data-submit-status data-submit-message="正在執行 nmon 採樣，請稍候。"><button class="btn primary" type="submit">立即採樣</button></form>
+    <form method="post" action="{{ url_for('api_operations.nmon_sample_page') }}" data-submit-status data-submit-message="正在執行 nmon 採樣，請稍候。">
+      <button class="btn primary" type="submit">立即採樣</button>
+    </form>
     <button class="btn" type="button" data-busy-text="產生中" data-submit-message="正在產生 nmon 部署計畫，請稍候。" data-api-post="/api/nmon/deploy-plan" data-payload='{"limit":20}'>部署計畫</button>
+    <a class="btn" href="{{ url_for('api_operations.nmon_report_csv_page', period=report.period) }}">CSV</a>
     <a class="btn" href="{{ url_for('api_operations.nmon_report_api', period=report.period) }}">JSON</a>
   </div>
   <div class="submit-status" hidden aria-live="polite"></div>
@@ -22,31 +25,102 @@
     <a class="tab-btn {% if report.period == 'month' %}active{% endif %}" href="{{ url_for('api_operations.nmon_page', period='month') }}">月報</a>
   </div>
   <div class="summary-grid">
-    <a class="metric" href="#nmon-details"><strong>{{ status.enabled_count }}</strong><span>已啟用主機</span></a>
-    <a class="metric" href="#nmon-details"><strong>{{ status.hosts_total }}</strong><span>納管主機</span></a>
+    <a class="metric" href="#nmon-details"><strong>{{ report.summary.hosts }}</strong><span>有資料主機</span></a>
     <a class="metric" href="#nmon-details"><strong>{{ report.count }}</strong><span>採樣筆數</span></a>
-    <a class="metric" href="#nmon-details"><strong>{{ "是" if status.read_only_mode else "否" }}</strong><span>唯讀模式</span></a>
+    <a class="metric" href="#nmon-rank"><strong>{{ report.summary.warn_samples }}</strong><span>警示樣本</span></a>
+    <a class="metric" href="#nmon-hosts"><strong>{{ status.enabled_count }}/{{ status.hosts_total }}</strong><span>啟用 / 納管</span></a>
   </div>
 </section>
 
-<section class="panel">
-  <h2>效能趨勢</h2>
-  <div class="metric-grid">
-    {% for row in report.series %}
-    <div class="card">
-      <h3>{{ row.host }}</h3>
-      <a class="metric" href="#nmon-details"><strong>{{ row.avg_mem }}%</strong><span>平均記憶體</span></a>
-      <a class="metric" href="#nmon-details"><strong>{{ row.avg_disk }}%</strong><span>平均磁碟</span></a>
-      <div class="bar"><span style="width: {{ row.avg_mem }}%"></span></div>
-      <p class="text-muted-sm">樣本 {{ row.samples }} 筆</p>
+<section class="executive-chart-grid">
+  <article class="panel executive-chart-card">
+    <div class="chart-card-head">
+      <h2>{{ report.period_label }}平均</h2>
+      <strong>{{ report.summary.avg_cpu }}%</strong>
     </div>
-    {% else %}
-    <div class="no-data">尚無 nmon 採樣資料，請先按「立即採樣」。</div>
-    {% endfor %}
-  </div>
+    <div class="chart-bars">
+      <div class="chart-bar-row"><span>CPU</span><div class="bar"><span style="width: {{ report.summary.avg_cpu }}%"></span></div><b>{{ report.summary.avg_cpu }}%</b></div>
+      <div class="chart-bar-row"><span>記憶體</span><div class="bar"><span style="width: {{ report.summary.avg_mem }}%"></span></div><b>{{ report.summary.avg_mem }}%</b></div>
+      <div class="chart-bar-row"><span>磁碟</span><div class="bar"><span style="width: {{ report.summary.avg_disk }}%"></span></div><b>{{ report.summary.avg_disk }}%</b></div>
+    </div>
+  </article>
+  <article class="panel executive-chart-card">
+    <div class="chart-card-head">
+      <h2>尖峰值</h2>
+      <strong>{{ report.summary.peak_cpu }}%</strong>
+    </div>
+    <div class="chart-bars">
+      <div class="chart-bar-row"><span>CPU 尖峰</span><div class="bar warn"><span style="width: {{ report.summary.peak_cpu }}%"></span></div><b>{{ report.summary.peak_cpu }}%</b></div>
+      <div class="chart-bar-row"><span>記憶體尖峰</span><div class="bar warn"><span style="width: {{ report.summary.peak_mem }}%"></span></div><b>{{ report.summary.peak_mem }}%</b></div>
+      <div class="chart-bar-row"><span>磁碟尖峰</span><div class="bar warn"><span style="width: {{ report.summary.peak_disk }}%"></span></div><b>{{ report.summary.peak_disk }}%</b></div>
+    </div>
+  </article>
+  <article class="panel executive-chart-card wide">
+    <div class="chart-card-head">
+      <h2>時間趨勢</h2>
+      <span class="text-muted-sm">{{ report.since }} 起，產生時間 {{ report.generated_at }}</span>
+    </div>
+    <div class="nmon-timeline">
+      {% for item in report.timeline %}
+      <div class="nmon-tick" title="{{ item.label }} / CPU {{ item.avg_cpu }}% / MEM {{ item.avg_mem }}% / DISK {{ item.avg_disk }}%">
+        <span style="height: {{ item.avg_cpu if item.avg_cpu > 4 else 4 }}%"></span>
+        <b>{{ item.label }}</b>
+      </div>
+      {% else %}
+      <div class="no-data">尚無採樣趨勢，請先按「立即採樣」。</div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="panel" id="nmon-rank">
+  <h2>主機效能排名</h2>
+  <table class="data-table">
+    <thead><tr><th>主機</th><th>狀態</th><th>樣本</th><th>平均 CPU</th><th>平均記憶體</th><th>平均磁碟</th><th>CPU 尖峰</th><th>記憶體尖峰</th><th>磁碟尖峰</th></tr></thead>
+    <tbody>
+      {% for row in report.series %}
+      <tr>
+        <td><strong>{{ row.host }}</strong></td>
+        <td>{% if row.warn_count == 0 %}<span class="badge-ok">正常</span>{% else %}<span class="badge-warn">警示</span>{% endif %}</td>
+        <td>{{ row.samples }}</td>
+        <td>{{ row.avg_cpu }}%</td>
+        <td>{{ row.avg_mem }}%</td>
+        <td>{{ row.avg_disk }}%</td>
+        <td>{{ row.peak_cpu }}%</td>
+        <td>{{ row.peak_mem }}%</td>
+        <td>{{ row.peak_disk }}%</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" class="no-data">尚無 nmon 採樣資料。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </section>
 
 <section class="panel" id="nmon-details">
+  <h2>採樣明細</h2>
+  <table class="data-table">
+    <thead><tr><th>時間</th><th>主機</th><th>狀態</th><th>CPU</th><th>記憶體</th><th>磁碟</th><th>Load</th><th>錯誤</th></tr></thead>
+    <tbody>
+      {% for row in report.rows|reverse %}
+      <tr>
+        <td>{{ row.sampled_at }}</td>
+        <td>{{ row.hostname or row.asset_seq }}</td>
+        <td>{% if row.status == "正常" %}<span class="badge-ok">正常</span>{% else %}<span class="badge-warn">{{ row.status }}</span>{% endif %}</td>
+        <td>{{ row.cpu_pct if row.cpu_pct is not none else "-" }}%</td>
+        <td>{{ row.mem_pct if row.mem_pct is not none else "-" }}%</td>
+        <td>{{ row.disk_pct if row.disk_pct is not none else "-" }}%</td>
+        <td>{{ row.load_avg or "-" }}</td>
+        <td>{{ row.error or "-" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" class="no-data">尚無採樣明細。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel" id="nmon-hosts">
   <h2>NMON 主機狀態</h2>
   <table class="data-table">
     <thead><tr><th>資產編號</th><th>主機名稱</th><th>間隔</th><th>部署時間</th></tr></thead>
@@ -54,7 +128,7 @@
       {% for host in status["items"] %}
       <tr><td>{{ host.asset_seq }}</td><td>{{ host.hostname }}</td><td>{{ host.nmon_interval_min }}</td><td>{{ host.nmon_deployed_at or "-" }}</td></tr>
       {% else %}
-      <tr><td colspan="4" class="no-data">目前沒有啟用 NMON 的主機。</td></tr>
+      <tr><td colspan="4" class="no-data">尚無啟用 NMON 的主機。</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -1155,6 +1155,42 @@ button.is-busy {
   text-align: right;
 }
 
+.nmon-timeline {
+  min-height: 170px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(36px, 1fr);
+  gap: 8px;
+  align-items: end;
+  overflow-x: auto;
+  padding: 8px 0;
+}
+
+.nmon-tick {
+  height: 150px;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  align-items: end;
+  gap: 6px;
+  color: var(--c2);
+  font-size: 12px;
+}
+
+.nmon-tick span {
+  display: block;
+  width: 100%;
+  min-height: 4px;
+  border: 1px solid var(--g1);
+  background: var(--g-light);
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+}
+
+.nmon-tick b {
+  font-weight: 400;
+  writing-mode: vertical-rl;
+  white-space: nowrap;
+}
+
 .executive-donut {
   --score-angle: 0deg;
   width: 112px;

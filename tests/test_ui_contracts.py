@@ -367,3 +367,20 @@ def test_data_tables_are_sortable_by_default():
     assert "所有清冊型、報表型、盤點型表格" in skill
     assert "`table.data-table`" in skill
 
+
+def test_nmon_monthly_report_has_real_report_surfaces():
+    template = read("webapp/templates/nmon.html")
+    routes = read("webapp/routes/api_operations.py")
+    service = read("webapp/services/legacy_parity_service.py")
+    css = read("webapp/static/css/cathay.css")
+
+    for text in ["主機效能排名", "採樣明細", "時間趨勢", "CSV", "CPU 尖峰", "記憶體尖峰", "磁碟尖峰"]:
+        assert text in template
+    assert "nmon_report_csv_page" in routes
+    assert "nmon_monthly_plan_api" in routes
+    assert "def nmon_report_csv" in service
+    assert "def nmon_monthly_plan" in service
+    assert "cpu_pct" in service
+    assert "timeline" in service
+    assert ".nmon-timeline" in css
+

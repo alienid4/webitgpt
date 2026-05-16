@@ -5,6 +5,7 @@ import io
 import json
 import re
 import subprocess
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -938,11 +939,12 @@ def collect_nmon_sample(user: str = "system") -> dict[str, Any]:
         lines = out.splitlines()
         mem = float(lines[0]) if lines and lines[0] else None
         disk = float(lines[1]) if len(lines) > 1 and lines[1] else None
+        cpu = _local_cpu_pct()
         doc = {
             "asset_seq": host.get("asset_seq"),
             "hostname": host.get("hostname"),
             "sampled_at": now,
-            "cpu_pct": None,
+            "cpu_pct": cpu,
             "mem_pct": mem,
             "disk_pct": disk,
             "load_avg": Path("/proc/loadavg").read_text(encoding="utf-8").split()[0] if Path("/proc/loadavg").exists() else "",
@@ -954,19 +956,133 @@ def collect_nmon_sample(user: str = "system") -> dict[str, Any]:
     return {"status": "ok", "count": len(docs), "items": docs}
 
 
+def _read_cpu_ticks() -> tuple[int, int] | None:
+    try:
+        fields = Path("/proc/stat").read_text(encoding="utf-8").splitlines()[0].split()[1:]
+        values = [int(value) for value in fields]
+    except Exception:
+        return None
+    idle = values[3] + (values[4] if len(values) > 4 else 0)
+    return idle, sum(values)
+
+
+def _local_cpu_pct() -> float | None:
+    first = _read_cpu_ticks()
+    if not first:
+        return None
+    time.sleep(0.2)
+    second = _read_cpu_ticks()
+    if not second:
+        return None
+    idle_delta = second[0] - first[0]
+    total_delta = second[1] - first[1]
+    if total_delta <= 0:
+        return None
+    return round(max(0.0, min(100.0, (1 - idle_delta / total_delta) * 100)), 1)
+
+
+def _avg(values: list[Any]) -> float:
+    clean = [float(value) for value in values if value is not None and value != ""]
+    return round(sum(clean) / len(clean), 1) if clean else 0.0
+
+
+def _max(values: list[Any]) -> float:
+    clean = [float(value) for value in values if value is not None and value != ""]
+    return round(max(clean), 1) if clean else 0.0
+
+
+def _sample_status(row: dict[str, Any]) -> str:
+    if row.get("error"):
+        return "異常"
+    if float(row.get("cpu_pct") or 0) >= 85 or float(row.get("mem_pct") or 0) >= 85 or float(row.get("disk_pct") or 0) >= 90:
+        return "警示"
+    return "正常"
+
+
 def nmon_report(period: str = "day") -> dict[str, Any]:
     period = period if period in {"day", "week", "month"} else "day"
     since = _now() - {"day": timedelta(days=1), "week": timedelta(days=7), "month": timedelta(days=31)}[period]
-    rows = list(get_collection("nmon_data").find({"sampled_at": {"$gte": since}}, {"_id": 0}).sort("sampled_at", 1).limit(2000))
+    rows = list(get_collection("nmon_data").find({"sampled_at": {"$gte": since}}, {"_id": 0}).sort("sampled_at", 1).limit(5000))
     by_host: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
+        row["status"] = _sample_status(row)
         by_host.setdefault(row.get("hostname") or row.get("asset_seq") or "-", []).append(row)
     series = []
     for host, items in by_host.items():
-        avg_mem = round(sum(float(item.get("mem_pct") or 0) for item in items) / max(len(items), 1), 1)
-        avg_disk = round(sum(float(item.get("disk_pct") or 0) for item in items) / max(len(items), 1), 1)
-        series.append({"host": host, "samples": len(items), "avg_mem": avg_mem, "avg_disk": avg_disk, "items": items[-24:]})
-    return {"period": period, "count": len(rows), "series": series, "generated_at": _now()}
+        series.append(
+            {
+                "host": host,
+                "samples": len(items),
+                "avg_cpu": _avg([item.get("cpu_pct") for item in items]),
+                "avg_mem": _avg([item.get("mem_pct") for item in items]),
+                "avg_disk": _avg([item.get("disk_pct") for item in items]),
+                "peak_cpu": _max([item.get("cpu_pct") for item in items]),
+                "peak_mem": _max([item.get("mem_pct") for item in items]),
+                "peak_disk": _max([item.get("disk_pct") for item in items]),
+                "warn_count": sum(1 for item in items if item["status"] != "正常"),
+                "items": items[-24:],
+            }
+        )
+    series = sorted(series, key=lambda item: (-item["warn_count"], -item["peak_cpu"], -item["peak_mem"], item["host"]))
+    buckets: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        sampled_at = row.get("sampled_at")
+        if not sampled_at:
+            continue
+        key = sampled_at.strftime("%H:00") if period == "day" else sampled_at.strftime("%m/%d")
+        buckets.setdefault(key, []).append(row)
+    timeline = [
+        {
+            "label": key,
+            "avg_cpu": _avg([row.get("cpu_pct") for row in items]),
+            "avg_mem": _avg([row.get("mem_pct") for row in items]),
+            "avg_disk": _avg([row.get("disk_pct") for row in items]),
+            "samples": len(items),
+        }
+        for key, items in sorted(buckets.items())
+    ]
+    summary = {
+        "hosts": len(by_host),
+        "avg_cpu": _avg([row.get("cpu_pct") for row in rows]),
+        "avg_mem": _avg([row.get("mem_pct") for row in rows]),
+        "avg_disk": _avg([row.get("disk_pct") for row in rows]),
+        "peak_cpu": _max([row.get("cpu_pct") for row in rows]),
+        "peak_mem": _max([row.get("mem_pct") for row in rows]),
+        "peak_disk": _max([row.get("disk_pct") for row in rows]),
+        "warn_samples": sum(1 for row in rows if row["status"] != "正常"),
+    }
+    return {
+        "period": period,
+        "period_label": {"day": "日報", "week": "週報", "month": "月報"}[period],
+        "since": since,
+        "count": len(rows),
+        "summary": summary,
+        "series": series,
+        "timeline": timeline,
+        "rows": rows[-300:],
+        "generated_at": _now(),
+    }
+
+
+def nmon_report_csv(period: str = "day") -> str:
+    report = nmon_report(period)
+    output = io.StringIO()
+    fields = ["sampled_at", "asset_seq", "hostname", "status", "cpu_pct", "mem_pct", "disk_pct", "load_avg", "error"]
+    writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")
+    writer.writeheader()
+    for row in report["rows"]:
+        writer.writerow(row)
+    return output.getvalue()
+
+
+def nmon_monthly_plan() -> dict[str, Any]:
+    return {
+        "status": "planned",
+        "frequency": "每 5 分鐘採樣、每日彙總、每月產生月報",
+        "retention": "raw 30 天、日彙總 400 天",
+        "charts": ["CPU 趨勢", "記憶體趨勢", "磁碟使用率", "尖峰排名", "警示樣本"],
+        "next_steps": ["建立排程採樣服務", "新增 nmon_daily_rollups collection", "補 Windows/AIX 採樣 runner"],
+    }
 
 
 def topology_view() -> dict[str, Any]:
