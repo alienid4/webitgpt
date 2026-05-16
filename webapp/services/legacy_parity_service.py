@@ -101,6 +101,91 @@ def _shell(cmd: str, timeout: int = 12) -> tuple[int, str, str]:
     return completed.returncode, completed.stdout.strip(), completed.stderr.strip()
 
 
+def _is_empty_log_output(text: str) -> bool:
+    cleaned = (text or "").strip()
+    if not cleaned:
+        return True
+    if cleaned == "無輸出":
+        return True
+    lowered = cleaned.lower()
+    return "no entries" in lowered or "-- no entries --" in lowered
+
+
+def _first_log_lines(text: str, limit: int = 5) -> list[str]:
+    lines = []
+    for line in (text or "").splitlines():
+        cleaned = line.strip()
+        if cleaned and not cleaned.startswith("--"):
+            lines.append(cleaned[:220])
+        if len(lines) >= limit:
+            break
+    return lines
+
+
+def _log_check_status(rc: int, detail: str) -> str:
+    if rc != 0:
+        return "warn"
+    return "ok" if _is_empty_log_output(detail) else "warn"
+
+
+def _log_check_detail(status: str, detail: str) -> str:
+    evidence = _first_log_lines(detail)
+    if status == "ok":
+        return "\n".join(
+            [
+                "問題點：未發現最近系統 warning/error 日誌。",
+                "證據：journalctl -p warning 最近查詢沒有可判定為警示的內容。",
+                "解決方式：目前不需處置，維持例行觀察；若 AP 仍異常，請看 L3 的 AP Listener、網路與帳號面向。",
+            ]
+        )
+    if not evidence:
+        evidence = ["journalctl 查詢失敗或沒有可讀內容，需確認 journald 權限與服務狀態。"]
+    return "\n".join(
+        [
+            "問題點：最近系統日誌出現 warning/error 訊息，代表 OS 或服務曾回報需要確認的事件。",
+            "證據：",
+            *[f"- {line}" for line in evidence],
+            "解決方式：",
+            "1. 先看證據中的 service/process 名稱，確認是否為正式服務。",
+            "2. 若是正式服務，執行 systemctl status <service> 與 journalctl -u <service> -n 80 --no-pager 查原因。",
+            "3. 若只是已知輔助服務或非 AP 服務，備註例外並觀察，不要直接重啟核心 AP。",
+            "4. 處理後重新執行開門檢查，確認系統日誌不再出現同類警示。",
+            "可直接執行指令：",
+            "journalctl -p warning -n 30 --no-pager",
+            "systemctl --failed --no-pager",
+        ]
+    )
+
+
+def _build_diagnostic_check(key: str, label: str, rc: int, out: str, err: str) -> dict[str, Any]:
+    raw = out or err or ""
+    if key == "log":
+        status = _log_check_status(rc, raw)
+        detail = _log_check_detail(status, raw)
+    else:
+        status = "ok" if rc == 0 else "warn"
+        detail = raw or "無輸出"
+    return {"key": key, "label": label, "status": status, "detail": detail[:1800], "raw_detail": raw[:1800]}
+
+
+def _normalize_diagnostic_row(row: dict[str, Any]) -> dict[str, Any]:
+    checks = []
+    changed = False
+    for check in row.get("checks", []):
+        if check.get("key") == "log":
+            raw = check.get("raw_detail") or check.get("detail") or ""
+            status = _log_check_status(0, raw)
+            detail = _log_check_detail(status, raw)
+            normalized = {**check, "status": status, "detail": detail[:1800], "raw_detail": raw[:1800]}
+            checks.append(normalized)
+            changed = True
+        else:
+            checks.append(check)
+    if changed:
+        row["checks"] = checks
+    return _with_diagnostic_summary(row)
+
+
 def _local_linux_diagnostics(host: dict[str, Any]) -> dict[str, Any]:
     checks = []
     commands = {
@@ -117,12 +202,10 @@ def _local_linux_diagnostics(host: dict[str, Any]) -> dict[str, Any]:
     for key, label in DIAGNOSTIC_ASPECTS:
         try:
             rc, out, err = _shell(commands[key])
-            status = "ok" if rc == 0 else "warn"
-            detail = out or err or "無輸出"
+            check = _build_diagnostic_check(key, label, rc, out, err)
         except Exception as exc:
-            status = "warn"
-            detail = str(exc)
-        checks.append({"key": key, "label": label, "status": status, "detail": detail[:1200]})
+            check = {"key": key, "label": label, "status": "warn", "detail": str(exc), "raw_detail": str(exc)}
+        checks.append(check)
     return _with_diagnostic_summary({
         "asset_seq": host.get("asset_seq"),
         "hostname": host.get("hostname"),
@@ -172,12 +255,10 @@ def _linux_deep_diagnostics(host: dict[str, Any]) -> dict[str, Any]:
     for key, label in DIAGNOSTIC_ASPECTS:
         try:
             rc, out, err = _remote_linux_command(host, commands[key])
-            status = "ok" if rc == 0 else "warn"
-            detail = out or err or "無輸出"
+            check = _build_diagnostic_check(key, label, rc, out, err)
         except Exception as exc:
-            status = "warn"
-            detail = str(exc)
-        checks.append({"key": key, "label": label, "status": status, "detail": detail[:1800]})
+            check = {"key": key, "label": label, "status": "warn", "detail": str(exc), "raw_detail": str(exc)}
+        checks.append(check)
     result = _with_diagnostic_summary({
         "asset_seq": host.get("asset_seq"),
         "hostname": host.get("hostname"),
@@ -226,6 +307,7 @@ def daily_diagnostics(platform: str = "linux", system_name: str = "") -> dict[st
         for host in hosts:
             latest = get_collection("diagnostic_results").find_one({"asset_seq": host.get("asset_seq")}, {"_id": 0}, sort=[("checked_at", -1)])
             if latest:
+                latest = _normalize_diagnostic_row(latest)
                 latest["recent"] = diagnostic_history(host.get("asset_seq"), days=7, limit=6)
                 latest["latest_deep_check"] = latest_report(host.get("hostname"))
                 rows.append(latest)
@@ -273,6 +355,7 @@ def diagnostic_history(asset_seq: str, days: int = 7, limit: int = 10) -> list[d
         .sort("checked_at", -1)
         .limit(limit)
     )
+    rows = [_normalize_diagnostic_row(row) for row in rows]
     for row in rows:
         checks = row.get("checks", [])
         row["summary"] = {
