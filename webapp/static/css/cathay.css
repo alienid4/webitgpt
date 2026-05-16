@@ -2734,3 +2734,32 @@ textarea,
   margin: 0;
   font-size: 20px;
 }
+
+.data-table th.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.data-table th.sortable-header:hover,
+.data-table th.sortable-header:focus {
+  color: var(--g-text);
+  outline: 2px solid transparent;
+}
+
+.data-table th.sortable-header::after {
+  content: " \2195";
+  color: var(--c3);
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+.data-table th.sortable-header.sorted-asc::after {
+  content: " \2191";
+  color: var(--g1);
+}
+
+.data-table th.sortable-header.sorted-desc::after {
+  content: " \2193";
+  color: var(--g1);
+}

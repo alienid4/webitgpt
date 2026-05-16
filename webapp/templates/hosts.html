@@ -181,7 +181,7 @@
     <table class="data-table asset-table asset-table-compact">
       <thead>
         <tr>
-          {% if current_user.role in ["admin", "super", "superadmin"] %}<th class="asset-col-select">選取</th>{% endif %}
+          {% if current_user.role in ["admin", "super", "superadmin"] %}<th class="asset-col-select" data-sortable="false">選取</th>{% endif %}
           <th class="asset-col-name">資產名稱 *</th>
           <th class="asset-col-hostname">Hostname</th>
           <th class="asset-col-ip">IP</th>
@@ -191,8 +191,8 @@
           <th class="asset-col-env">環境</th>
           <th class="asset-col-dc">機房</th>
           <th class="asset-col-note">備註</th>
-          <th class="asset-col-actions">操作</th>
-          <th class="asset-col-expand">展開</th>
+          <th class="asset-col-actions" data-sortable="false">操作</th>
+          <th class="asset-col-expand" data-sortable="false">展開</th>
         </tr>
       </thead>
       <tbody>

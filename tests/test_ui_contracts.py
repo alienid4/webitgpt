@@ -346,3 +346,24 @@ def test_asset_governance_status_admin_contracts_exist():
     assert "資產治理狀態" in superadmin
     assert "資產治理狀態" in system_service
 
+
+def test_data_tables_are_sortable_by_default():
+    base_html = read("webapp/templates/base.html")
+    sorter = read("webapp/static/js/table_sort.js")
+    css = read("webapp/static/css/cathay.css")
+    hosts_template = read("webapp/templates/hosts.html")
+    skill = read("docs/table_sorting_skill.md")
+
+    assert "js/table_sort.js" in base_html
+    assert "table.data-table" in sorter
+    assert "sortable-header" in sorter
+    assert "asset-detail-row" in sorter
+    assert "data-sortable" in sorter
+    assert "data-no-sort" in sorter
+    assert ".data-table th.sortable-header" in css
+    assert 'asset-col-select" data-sortable="false"' in hosts_template
+    assert 'asset-col-actions" data-sortable="false"' in hosts_template
+    assert 'asset-col-expand" data-sortable="false"' in hosts_template
+    assert "所有清冊型、報表型、盤點型表格" in skill
+    assert "`table.data-table`" in skill
+
