@@ -75,6 +75,13 @@ def test_account_checkboxes_use_inline_left_layout():
     assert "inline-size: 16px" in css
 
 
+def test_account_risk_badge_stays_on_one_line():
+    css = read("webapp/static/css/cathay.css")
+
+    assert ".account-ledger-table .col-risk { width: 180px; min-width: 180px; white-space: nowrap; }" in css
+    assert ".account-ledger-table .col-risk .badge-warn" in css
+
+
 def test_global_pam_governance_is_not_hidden_by_host_note(monkeypatch):
     from webapp.services import inventory_service
 

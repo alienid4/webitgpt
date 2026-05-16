@@ -605,7 +605,11 @@ a.metric:hover {
 .account-ledger-table .col-pam { width: 86px; text-align: center; }
 .account-ledger-table .col-note { width: 300px; }
 .account-ledger-table .col-last { width: 160px; }
-.account-ledger-table .col-risk { width: 118px; }
+.account-ledger-table .col-risk { width: 180px; min-width: 180px; white-space: nowrap; }
+.account-ledger-table .col-risk .badge-ok,
+.account-ledger-table .col-risk .badge-warn {
+  white-space: nowrap;
+}
 .account-note-preview {
   display: -webkit-box;
   -webkit-line-clamp: 2;
