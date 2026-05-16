@@ -433,6 +433,38 @@ def _time_cert_verdict(rc: int, text: str) -> str:
     return "PASS"
 
 
+def _time_cert_pass_points(text: str) -> list[str]:
+    points: list[str] = []
+    for line in text.splitlines():
+        cleaned = line.strip()
+        lowered = cleaned.lower()
+        if not cleaned:
+            continue
+        if "system clock synchronized:" in lowered or "ntp synchronized:" in lowered:
+            points.append(cleaned)
+        elif "ntp service:" in lowered or "systemd-timesyncd.service active:" in lowered:
+            points.append(cleaned)
+        elif "leap status" in lowered:
+            points.append(cleaned)
+        elif "reference id" in lowered or "stratum" in lowered:
+            points.append(cleaned)
+        elif re.search(r"\b\d{4}-\d{2}-\d{2}\b", cleaned) or re.search(r"\b[A-Z]{3}\b.*\b\d{2}:\d{2}:\d{2}\b", cleaned):
+            points.append(cleaned)
+        if len(points) >= 6:
+            break
+
+    cert_count = len(re.findall(r"\.(?:crt|pem)\b", text, re.IGNORECASE))
+    if cert_count:
+        points.append(f"憑證檔清單可讀：本次列出 {cert_count} 筆 .crt/.pem 檔案；目前只證明檔案可讀，尚未判斷到期日。")
+    if not points:
+        points.append("未看到 unsynchronized、not synchronized、no server suitable 或 clock unsynchronized 等時間同步警示字樣。")
+    return points
+
+
+def _time_cert_pass_summary(text: str) -> str:
+    return "；".join(_time_cert_pass_points(text)[:4])
+
+
 def _infra_verdict(rc: int, text: str) -> str:
     lowered = text.lower()
     if rc != 0:
@@ -700,7 +732,7 @@ def _problem_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) -> 
         if idx == 6:
             return "Storage 檢查目的：確認磁碟與 inode 空間不會讓 AP 寫檔、暫存或 log 失敗。結果未發現 85% 以上使用率。"
         if idx == 7:
-            return "時間與憑證檢查目的：確認主機時間沒有明顯不同步，避免排程、憑證或稽核時間錯亂。結果未發現時間同步警示。"
+            return "時間與憑證檢查目的：確認主機時間沒有明顯不同步，避免排程、憑證或稽核時間錯亂。PASS 證據：" + _time_cert_pass_summary(text)
         if idx == 8:
             return "資料庫檢查目的：確認主機上是否存在常見 DB 程序或 port，供影響判斷使用；沒有命中不代表異常。"
         if idx == 9:
@@ -776,7 +808,7 @@ def _threshold_summary(spec: dict[str, Any], text: str) -> str:
     if idx == 6:
         return "用途：確認磁碟、inode、/tmp 或 journal 不會讓 AP 寫檔失敗。門檻：主要 filesystem 與 inode 使用率低於 85%。"
     if idx == 7:
-        return "用途：確認主機時間可信。門檻：時間同步不可顯示 unsynchronized 或 not synchronized。"
+        return "用途：確認主機時間可信。門檻：時間同步不可顯示 unsynchronized、not synchronized、no server suitable 或 clock unsynchronized；若有憑證檔，只列出可讀清單，憑證到期日需另做 openssl 到期檢查。"
     if idx == 8:
         return "用途：辨識這台主機是否有 DB 程序或常見 DB port，供影響判斷使用；不是 DB 主機時不視為異常。"
     if idx == 9:
@@ -814,6 +846,15 @@ def _recommendation(spec: dict[str, Any], verdict: str, text: str) -> str:
             ]
         )
     if verdict == "PASS":
+        idx = int(spec["idx"])
+        if idx == 7:
+            return "\n".join(
+                [
+                    "PASS 證明：",
+                    *[f"{pos}. {line}" for pos, line in enumerate(_time_cert_pass_points(text), start=1)],
+                    "建議處置：目前沒有看到需要立即處理的時間同步異常；維持例行觀察即可。若要證明憑證未過期，需執行 openssl x509 -enddate 的到期日檢查。",
+                ]
+            )
         return "目前沒有看到需要立即處理的異常，維持例行觀察即可。"
     idx = int(spec["idx"])
     if idx == 1:
@@ -983,7 +1024,7 @@ def _evidence_summary(spec: dict[str, Any], rc: int, text: str, verdict: str) ->
     elif idx == 6:
         lines.extend(_matching_lines(text, [r"filesystem|/dev/|tmpfs|journal"], limit=6))
     elif idx == 7:
-        lines.extend(_matching_lines(text, [r"ntp|system clock|synchronized|rtc|\.crt|\.pem"], limit=6))
+        lines.extend(_time_cert_pass_points(text))
     elif idx == 8:
         lines.extend(_matching_lines(text, [r"oracle|sql|mysql|mariadb|postgres|mongod|1521|1433|3306|5432|27017"], limit=6))
     elif idx == 9:

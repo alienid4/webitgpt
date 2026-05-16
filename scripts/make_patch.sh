@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="${OUT_DIR:-$ROOT/dist}"
-PATCH_NAME="${PATCH_NAME:-patch_webitgpt_v1.0.1.94-deep-check-network-sn}"
+PATCH_NAME="${PATCH_NAME:-patch_webitgpt_v1.0.1.95-deep-check-pass-evidence}"
 WORK="$OUT_DIR/$PATCH_NAME"
 
 rm -rf "$WORK"

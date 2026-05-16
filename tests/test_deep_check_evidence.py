@@ -162,6 +162,28 @@ def test_session_one_close_wait_is_not_warn():
     assert "SYN-RECV=0" in problem
 
 
+def test_time_cert_pass_explains_what_was_checked():
+    spec = {"idx": 7, "name": "時間與憑證"}
+    text = """Sat 2026-05-16 07:20:00 CST
+System clock synchronized: yes
+NTP service: active
+Reference ID    : C0A80101 (192.168.1.1)
+Leap status     : Normal
+/etc/pki/tls/certs/ca-bundle.crt"""
+
+    assert _problem_summary(spec, 0, text, "PASS").startswith("時間與憑證檢查目的")
+    problem = _problem_summary(spec, 0, text, "PASS")
+    evidence = _evidence_summary(spec, 0, text, "PASS")
+    recommendation = _recommendation(spec, "PASS", text)
+
+    assert "PASS 證據" in problem
+    assert "System clock synchronized: yes" in problem
+    assert "Leap status     : Normal" in evidence
+    assert "憑證檔清單可讀" in evidence
+    assert "PASS 證明" in recommendation
+    assert "openssl x509 -enddate" in recommendation
+
+
 def test_storage_warn_names_mount_and_cleanup_safely():
     spec = {"idx": 6, "name": "Storage"}
     text = "Filesystem Size Used Avail Use% Mounted on\n/dev/sda1 20G 19G 1G 95% /var"
