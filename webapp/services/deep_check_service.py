@@ -229,11 +229,13 @@ def history(hostname: str, limit: int = 20) -> dict[str, Any]:
 def reports(hostname: str) -> dict[str, Any]:
     query = {"hostname": hostname} if hostname else {}
     rows = list(get_collection("deep_check_reports").find(query, {"_id": 0}).sort("timestamp", -1).limit(100))
+    rows = [_normalize_report_doc(row) for row in rows]
     return {"success": True, "hostname": hostname, "items": rows}
 
 
 def latest_report(hostname: str) -> Optional[dict[str, Any]]:
-    return get_collection("deep_check_reports").find_one({"hostname": hostname}, {"_id": 0}, sort=[("timestamp", -1)])
+    report = get_collection("deep_check_reports").find_one({"hostname": hostname}, {"_id": 0}, sort=[("timestamp", -1)])
+    return _normalize_report_doc(report) if report else None
 
 
 def preview(filename: str) -> dict[str, Any]:
@@ -248,6 +250,7 @@ def parsed(filename: str) -> dict[str, Any]:
     )
     if not report:
         return {"success": False, "error": "report not found"}
+    report = _normalize_report_doc(report)
     return {"success": True, "filename": filename, "data": report.get("parsed", {})}
 
 
@@ -1304,6 +1307,7 @@ def _parsed_data(host: dict[str, Any], job_ts: str, items: list[dict[str, Any]])
         "hostname": host["hostname"],
         "asset_seq": host["asset_seq"],
         "timestamp": job_ts,
+        "display_timestamp": _display_timestamp(job_ts),
         "os": host.get("os") or host.get("os_version") or host.get("host_type"),
         "ap_port": os.environ.get("AP_PORT", str(config.WEB_PORT)),
         "ping_target": os.environ.get("PING_TGT", "127.0.0.1"),
@@ -1318,7 +1322,7 @@ def _parsed_data(host: dict[str, Any], job_ts: str, items: list[dict[str, Any]])
 def _summary_text(data: dict[str, Any]) -> str:
     lines = [
         f"深度檢查摘要 - {data['hostname']}",
-        f"時間: {data['timestamp']}",
+        f"時間: {data.get('display_timestamp') or data['timestamp']}",
         f"狀態: {data['status']}",
         f"PASS={data['stats']['pass']} WARN={data['stats']['warn']} FAIL={data['stats']['fail']} N/A={data['stats']['na']}",
         f"影響摘要: {data['customer_impact']}",
@@ -1327,6 +1331,29 @@ def _summary_text(data: dict[str, Any]) -> str:
     for item in data["items"]:
         lines.append(f"{item['idx']}. {item['name']} {item['verdict']} - {item['impact']}")
     return "\n".join(lines)
+
+
+def _display_timestamp(value: Any) -> str:
+    if not value:
+        return "-"
+    if isinstance(value, datetime):
+        local = value.astimezone().replace(second=0, microsecond=0)
+        return local.strftime("%Y%m%d %H:%M")
+    text = str(value)
+    match = re.search(r"(\d{8})[_\s-]?(\d{2})(\d{2})(\d{2})?", text)
+    if match:
+        return f"{match.group(1)} {match.group(2)}:{match.group(3)}"
+    iso_match = re.search(r"(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})", text)
+    if iso_match:
+        return f"{iso_match.group(1)}{iso_match.group(2)}{iso_match.group(3)} {iso_match.group(4)}:{iso_match.group(5)}"
+    return text
+
+
+def _normalize_report_doc(report: dict[str, Any]) -> dict[str, Any]:
+    parsed = report.get("parsed")
+    if isinstance(parsed, dict):
+        parsed.setdefault("display_timestamp", _display_timestamp(parsed.get("timestamp") or report.get("timestamp")))
+    return report
 
 
 def _write_reports(host: dict[str, Any], job_ts: str, summary: str, detail: str) -> tuple[Path, Path]:

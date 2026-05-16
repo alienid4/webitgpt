@@ -92,7 +92,7 @@
         <div>
           <strong>L3 深度檢查</strong>
           {% if l3 %}
-          <span class="text-muted-sm">最近：{{ l3.parsed.timestamp }} / {{ l3.parsed.status }}</span>
+          <span class="text-muted-sm">最近：{{ l3.parsed.display_timestamp or l3.parsed.timestamp }} / {{ l3.parsed.status }}</span>
           {% else %}
           <span class="text-muted-sm">尚未執行 L3。</span>
           {% endif %}

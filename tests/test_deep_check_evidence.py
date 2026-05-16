@@ -5,6 +5,7 @@ from webapp.services.deep_check_service import (
     _ap_endpoint_verdict,
     _ap_listener_verdict,
     _evidence_summary,
+    _display_timestamp,
     _network_verdict,
     _performance_verdict,
     _problem_summary,
@@ -182,6 +183,13 @@ Leap status     : Normal
     assert "憑證檔清單可讀" in evidence
     assert "PASS 證明" in recommendation
     assert "openssl x509 -enddate" in recommendation
+
+
+def test_deep_check_display_timestamp_uses_readable_minutes():
+    assert _display_timestamp("20260516_011157") == "20260516 01:11"
+    assert _display_timestamp("20260516 091257") == "20260516 09:12"
+    html = (ROOT / "webapp/templates/inspections.html").read_text(encoding="utf-8")
+    assert "l3.parsed.display_timestamp or l3.parsed.timestamp" in html
 
 
 def test_storage_warn_names_mount_and_cleanup_safely():
