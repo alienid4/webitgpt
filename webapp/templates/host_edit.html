@@ -90,6 +90,32 @@
     </div>
     {% endif %}
 
+    {% if mode != "new" and current_user.role in ["admin", "super", "superadmin"] %}
+    <div class="asset-edit-section asset-lifecycle-box">
+      <h2>資產生命週期</h2>
+      <p class="text-muted-sm">掃描誤建的草稿可以刪除；正式資產請走停用、申請下線或下線封存，系統會留下操作紀錄。</p>
+      {% if host.lifecycle_reason %}
+      <div class="notice">最近處理：{{ host.lifecycle_reason }} / {{ host.lifecycle_updated_by or "-" }}</div>
+      {% endif %}
+      <label>
+        <span>處理原因 *</span>
+        <textarea form="assetLifecycleForm" name="reason" rows="3" placeholder="例如：掃描誤建、不需納管、主機已下線、等待變更單核准" required></textarea>
+      </label>
+      <div class="asset-edit-actions">
+        {% if host.status == "draft" %}
+        <button form="assetLifecycleForm" class="btn btn-danger" name="action" value="delete_draft" type="submit" onclick="return confirm('確定刪除這筆草稿？刪除後不會出現在資產清冊。')">刪除草稿</button>
+        {% endif %}
+        {% if host.status != "retired" %}
+        <button form="assetLifecycleForm" class="btn secondary" name="action" value="disable" type="submit">停用</button>
+        <button form="assetLifecycleForm" class="btn secondary" name="action" value="request_retire" type="submit">申請下線</button>
+        <button form="assetLifecycleForm" class="btn btn-danger" name="action" value="retire" type="submit" onclick="return confirm('確定下線封存？此資產會改為已汰除並封存資料目錄。')">下線封存</button>
+        {% else %}
+        <button form="assetLifecycleForm" class="btn primary" name="action" value="restore" type="submit">恢復使用中</button>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
     {% if extension_definitions %}
     <div class="asset-edit-section">
       <h2>擴充欄位</h2>
@@ -112,6 +138,7 @@
   </form>
   {% if mode != "new" %}
   <form id="allocateIpForm" method="post" action="{{ url_for('api_hosts.host_allocate_ip', asset_seq=host.hostname or host.asset_seq) }}"></form>
+  <form id="assetLifecycleForm" method="post" action="{{ url_for('api_hosts.host_lifecycle_submit', asset_seq=host.hostname or host.asset_seq) }}"></form>
   {% endif %}
 </section>
 <script src="{{ url_for('static', filename='js/hosts.js') }}"></script>

@@ -821,6 +821,19 @@ a.metric:hover {
   border-top: 1px solid var(--bg2);
   background: var(--white);
 }
+.asset-lifecycle-box {
+  border-top: 1px solid var(--c4);
+  padding-top: 16px;
+}
+.asset-lifecycle-box label {
+  display: grid;
+  gap: 6px;
+  font-weight: 800;
+}
+.asset-lifecycle-box textarea {
+  min-height: 72px;
+  width: 100%;
+}
 .asset-detail-row td {
   padding: 0 10px 10px;
   background: var(--bg);

@@ -291,6 +291,14 @@ def test_asset_governance_status_admin_contracts_exist():
     assert "_is_direct_search_code" in host_routes
     assert "asset_quality_page" in host_routes
     assert '@require_role("admin")\ndef host_edit_page' in host_routes
+    assert "host_lifecycle_submit" in host_routes
+    assert "host_delete_draft_submit" in host_routes
+    host_service = read("webapp/services/host_service.py")
+    assert "transition_lifecycle" in host_service
+    assert "delete_draft_host" in host_service
+    host_edit = read("webapp/templates/host_edit.html")
+    for text in ["資產生命週期", "刪除草稿", "申請下線", "下線封存", "處理原因"]:
+        assert text in host_edit
     assert 'current_user.role in ["admin", "super", "superadmin"]' in read("webapp/templates/hosts.html")
     assert 'current_user.role in ["admin", "super", "superadmin"]' in read("webapp/templates/asset_quality.html")
     assert "asset_quality_report" in Path("webapp/services/cmdb_service.py").read_text(encoding="utf-8")

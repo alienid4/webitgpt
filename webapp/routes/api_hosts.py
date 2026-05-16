@@ -664,6 +664,64 @@ def host_allocate_ip(asset_seq: str):
         ), 400
 
 
+@bp.post("/hosts/<asset_seq>/lifecycle")
+@require_feature("cmdb_manual_input")
+@require_role("admin")
+@market_hours_protected
+def host_lifecycle_submit(asset_seq: str):
+    action = request.form.get("action", "")
+    reason = request.form.get("reason", "")
+    try:
+        if action == "delete_draft":
+            host_service.delete_draft_host(asset_seq, reason, user=current_user()["username"])
+            audit_log_service.append("host.draft.delete", current_user()["username"], {"asset_seq": asset_seq})
+            return redirect(url_for("api_hosts.hosts_page", lifecycle_message="draft_deleted"))
+        host = host_service.transition_lifecycle(asset_seq, action, reason, user=current_user()["username"])
+        audit_log_service.append(
+            "host.lifecycle",
+            current_user()["username"],
+            {"hostname": host.get("hostname"), "asset_seq": host.get("asset_seq"), "action": action},
+        )
+        return redirect(url_for("api_hosts.host_edit_page", asset_seq=host["hostname"]))
+    except Exception as exc:
+        host = host_service.get_host(asset_seq) or {"asset_seq": asset_seq}
+        return render_template(
+            "host_edit.html",
+            host=host,
+            edit_fields=EDIT_FIELDS,
+            field_labels=ASSET_FIELD_LABELS,
+            required_fields=REQUIRED_FIELDS,
+            ipam_networks=cmdb_service.list_networks(),
+            extension_definitions=cmdb_service.list_extension_definitions(),
+            mode="edit",
+            errors=[str(exc)],
+        ), 400
+
+
+@bp.post("/hosts/<asset_seq>/delete-draft")
+@require_feature("cmdb_manual_input")
+@require_role("admin")
+def host_delete_draft_submit(asset_seq: str):
+    reason = request.form.get("reason", "")
+    try:
+        host_service.delete_draft_host(asset_seq, reason, user=current_user()["username"])
+        audit_log_service.append("host.draft.delete", current_user()["username"], {"asset_seq": asset_seq})
+        return redirect(url_for("api_hosts.hosts_page", lifecycle_message="draft_deleted"))
+    except Exception as exc:
+        host = host_service.get_host(asset_seq) or {"asset_seq": asset_seq}
+        return render_template(
+            "host_edit.html",
+            host=host,
+            edit_fields=EDIT_FIELDS,
+            field_labels=ASSET_FIELD_LABELS,
+            required_fields=REQUIRED_FIELDS,
+            ipam_networks=cmdb_service.list_networks(),
+            extension_definitions=cmdb_service.list_extension_definitions(),
+            mode="edit",
+            errors=[str(exc)],
+        ), 400
+
+
 @bp.get("/cmdb/ipam")
 @require_feature("cmdb_manual_input")
 def ipam_page():

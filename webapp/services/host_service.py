@@ -128,6 +128,62 @@ def delete_host(asset_seq: str, user: str = "system", soft: bool = True) -> bool
     return result.deleted_count == 1
 
 
+def record_lifecycle_event(host: dict[str, Any], action: str, reason: str, user: str) -> None:
+    get_collection("host_lifecycle_events").insert_one(
+        {
+            "asset_seq": host.get("asset_seq"),
+            "hostname": host.get("hostname"),
+            "action": action,
+            "reason": reason,
+            "status": host.get("status"),
+            "created_at": _now(),
+            "created_by": user,
+        }
+    )
+
+
+def transition_lifecycle(asset_seq: str, action: str, reason: str, user: str = "system") -> dict[str, Any]:
+    reason = str(reason or "").strip()
+    if not reason:
+        raise ValueError("請填寫處理原因，方便日後稽核追蹤。")
+    target_map = {
+        "request_retire": "pending_retire",
+        "retire": "retired",
+        "disable": "disabled",
+        "restore": "active",
+    }
+    if action not in target_map:
+        raise ValueError("不支援的資產生命週期動作。")
+    existing = get_collection("hosts").find_one(_identity_query(asset_seq))
+    if not existing:
+        raise KeyError(f"host not found: {asset_seq}")
+    record_lifecycle_event(existing, action, reason, user)
+    return update_host(
+        asset_seq,
+        {
+            "status": target_map[action],
+            "lifecycle_action": action,
+            "lifecycle_reason": reason,
+            "lifecycle_updated_at": _now(),
+            "lifecycle_updated_by": user,
+        },
+        user=user,
+    )
+
+
+def delete_draft_host(asset_seq: str, reason: str, user: str = "system") -> bool:
+    reason = str(reason or "").strip()
+    if not reason:
+        raise ValueError("刪除草稿前請填寫原因。")
+    existing = get_collection("hosts").find_one(_identity_query(asset_seq))
+    if not existing:
+        raise KeyError(f"host not found: {asset_seq}")
+    if normalize_host_doc(existing).get("status") != "draft":
+        raise ValueError("只有草稿資產可以直接刪除；正式資產請走下線或汰除流程。")
+    record_lifecycle_event(existing, "delete_draft", reason, user)
+    return get_collection("hosts").delete_one({"_id": existing["_id"]}).deleted_count == 1
+
+
 def restore_host(asset_seq: str, user: str = "system") -> dict[str, Any]:
     existing = get_collection("hosts").find_one(_identity_query(asset_seq))
     if not existing:
