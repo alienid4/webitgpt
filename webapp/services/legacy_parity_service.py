@@ -211,11 +211,53 @@ def _log_check_detail(status: str, detail: str) -> str:
     )
 
 
+def _uptime_human_summary(text: str) -> str:
+    match = re.search(r"\bup\s+(\d+)\s+days?\b", text, re.IGNORECASE)
+    if match:
+        return f"已開機 {match.group(1)} 天"
+    match = re.search(r"\bup\s+(\d+):(\d+)", text, re.IGNORECASE)
+    if match:
+        hours = int(match.group(1))
+        minutes = int(match.group(2))
+        if hours:
+            return f"已開機 {hours} 小時 {minutes} 分鐘"
+        return f"已開機 {minutes} 分鐘"
+    return "已取得開機狀態"
+
+
+def _users_human_summary(text: str) -> str:
+    matches = re.findall(r"\b(\d+)\s+users?\b", text, re.IGNORECASE)
+    if not matches:
+        return "目前登入人數未回報"
+    count = int(matches[-1])
+    return "目前無登入使用者" if count == 0 else f"目前在線人數 {count} 人"
+
+
+def _connectivity_detail(status: str, raw: str) -> str:
+    if status != "ok":
+        return "\n".join(
+            [
+                "連線狀態：主機回應異常，可能無法穩定執行開門檢查。",
+                "建議處置：先確認主機是否開機、網路是否可達、SSH key 是否正常，再重新執行開門檢查。",
+            ]
+        )
+    return "\n".join(
+        [
+            "連線狀態：主機可連線。",
+            f"開機狀態：{_uptime_human_summary(raw)}。",
+            f"使用者：{_users_human_summary(raw)}。",
+        ]
+    )
+
+
 def _build_diagnostic_check(key: str, label: str, rc: int, out: str, err: str) -> dict[str, Any]:
     raw = out or err or ""
     if key == "log":
         status = _log_check_status(rc, raw)
         detail = _log_check_detail(status, raw)
+    elif key == "connectivity":
+        status = "ok" if rc == 0 else "warn"
+        detail = _connectivity_detail(status, raw)
     else:
         status = "ok" if rc == 0 else "warn"
         detail = raw or "無輸出"
@@ -231,6 +273,13 @@ def _normalize_diagnostic_row(row: dict[str, Any]) -> dict[str, Any]:
             status = _log_check_status(0, raw)
             detail = _log_check_detail(status, raw)
             normalized = {**check, "status": status, "detail": detail[:1800], "raw_detail": raw[:1800]}
+            checks.append(normalized)
+            changed = True
+        elif check.get("key") == "connectivity":
+            raw = check.get("raw_detail") or check.get("detail") or ""
+            status = check.get("status") or "ok"
+            detail = _connectivity_detail(status, raw)
+            normalized = {**check, "detail": detail[:1800], "raw_detail": raw[:1800]}
             checks.append(normalized)
             changed = True
         else:
