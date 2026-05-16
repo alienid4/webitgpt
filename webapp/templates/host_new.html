@@ -1,17 +1,33 @@
 {% extends "base.html" %}
-{% block title %}新增資產 - webitgpt{% endblock %}
+{% block title %}新增主機 - webitgpt{% endblock %}
 {% block content %}
 <section class="panel asset-new-workbench">
   <div class="page-header">
     <div>
       <p class="eyebrow">ASSET CREATE</p>
-      <h1>新增資產</h1>
-      <p class="text-muted-sm">同一個入口支援單筆新增、CSV 大量匯入、網段掃描後勾選多台建立草稿。</p>
+      <h1>新增主機工作台</h1>
+      <p class="text-muted-sm">從同一個入口新增資產：單筆建立、CSV 大量匯入、或掃描網段後勾選多台建立草稿。</p>
     </div>
     <div class="asset-actions">
-      <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">回資產管理</a>
-      <a class="btn primary" href="{{ url_for('api_hosts.host_new_full_page') }}">單筆完整表單</a>
+      <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">回資產列表</a>
+      <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM 網段管理</a>
+      <a class="btn primary" href="{{ url_for('api_hosts.host_new_full_page') }}">開完整表單</a>
     </div>
+  </div>
+
+  <div class="asset-create-options">
+    <a class="asset-create-card" href="#single-create">
+      <strong>1. 單筆新增</strong>
+      <span>已知道主機名稱、IP、OS 與管理者時使用。</span>
+    </a>
+    <a class="asset-create-card" href="#csv-import">
+      <strong>2. CSV 大量匯入</strong>
+      <span>一次匯入多台，適合已有 Excel / CMDB 清冊。</span>
+    </a>
+    <a class="asset-create-card" href="#network-scan">
+      <strong>3. 網段掃描新增</strong>
+      <span>知道網段但不知道哪些主機未納管時使用，可將勾選 IP 建立草稿。</span>
+    </a>
   </div>
 
   {% if errors %}<div class="notice danger">{{ errors|join(' / ') }}</div>{% endif %}
@@ -28,17 +44,21 @@
   {% endif %}
 </section>
 
-<section class="panel">
-  <h2>1. 單筆新增</h2>
-  <p class="text-muted-sm">已知主機資料完整時，使用完整表單建立正式資產；如果資料還沒齊，也可先回資產管理使用快速草稿。</p>
-  <a class="btn primary" href="{{ url_for('api_hosts.host_new_full_page') }}">開啟完整新增表單</a>
+<section class="panel" id="single-create">
+  <div class="page-header">
+    <div>
+      <h2>1. 單筆新增</h2>
+      <p class="text-muted-sm">適合新申請主機、已完成 IP 配發，準備補齊資產資料的情境。</p>
+    </div>
+    <a class="btn primary" href="{{ url_for('api_hosts.host_new_full_page') }}">開完整新增表單</a>
+  </div>
 </section>
 
-<section class="panel">
+<section class="panel" id="csv-import">
   <div class="page-header">
     <div>
       <h2>2. CSV 大量匯入</h2>
-      <p class="text-muted-sm">適合一次匯入多台主機。建議先下載範本，保留欄位名稱後再貼上或上傳。</p>
+      <p class="text-muted-sm">適合一次匯入大量主機。建議先下載範本，填完後再匯入。</p>
     </div>
     <div class="asset-actions">
       <a class="btn secondary" href="{{ url_for('api_hosts.csv_template') }}">下載 CSV 範本</a>
@@ -56,12 +76,20 @@
 <section class="panel" id="network-scan">
   <div class="page-header">
     <div>
-      <h2>3. 網段掃描後新增</h2>
-      <p class="text-muted-sm">用於你知道某個網段有主機尚未加入 CMDB 時。掃描會列出 IP、hostname、OS/平台推測、開放服務與是否已納管，可勾選多台建立草稿。</p>
-      <p class="text-muted-sm">注意：這是從 221 的網路角度掃描。VM 沒開機、使用 host-only/NAT、沒有接到 192.168.1.0/24，或完全沒有任何回應，就不會出現在掃描結果。</p>
+      <h2>3. 網段掃描新增</h2>
+      <p class="text-muted-sm">用在你知道某個網段有主機，但不確定哪些還沒加入資產管理。掃描只會先建立草稿，不會直接正式納管。</p>
+      <p class="text-muted-sm">掃描結果會盡量列出 IP、hostname、OS 判斷、開放服務與是否已納管；不同網段、NAT 或防火牆可能讓結果少於 VM 清單。</p>
     </div>
   </div>
   <form class="grid-form" method="post" action="{{ url_for('api_hosts.host_new_discovery_scan_page') }}" data-submit-status data-submit-message="正在掃描網段，可能需要 10 到 60 秒；請勿重複點選。">
+    <label>選擇已建立網段
+      <select data-fill-target="cidr">
+        <option value="">手動輸入 CIDR</option>
+        {% for network in ipam_networks %}
+        <option value="{{ network.cidr }}" {% if scan_report and scan_report.cidr == network.cidr %}selected{% endif %}>{{ network.name }} / {{ network.cidr }} / {{ network.environment }}</option>
+        {% endfor %}
+      </select>
+    </label>
     <label>掃描網段 CIDR<input name="cidr" value="{{ scan_report.cidr if scan_report else '192.168.1.0/24' }}" placeholder="192.168.1.0/24" required></label>
     <label>預設環境
       <select name="environment">
@@ -80,8 +108,8 @@
     <label>掃描模式
       <select name="scan_mode">
         <option value="combined">混合掃描：ARP/Ping + TCP 常見服務</option>
-        <option value="ping">快速探索：ARP/Ping</option>
-        <option value="tcp">強制 TCP：不回 ping 也嘗試常見服務</option>
+        <option value="ping">快速掃描：ARP/Ping</option>
+        <option value="tcp">TCP 探測：主機禁止 ping 時使用</option>
       </select>
     </label>
     <button class="btn primary" type="submit" data-busy-text="掃描中">開始掃描</button>
@@ -98,15 +126,15 @@
     <table class="data-table">
       <thead>
         <tr>
-          <th>選取</th>
+          <th>勾選</th>
           <th>狀態</th>
           <th>IP</th>
           <th>Hostname</th>
-          <th>OS 偵測</th>
-          <th>平台判斷</th>
+          <th>OS 判斷</th>
+          <th>類型判斷</th>
           <th>開放服務</th>
           <th>發現方式</th>
-          <th>建議</th>
+          <th>建議動作</th>
         </tr>
       </thead>
       <tbody>
@@ -122,7 +150,7 @@
           <td>{{ row.type_label }}</td>
           <td><span class="code-inline">{{ row.ip }}</span></td>
           <td>{{ row.hostname or "-" }}</td>
-          <td>{{ row.os or "未偵測" }}</td>
+          <td>{{ row.os or "未知" }}</td>
           <td>{{ host_type_labels.get(row.host_type, row.host_type or "-") }}</td>
           <td>
             {% for port in row.open_ports or [] %}
@@ -133,13 +161,13 @@
           <td>{{ row.suggestion }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="9" class="no-data">沒有掃描結果。請確認 nmap 是否安裝、VM 是否開機、網卡是否接到 221 可達的網段，或改用強制 TCP 掃描。</td></tr>
+        <tr><td colspan="9" class="no-data">尚無掃描結果。請確認 nmap 是否已安裝、221 是否能連到該網段，必要時改用 TCP 探測。</td></tr>
         {% endfor %}
       </tbody>
     </table>
     <div class="asset-edit-actions">
       <button class="btn primary" type="submit">將勾選 IP 建立草稿</button>
-      <span class="text-muted-sm">只建立草稿，不會直接正式納管；建立後請回資產管理補齊欄位。</span>
+      <span class="text-muted-sm">建立後狀態為草稿，需再進入資產編輯頁補齊欄位才算正式納管。</span>
     </div>
   </form>
   {% endif %}
@@ -156,4 +184,5 @@
   </table>
   {% endif %}
 </section>
+<script src="{{ url_for('static', filename='js/host_new.js') }}"></script>
 {% endblock %}

@@ -656,6 +656,31 @@ a.metric:hover {
   justify-content: flex-end;
   flex-wrap: wrap;
 }
+.asset-create-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.asset-create-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: var(--bg2);
+  color: var(--c1);
+  text-decoration: none;
+}
+.asset-create-card:hover {
+  border-color: var(--g1);
+  background: var(--g-light);
+}
+.asset-create-card strong { color: var(--g-text); }
+.asset-create-card span {
+  color: var(--c2);
+  font-size: 13px;
+}
 .asset-filter-compact {
   grid-column: 1 / -1;
   display: grid;

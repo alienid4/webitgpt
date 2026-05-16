@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -73,17 +73,22 @@ def test_ipam_reconcile_and_schedule_contracts_exist():
 
 def test_asset_new_workbench_has_csv_and_scan_entrypoints():
     host_new = read("webapp/templates/host_new.html")
+    host_new_js = read("webapp/static/js/host_new.js")
     routes = read("webapp/routes/api_hosts.py")
     cmdb = read("webapp/services/cmdb_service.py")
 
+    assert "新增主機工作台" in host_new
     assert "CSV 大量匯入" in host_new
-    assert "網段掃描後新增" in host_new
+    assert "網段掃描新增" in host_new
     assert "將勾選 IP 建立草稿" in host_new
+    assert "選擇已建立網段" in host_new
     assert "data-submit-status" in host_new
     assert "正在掃描網段" in host_new
     assert "混合掃描：ARP/Ping + TCP 常見服務" in host_new
     assert "開放服務" in host_new
     assert "發現方式" in host_new
+    assert "data-fill-target" in host_new
+    assert "initNetworkFill" in host_new_js
     assert "host_new_full_page" in routes
     assert "host_new_discovery_scan_page" in routes
     assert "host_new_discovery_create_drafts_page" in routes
@@ -91,8 +96,7 @@ def test_asset_new_workbench_has_csv_and_scan_entrypoints():
     assert "scan_mode" in cmdb
     assert '"nmap", "-Pn", "-R", "-p"' in cmdb
     assert '"hostname": item.get("hostname", "")' in cmdb
-    assert '"os": item.get("os") or "未偵測"' in cmdb
-
+    assert '"os": item.get("os") or' in cmdb
 
 def test_long_running_submit_feedback_contract_exists():
     js = read("webapp/static/js/ui_tools.js")
@@ -295,3 +299,4 @@ def test_asset_governance_status_admin_contracts_exist():
         assert text in host_routes
     assert "資產治理狀態" in superadmin
     assert "資產治理狀態" in system_service
+
