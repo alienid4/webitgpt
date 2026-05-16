@@ -4,9 +4,10 @@ import os
 import re
 import subprocess
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from webapp import config
 from webapp.services.host_service import list_hosts
@@ -15,6 +16,21 @@ from webapp.services.remedy_kb import match_remedies
 
 
 REPORT_RE = re.compile(r"^ts_[\w\-.]+_\d{8}_\d{6}_(summary|detail)\.txt$")
+
+
+def _local_tz():
+    try:
+        return ZoneInfo(config.TZ_NAME)
+    except ZoneInfoNotFoundError:
+        return timezone(timedelta(hours=8))
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _local_now() -> datetime:
+    return _utc_now().astimezone(_local_tz())
 
 
 NETWORK_CHECKPOINTS = [
@@ -156,8 +172,8 @@ def run(hostname: str, user: str = "system") -> dict[str, Any]:
     if running:
         return {"success": False, "error": "已有深度檢查正在執行", "job_id": running["job_id"]}
 
-    now = datetime.now(timezone.utc)
-    job_ts = now.strftime("%Y%m%d_%H%M%S")
+    now = _utc_now()
+    job_ts = _local_now().strftime("%Y%m%d_%H%M%S")
     job_id = f"dc_{job_ts}_{uuid.uuid4().hex[:6]}"
     job = {
         "job_id": job_id,
@@ -183,7 +199,7 @@ def run(hostname: str, user: str = "system") -> dict[str, Any]:
     except Exception as exc:
         get_collection("deep_check_jobs").update_one(
             {"job_id": job_id},
-            {"$set": {"status": "error", "error": str(exc), "finished_at": datetime.now(timezone.utc), "phase": "執行失敗"}},
+            {"$set": {"status": "error", "error": str(exc), "finished_at": _utc_now(), "phase": "執行失敗"}},
         )
         return {"success": False, "error": str(exc), "job_id": job_id, "hostname": hostname}
     return {"success": True, "job_id": job_id, "message": f"L3 深度檢查已完成：{hostname}", "hostname": hostname}
@@ -215,7 +231,7 @@ def progress(job_id: str) -> dict[str, Any]:
 def cancel(job_id: str, user: str = "system") -> dict[str, Any]:
     result = get_collection("deep_check_jobs").update_one(
         {"job_id": job_id, "status": {"$in": ["starting", "running"]}},
-        {"$set": {"status": "canceled", "finished_at": datetime.now(timezone.utc), "phase": "已取消", "canceled_by": user}},
+        {"$set": {"status": "canceled", "finished_at": _utc_now(), "phase": "已取消", "canceled_by": user}},
     )
     return {"success": bool(result.modified_count), "job_id": job_id}
 
@@ -298,7 +314,7 @@ def _execute(job: dict[str, Any], host: dict[str, Any]) -> None:
     report_doc = {
         "hostname": host["hostname"],
         "asset_seq": host["asset_seq"],
-        "timestamp": datetime.now(timezone.utc),
+        "timestamp": _utc_now(),
         "filename": summary_file.name,
         "summary_filename": summary_file.name,
         "detail_filename": detail_file.name,
@@ -315,7 +331,7 @@ def _execute(job: dict[str, Any], host: dict[str, Any]) -> None:
                 "phase": "完成",
                 "progress": 100,
                 "completed": 1,
-                "finished_at": datetime.now(timezone.utc),
+                "finished_at": _utc_now(),
                 "returncode": 0,
                 "report_files": {"summary": summary_file.name, "detail": detail_file.name},
                 "log": detail_text[-5000:],
@@ -1337,7 +1353,8 @@ def _display_timestamp(value: Any) -> str:
     if not value:
         return "-"
     if isinstance(value, datetime):
-        local = value.astimezone().replace(second=0, microsecond=0)
+        base = value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+        local = base.astimezone(_local_tz()).replace(second=0, microsecond=0)
         return local.strftime("%Y%m%d %H:%M")
     text = str(value)
     match = re.search(r"(\d{8})[_\s-]?(\d{2})(\d{2})(\d{2})?", text)
@@ -1352,7 +1369,7 @@ def _display_timestamp(value: Any) -> str:
 def _normalize_report_doc(report: dict[str, Any]) -> dict[str, Any]:
     parsed = report.get("parsed")
     if isinstance(parsed, dict):
-        parsed.setdefault("display_timestamp", _display_timestamp(parsed.get("timestamp") or report.get("timestamp")))
+        parsed["display_timestamp"] = _display_timestamp(report.get("timestamp") or parsed.get("timestamp"))
     return report
 
 

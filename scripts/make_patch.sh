@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="${OUT_DIR:-$ROOT/dist}"
-PATCH_NAME="${PATCH_NAME:-patch_webitgpt_v1.0.1.100-opening-log-passwd-guidance}"
+PATCH_NAME="${PATCH_NAME:-patch_webitgpt_v1.0.1.102-deep-check-mongo-utc-time}"
 WORK="$OUT_DIR/$PATCH_NAME"
 
 rm -rf "$WORK"
