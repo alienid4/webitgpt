@@ -107,6 +107,9 @@ def test_opening_check_is_system_scoped_and_deep_check_supports_aix():
     assert ".aspect-helper-link" in read("webapp/static/css/cathay.css")
     assert "[data-l3-filter]" in read("webapp/static/js/admin_tools.js")
     assert "[data-opening-system-search]" in read("webapp/static/js/admin_tools.js")
+    assert "webitgpt.opening.lastSystem" in read("webapp/static/js/admin_tools.js")
+    assert "applyLastOpeningSystem" in read("webapp/static/js/admin_tools.js")
+    assert "form.requestSubmit()" in read("webapp/static/js/admin_tools.js")
     assert 'option.value === "__all__"' in read("webapp/static/js/admin_tools.js")
     assert "daily_diagnostics(platform, system_name)" in routes
     assert "OPENING_DEFAULT_SYSTEM" in legacy

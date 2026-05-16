@@ -1,3 +1,43 @@
+const OPENING_SYSTEM_KEY = "webitgpt.opening.lastSystem";
+
+function rememberOpeningSystem(value) {
+  if (!value) return;
+  try {
+    localStorage.setItem(OPENING_SYSTEM_KEY, value);
+  } catch {
+    // localStorage may be blocked in strict browser modes.
+  }
+}
+
+function lastOpeningSystem() {
+  try {
+    return localStorage.getItem(OPENING_SYSTEM_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function applyLastOpeningSystem() {
+  const form = document.querySelector("form [data-opening-system-select]")?.closest("form");
+  const select = form?.querySelector("[data-opening-system-select]");
+  if (!form || !select) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const current = params.get("system");
+  if (current) {
+    rememberOpeningSystem(current);
+    return;
+  }
+
+  const remembered = lastOpeningSystem();
+  if (!remembered || remembered === select.value) return;
+  const exists = Array.from(select.options).some((option) => option.value === remembered);
+  if (!exists) return;
+
+  select.value = remembered;
+  form.requestSubmit();
+}
+
 document.addEventListener("input", (event) => {
   const search = event.target.closest("[data-opening-system-search]");
   if (!search) return;
@@ -17,6 +57,18 @@ document.addEventListener("input", (event) => {
   });
 });
 
+document.addEventListener("change", (event) => {
+  const select = event.target.closest("[data-opening-system-select]");
+  if (!select) return;
+  rememberOpeningSystem(select.value);
+});
+
+document.addEventListener("submit", (event) => {
+  const select = event.target.querySelector?.("[data-opening-system-select]");
+  if (!select) return;
+  rememberOpeningSystem(select.value);
+});
+
 function refreshScoreRings() {
   document.querySelectorAll("[data-score-ring]").forEach((ring) => {
     const raw = Number.parseFloat(ring.dataset.score || "0");
@@ -26,6 +78,7 @@ function refreshScoreRings() {
   });
 }
 
+document.addEventListener("DOMContentLoaded", applyLastOpeningSystem);
 document.addEventListener("DOMContentLoaded", refreshScoreRings);
 
 function findApiStatus(button) {
