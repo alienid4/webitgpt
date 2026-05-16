@@ -87,6 +87,7 @@ def test_asset_new_workbench_has_csv_and_scan_entrypoints():
     assert "正在掃描網段" in host_new
     assert "下方會先保留上次掃描結果" in host_new
     assert "上次掃描結果" in host_new
+    assert "狀態已依目前資產清冊重新校正" in host_new
     assert "混合掃描：ARP/Ping + TCP 常見服務" in host_new
     assert "開放服務" in host_new
     assert "發現方式" in host_new
@@ -97,6 +98,7 @@ def test_asset_new_workbench_has_csv_and_scan_entrypoints():
     assert "host_new_discovery_create_drafts_page" in routes
     assert "latest_network_reconcile" in routes
     assert "run_asset_discovery_scan" in cmdb
+    assert "_refresh_scan_report_with_current_cmdb" in cmdb
     assert "scan_mode" in cmdb
     assert '"scan_mode": mode' in cmdb
     skill = read("docs/scan_state_skill.md")
@@ -298,6 +300,9 @@ def test_asset_governance_status_admin_contracts_exist():
     assert "_keyword_related" in host_routes
     assert "_is_direct_search_code" in host_routes
     assert "asset_quality_page" in host_routes
+    assert "status_counts" in host_routes
+    assert "status_counts" in read("webapp/services/host_service.py")
+    assert '<span>草稿</span>' in read("webapp/templates/hosts.html")
     assert '@require_role("admin")\ndef host_edit_page' in host_routes
     assert "host_lifecycle_submit" in host_routes
     assert "host_delete_draft_submit" in host_routes

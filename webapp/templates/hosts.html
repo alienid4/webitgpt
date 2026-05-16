@@ -66,6 +66,7 @@
 
   <section class="summary-grid asset-summary">
     <a class="metric" href="#asset-details"><strong>{{ data.get("total", 0) }}</strong><span>資產總數</span></a>
+    <a class="metric" href="{{ url_for('api_hosts.hosts_page', status='draft') }}"><strong>{{ status_counts.get("draft", 0) }}</strong><span>草稿</span></a>
     <a class="metric" href="#asset-details"><strong>{{ asset_summary.complete_assets }}</strong><span>必填完整</span></a>
     <a class="metric" href="#asset-details"><strong>{{ asset_summary.missing_required }}</strong><span>缺漏必填欄位</span></a>
     <a class="metric" href="#asset-details"><strong>{{ asset_summary.environments }}</strong><span>環境數</span></a>

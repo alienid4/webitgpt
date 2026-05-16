@@ -120,6 +120,7 @@
   <div class="notice">
     上次掃描結果：{{ scan_report.cidr }}，發現 {{ scan_report.discovered_count }} 個回應 IP，未納管 {{ scan_report.mismatch_count }} 個。
     模式：{{ scan_report.mode }}{% if scan_report.error %}，訊息：{{ scan_report.error }}{% endif %}
+    {% if scan_report.status_refreshed %}<br>狀態已依目前資產清冊重新校正。{% endif %}
   </div>
   <form method="post" action="{{ url_for('api_hosts.host_new_discovery_create_drafts_page') }}" data-submit-status data-submit-message="正在將勾選 IP 建立為資產草稿，請稍候。">
     <input type="hidden" name="cidr" value="{{ scan_report.cidr }}">

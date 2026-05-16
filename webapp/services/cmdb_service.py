@@ -718,9 +718,68 @@ def run_network_reconcile(cidr: str, user: str = "system") -> dict[str, Any]:
     return _public(report) or report
 
 
+def _refresh_scan_report_with_current_cmdb(report: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    if not report:
+        return None
+    cidr = report.get("cidr", "")
+    try:
+        network = ipaddress.ip_network(cidr, strict=False)
+    except ValueError:
+        return report
+    hosts_by_ip = _host_ips_in_network(str(network))
+    refreshed_rows = []
+    discovered_ips = set()
+    for row in report.get("rows") or []:
+        ip_text = str(row.get("ip") or "").strip()
+        if not ip_text:
+            continue
+        discovered_ips.add(ip_text)
+        enrolled_hosts = hosts_by_ip.get(ip_text, [])
+        if enrolled_hosts:
+            for host in enrolled_hosts:
+                refreshed = dict(row)
+                refreshed.update(
+                    {
+                        "severity": "info",
+                        "type": "already_in_cmdb",
+                        "type_label": "已納管",
+                        "hostname": host.get("hostname") or row.get("hostname", ""),
+                        "asset_name": host.get("asset_name", ""),
+                        "os": host.get("os") or row.get("os", ""),
+                        "host_type": host.get("host_type") or row.get("host_type", ""),
+                        "status": host.get("status", ""),
+                        "suggestion": "此 IP 已在資產管理系統，不需要重複建立。",
+                    }
+                )
+                refreshed_rows.append(refreshed)
+            continue
+        if row.get("type") == "already_in_cmdb":
+            refreshed = dict(row)
+            refreshed.update(
+                {
+                    "severity": "high",
+                    "type": "scan_not_in_cmdb",
+                    "type_label": "掃描到但未納管",
+                    "asset_name": "",
+                    "status": "待建立草稿",
+                    "suggestion": "目前 CMDB 已查不到此 IP，請勾選建立草稿或重新掃描確認。",
+                }
+            )
+            refreshed_rows.append(refreshed)
+        else:
+            refreshed_rows.append(row)
+    refreshed_report = dict(report)
+    refreshed_report["rows"] = refreshed_rows
+    refreshed_report["cmdb_count"] = len(hosts_by_ip)
+    refreshed_report["discovered_count"] = len(discovered_ips)
+    refreshed_report["mismatch_count"] = len([row for row in refreshed_rows if row.get("type") == "scan_not_in_cmdb"])
+    refreshed_report["status_refreshed"] = True
+    return refreshed_report
+
+
 def latest_network_reconcile(cidr: str = "") -> Optional[dict[str, Any]]:
     query = {"cidr": str(ipaddress.ip_network(cidr, strict=False))} if cidr else {}
-    return _public(get_collection("network_scan_reports").find_one(query, sort=[("started_at", -1)]))
+    return _refresh_scan_report_with_current_cmdb(_public(get_collection("network_scan_reports").find_one(query, sort=[("started_at", -1)])))
 
 
 def _unique_scan_hostname(ip_text: str) -> str:

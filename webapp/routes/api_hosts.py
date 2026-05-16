@@ -314,6 +314,7 @@ def hosts_page():
         host_type_labels=HOST_TYPE_LABELS,
         dc_labels=DC_LABELS,
         asset_summary=_asset_page_summary(data.get("items", [])),
+        status_counts=host_service.status_counts(),
     )
 
 

@@ -66,6 +66,14 @@ def list_hosts(
     }
 
 
+def status_counts() -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for item in get_collection("hosts").aggregate([{"$group": {"_id": "$status", "count": {"$sum": 1}}}]):
+        counts[str(item.get("_id") or "unknown")] = int(item.get("count", 0))
+    counts["total"] = sum(counts.values())
+    return counts
+
+
 def _identity_query(key: str) -> dict[str, Any]:
     return {"$or": [{"hostname": key}, {"asset_seq": key}]}
 
