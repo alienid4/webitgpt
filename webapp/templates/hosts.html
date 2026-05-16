@@ -9,6 +9,32 @@
       <p class="text-muted-sm">以主機名稱作為唯一索引；資產編號保留為資產流水與對外識別。支援一台主機多 IP、多網段與完整資產明細。</p>
     </div>
     <div class="asset-actions">
+      {% if current_user.role in ["admin", "super", "superadmin"] %}
+      <form method="post" action="{{ url_for('api_hosts.hosts_refresh_identity_submit') }}" data-submit-status data-submit-message="正在重整本頁資產 Hostname / OS，請稍候。">
+        <input type="hidden" name="scope" value="page">
+        <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
+        <input type="hidden" name="status" value="{{ request.args.get('status','') }}">
+        <input type="hidden" name="group_name" value="{{ request.args.get('group_name','') }}">
+        <input type="hidden" name="environment" value="{{ request.args.get('environment','') }}">
+        <input type="hidden" name="host_type" value="{{ request.args.get('host_type','') }}">
+        <input type="hidden" name="dc" value="{{ request.args.get('dc','') }}">
+        <input type="hidden" name="page" value="{{ data.get('page', 1) }}">
+        <input type="hidden" name="page_size" value="{{ data.get('page_size', 25) }}">
+        <button class="btn secondary" type="submit">重整本頁資產</button>
+      </form>
+      <form method="post" action="{{ url_for('api_hosts.hosts_refresh_identity_submit') }}" data-submit-status data-submit-message="正在重整全部納管資產 Hostname / OS，請稍候。">
+        <input type="hidden" name="scope" value="all">
+        <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
+        <input type="hidden" name="status" value="{{ request.args.get('status','') }}">
+        <input type="hidden" name="group_name" value="{{ request.args.get('group_name','') }}">
+        <input type="hidden" name="environment" value="{{ request.args.get('environment','') }}">
+        <input type="hidden" name="host_type" value="{{ request.args.get('host_type','') }}">
+        <input type="hidden" name="dc" value="{{ request.args.get('dc','') }}">
+        <input type="hidden" name="page" value="{{ data.get('page', 1) }}">
+        <input type="hidden" name="page_size" value="{{ data.get('page_size', 25) }}">
+        <button class="btn secondary" type="submit">重整全部納管資產</button>
+      </form>
+      {% endif %}
       <a class="btn secondary" href="{{ url_for('api_hosts.csv_export') }}">匯出 CSV</a>
       <a class="btn secondary" href="{{ url_for('api_hosts.csv_template') }}">下載範本</a>
       <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM</a>
@@ -127,6 +153,14 @@
   </section>
 
   {% if data.get("error") %}<div class="notice danger">{{ data.get("error") }}</div>{% endif %}
+  {% if request.args.get("refresh_updated") is not none %}
+  <div class="notice">
+    資產資料重整完成：{{ "全部納管資產" if request.args.get("refresh_scope") == "all" else "本頁資產" }}，
+    成功 {{ request.args.get("refresh_updated", 0) }} 台，
+    失敗 {{ request.args.get("refresh_failed", 0) }} 台，
+    略過 {{ request.args.get("refresh_skipped", 0) }} 台。
+  </div>
+  {% endif %}
   {% if request.args.get("bulk_deleted") is not none %}
   <div class="notice">批次刪除草稿：刪除 {{ request.args.get("bulk_deleted", 0) }} 筆，略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
   {% endif %}

@@ -316,6 +316,8 @@ def test_asset_governance_status_admin_contracts_exist():
         assert text in hosts_template
     for text in ["asset-source-pill", "驗證名稱/OS", "host_verify_identity_submit"]:
         assert text in hosts_template or text in host_routes
+    for text in ["重整本頁資產", "重整全部納管資產", "hosts_refresh_identity_submit", "refresh_asset_identities"]:
+        assert text in hosts_template or text in host_routes or text in host_service or text in read("webapp/services/cmdb_service.py")
     for text in ["主機名稱 / OS 可信度", "Hostname 來源", "OS 來源", "verifyIdentityForm"]:
         assert text in host_edit
     assert '<span>草稿</span>' in hosts_template

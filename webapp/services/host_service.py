@@ -31,22 +31,7 @@ def list_hosts(
     sort: str = "hostname",
     direction: str = "asc",
 ) -> dict[str, Any]:
-    filters = filters or {}
-    mongo_filter: dict[str, Any] = {}
-    for key in ("status", "group_name", "environment", "host_type", "dc"):
-        value = filters.get(key)
-        if value:
-            mongo_filter[key] = normalize_host_doc({key: value}).get(key, value)
-    if query:
-        mongo_filter["$or"] = [
-            {"asset_seq": {"$regex": query, "$options": "i"}},
-            {"hostname": {"$regex": query, "$options": "i"}},
-            {"ip": {"$regex": query, "$options": "i"}},
-            {"ip_addresses": {"$regex": query, "$options": "i"}},
-            {"network_segments": {"$regex": query, "$options": "i"}},
-            {"asset_name": {"$regex": query, "$options": "i"}},
-            {"system_name": {"$regex": query, "$options": "i"}},
-        ]
+    mongo_filter = build_host_filter(query, filters)
     page = max(page, 1)
     page_size = min(max(page_size, 1), 100)
     sort_dir = ASCENDING if direction == "asc" else DESCENDING
@@ -64,6 +49,41 @@ def list_hosts(
         "page": page,
         "page_size": page_size,
     }
+
+
+def build_host_filter(query: str = "", filters: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+    filters = filters or {}
+    mongo_filter: dict[str, Any] = {}
+    for key in ("status", "group_name", "environment", "host_type", "dc"):
+        value = filters.get(key)
+        if value:
+            mongo_filter[key] = normalize_host_doc({key: value}).get(key, value)
+    if query:
+        mongo_filter["$or"] = [
+            {"asset_seq": {"$regex": query, "$options": "i"}},
+            {"hostname": {"$regex": query, "$options": "i"}},
+            {"ip": {"$regex": query, "$options": "i"}},
+            {"ip_addresses": {"$regex": query, "$options": "i"}},
+            {"network_segments": {"$regex": query, "$options": "i"}},
+            {"asset_name": {"$regex": query, "$options": "i"}},
+            {"system_name": {"$regex": query, "$options": "i"}},
+        ]
+    return mongo_filter
+
+
+def list_matching_host_keys(
+    query: str = "",
+    filters: Optional[dict[str, Any]] = None,
+    page: int = 1,
+    page_size: int = 25,
+    current_page_only: bool = True,
+) -> list[str]:
+    mongo_filter = build_host_filter(query, filters)
+    mongo_filter["status"] = {"$nin": ["draft", "retired"]}
+    docs = get_collection("hosts").find(mongo_filter, {"hostname": 1, "asset_seq": 1}).sort("hostname", ASCENDING)
+    if current_page_only:
+        docs = docs.skip((max(page, 1) - 1) * min(max(page_size, 1), 100)).limit(min(max(page_size, 1), 100))
+    return [str(doc.get("hostname") or doc.get("asset_seq")) for doc in docs if doc.get("hostname") or doc.get("asset_seq")]
 
 
 def status_counts() -> dict[str, int]:

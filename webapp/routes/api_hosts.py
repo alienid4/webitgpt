@@ -354,7 +354,49 @@ def hosts_page():
         dc_labels=DC_LABELS,
         asset_summary=_asset_page_summary(data.get("items", [])),
         status_counts=host_service.status_counts(),
+        refresh_result=None,
     )
+
+
+@bp.post("/hosts/refresh-identity")
+@require_feature("cmdb_manual_input")
+@require_role("admin")
+def hosts_refresh_identity_submit():
+    scope = request.form.get("scope", "page")
+    filters = {
+        "status": request.form.get("status", ""),
+        "group_name": request.form.get("group_name", ""),
+        "environment": request.form.get("environment", ""),
+        "host_type": request.form.get("host_type", ""),
+        "dc": request.form.get("dc", ""),
+    }
+    page = int(request.form.get("page", "1") or 1)
+    page_size = int(request.form.get("page_size", "25") or 25)
+    current_page_only = scope != "all"
+    keys = host_service.list_matching_host_keys(
+        query=request.form.get("q", ""),
+        filters=filters,
+        page=page,
+        page_size=page_size,
+        current_page_only=current_page_only,
+    )
+    result = cmdb_service.refresh_asset_identities(keys, user=current_user()["username"])
+    audit_log_service.append("host.identity.refresh", current_user()["username"], {"scope": scope, **{k: result[k] for k in ["total", "updated_count", "failed_count", "skipped_count"]}})
+    params = {
+        "q": request.form.get("q", ""),
+        "status": request.form.get("status", ""),
+        "group_name": request.form.get("group_name", ""),
+        "environment": request.form.get("environment", ""),
+        "host_type": request.form.get("host_type", ""),
+        "dc": request.form.get("dc", ""),
+        "page": str(page),
+        "page_size": str(page_size),
+        "refresh_updated": str(result["updated_count"]),
+        "refresh_failed": str(result["failed_count"]),
+        "refresh_skipped": str(result["skipped_count"]),
+        "refresh_scope": scope,
+    }
+    return redirect(url_for("api_hosts.hosts_page", **params))
 
 
 @bp.get("/hosts/quality")

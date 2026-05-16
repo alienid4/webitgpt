@@ -890,6 +890,46 @@ def verify_host_identity(host_key: str, user: str = "system") -> dict[str, Any]:
     return {"identity": identity, "host": updated}
 
 
+def refresh_asset_identities(host_keys: list[str], user: str = "system") -> dict[str, Any]:
+    result: dict[str, Any] = {"total": len(host_keys), "updated": [], "failed": [], "skipped": [], "updated_count": 0, "failed_count": 0, "skipped_count": 0}
+    for key in host_keys:
+        host = host_service.get_host(key)
+        if not host:
+            result["skipped"].append({"key": key, "reason": "找不到資產"})
+            continue
+        if host.get("status") in {"draft", "retired"}:
+            result["skipped"].append({"key": key, "hostname": host.get("hostname"), "reason": "草稿或已下線不重整"})
+            continue
+        try:
+            item = verify_host_identity(key, user=user)
+            identity = item["identity"]
+            updated_host = item["host"]
+            if identity.get("trusted"):
+                result["updated"].append(
+                    {
+                        "asset_seq": updated_host.get("asset_seq"),
+                        "hostname": updated_host.get("hostname"),
+                        "os": updated_host.get("os"),
+                        "runner": identity.get("runner"),
+                    }
+                )
+            else:
+                result["failed"].append(
+                    {
+                        "asset_seq": host.get("asset_seq"),
+                        "hostname": host.get("hostname"),
+                        "error": identity.get("error") or "未取得可信 Hostname/OS",
+                    }
+                )
+        except Exception as exc:
+            result["failed"].append({"key": key, "error": str(exc)})
+    result["updated_count"] = len(result["updated"])
+    result["failed_count"] = len(result["failed"])
+    result["skipped_count"] = len(result["skipped"])
+    get_collection("asset_identity_refresh_runs").insert_one({**result, "created_at": _now(), "created_by": user})
+    return result
+
+
 def assign_ip_to_host(host_key: str, cidr: str, user: str) -> dict[str, Any]:
     ip_text = find_next_ip(cidr)
     host = host_service.get_host(host_key)
