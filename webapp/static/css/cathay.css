@@ -247,10 +247,16 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
 .badge-ok, .badge-pass, .badge-warn, .badge-error, .badge-fail, .badge-a, .badge-b, .badge-c, .badge-d {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   border-radius: 999px;
   padding: 3px 9px;
   font-size: 12px;
   border: 1px solid var(--c4);
+  line-height: 1.2;
+  white-space: nowrap;
+  word-break: keep-all;
+  width: max-content;
+  max-width: none;
 }
 .badge-ok, .badge-pass, .badge-a { background: var(--g-light); color: var(--g-text); border-color: var(--g1); }
 .badge-warn, .badge-b, .badge-c { background: var(--bg); color: var(--orange); border-color: var(--orange); }
