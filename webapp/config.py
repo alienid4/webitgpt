@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.1.99"
-PATCH_ID = "opening-log-no-evidence-ok"
-RELEASE_NOTE = "開門檢查系統日誌若沒有實際警示證據，不再沿用舊資料顯示橘燈"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-16 09:48:00 +08:00")
+VERSION = "1.0.1.100"
+PATCH_ID = "opening-log-passwd-guidance"
+RELEASE_NOTE = "開門檢查系統日誌針對 passwd 帳號警示提供可忽略系統帳號與需人工確認帳號分類"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-16 10:02:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

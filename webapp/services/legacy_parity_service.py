@@ -3,6 +3,7 @@
 import csv
 import io
 import json
+import re
 import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -122,6 +123,15 @@ def _first_log_lines(text: str, limit: int = 5) -> list[str]:
     return lines
 
 
+def _passwd_account_warning_names(text: str) -> list[str]:
+    names: list[str] = []
+    for line in (text or "").splitlines():
+        match = re.search(r"passwd\[\d+\]:\s+can't view or modify password information for\s+(\S+)", line)
+        if match and match.group(1) not in names:
+            names.append(match.group(1))
+    return names
+
+
 def _log_check_status(rc: int, detail: str) -> str:
     if rc != 0:
         return "warn"
@@ -130,12 +140,35 @@ def _log_check_status(rc: int, detail: str) -> str:
 
 def _log_check_detail(status: str, detail: str) -> str:
     evidence = _first_log_lines(detail)
+    passwd_names = _passwd_account_warning_names(detail)
     if status == "ok":
         return "\n".join(
             [
-                "問題點：未發現最近系統 warning/error 日誌。",
-                "證據：journalctl -p warning 最近查詢沒有可判定為警示的內容。",
+                "問題點：未發現最近 24 小時系統 warning/error 日誌。",
+                "證據：journalctl -p warning --since '-24 hours' 最近查詢沒有可判定為警示的內容。",
                 "解決方式：目前不需處置，維持例行觀察；若 AP 仍異常，請看 L3 的 AP Listener、網路與帳號面向。",
+            ]
+        )
+    if passwd_names:
+        system_accounts = [name for name in passwd_names if name.startswith(("systemd-", "messagebus", "sshd", "dbus", "nobody"))]
+        human_or_app_accounts = [name for name in passwd_names if name not in system_accounts]
+        return "\n".join(
+            [
+                "問題點：系統日誌出現 passwd 帳號資訊查詢/修改警示。這通常不是服務故障，而是有人或檢查程式嘗試查詢不應修改的系統帳號密碼資訊。",
+                "證據：",
+                *[f"- {line}" for line in evidence],
+                "判斷：",
+                f"- 系統帳號：{', '.join(system_accounts) if system_accounts else '未列出'}。這類帳號不需要處理密碼，也不要解鎖或改密碼。",
+                f"- 需人工確認帳號：{', '.join(human_or_app_accounts) if human_or_app_accounts else '無'}。",
+                "解決方式：",
+                "1. 不要重啟 AP 或 OS 服務，這不是服務掛掉的證據。",
+                "2. 對系統帳號如 systemd-*、messagebus、sshd：列為可忽略事件，不需處置。",
+                "3. 若有一般人員或 AP 帳號，先確認是否仍應存在、是否由 PAM 管理、是否需要登入。",
+                "4. 若只是盤點或檢查程式造成，調整檢查方式避免對系統帳號執行 passwd 查詢/修改。",
+                "可直接執行指令：",
+                "getent passwd <account>",
+                "sudo passwd -S <account>",
+                "journalctl -p warning --since '-24 hours' -n 30 --no-pager",
             ]
         )
     if not evidence:
@@ -151,7 +184,7 @@ def _log_check_detail(status: str, detail: str) -> str:
             "3. 若只是已知輔助服務或非 AP 服務，備註例外並觀察，不要直接重啟核心 AP。",
             "4. 處理後重新執行開門檢查，確認系統日誌不再出現同類警示。",
             "可直接執行指令：",
-            "journalctl -p warning -n 30 --no-pager",
+            "journalctl -p warning --since '-24 hours' -n 30 --no-pager",
             "systemctl --failed --no-pager",
         ]
     )
@@ -197,7 +230,7 @@ def _local_linux_diagnostics(host: dict[str, Any]) -> dict[str, Any]:
         "account": "getent passwd | head -10",
         "security": "ss -ltn | head -10",
         "package": "command -v rpm >/dev/null && rpm -qa | head -10 || dpkg-query -W | head -10",
-        "log": "journalctl -p warning -n 10 --no-pager || true",
+        "log": "journalctl -p warning --since '-24 hours' -n 10 --no-pager || true",
     }
     for key, label in DIAGNOSTIC_ASPECTS:
         try:
@@ -250,7 +283,7 @@ def _linux_deep_diagnostics(host: dict[str, Any]) -> dict[str, Any]:
         "account": "printf 'users='; getent passwd | wc -l; printf 'sudo/wheel='; getent group sudo wheel 2>/dev/null || true; lastlog | head -15",
         "security": "ss -ltnp 2>/dev/null | head -20; grep -E '^(PermitRootLogin|PasswordAuthentication)' /etc/ssh/sshd_config 2>/dev/null || true",
         "package": "command -v rpm >/dev/null && rpm -qa --last | head -15 || dpkg-query -W -f='${Package} ${Version}\\n' | head -15",
-        "log": "journalctl -p warning -n 20 --no-pager 2>/dev/null || tail -50 /var/log/syslog 2>/dev/null || tail -50 /var/log/messages 2>/dev/null",
+        "log": "journalctl -p warning --since '-24 hours' -n 20 --no-pager 2>/dev/null || tail -50 /var/log/syslog 2>/dev/null || tail -50 /var/log/messages 2>/dev/null",
     }
     for key, label in DIAGNOSTIC_ASPECTS:
         try:
