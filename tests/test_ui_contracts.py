@@ -285,6 +285,9 @@ def test_asset_governance_status_admin_contracts_exist():
     assert "search_results.html" in host_routes
     assert "_keyword_related" in host_routes
     assert "_is_direct_search_code" in host_routes
+    assert "asset_quality_page" in host_routes
+    assert "asset_quality_report" in Path("webapp/services/cmdb_service.py").read_text(encoding="utf-8")
+    assert "資產異常清單" in Path("webapp/templates/asset_quality.html").read_text(encoding="utf-8")
     for text in ["開發後台", "IPAM", "系統拓撲", "操作紀錄", "重要服務設定", "新增主機"]:
         assert text in host_routes
     assert "資產治理狀態" in superadmin

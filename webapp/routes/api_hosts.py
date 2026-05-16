@@ -19,6 +19,7 @@ MANUAL_MULTI_FIELDS = ["asset_seq", "hostname", "ip", "host_type", "os", "connec
 GLOBAL_SEARCH_TARGETS = [
     {"endpoint": "api_reports.dashboard_page", "keywords": ["A", "A.", "儀表板", "dashboard", "首頁"], "role": "viewer"},
     {"endpoint": "api_hosts.hosts_page", "keywords": ["B", "B.", "資產管理", "主機管理", "CMDB", "資產清冊", "主機清冊", "資產列表"], "role": "viewer"},
+    {"endpoint": "api_hosts.asset_quality_page", "title": "資產異常清單", "group": "資產管理", "keywords": ["資產異常", "資產品質", "可信資產", "資料品質", "CMDB 異常", "IP 衝突", "未納管"], "role": "viewer"},
     {"endpoint": "api_inventory.accounts_page", "keywords": ["C", "C.", "帳號盤點", "帳號清冊", "高權限帳號", "PAM", "pam納管", "pam 納管"], "role": "viewer"},
     {"endpoint": "api_inventory.software_page", "keywords": ["D", "D.", "軟體盤點", "套件搜尋", "版本變更", "套件", "package", "software"], "role": "viewer"},
     {"endpoint": "api_operations.inspections_page", "title": "開門檢查", "group": "巡檢", "keywords": ["E", "E.", "開門檢查", "今日巡檢", "巡檢", "L1", "L3", "深度檢查", "deep check"], "role": "viewer"},
@@ -312,6 +313,18 @@ def hosts_page():
         host_type_labels=HOST_TYPE_LABELS,
         dc_labels=DC_LABELS,
         asset_summary=_asset_page_summary(data.get("items", [])),
+    )
+
+
+@bp.get("/hosts/quality")
+@require_feature("cmdb_manual_input")
+def asset_quality_page():
+    report = cmdb_service.asset_quality_report()
+    return render_template(
+        "asset_quality.html",
+        report=report,
+        status_labels=ASSET_STATUS_LABELS,
+        host_type_labels=HOST_TYPE_LABELS,
     )
 
 

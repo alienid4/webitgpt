@@ -235,6 +235,143 @@ def list_reservations() -> list[dict[str, Any]]:
         return []
 
 
+def asset_quality_report() -> dict[str, Any]:
+    hosts = [_public(row) or {} for row in get_collection("hosts").find({"status": {"$ne": "retired"}}, {"ssh_key": 0}).sort("hostname", 1)]
+    issues: list[dict[str, Any]] = []
+    ip_map: dict[str, list[dict[str, Any]]] = {}
+    server_types = {"linux", "windows", "aix", "as400"}
+    required_fields = {
+        "division",
+        "department",
+        "hostname",
+        "status",
+        "group_name",
+        "asset_name",
+        "device_type",
+        "quantity",
+        "owner",
+        "environment",
+        "custodian",
+        "company",
+        "host_type",
+        "dc",
+        "integrity",
+        "confidentiality",
+        "availability",
+    }
+
+    def add_issue(host: dict[str, Any], issue_type: str, title: str, severity: str, detail: str, action: str) -> None:
+        issues.append(
+            {
+                "type": issue_type,
+                "title": title,
+                "severity": severity,
+                "hostname": host.get("hostname", ""),
+                "asset_seq": host.get("asset_seq", ""),
+                "asset_name": host.get("asset_name", ""),
+                "ip": host.get("ip", ""),
+                "status": host.get("status", ""),
+                "owner": host.get("owner", ""),
+                "department": host.get("department", ""),
+                "detail": detail,
+                "action": action,
+                "source": "cmdb",
+            }
+        )
+
+    for host in hosts:
+        missing = sorted(field for field in required_fields if host.get(field) in (None, ""))
+        if missing:
+            add_issue(
+                host,
+                "missing_required",
+                "資產主檔欄位不足",
+                "high",
+                f"缺少 {len(missing)} 個必填欄位：{', '.join(missing[:6])}{'...' if len(missing) > 6 else ''}",
+                "請由資產管理人或系統管理者補齊欄位後再標示為正式納管。",
+            )
+        if host.get("status") in {"draft", "pending_ip", "pending_data", "pending_deploy", "pending_retire"}:
+            add_issue(
+                host,
+                "workflow_pending",
+                "資產流程未結案",
+                "medium",
+                f"目前狀態為 {host.get('status')}，代表仍在申請、建置、補資料或下線流程中。",
+                "請確認是否等待 IP、表單資料、防火牆、弱掃、PAM 或下線核准，並更新治理狀態。",
+            )
+        if not host.get("ip") and not host.get("ip_addresses"):
+            add_issue(
+                host,
+                "missing_ip",
+                "未設定 IP",
+                "medium",
+                "資產沒有主要 IP，也沒有多 IP 清單，後續巡檢、盤點與拓撲都無法準確對應。",
+                "請從 IPAM 分配 IP，或補上既有 IP 與網段。",
+            )
+        if host.get("host_type") in server_types:
+            if not host.get("os"):
+                add_issue(host, "missing_os", "伺服器缺 OS 版本", "medium", "伺服器類型資產未填 OS，無法判斷 Linux/Windows/AIX/AS400 的實際版本。", "請執行主機盤點或手動補上真實 OS 版本。")
+            if not host.get("connection"):
+                add_issue(host, "missing_connection", "伺服器缺連線方式", "medium", "伺服器資產未設定 SSH、WinRM、ssh_raw 等連線方式。", "請設定連線方式與使用者，否則開門檢查、深度檢查與盤點無法執行。")
+        values = []
+        if host.get("ip"):
+            values.append(str(host["ip"]))
+        values.extend(str(item) for item in host.get("ip_addresses") or [])
+        for ip_text in sorted(set(values)):
+            ip_map.setdefault(ip_text, []).append(host)
+
+    for ip_text, rows in sorted(ip_map.items()):
+        if len(rows) <= 1:
+            continue
+        names = ", ".join(row.get("hostname", "") for row in rows)
+        for host in rows:
+            add_issue(
+                host,
+                "duplicate_ip",
+                "IP 重複使用",
+                "critical",
+                f"IP {ip_text} 同時出現在 {len(rows)} 台資產：{names}",
+                "請確認是否為多網卡/VIP/BIG-IP；若不是，需修正 CMDB 或重新分配 IP。",
+            )
+
+    for report in get_collection("network_scan_reports").find({}).sort("started_at", -1).limit(5):
+        for row in report.get("rows") or []:
+            if row.get("type") not in {"scan_not_in_cmdb", "cmdb_not_seen", "reserved_but_alive"}:
+                continue
+            issues.append(
+                {
+                    "type": row.get("type", ""),
+                    "title": row.get("type_label") or ("掃描與資產清冊不一致"),
+                    "severity": row.get("severity", "medium"),
+                    "hostname": row.get("hostname", ""),
+                    "asset_seq": "",
+                    "asset_name": row.get("asset_name", ""),
+                    "ip": row.get("ip", ""),
+                    "status": row.get("status", ""),
+                    "owner": "",
+                    "department": "",
+                    "detail": f"{row.get('ip', '')} / {row.get('hostname', '')} / {row.get('os', '')}".strip(" /"),
+                    "action": row.get("suggestion") or "請確認是否需要建立草稿、補申請、或標示下線。",
+                    "source": f"scan:{report.get('cidr', '')}",
+                }
+            )
+
+    counts: dict[str, int] = {}
+    severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+    for issue in issues:
+        counts[issue["type"]] = counts.get(issue["type"], 0) + 1
+        severity = issue.get("severity") if issue.get("severity") in severity_counts else "medium"
+        severity_counts[severity] += 1
+    return {
+        "hosts_total": len(hosts),
+        "issues_total": len(issues),
+        "counts": counts,
+        "severity_counts": severity_counts,
+        "issues": issues,
+        "generated_at": _now(),
+    }
+
+
 def _host_ips_in_network(cidr: str) -> dict[str, list[dict[str, Any]]]:
     network = ipaddress.ip_network(cidr, strict=False)
     hosts_by_ip: dict[str, list[dict[str, Any]]] = {}
