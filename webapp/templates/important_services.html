@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}重要服務設定 - webitgpt{% endblock %}
+{% block content %}
+<section class="admin-page">
+  <div class="admin-content full-width">
+    <section class="admin-hero">
+      <div>
+        <p class="eyebrow">OPENING CHECK SERVICE RULES</p>
+        <h1>重要服務設定</h1>
+        <p class="muted">設定開門檢查必須確認的服務。未啟用的範例不會影響判斷；啟用後，服務未 active 才會在服務小卡顯示警示。</p>
+      </div>
+      <a class="btn secondary" href="{{ url_for('api_superadmin.superadmin_page') }}">回系統管理</a>
+    </section>
+
+    {% if saved %}<div class="notice success">已儲存：{{ saved.name }}</div>{% endif %}
+    {% if error %}<div class="notice danger">{{ error }}</div>{% endif %}
+
+    <section class="admin-section">
+      <h2>新增重要服務</h2>
+      <form class="form-grid" method="post" action="{{ url_for('api_superadmin.important_services_save_page') }}">
+        <div class="form-group">
+          <label>顯示名稱</label>
+          <input class="input-field" name="name" placeholder="例如：AP 登入服務 / SSH 連線服務">
+        </div>
+        <div class="form-group">
+          <label>Service 名稱</label>
+          <input class="input-field" name="service_name" required placeholder="例如：sshd / cron / webitgpt">
+        </div>
+        <div class="form-group">
+          <label>平台</label>
+          <select class="input-field" name="platform">
+            <option value="linux">Linux</option>
+            <option value="aix">AIX</option>
+            <option value="windows">Windows</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>負責人 / 單位</label>
+          <input class="input-field" name="owner" placeholder="例如：Linux 管理者 / AP 團隊">
+        </div>
+        <div class="form-group">
+          <label>說明</label>
+          <input class="input-field" name="note" placeholder="例如：此服務停止會影響 AP 登入">
+        </div>
+        <label class="toggle-label"><input type="checkbox" name="enabled" checked><span>啟用檢查</span></label>
+        <button class="btn btn-primary" type="submit">儲存服務</button>
+      </form>
+    </section>
+
+    <section class="admin-section">
+      <h2>服務清單</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>名稱</th><th>Service</th><th>平台</th><th>負責 / 說明</th><th>狀態</th><th>操作</th></tr>
+          </thead>
+          <tbody>
+            {% for rule in rules %}
+            <tr>
+              <td><strong>{{ rule.name }}</strong><div class="text-muted-sm code-inline">{{ rule.rule_id }}</div></td>
+              <td><span class="code-inline">{{ rule.service_name }}</span></td>
+              <td>{{ rule.platform }}</td>
+              <td>{{ rule.owner or "-" }}<div class="text-muted-sm">{{ rule.note or "" }}</div></td>
+              <td><span class="{{ 'badge-ok' if rule.enabled else 'badge-warn' }}">{{ "啟用" if rule.enabled else "停用" }}</span></td>
+              <td>
+                <form class="inline-form" method="post" action="{{ url_for('api_superadmin.important_services_toggle_page', rule_id=rule.rule_id) }}">
+                  <label class="toggle-label"><input type="checkbox" name="enabled" {% if not rule.enabled %}checked{% endif %}><span>{{ "停用" if rule.enabled else "啟用" }}</span></label>
+                  <button class="btn-sm" type="submit">套用</button>
+                </form>
+                <form class="inline-form" method="post" action="{{ url_for('api_superadmin.important_services_delete_page', rule_id=rule.rule_id) }}">
+                  <button class="btn-sm btn-danger" type="submit">刪除</button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="no-data">尚未建立重要服務設定。</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</section>
+{% endblock %}

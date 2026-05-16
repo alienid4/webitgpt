@@ -183,6 +183,7 @@ def admin_console_overview() -> dict[str, Any]:
             {"title": "設定管理", "desc": "檢視 Mongo 設定與系統執行參數。", "endpoint": "api_superadmin.settings_page", "status": f"{settings_count} 筆設定"},
             {"title": "日誌檢視", "desc": "檢視 error、access、IPAM 排程日誌。", "endpoint": "api_superadmin.logs_page", "status": "可匯出"},
             {"title": "系統日誌例外", "desc": "管理開門檢查系統日誌白名單，避免已確認無害訊息每天亮橘燈。", "endpoint": "api_superadmin.log_exceptions_page", "status": "可管理"},
+            {"title": "重要服務設定", "desc": "設定開門檢查必須啟動的 sshd、cron、AP service 等服務。", "endpoint": "api_superadmin.important_services_page", "status": "可管理"},
             {"title": "工作排程", "desc": "檢視 systemd timer、Housekeeping 與 IPAM 對帳排程。", "endpoint": "api_superadmin.jobs_page", "status": "可檢視"},
             {"title": "操作紀錄", "desc": "稽核操作紀錄與 hash chain 狀態。", "endpoint": "api_superadmin.audit_logs_page", "status": "可匯出"},
             {"title": "備份 / DR", "desc": "產生備份 manifest 與 DR dry-run。", "endpoint": "api_superadmin.backup_dr_page", "status": "dry-run"},

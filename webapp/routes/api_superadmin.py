@@ -12,6 +12,10 @@ from webapp.services import audit_log_service
 from webapp.services.api_token_service import issue_token
 from webapp.services.auth_service import generate_backup_codes, list_users, reset_password, set_user_locked, upsert_user
 from webapp.services.feature_flags import DEFAULT_FLAGS, is_enabled, set_enabled, snapshot
+from webapp.services.important_service_service import delete_rule as delete_service_rule
+from webapp.services.important_service_service import list_rules as list_service_rules
+from webapp.services.important_service_service import save_rule as save_service_rule
+from webapp.services.important_service_service import set_rule_enabled as set_service_rule_enabled
 from webapp.services.llm_provider import get_settings, save_settings
 from webapp.services.log_exception_service import delete_rule, list_rules, save_rule, set_rule_enabled
 from webapp.services.mongo_service import get_collection
@@ -443,6 +447,57 @@ def log_exceptions_delete_page(rule_id: str):
 @require_role("superadmin")
 def log_exceptions_api():
     return jsonify({"items": list_rules()})
+
+
+@bp.get("/superadmin/important-services")
+@require_role("superadmin")
+def important_services_page():
+    return render_template("important_services.html", rules=list_service_rules(), saved=None, error="")
+
+
+@bp.post("/superadmin/important-services")
+@require_role("superadmin")
+def important_services_save_page():
+    try:
+        rule = save_service_rule(
+            {
+                "rule_id": request.form.get("rule_id", ""),
+                "name": request.form.get("name", ""),
+                "service_name": request.form.get("service_name", ""),
+                "platform": request.form.get("platform", "linux"),
+                "owner": request.form.get("owner", ""),
+                "note": request.form.get("note", ""),
+                "enabled": request.form.get("enabled") == "on",
+            },
+            current_user()["username"],
+        )
+        audit_log_service.append("important_service.save", current_user()["username"], {"rule_id": rule["rule_id"], "service_name": rule["service_name"]})
+        return render_template("important_services.html", rules=list_service_rules(), saved=rule, error="")
+    except Exception as exc:
+        return render_template("important_services.html", rules=list_service_rules(), saved=None, error=str(exc)), 400
+
+
+@bp.post("/superadmin/important-services/<rule_id>/toggle")
+@require_role("superadmin")
+def important_services_toggle_page(rule_id: str):
+    enabled = request.form.get("enabled") == "on"
+    set_service_rule_enabled(rule_id, enabled, current_user()["username"])
+    audit_log_service.append("important_service.toggle", current_user()["username"], {"rule_id": rule_id, "enabled": enabled})
+    return redirect(url_for("api_superadmin.important_services_page"))
+
+
+@bp.post("/superadmin/important-services/<rule_id>/delete")
+@require_role("superadmin")
+def important_services_delete_page(rule_id: str):
+    deleted = delete_service_rule(rule_id)
+    audit_log_service.append("important_service.delete", current_user()["username"], {"rule_id": rule_id, "deleted": deleted})
+    return redirect(url_for("api_superadmin.important_services_page"))
+
+
+@bp.get("/api/superadmin/important-services")
+@require_role("superadmin")
+def important_services_api():
+    return jsonify({"items": list_service_rules()})
 
 
 @bp.get("/superadmin/jobs")

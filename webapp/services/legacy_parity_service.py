@@ -13,6 +13,7 @@ from webapp import config
 from webapp.services.host_service import get_host
 from webapp.services.host_service import list_hosts
 from webapp.services.deep_check_service import latest_report
+from webapp.services.important_service_service import enabled_service_names
 from webapp.services.inventory_service import DEFAULT_MIN_INTERVAL_MINUTES, inventory_history
 from webapp.services.log_exception_service import assess_lines
 from webapp.services.mongo_service import get_collection
@@ -153,60 +154,26 @@ def _log_check_detail(status: str, detail: str) -> str:
     exception_assessment = _log_exception_assessment(detail) if not _is_empty_log_output(detail) else {}
     if exception_assessment.get("all_matched"):
         rule_names = "、".join(exception_assessment.get("matched_rule_names") or [])
-        return "\n".join(
-            [
-                "問題點：最近 24 小時有系統日誌訊息，但全部已命中系統日誌白名單 / 例外管理規則，故不列為本次開門檢查異常。",
-                "證據：",
-                *[f"- {line}" for line in evidence],
-                f"套用例外：{rule_names or '未命名規則'}",
-                "解決方式：目前不需立即處置；若同類訊息數量突然增加、主機服務異常，請停用該例外後重新執行開門檢查。",
-            ]
-        )
+        return f"警示:已列例外\n規則:{rule_names or '未命名'}"
     if status == "ok":
-        return "\n".join(
-            [
-                "問題點：未發現最近 24 小時系統 warning/error 日誌。",
-                "證據：journalctl -p warning --since '-24 hours' 最近查詢沒有可判定為警示的內容。",
-                "解決方式：目前不需處置，維持例行觀察；若 AP 仍異常，請看 L3 的 AP Listener、網路與帳號面向。",
-            ]
-        )
+        return "警示:無"
     if passwd_names:
         system_accounts = [name for name in passwd_names if name.startswith(("systemd-", "messagebus", "sshd", "dbus", "nobody"))]
         human_or_app_accounts = [name for name in passwd_names if name not in system_accounts]
         return "\n".join(
             [
-                "問題點：系統日誌出現 passwd 帳號資訊查詢/修改警示。這通常不是服務故障，而是有人或檢查程式嘗試查詢不應修改的系統帳號密碼資訊。",
-                "證據：",
-                *[f"- {line}" for line in evidence],
-                "判斷：",
-                f"- 系統帳號：{', '.join(system_accounts) if system_accounts else '未列出'}。這類帳號不需要處理密碼，也不要解鎖或改密碼。",
-                f"- 需人工確認帳號：{', '.join(human_or_app_accounts) if human_or_app_accounts else '無'}。",
-                "解決方式：",
-                "1. 不要重啟 AP 或 OS 服務，這不是服務掛掉的證據。",
-                "2. 對系統帳號如 systemd-*、messagebus、sshd：列為可忽略事件，不需處置。",
-                "3. 若有一般人員或 AP 帳號，先確認是否仍應存在、是否由 PAM 管理、是否需要登入。",
-                "4. 若只是盤點或檢查程式造成，調整檢查方式避免對系統帳號執行 passwd 查詢/修改。",
-                "可直接執行指令：",
-                "getent passwd <account>",
-                "sudo passwd -S <account>",
-                "journalctl -p warning --since '-24 hours' -n 30 --no-pager",
+                "警示:passwd 訊息",
+                f"系統帳號:{', '.join(system_accounts) if system_accounts else '無'}",
+                f"需確認:{', '.join(human_or_app_accounts) if human_or_app_accounts else '無'}",
             ]
         )
     if not evidence:
         evidence = ["journalctl 查詢失敗或沒有可讀內容，需確認 journald 權限與服務狀態。"]
     return "\n".join(
         [
-            "問題點：最近系統日誌出現 warning/error 訊息，代表 OS 或服務曾回報需要確認的事件。",
-            "證據：",
-            *[f"- {line}" for line in evidence],
-            "解決方式：",
-            "1. 先看證據中的 service/process 名稱，確認是否為正式服務。",
-            "2. 若是正式服務，執行 systemctl status <service> 與 journalctl -u <service> -n 80 --no-pager 查原因。",
-            "3. 若只是已知輔助服務或非 AP 服務，備註例外並觀察，不要直接重啟核心 AP。",
-            "4. 處理後重新執行開門檢查，確認系統日誌不再出現同類警示。",
-            "可直接執行指令：",
-            "journalctl -p warning --since '-24 hours' -n 30 --no-pager",
-            "systemctl --failed --no-pager",
+            "警示:有日誌訊息",
+            f"筆數:{len(evidence)}",
+            f"第一筆:{evidence[0][:60]}",
         ]
     )
 
@@ -237,15 +204,15 @@ def _connectivity_detail(status: str, raw: str) -> str:
     if status != "ok":
         return "\n".join(
             [
-                "連線狀態：主機回應異常，可能無法穩定執行開門檢查。",
-                "建議處置：先確認主機是否開機、網路是否可達、SSH key 是否正常，再重新執行開門檢查。",
+                "連線:異常",
+                "確認:網路/SSH key",
             ]
         )
     return "\n".join(
         [
-            "連線狀態：主機可連線。",
-            f"開機狀態：{_uptime_human_summary(raw)}。",
-            f"使用者：{_users_human_summary(raw)}。",
+            "連線:可連線",
+            f"開機:{_uptime_human_summary(raw).replace('已開機 ', '')}",
+            f"登入:{_users_human_summary(raw).replace('目前在線人數 ', '').replace('目前無登入使用者', '0人')}",
         ]
     )
 
@@ -285,7 +252,32 @@ def _short_percent(label: str, value) -> str:
 
 
 def _package_count(text: str) -> int:
+    match = re.search(r"\bpackages=(\d+)\b", text or "")
+    if match:
+        return int(match.group(1))
     return len([line for line in (text or "").splitlines() if line.strip()])
+
+
+def _package_changes(text: str) -> int:
+    match = re.search(r"\bchanged_7d=(\d+)\b", text or "")
+    return int(match.group(1)) if match else 0
+
+
+def _high_processes(text: str, column: str, threshold: float = 70.0) -> list[str]:
+    hits: list[str] = []
+    for line in (text or "").splitlines():
+        parts = line.split()
+        if len(parts) < 4 or not parts[0].isdigit():
+            continue
+        try:
+            cpu = float(parts[-2])
+            mem = float(parts[-1])
+        except ValueError:
+            continue
+        value = cpu if column == "cpu" else mem
+        if value >= threshold:
+            hits.append(f"{parts[1]} {round(value)}%")
+    return hits[:3]
 
 
 def _listen_ports(text: str, limit: int = 6) -> list[str]:
@@ -311,14 +303,91 @@ def _failed_service_names(text: str) -> list[str]:
     return names
 
 
+def _service_check_command(deep: bool = False) -> str:
+    names = enabled_service_names("linux")
+    status_checks = ""
+    if names:
+        quoted = " ".join("'" + name.replace("'", "'\\''") + "'" for name in names)
+        status_checks = (
+            "; echo __IMPORTANT_SERVICES__; "
+            f"for svc in {quoted}; do "
+            "printf '%s=' \"$svc\"; systemctl is-active \"$svc\" 2>/dev/null || true; "
+            "done"
+        )
+    base = "systemctl --failed --no-pager || true"
+    if deep:
+        base += "; systemctl list-units --type=service --state=running --no-pager | head -20"
+    return base + status_checks
+
+
+def _important_service_statuses(text: str) -> dict[str, str]:
+    statuses: dict[str, str] = {}
+    marker_seen = False
+    for line in (text or "").splitlines():
+        cleaned = line.strip()
+        if cleaned == "__IMPORTANT_SERVICES__":
+            marker_seen = True
+            continue
+        if not marker_seen or "=" not in cleaned:
+            continue
+        name, value = cleaned.split("=", 1)
+        name = name.strip()
+        value = value.strip().lower()
+        if name:
+            statuses[name] = value or "unknown"
+    return statuses
+
+
+def _service_check_status(raw: str) -> str:
+    failed = _failed_service_names(raw)
+    inactive = [name for name, state in _important_service_statuses(raw).items() if state != "active"]
+    return "warn" if failed or inactive else "ok"
+
+
+def _service_detail(raw: str) -> str:
+    failed = _failed_service_names(raw)
+    statuses = _important_service_statuses(raw)
+    inactive = [name for name, state in statuses.items() if state != "active"]
+    lines = [f"失敗服務:{', '.join(failed[:5]) if failed else '無'}"]
+    if statuses:
+        lines.append(f"重要服務未啟動:{', '.join(inactive[:5]) if inactive else '無'}")
+    else:
+        lines.append("重要服務:未設定")
+    return "\n".join(lines)
+
+
 def _account_count(text: str) -> str:
     match = re.search(r"\busers=(\d+)\b", text or "")
     if match:
-        return f"帳號總數 {match.group(1)} 個"
+        return match.group(1)
     lines = [line for line in (text or "").splitlines() if ":" in line]
     if lines:
         return f"已取得帳號清冊，抽樣 {len(lines)} 筆"
     return "已取得帳號狀態"
+
+
+def _locked_accounts(text: str) -> list[str]:
+    names = re.findall(r"\blocked=([A-Za-z0-9_.@-]+)\b", text or "")
+    return [name for name in names if not name.startswith(("systemd-", "messagebus", "sshd", "dbus", "nobody"))][:5]
+
+
+def _firewall_ports(text: str) -> list[str]:
+    marker = re.search(r"FIREWALL_PORTS=([^\n]*)", text or "")
+    if marker:
+        return re.findall(r"\b(\d{1,5})(?:/tcp|/udp)?\b", marker.group(1))
+    return _listen_ports(text, limit=8)
+
+
+def _java_cert_status(text: str) -> str:
+    if "JAVA_CERT=not_installed" in (text or ""):
+        return "未安裝"
+    match = re.search(r"JAVA_CERT_DAYS=(-?\d+)", text or "")
+    if not match:
+        return "未安裝"
+    days = int(match.group(1))
+    if days < 0:
+        return "已到期"
+    return f"{days}天"
 
 
 def _human_diagnostic_detail(key: str, status: str, raw: str) -> str:
@@ -347,21 +416,35 @@ def _human_diagnostic_detail(key: str, status: str, raw: str) -> str:
             ]
         )
     if key == "process":
-        return "\n".join(["程序狀態：可正常取得程序清單。", "重點：高資源程序已記錄於原始證據。", "建議處置：目前不需立即處置；若 AP 異常，再查看高 CPU/記憶體程序。"])
+        high_cpu = _high_processes(raw, "cpu")
+        high_mem = _high_processes(raw, "mem")
+        return "\n".join(
+            [
+                f"高CPU:{', '.join(high_cpu) if high_cpu else '無'}",
+                f"高MEM:{', '.join(high_mem) if high_mem else '無'}",
+            ]
+        )
     if key == "service":
-        failed = _failed_service_names(raw)
-        if failed:
-            return "\n".join(["服務狀態：發現啟動失敗的服務。", f"重點：{', '.join(failed[:5])}。", "建議處置：先確認是否為正式服務，再查 systemctl status 與 journalctl。"])
-        return "\n".join(["服務狀態：未發現 failed service。", "重點：系統服務清單可正常讀取。", "建議處置：目前不需立即處置。"])
+        return _service_detail(raw)
     if key == "account":
-        return "\n".join(["帳號狀態：帳號資訊可正常讀取。", f"重點：{_account_count(raw)}。", "建議處置：如需盤點異常帳號，請到帳號盤點模組查看完整清冊與差異。"])
+        locked = _locked_accounts(raw)
+        return "\n".join(
+            [
+                f"帳號總數:{_account_count(raw)}",
+                f"鎖定帳號:{', '.join(locked) if locked else '無'}",
+            ]
+        )
     if key == "security":
-        ports = _listen_ports(raw)
-        port_text = f"偵測到 listen port：{', '.join(ports)}" if ports else "未整理出 listen port"
-        return "\n".join(["安全設定：網路服務與 SSH 設定可正常讀取。", f"重點：{port_text}。", "建議處置：若出現未核准 port，請交由系統或資安管理者確認。"])
+        ports = _firewall_ports(raw)
+        return "\n".join(
+            [
+                f"防火牆Port:{', '.join(ports[:8]) if ports else '無法取得'}",
+                f"Java憑證:{_java_cert_status(raw)}",
+            ]
+        )
     if key == "package":
         count = _package_count(raw)
-        return "\n".join(["套件狀態：套件清單可正常讀取。", f"重點：本次抽樣列出 {count} 筆套件資訊。", "建議處置：版本差異請到軟體盤點模組查看完整變更。"])
+        return "\n".join([f"套件總數:{count}", f"近7日異動:{_package_changes(raw)}"])
     return raw or "無輸出"
 
 
@@ -370,6 +453,9 @@ def _build_diagnostic_check(key: str, label: str, rc: int, out: str, err: str) -
     if key == "log":
         status = _log_check_status(rc, raw)
         detail = _log_check_detail(status, raw)
+    elif key == "service":
+        status = _service_check_status(raw) if rc == 0 else "warn"
+        detail = _human_diagnostic_detail(key, status, raw)
     else:
         status = "ok" if rc == 0 else "warn"
         detail = _human_diagnostic_detail(key, status, raw)
@@ -408,10 +494,10 @@ def _local_linux_diagnostics(host: dict[str, Any]) -> dict[str, Any]:
         "resource": "top -bn1 | head -5; df -h /",
         "filesystem": "top -bn1 | awk -F',' '/Cpu\\(s\\)|%Cpu/ {print $0; exit}'; df -hT | head -10",
         "process": "ps -eo pid,comm,%cpu,%mem --sort=-%cpu | head -10",
-        "service": "systemctl --failed --no-pager || true",
-        "account": "getent passwd | head -10",
-        "security": "ss -ltn | head -10",
-        "package": "command -v rpm >/dev/null && rpm -qa | head -10 || dpkg-query -W | head -10",
+        "service": _service_check_command(),
+        "account": "printf 'users='; getent passwd | wc -l; awk -F: '($7 !~ /(nologin|false)$/){print $1}' /etc/passwd | while read u; do s=$(passwd -S \"$u\" 2>/dev/null | awk '{print $2}'); if [ \"$s\" = \"L\" ] || [ \"$s\" = \"LK\" ]; then echo locked=$u; fi; done",
+        "security": "printf 'FIREWALL_PORTS='; firewall-cmd --list-ports 2>/dev/null || true; command -v keytool >/dev/null 2>&1 || { echo JAVA_CERT=not_installed; exit 0; }; find /etc /opt -name '*.jks' -o -name '*.p12' 2>/dev/null | head -1 | grep -q . || echo JAVA_CERT=not_installed",
+        "package": "printf 'packages='; (rpm -qa 2>/dev/null || dpkg-query -W -f='${Package}\\n' 2>/dev/null) | wc -l; echo changed_7d=0",
         "log": "journalctl -p warning --since '-24 hours' -n 10 --no-pager || true",
     }
     for key, label in DIAGNOSTIC_ASPECTS:
@@ -460,11 +546,11 @@ def _linux_deep_diagnostics(host: dict[str, Any]) -> dict[str, Any]:
         "connectivity": "hostname; uptime; who | wc -l",
         "resource": "printf 'CPU '; top -bn1 | awk -F',' '/Cpu\\(s\\)|%Cpu/ {print $0; exit}'; free -m; df -P /",
         "filesystem": "top -bn1 | awk -F',' '/Cpu\\(s\\)|%Cpu/ {print $0; exit}'; df -hT; findmnt -rno TARGET,SOURCE,FSTYPE,OPTIONS | head -20",
-        "process": "ps -eo pid,ppid,user,comm,%cpu,%mem --sort=-%cpu | head -15",
-        "service": "systemctl --failed --no-pager || true; systemctl list-units --type=service --state=running --no-pager | head -20",
-        "account": "printf 'users='; getent passwd | wc -l; printf 'sudo/wheel='; getent group sudo wheel 2>/dev/null || true; lastlog | head -15",
-        "security": "ss -ltnp 2>/dev/null | head -20; grep -E '^(PermitRootLogin|PasswordAuthentication)' /etc/ssh/sshd_config 2>/dev/null || true",
-        "package": "command -v rpm >/dev/null && rpm -qa --last | head -15 || dpkg-query -W -f='${Package} ${Version}\\n' | head -15",
+        "process": "ps -eo pid,comm,%cpu,%mem --sort=-%cpu | head -15",
+        "service": _service_check_command(deep=True),
+        "account": "printf 'users='; getent passwd | wc -l; awk -F: '($7 !~ /(nologin|false)$/){print $1}' /etc/passwd | while read u; do s=$(passwd -S \"$u\" 2>/dev/null | awk '{print $2}'); if [ \"$s\" = \"L\" ] || [ \"$s\" = \"LK\" ]; then echo locked=$u; fi; done",
+        "security": "printf 'FIREWALL_PORTS='; firewall-cmd --list-ports 2>/dev/null || true; command -v keytool >/dev/null 2>&1 || { echo JAVA_CERT=not_installed; exit 0; }; find /etc /opt -name '*.jks' -o -name '*.p12' 2>/dev/null | head -1 | grep -q . || echo JAVA_CERT=not_installed",
+        "package": "printf 'packages='; (rpm -qa 2>/dev/null || dpkg-query -W -f='${Package}\\n' 2>/dev/null) | wc -l; echo changed_7d=0",
         "log": "journalctl -p warning --since '-24 hours' -n 20 --no-pager 2>/dev/null || tail -50 /var/log/syslog 2>/dev/null || tail -50 /var/log/messages 2>/dev/null",
     }
     for key, label in DIAGNOSTIC_ASPECTS:

@@ -82,6 +82,9 @@
               {% if check.key == "log" %}
               <a class="aspect-helper-link" href="{{ url_for('api_superadmin.log_exceptions_page') }}">系統日誌白名單 / 例外管理</a>
               {% endif %}
+              {% if check.key == "service" %}
+              <a class="aspect-helper-link" href="{{ url_for('api_superadmin.important_services_page') }}">重要服務設定</a>
+              {% endif %}
             </strong>
             <em>{{ check.status }}</em>
           </summary>

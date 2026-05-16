@@ -7,9 +7,7 @@ def test_connectivity_detail_is_human_readable():
     check = _build_diagnostic_check("connectivity", "連線狀態", 0, raw, "")
 
     assert check["status"] == "ok"
-    assert "連線狀態：主機可連線。" in check["detail"]
-    assert "開機狀態：已開機 7 小時 2 分鐘。" in check["detail"]
-    assert "使用者：目前無登入使用者。" in check["detail"]
+    assert check["detail"] == "連線:可連線\n開機:7 小時 2 分鐘\n登入:0人"
     assert "load average" not in check["detail"]
     assert check["raw_detail"] == raw
 
@@ -65,3 +63,27 @@ def test_resource_and_filesystem_cards_are_compact_metrics():
     assert filesystem["detail"] == "Filesystem:15%\nIO:2%"
     assert "建議處置" not in resource["detail"]
     assert "建議處置" not in filesystem["detail"]
+
+
+def test_opening_normal_cards_stay_compact():
+    samples = {
+        "process": "PID COMMAND %CPU %MEM\n1 systemd 0.0 1.0\n2 python 5.0 3.0",
+        "service": "0 loaded units listed.\n__IMPORTANT_SERVICES__\nsshd=active\ncron=active",
+        "account": "users=29\n",
+        "security": "FIREWALL_PORTS=22/tcp 8002/tcp\nJAVA_CERT=not_installed",
+        "package": "packages=200\nchanged_7d=0",
+        "log": "",
+    }
+    expected = {
+        "process": "高CPU:無\n高MEM:無",
+        "service": "失敗服務:無\n重要服務未啟動:無",
+        "account": "帳號總數:29\n鎖定帳號:無",
+        "security": "防火牆Port:22, 8002\nJava憑證:未安裝",
+        "package": "套件總數:200\n近7日異動:0",
+        "log": "警示:無",
+    }
+
+    for key, raw in samples.items():
+        check = _build_diagnostic_check(key, key, 0, raw, "")
+        assert check["detail"] == expected[key]
+        assert "建議處置" not in check["detail"]
