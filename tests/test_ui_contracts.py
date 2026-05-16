@@ -116,11 +116,18 @@ def test_long_running_submit_feedback_contract_exists():
 def test_dashboard_parity_and_legacy_pages_are_wired():
     base_html = read("webapp/templates/base.html")
     reports_route = read("webapp/routes/api_reports.py")
+    executive = read("webapp/templates/executive.html")
+    css = read("webapp/static/css/cathay.css")
     superadmin_route = read("webapp/routes/api_superadmin.py")
     app = read("webapp/app.py")
 
     assert "dashboard_page" in reports_route
     assert "executive_page" in reports_route
+    assert "_executive_charts" in reports_route
+    assert "executive-chart-grid" in executive
+    assert "executive-donut" in executive
+    assert "roadmap-list" in executive
+    assert "executive-chart-grid" in css
     assert "api_reports.dashboard_page" in base_html
     assert "api_reports.executive_page" in base_html
     assert "feature_parity_page" in superadmin_route

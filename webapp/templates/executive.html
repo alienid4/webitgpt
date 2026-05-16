@@ -19,6 +19,98 @@
   <a class="metric" href="{{ url_for('api_compliance.security_audit_page') }}#security-hosts"><strong>{{ summary.compliance.open_findings }}</strong><span>合規未結異常</span></a>
 </section>
 
+<section class="executive-chart-grid">
+  <article class="panel executive-chart-card">
+    <div class="chart-card-head">
+      <div><p class="eyebrow">ASSETS</p><h2>資產狀態分布</h2></div>
+      <strong>{{ summary.hosts_total }}</strong>
+    </div>
+    <div class="chart-bars">
+      {% for item in charts.asset_status %}
+      <a class="chart-bar-row" href="{{ url_for('api_hosts.hosts_page', status=item.name) }}"><span>{{ item.name or "-" }}</span><div class="bar"><span style="width: {{ item.width }}%"></span></div><b>{{ item.count }}</b></a>
+      {% else %}
+      <p class="no-data">尚無資產資料。</p>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="panel executive-chart-card">
+    <div class="chart-card-head">
+      <div><p class="eyebrow">OS / PLATFORM</p><h2>平台分布</h2></div>
+    </div>
+    <div class="chart-bars">
+      {% for item in charts.asset_type %}
+      <a class="chart-bar-row" href="{{ url_for('api_hosts.hosts_page', host_type=item.name) }}"><span>{{ item.name or "-" }}</span><div class="bar"><span style="width: {{ item.width }}%"></span></div><b>{{ item.count }}</b></a>
+      {% else %}
+      <p class="no-data">尚無平台資料。</p>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="panel executive-chart-card">
+    <div class="chart-card-head">
+      <div><p class="eyebrow">ACCOUNT RISK</p><h2>帳號風險圖</h2></div>
+      <strong>{{ summary.accounts.summary.total }}</strong>
+    </div>
+    <div class="chart-bars">
+      {% for item in charts.account_risk %}
+      <a class="chart-bar-row" href="{{ url_for('api_inventory.accounts_page') }}"><span>{{ item.name }}</span><div class="bar warn"><span style="width: {{ item.width }}%"></span></div><b>{{ item.count }}</b></a>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="panel executive-chart-card">
+    <div class="chart-card-head">
+      <div><p class="eyebrow">COMPLIANCE</p><h2>合規健康</h2></div>
+      <strong>{{ charts.compliance.ok_pct }}%</strong>
+    </div>
+    <div class="executive-donut" style="--score-angle: {{ charts.compliance.ok_pct * 3.6 }}deg">
+      <strong>{{ charts.compliance.ok_pct }}%</strong>
+      <span>健康度</span>
+    </div>
+    <p class="text-muted-sm">未結異常 {{ charts.compliance.open_findings }} 項，規則 {{ charts.compliance.rules_total }} 項。</p>
+  </article>
+</section>
+
+<section class="executive-chart-grid">
+  <article class="panel executive-chart-card">
+    <div class="chart-card-head">
+      <div><p class="eyebrow">DATACENTER</p><h2>機房分布</h2></div>
+    </div>
+    <div class="chart-bars">
+      {% for item in charts.asset_dc %}
+      <a class="chart-bar-row" href="{{ url_for('api_hosts.hosts_page', dc=item.name) }}"><span>{{ item.name or "-" }}</span><div class="bar"><span style="width: {{ item.width }}%"></span></div><b>{{ item.count }}</b></a>
+      {% else %}
+      <p class="no-data">尚無機房資料。</p>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="panel executive-chart-card">
+    <div class="chart-card-head">
+      <div><p class="eyebrow">ENVIRONMENT</p><h2>環境分布</h2></div>
+    </div>
+    <div class="chart-bars">
+      {% for item in charts.asset_env %}
+      <a class="chart-bar-row" href="{{ url_for('api_hosts.hosts_page', environment=item.name) }}"><span>{{ item.name or "-" }}</span><div class="bar"><span style="width: {{ item.width }}%"></span></div><b>{{ item.count }}</b></a>
+      {% else %}
+      <p class="no-data">尚無環境資料。</p>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="panel executive-chart-card wide">
+    <div class="chart-card-head">
+      <div><p class="eyebrow">NEXT</p><h2>圖像化路線</h2></div>
+    </div>
+    <ol class="roadmap-list">
+      <li><strong>第一階段</strong><span>內建主管圖表與趨勢卡，不增加外部服務。</span></li>
+      <li><strong>第二階段</strong><span>補 Prometheus metrics，讓長期趨勢可被外部監控採集。</span></li>
+      <li><strong>第三階段</strong><span>評估 Grafana，只做圖表牆與長期趨勢，不取代 webitgpt 操作流程。</span></li>
+    </ol>
+  </article>
+</section>
+
 <section class="panel">
   <h2>Top 5 帳號風險</h2>
   <table class="data-table">

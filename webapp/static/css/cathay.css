@@ -900,6 +900,103 @@ button.is-busy {
   background: var(--g1);
 }
 
+.bar.warn span {
+  background: var(--orange);
+}
+
+.executive-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.executive-chart-card {
+  min-width: 0;
+}
+
+.executive-chart-card.wide {
+  grid-column: span 2;
+}
+
+.chart-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.chart-card-head h2 {
+  margin: 0;
+}
+
+.chart-card-head strong {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 24px;
+  color: var(--g-text);
+}
+
+.chart-bars {
+  display: grid;
+  gap: 8px;
+}
+
+.chart-bar-row {
+  display: grid;
+  grid-template-columns: minmax(82px, 1fr) minmax(100px, 2fr) 44px;
+  align-items: center;
+  gap: 8px;
+  color: var(--c1);
+  text-decoration: none;
+}
+
+.chart-bar-row span {
+  overflow-wrap: anywhere;
+}
+
+.chart-bar-row b {
+  font-family: "JetBrains Mono", monospace;
+  text-align: right;
+}
+
+.executive-donut {
+  --score-angle: 0deg;
+  width: 112px;
+  aspect-ratio: 1;
+  margin: 6px auto 10px;
+  border-radius: 50%;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  background:
+    radial-gradient(circle at center, var(--white) 0 54%, transparent 55%),
+    conic-gradient(var(--g1) var(--score-angle), var(--c4) 0);
+}
+
+.executive-donut strong {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.executive-donut span {
+  color: var(--c3);
+  font-size: 12px;
+}
+
+.roadmap-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.roadmap-list li span {
+  display: block;
+  color: var(--c2);
+}
+
 .topology-toolbar {
   display: flex;
   align-items: center;

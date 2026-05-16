@@ -32,16 +32,59 @@ def _summary() -> dict:
     hosts = list_hosts(page=1, page_size=10000)["items"]
     by_env: dict[str, int] = {}
     by_status: dict[str, int] = {}
+    by_type: dict[str, int] = {}
+    by_dc: dict[str, int] = {}
     for host in hosts:
         by_env[host.get("environment", "")] = by_env.get(host.get("environment", ""), 0) + 1
         by_status[host.get("status", "")] = by_status.get(host.get("status", ""), 0) + 1
+        by_type[host.get("host_type") or host.get("os_group") or "-"] = by_type.get(host.get("host_type") or host.get("os_group") or "-", 0) + 1
+        by_dc[host.get("dc") or host.get("location") or "-"] = by_dc.get(host.get("dc") or host.get("location") or "-", 0) + 1
     compliance = compliance_dashboard() if is_enabled("module_compliance_security", default=False) else {"open_findings": 0, "rules_total": 0}
     return {
         "hosts_total": len(hosts),
         "by_env": by_env,
         "by_status": by_status,
+        "by_type": by_type,
+        "by_dc": by_dc,
         "compliance": compliance,
         "accounts": account_report_summary(),
+    }
+
+
+def _bar_items(rows, total: int = 0, limit: int = 8) -> list[dict]:
+    if isinstance(rows, dict):
+        items = [{"name": name or "-", "count": count} for name, count in rows.items()]
+    else:
+        items = [{"name": row.get("name") or "-", "count": int(row.get("count") or 0)} for row in rows]
+    items = sorted(items, key=lambda row: (-row["count"], row["name"]))[:limit]
+    denominator = max(total or sum(row["count"] for row in items), 1)
+    return [{**row, "pct": round((row["count"] / denominator) * 100, 1), "width": max(2, round((row["count"] / denominator) * 100, 1))} for row in items]
+
+
+def _executive_charts(summary: dict) -> dict:
+    account_summary = summary["accounts"]["summary"]
+    risk_total = max(account_summary.get("total", 0), 1)
+    risk_rows = [
+        {"name": "異常帳號", "count": account_summary.get("abnormal", 0)},
+        {"name": "高權限帳號", "count": account_summary.get("privileged", 0)},
+        {"name": "長期未登入", "count": account_summary.get("never_login", 0)},
+        {"name": "服務帳號可登入", "count": account_summary.get("service_login", 0)},
+        {"name": "PAM 納管", "count": account_summary.get("pam_managed", 0)},
+    ]
+    compliance_open = int(summary["compliance"].get("open_findings", 0) or 0)
+    rules_total = int(summary["compliance"].get("rules_total", 0) or 0)
+    return {
+        "asset_status": _bar_items(summary["by_status"], summary["hosts_total"]),
+        "asset_type": _bar_items(summary["by_type"], summary["hosts_total"]),
+        "asset_env": _bar_items(summary["by_env"], summary["hosts_total"]),
+        "asset_dc": _bar_items(summary["by_dc"], summary["hosts_total"]),
+        "account_risk": _bar_items(risk_rows, risk_total),
+        "account_by_host": _bar_items(summary["accounts"].get("by_host", []), account_summary.get("total", 0), limit=5),
+        "compliance": {
+            "open_findings": compliance_open,
+            "rules_total": rules_total,
+            "ok_pct": 100 if not rules_total and not compliance_open else max(0, round(100 - min(100, compliance_open * 10), 1)),
+        },
     }
 
 
@@ -62,7 +105,7 @@ def dashboard_page():
 def executive_page():
     summary = _summary()
     risk_items = summary["accounts"].get("abnormal_items", [])[:5]
-    return render_template("executive.html", summary=summary, risk_items=risk_items)
+    return render_template("executive.html", summary=summary, risk_items=risk_items, charts=_executive_charts(summary))
 
 
 @bp.get("/api/reports/summary")
