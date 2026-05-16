@@ -704,30 +704,38 @@ a.metric:hover {
 .asset-table-wrap { padding: 12px; overflow-x: auto; }
 .asset-table { min-width: 1180px; }
 .asset-table-compact {
-  min-width: 960px;
+  min-width: 1320px;
   table-layout: fixed;
 }
 .asset-table-compact th,
 .asset-table-compact td {
-  padding: 7px 10px;
+  padding: 5px 8px;
   vertical-align: middle;
 }
-.asset-table-compact .asset-col-select { width: 52px; }
-.asset-table-compact .asset-col-name { width: 260px; }
-.asset-table-compact .asset-col-hostname { width: 210px; }
-.asset-table-compact .asset-col-ip { width: 150px; }
-.asset-table-compact .asset-col-os { width: 210px; }
-.asset-table-compact .asset-col-env { width: 90px; }
-.asset-table-compact .asset-col-dc { width: 90px; }
-.asset-table-compact .asset-col-actions { width: 90px; }
-.asset-table-compact .asset-col-expand { width: 72px; }
+.asset-table-compact .asset-col-select { width: 42px; }
+.asset-table-compact .asset-col-name { width: 210px; }
+.asset-table-compact .asset-col-hostname { width: 185px; }
+.asset-table-compact .asset-col-ip { width: 128px; }
+.asset-table-compact .asset-col-os { width: 170px; }
+.asset-table-compact .asset-col-device { width: 100px; }
+.asset-table-compact .asset-col-rack { width: 95px; }
+.asset-table-compact .asset-col-env { width: 70px; }
+.asset-table-compact .asset-col-dc { width: 70px; }
+.asset-table-compact .asset-col-note { width: 180px; }
+.asset-table-compact .asset-col-actions { width: 78px; }
+.asset-table-compact .asset-col-expand { width: 62px; }
 .asset-name-cell strong {
   display: inline-block;
-  max-width: 190px;
+  max-width: 145px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: middle;
+}
+.asset-note-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .asset-missing-inline {
   display: inline-flex;
@@ -747,8 +755,8 @@ a.metric:hover {
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  min-height: 30px;
-  padding: 4px 10px;
+  min-height: 28px;
+  padding: 3px 8px;
   border: 1px solid var(--c4);
   border-radius: var(--radius-xs);
   background: var(--bg);
@@ -795,7 +803,7 @@ a.metric:hover {
   font-size: 16px;
 }
 .asset-detail-toggle {
-  min-width: 54px;
+  min-width: 48px;
   justify-content: center;
 }
 .asset-bulk-actions {

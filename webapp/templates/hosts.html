@@ -152,8 +152,11 @@
           <th class="asset-col-hostname">Hostname</th>
           <th class="asset-col-ip">IP</th>
           <th class="asset-col-os">OS</th>
+          <th class="asset-col-device">設備類型</th>
+          <th class="asset-col-rack">機櫃</th>
           <th class="asset-col-env">環境</th>
           <th class="asset-col-dc">機房</th>
+          <th class="asset-col-note">備註</th>
           <th class="asset-col-actions">操作</th>
           <th class="asset-col-expand">展開</th>
         </tr>
@@ -193,8 +196,11 @@
           <td>
             <strong>{{ host.os or host_type_labels.get(host.host_type, host.host_type or "-") }}</strong>
           </td>
+          <td>{{ host.device_type or "-" }}</td>
+          <td>{{ host.rack_no or "-" }}</td>
           <td>{{ host.environment or "-" }}</td>
           <td>{{ dc_labels.get(host.dc, host.dc or "-") }}</td>
+          <td class="asset-note-cell" title="{{ host.note or '' }}">{{ host.note or "-" }}</td>
           <td class="actions asset-row-actions">
             {% if current_user.role in ["admin", "super", "superadmin"] %}
             <details class="asset-row-menu">
@@ -219,7 +225,7 @@
           </td>
         </tr>
         <tr class="asset-detail-row" id="asset-detail-{{ loop.index }}" hidden>
-          <td colspan="{% if current_user.role in ["admin", "super", "superadmin"] %}9{% else %}8{% endif %}">
+          <td colspan="{% if current_user.role in ["admin", "super", "superadmin"] %}12{% else %}11{% endif %}">
             <div class="asset-detail-panel">
               <h3>資產明細：{{ host.hostname or host.asset_seq }}</h3>
               <div class="asset-detail-grid">
@@ -242,7 +248,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="{% if current_user.role in ["admin", "super", "superadmin"] %}9{% else %}8{% endif %}" class="no-data">尚無資產資料，請先從 CMDB 匯入或新增資產。</td></tr>
+        <tr><td colspan="{% if current_user.role in ["admin", "super", "superadmin"] %}12{% else %}11{% endif %}" class="no-data">尚無資產資料，請先從 CMDB 匯入或新增資產。</td></tr>
         {% endfor %}
       </tbody>
     </table>
