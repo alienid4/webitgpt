@@ -1,11 +1,19 @@
 from pathlib import Path
 
+from webapp.services.inventory_service import normalize_account_risk
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
+
+
+def test_never_login_is_information_not_abnormal_risk():
+    risk = normalize_account_risk("alien", {"risk": "從未登入", "can_login": True}, system_default=False)
+
+    assert risk == "正常"
 
 
 def test_asset_actions_are_consistent_and_superadmin_only_for_sensitive_buttons():

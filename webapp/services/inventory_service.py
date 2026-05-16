@@ -293,9 +293,9 @@ def is_system_default_account(name: str) -> bool:
 
 def normalize_account_risk(name: str, item: dict[str, Any], system_default: bool) -> str:
     risk = item.get("risk") or "正常"
-    if system_default and not item.get("can_login", False):
+    if risk == "從未登入":
         return "正常"
-    if risk == "從未登入" and not item.get("can_login", False):
+    if system_default and not item.get("can_login", False):
         return "正常"
     return risk
 
