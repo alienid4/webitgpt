@@ -83,7 +83,7 @@
       <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='abnormal') }}"><strong>{{ account_view.summary.abnormal }}</strong><span>異常帳號</span></a>
       <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='privileged') }}"><strong>{{ account_view.summary.privileged }}</strong><span>高權限</span></a>
       <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='never_login') }}"><strong>{{ account_view.summary.never_login }}</strong><span>長期未登入</span></a>
-      <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='service_login') }}"><strong>{{ account_view.summary.service_login }}</strong><span>服務帳號可登入</span></a>
+      <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='service_login') }}"><strong>{{ account_view.summary.service_login }}</strong><span>服務帳號可登入，需複核</span></a>
       <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults=request.args.get('include_system_defaults',''), metric='pam_managed') }}"><strong>{{ account_view.summary.pam_managed }}</strong><span>PAM 納管</span></a>
       <a class="metric account-metric-link" href="{{ url_for('api_inventory.accounts_page', include_system_defaults='1', metric='system_default') }}"><strong>{{ account_view.summary.system_default_hidden }}</strong><span>隱藏系統帳號</span></a>
     </div>
@@ -262,7 +262,7 @@
               <td class="col-pam">{% if item.pam_managed %}<span class="badge-ok">已納管</span>{% else %}-{% endif %}</td>
               <td class="col-note"><span class="account-note-preview">{{ item.usage_note }}</span></td>
               <td class="col-last">{{ item.last_login }}</td>
-              <td class="col-risk">{% if item.risk == "正常" %}<span class="badge-ok">正常</span>{% else %}<span class="badge-warn">{{ item.risk }}</span>{% endif %}</td>
+              <td class="col-risk">{% if item.risk == "正常" %}<span class="badge-ok">正常</span>{% else %}<span class="badge-warn">{{ item.risk_label }}</span>{% endif %}</td>
               <td class="sticky-col-right col-action">
                 <button class="btn-sm account-edit-note" type="button"
                   data-hostname="{{ item.hostname }}"

@@ -121,7 +121,7 @@
         <td>{{ item.hostname or item.asset_seq }}</td>
         <td><strong>{{ item.name }}</strong></td>
         <td>{{ item.department or "-" }}</td>
-        <td><span class="badge-warn">{{ item.risk }}</span></td>
+        <td><span class="badge-warn">{{ item.risk_label or item.risk }}</span></td>
         <td>{{ item.last_login or "-" }}</td>
       </tr>
       {% else %}

@@ -321,6 +321,12 @@ def account_review_class(item: dict[str, Any]) -> str:
     return "正常"
 
 
+def account_risk_label(risk: str) -> str:
+    if risk == "服務帳號可登入":
+        return "服務帳號可登入，需複核"
+    return risk
+
+
 def _account_note_key(hostname: str, asset_seq: str, name: str) -> str:
     return f"{hostname or asset_seq}:{name}"
 
@@ -525,6 +531,7 @@ def account_inventory_view(filters: Optional[dict[str, str]] = None) -> dict[str
                 "password_expires": item.get("password_expires") or "-",
                 "last_login": last_login,
                 "risk": risk,
+                "risk_label": account_risk_label(risk),
                 "review_class": account_review_class({"risk": risk, "privileged": bool(item.get("privileged")) or name == "root"}),
                 "is_system_default": system_default,
                 "collected_at": row.get("collected_at"),
@@ -617,7 +624,7 @@ def account_inventory_view(filters: Optional[dict[str, str]] = None) -> dict[str
 def export_accounts_csv(filters: Optional[dict[str, str]] = None) -> str:
     view = account_inventory_view(filters)
     output = io.StringIO()
-    fields = ["hostname", "name", "uid", "gid", "home", "shell", "can_login", "privileged", "locked", "note", "usage_note", "account_owner", "pam_managed", "department", "hr_name", "password_changed", "password_expires", "last_login", "risk"]
+    fields = ["hostname", "name", "uid", "gid", "home", "shell", "can_login", "privileged", "locked", "note", "usage_note", "account_owner", "pam_managed", "department", "hr_name", "password_changed", "password_expires", "last_login", "risk_label"]
     writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")
     writer.writeheader()
     for item in view["items"]:
@@ -687,7 +694,7 @@ def account_name_summary(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         )
         row["hosts"].append(item["hostname"] or item["asset_seq"])
         row["count"] += 1
-        row["risks"].add(item["risk"])
+        row["risks"].add(item["risk_label"])
         row["privileged"] = row["privileged"] or item["privileged"]
         row["service_login"] = row["service_login"] or ("服務帳號可登入" in item["risk"])
     result = []
@@ -726,7 +733,7 @@ def account_action_plan(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
             {
                 "hostname": item["hostname"] or item["asset_seq"],
                 "name": item["name"],
-                "risk": item["risk"],
+                "risk": item["risk_label"],
                 "action": action,
                 "mode": "dry-run",
                 "backup": "/etc/passwd /etc/shadow /etc/group /etc/sudoers",
@@ -786,7 +793,7 @@ def _count_by(items: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
 def account_report_summary(filters: Optional[dict[str, str]] = None) -> dict[str, Any]:
     view = account_inventory_view(filters or {})
     items = view["items"]
-    abnormal_items = [item for item in items if item["risk"] != "正常"]
+    abnormal_items = [item for item in items if is_account_abnormal(item)]
     return {
         "summary": view["summary"],
         "count": view["count"],
@@ -794,7 +801,7 @@ def account_report_summary(filters: Optional[dict[str, str]] = None) -> dict[str
         "hide_system_defaults": view["hide_system_defaults"],
         "by_department": _count_by(items, "department"),
         "by_host": _count_by(items, "hostname"),
-        "by_risk": _count_by(items, "risk"),
+        "by_risk": _count_by(items, "risk_label"),
         "abnormal_items": abnormal_items[:20],
         "abnormal_count": len(abnormal_items),
     }

@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="${OUT_DIR:-$ROOT/dist}"
-PATCH_NAME="${PATCH_NAME:-patch_webitgpt_v1.0.2.50-checkbox-inline-layout}"
+PATCH_NAME="${PATCH_NAME:-patch_webitgpt_v1.0.2.51-service-account-review-label}"
 WORK="$OUT_DIR/$PATCH_NAME"
 
 rm -rf "$WORK"

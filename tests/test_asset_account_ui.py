@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from webapp.services.inventory_service import is_account_abnormal, normalize_account_risk
+from webapp.services.inventory_service import account_risk_label, is_account_abnormal, normalize_account_risk
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +19,11 @@ def test_never_login_is_information_not_abnormal_risk():
 def test_high_privilege_is_review_item_not_abnormal():
     assert is_account_abnormal({"risk": "高權限", "privileged": True}) is False
     assert is_account_abnormal({"risk": "服務帳號可登入", "privileged": False}) is True
+
+
+def test_service_login_risk_label_requires_review():
+    assert account_risk_label("服務帳號可登入") == "服務帳號可登入，需複核"
+    assert account_risk_label("高權限") == "高權限"
 
 
 def test_asset_actions_are_consistent_and_superadmin_only_for_sensitive_buttons():
@@ -43,6 +48,8 @@ def test_account_metrics_link_to_detail_views():
 
     assert "account-metric-link" in html
     assert "account-summary-shell" in html
+    assert "服務帳號可登入，需複核" in html
+    assert "risk_label" in html
     assert 'data-account-tab-jump="host"' in html
     assert 'data-account-tab-jump="departments"' in html
     assert 'href="#list" data-account-tab-jump="list"' in html

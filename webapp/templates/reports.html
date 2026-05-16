@@ -114,7 +114,7 @@
           <td>{{ item.department }}</td>
           <td>{{ item.note }}</td>
           <td>{{ item.last_login }}</td>
-          <td><span class="badge-warn">{{ item.risk }}</span></td>
+          <td><span class="badge-warn">{{ item.risk_label or item.risk }}</span></td>
         </tr>
         {% else %}
         <tr><td colspan="6">目前沒有異常帳號</td></tr>
