@@ -31,7 +31,7 @@ def request(
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
         headers["Content-Type"] = "application/json"
     elif form is not None:
-        body = urllib.parse.urlencode(form).encode("utf-8")
+        body = urllib.parse.urlencode(form, doseq=True).encode("utf-8")
         headers["Content-Type"] = "application/x-www-form-urlencoded"
     req = urllib.request.Request(url, data=body, headers=headers, method=method)
     try:
@@ -278,7 +278,7 @@ def main() -> int:
     check(report, "api_v1_hosts_before", status == 200 and before_total >= 3, {"total": before_total})
 
     status, home_page, _ = request(opener, "GET", f"{base}/hosts")
-    check(report, "ui_version_visible", status == 200 and "webitgpt v1.0.2.37" in home_page and "scan-draft-visibility" in home_page and "IT 巡檢系統" in home_page, {"status": status})
+    check(report, "ui_version_visible", status == 200 and "webitgpt v1.0.2.38" in home_page and "bulk-draft-delete" in home_page and "IT 巡檢系統" in home_page, {"status": status})
     check(report, "ui_asset_nav_active", status == 200 and 'class="nav-warn active"' in home_page and "▣ 資產管理" in home_page, {"status": status})
     status, quality_page, _ = request(opener, "GET", f"{base}/hosts/quality")
     check(report, "asset_quality_page_loads", status == 200 and "資產異常清單" in quality_page and "納管資產" in quality_page, {"status": status})
@@ -323,6 +323,35 @@ def main() -> int:
 
     status, _, restored = request(opener, "POST", f"{base}/api/hosts/{asset_seq}/restore")
     check(report, "host_restore", status == 200 and restored and restored.get("status") == "active", restored)
+
+    draft_a = build_host(f"HW-{random.randint(97000000, 97999999)}")
+    draft_b = build_host(f"HW-{random.randint(97000000, 97999999)}")
+    draft_a.update({"status": "draft", "hostname": f"func-draft-{draft_a['asset_seq'].lower()}", "asset_name": "Functional validation draft"})
+    draft_b.update({"status": "draft", "hostname": f"func-draft-{draft_b['asset_seq'].lower()}", "asset_name": "Functional validation draft"})
+    status_a, _, created_a = request(opener, "POST", f"{base}/api/hosts", data=draft_a)
+    status_b, _, created_b = request(opener, "POST", f"{base}/api/hosts", data=draft_b)
+    check(report, "bulk_draft_seed", status_a == 201 and status_b == 201, {"a": created_a, "b": created_b})
+    status, bulk_page, _ = request(
+        opener,
+        "POST",
+        f"{base}/hosts/bulk-delete-drafts",
+        form={"asset_seq": [draft_a["hostname"], draft_b["hostname"]], "reason": "functional validation bulk delete", "return_status": "draft"},
+    )
+    post_status = status
+    status, _, draft_a_after = request(opener, "GET", f"{base}/api/hosts?q={urllib.parse.quote(draft_a['hostname'])}")
+    status_b_after, _, draft_b_after = request(opener, "GET", f"{base}/api/hosts?q={urllib.parse.quote(draft_b['hostname'])}")
+    check(
+        report,
+        "bulk_draft_delete",
+        post_status == 200
+        and "批次刪除草稿" in bulk_page
+        and "刪除 2 筆" in bulk_page
+        and draft_a_after
+        and draft_a_after.get("total") == 0
+        and draft_b_after
+        and draft_b_after.get("total") == 0,
+        {"post_status": post_status, "a": draft_a_after, "b": draft_b_after},
+    )
 
     manual_asset_seq = f"HW-{random.randint(96000000, 96999999)}"
     manual_form = {

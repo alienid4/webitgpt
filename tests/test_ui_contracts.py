@@ -302,7 +302,16 @@ def test_asset_governance_status_admin_contracts_exist():
     assert "asset_quality_page" in host_routes
     assert "status_counts" in host_routes
     assert "status_counts" in read("webapp/services/host_service.py")
-    assert '<span>草稿</span>' in read("webapp/templates/hosts.html")
+    hosts_template = read("webapp/templates/hosts.html")
+    host_service = read("webapp/services/host_service.py")
+    hosts_js = read("webapp/static/js/hosts.js")
+    for text in ["批次草稿處理", "全選本頁草稿", "刪除勾選草稿", "bulkDraftDeleteForm"]:
+        assert text in hosts_template
+    assert '<span>草稿</span>' in hosts_template
+    assert "host_bulk_delete_drafts_submit" in host_routes
+    assert "bulk_delete_draft_hosts" in host_service
+    assert "不是草稿；正式資產請走下線或汰除流程" in host_service
+    assert "data-select-drafts" in hosts_js
     assert '@require_role("admin")\ndef host_edit_page' in host_routes
     assert "host_lifecycle_submit" in host_routes
     assert "host_delete_draft_submit" in host_routes

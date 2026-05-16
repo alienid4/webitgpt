@@ -1,4 +1,12 @@
 document.addEventListener("click", async (event) => {
+  const selectDrafts = event.target.closest("[data-select-drafts]");
+  if (selectDrafts) {
+    document.querySelectorAll("[data-draft-checkbox]").forEach((checkbox) => {
+      checkbox.checked = selectDrafts.checked;
+    });
+    return;
+  }
+
   const selfCheck = event.target.closest("[data-self-check]");
   const debug = event.target.closest("[data-debug]");
   if (!selfCheck && !debug) return;

@@ -703,6 +703,16 @@ a.metric:hover {
 .asset-summary { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .asset-table-wrap { padding: 16px; overflow-x: auto; }
 .asset-table { min-width: 1180px; }
+.asset-bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.asset-bulk-actions input[name="reason"] {
+  min-width: 300px;
+}
 .asset-table th {
   position: sticky;
   top: 0;

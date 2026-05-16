@@ -725,6 +725,29 @@ def host_delete_draft_submit(asset_seq: str):
         ), 400
 
 
+@bp.post("/hosts/bulk-delete-drafts")
+@require_feature("cmdb_manual_input")
+@require_role("admin")
+def host_bulk_delete_drafts_submit():
+    try:
+        result = host_service.bulk_delete_draft_hosts(
+            request.form.getlist("asset_seq"),
+            request.form.get("reason", ""),
+            user=current_user()["username"],
+        )
+        audit_log_service.append("host.draft.bulk_delete", current_user()["username"], result)
+        return redirect(
+            url_for(
+                "api_hosts.hosts_page",
+                status=request.form.get("return_status", ""),
+                bulk_deleted=result["deleted_count"],
+                bulk_skipped=result["skipped_count"],
+            )
+        )
+    except Exception as exc:
+        return redirect(url_for("api_hosts.hosts_page", status=request.form.get("return_status", ""), bulk_error=str(exc)))
+
+
 @bp.get("/cmdb/ipam")
 @require_feature("cmdb_manual_input")
 def ipam_page():

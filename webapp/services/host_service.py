@@ -192,6 +192,39 @@ def delete_draft_host(asset_seq: str, reason: str, user: str = "system") -> bool
     return get_collection("hosts").delete_one({"_id": existing["_id"]}).deleted_count == 1
 
 
+def bulk_delete_draft_hosts(keys: list[str], reason: str, user: str = "system") -> dict[str, Any]:
+    reason = str(reason or "").strip()
+    if not reason:
+        raise ValueError("批次刪除草稿前請填寫原因。")
+    unique_keys = [key.strip() for key in dict.fromkeys(keys) if str(key).strip()]
+    result = {"deleted": [], "skipped": [], "deleted_count": 0, "skipped_count": 0}
+    for key in unique_keys:
+        existing = get_collection("hosts").find_one(_identity_query(key))
+        if not existing:
+            result["skipped"].append({"asset_seq": key, "reason": "找不到資產"})
+            continue
+        normalized = normalize_host_doc(existing)
+        if normalized.get("status") != "draft":
+            result["skipped"].append(
+                {
+                    "asset_seq": existing.get("asset_seq") or key,
+                    "hostname": existing.get("hostname"),
+                    "status": normalized.get("status"),
+                    "reason": "不是草稿；正式資產請走下線或汰除流程",
+                }
+            )
+            continue
+        record_lifecycle_event(existing, "bulk_delete_draft", reason, user)
+        deleted = get_collection("hosts").delete_one({"_id": existing["_id"]}).deleted_count == 1
+        if deleted:
+            result["deleted"].append({"asset_seq": existing.get("asset_seq"), "hostname": existing.get("hostname")})
+        else:
+            result["skipped"].append({"asset_seq": existing.get("asset_seq") or key, "reason": "刪除失敗"})
+    result["deleted_count"] = len(result["deleted"])
+    result["skipped_count"] = len(result["skipped"])
+    return result
+
+
 def restore_host(asset_seq: str, user: str = "system") -> dict[str, Any]:
     existing = get_collection("hosts").find_one(_identity_query(asset_seq))
     if not existing:

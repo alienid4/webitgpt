@@ -127,11 +127,27 @@
   </section>
 
   {% if data.get("error") %}<div class="notice danger">{{ data.get("error") }}</div>{% endif %}
+  {% if request.args.get("bulk_deleted") is not none %}
+  <div class="notice">批次刪除草稿：刪除 {{ request.args.get("bulk_deleted", 0) }} 筆，略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
+  {% endif %}
+  {% if request.args.get("bulk_error") %}<div class="notice danger">{{ request.args.get("bulk_error") }}</div>{% endif %}
 
   <section class="table-wrap asset-table-wrap" id="asset-details">
+    {% if current_user.role in ["admin", "super", "superadmin"] %}
+    <div class="asset-bulk-actions">
+      <strong>批次草稿處理</strong>
+      <label><input type="checkbox" data-select-drafts> 全選本頁草稿</label>
+      <input form="bulkDraftDeleteForm" name="reason" placeholder="刪除原因，例如：掃描誤建、測試草稿清理" required>
+      <input form="bulkDraftDeleteForm" type="hidden" name="return_status" value="{{ request.args.get('status','') }}">
+      <button form="bulkDraftDeleteForm" class="btn btn-danger" type="submit" onclick="return confirm('只會刪除已勾選的草稿；正式資產會略過。確定執行？')">刪除勾選草稿</button>
+      <span class="text-muted-sm">正式資產不允許批次硬刪，請走下線 / 封存流程。</span>
+    </div>
+    <form id="bulkDraftDeleteForm" method="post" action="{{ url_for('api_hosts.host_bulk_delete_drafts_submit') }}" data-submit-status data-submit-message="正在批次刪除草稿，正式資產會自動略過。"></form>
+    {% endif %}
     <table class="data-table asset-table">
       <thead>
         <tr>
+          {% if current_user.role in ["admin", "super", "superadmin"] %}<th>選取</th>{% endif %}
           <th>主機唯一索引</th>
           <th>資產資料</th>
           <th>IP / 網段</th>
@@ -148,6 +164,15 @@
           {% if host.get(field) in [none, ""] %}{% set _ = missing.append(field) %}{% endif %}
         {% endfor %}
         <tr>
+          {% if current_user.role in ["admin", "super", "superadmin"] %}
+          <td>
+            {% if host.status == "draft" %}
+            <input form="bulkDraftDeleteForm" type="checkbox" name="asset_seq" value="{{ host.hostname or host.asset_seq }}" data-draft-checkbox>
+            {% else %}
+            <span class="text-muted-sm">-</span>
+            {% endif %}
+          </td>
+          {% endif %}
           <td class="sticky-col">
             <strong class="code-inline">{{ host.hostname or "-" }}</strong>
             <div class="text-muted-sm">資產編號：{{ host.asset_seq or "-" }}</div>
@@ -203,7 +228,7 @@
           </td>
         </tr>
         <tr class="asset-detail-row">
-          <td colspan="7">
+          <td colspan="{% if current_user.role in ["admin", "super", "superadmin"] %}8{% else %}7{% endif %}">
             <details>
               <summary>展開資產明細：{{ host.hostname or host.asset_seq }}</summary>
               <div class="asset-detail-grid">
@@ -226,7 +251,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="7" class="no-data">尚無資產資料，請先從 CMDB 匯入或新增資產。</td></tr>
+        <tr><td colspan="{% if current_user.role in ["admin", "super", "superadmin"] %}8{% else %}7{% endif %}" class="no-data">尚無資產資料，請先從 CMDB 匯入或新增資產。</td></tr>
         {% endfor %}
       </tbody>
     </table>
