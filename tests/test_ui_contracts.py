@@ -286,6 +286,9 @@ def test_asset_governance_status_admin_contracts_exist():
     assert "_keyword_related" in host_routes
     assert "_is_direct_search_code" in host_routes
     assert "asset_quality_page" in host_routes
+    assert '@require_role("admin")\ndef host_edit_page' in host_routes
+    assert 'current_user.role in ["admin", "super", "superadmin"]' in read("webapp/templates/hosts.html")
+    assert 'current_user.role in ["admin", "super", "superadmin"]' in read("webapp/templates/asset_quality.html")
     assert "asset_quality_report" in Path("webapp/services/cmdb_service.py").read_text(encoding="utf-8")
     assert "資產異常清單" in Path("webapp/templates/asset_quality.html").read_text(encoding="utf-8")
     for text in ["開發後台", "IPAM", "系統拓撲", "操作紀錄", "重要服務設定", "新增主機"]:

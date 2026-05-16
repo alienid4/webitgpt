@@ -586,6 +586,7 @@ def host_delete_view_page():
 
 @bp.get("/hosts/<asset_seq>")
 @require_feature("cmdb_manual_input")
+@require_role("admin")
 def host_edit_page(asset_seq: str):
     host = host_service.get_host(asset_seq)
     if not host:

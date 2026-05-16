@@ -50,7 +50,13 @@
         </td>
         <td><strong>{{ issue.title }}</strong><div class="text-muted-sm">{{ issue.type }}</div></td>
         <td>
-          {% if issue.hostname %}<a class="code-inline" href="{{ url_for('api_hosts.host_edit_page', asset_seq=issue.hostname) }}">{{ issue.hostname }}</a>{% else %}<span class="code-inline">-</span>{% endif %}
+          {% if issue.hostname and current_user.role in ["admin", "super", "superadmin"] %}
+          <a class="code-inline" href="{{ url_for('api_hosts.host_edit_page', asset_seq=issue.hostname) }}">{{ issue.hostname }}</a>
+          {% elif issue.hostname %}
+          <span class="code-inline">{{ issue.hostname }}</span>
+          {% else %}
+          <span class="code-inline">-</span>
+          {% endif %}
           <div class="text-muted-sm">{{ issue.asset_name or "-" }}</div>
           <div class="text-muted-sm">{{ issue.ip or "-" }}</div>
         </td>

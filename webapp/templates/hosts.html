@@ -187,8 +187,10 @@
             {% endif %}
           </td>
           <td class="actions asset-row-actions">
+            {% if current_user.role in ["admin", "super", "superadmin"] %}
             <a class="btn-sm btn-secondary" href="{{ url_for('api_hosts.host_edit_page', asset_seq=host.hostname or host.asset_seq) }}">編輯</a>
-            <button class="btn-sm btn-secondary" data-self-check="{{ host.asset_seq }}" type="button" {% if current_user.username == "anonymous" %}disabled{% endif %}>自檢</button>
+            <button class="btn-sm btn-secondary" data-self-check="{{ host.asset_seq }}" type="button">自檢</button>
+            {% endif %}
             {% if current_user.role == "superadmin" %}
             <button class="btn-sm btn-secondary" data-debug="{{ host.asset_seq }}" type="button">Debug</button>
             {% endif %}
