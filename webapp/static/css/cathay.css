@@ -501,6 +501,14 @@ a.metric:hover {
   align-items: end;
 }
 .account-filter-compact label { display: grid; gap: 3px; color: var(--c2); font-weight: 700; }
+.account-filter-compact label.checkbox-line,
+.account-drawer-panel label.checkbox-line {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
 .account-filter-compact input,
 .account-filter-compact select { min-height: 34px; padding: 6px 9px; }
 .account-filter-compact .btn,

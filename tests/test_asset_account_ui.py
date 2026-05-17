@@ -73,6 +73,9 @@ def test_account_checkboxes_use_inline_left_layout():
     assert ".checkbox-line" in css
     assert 'input[type="checkbox"]' in css
     assert "inline-size: 16px" in css
+    assert ".account-filter-compact label.checkbox-line" in css
+    assert ".account-drawer-panel label.checkbox-line" in css
+    assert "flex-direction: row" in css
 
 
 def test_account_risk_badge_stays_on_one_line():
