@@ -65,7 +65,14 @@ if (-not $SkipWheelDownload) {
 @"
 # Offline RPM area
 
-If the target host cannot access yum/dnf repositories, place Rocky/RHEL 9 compatible RPMs here before moving the bundle.
+This app bundle includes webitgpt source code and Python wheels only.
+It does not include a complete OS RPM repository or MongoDB server image.
+
+If the target host cannot access yum/dnf repositories, build a separate prerequisite bundle first:
+
+  bash scripts/prepare_offline_prereq_bundle.sh
+
+Install that prerequisite bundle on the target host before running INSTALL.sh.
 
 Recommended RPMs:
 - python3
@@ -75,9 +82,12 @@ Recommended RPMs:
 - tar
 - curl
 - nmap
+- nmon
+- podman
 - openssh-clients
 
-MongoDB is not bundled here by default. If the new host already has MongoDB, set MONGO_URI in install.env or pass --mongo-uri.
+MongoDB is not bundled in this app package. If the new host has no MongoDB,
+use the prerequisite bundle to load and run the MongoDB container image.
 "@ | Set-Content -Encoding UTF8 (Join-Path $rpms "README.txt")
 
 $archive = Join-Path $OutDir "$name.tar.gz"

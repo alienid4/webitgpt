@@ -1,80 +1,109 @@
-# webitgpt 新主機離線一鍵安裝
+# webitgpt 一鍵離線安裝說明
 
-## 目的
+## 目標
 
-這份文件用於把 webitgpt 從開發/測試主機移植到新的公司主機，例如從 `192.168.1.221` 轉到 `192.168.1.224`。目標主機可設定為不能上網，因此所有 Python 套件必須先放進離線包。
+把 webitgpt 從目前測試環境移植到新主機，例如 `192.168.1.224`。新主機可能不能上網，因此安裝要分成兩種包：
 
-正式離線包不帶入目前測試資料。
+1. **前置套件包**：OS RPM、MongoDB container image、nmap、nmon、podman。
+2. **App 離線包**：webitgpt 程式、Python wheels、INSTALL.sh、systemd、範例設定。
 
-## 原則
+正式移植時不帶入家中測試資料，不帶 Mongo dump，不帶 demo hosts。
 
-- 不帶 `data/`
-- 不帶 `logs/`
-- 不帶 `backup/`
-- 不帶 `venv/`
-- 不帶 `.git/`
-- 不帶 Mongo dump
-- 不帶 demo/test hosts
-- 不帶密碼、token、private key
+## 包裝規則
 
-正式主機的資產資料來源應來自：
+正式安裝包不得包含：
 
-- CMDB Excel/CSV 匯入
-- 少量手動新增
-- IPAM / 網段掃描建立草稿後再補欄位
+- `data/`
+- `logs/`
+- `backup/`
+- `venv/`
+- `.git/`
+- Mongo dump
+- demo/test hosts
+- 密碼、token、private key
 
-## 1. 在 Windows PC 產離線包
+## 1. 先準備前置套件包
+
+如果新主機已經有 Python、nmap、nmon、podman、MongoDB，可以略過本章。
+
+如果新主機不能上網，而且 MongoDB 也沒有，請在一台可上網且同版本的 Rocky/RHEL 9 主機執行：
+
+```bash
+cd /path/to/webitgpt
+bash scripts/prepare_offline_prereq_bundle.sh
+```
+
+會產生：
+
+```text
+dist/webitgpt_prereqs_rocky9_<時間>.tar.gz
+```
+
+這包包含：
+
+- Python / venv 相關 RPM
+- `curl` / `tar` / `rsync`
+- `nmap`
+- `nmon`
+- `podman`
+- MongoDB container image
+- `install_prereqs_offline.sh`
+
+在新主機先執行：
+
+```bash
+tar -xzf webitgpt_prereqs_rocky9_*.tar.gz
+cd webitgpt_prereqs_rocky9_*
+sudo bash install_prereqs_offline.sh
+```
+
+完成後應該會有：
+
+```text
+MongoDB: 127.0.0.1:27017
+container: webitgpt-mongo
+volume: webitgpt_mongo_data
+```
+
+## 2. 在 Windows PC 建立 App 離線包
 
 ```powershell
 cd F:\ClaudeHome\webitgpt
 powershell -ExecutionPolicy Bypass -File .\scripts\prepare_offline_bundle.ps1
 ```
 
-輸出位置：
+會產生：
 
 ```text
 F:\ClaudeHome\webitgpt\dist\webitgpt_offline_<version>_<time>.tar.gz
 ```
 
-離線包內應包含：
+App 離線包包含：
 
-- `files/`：webitgpt 程式與部署檔
+- `files/`：webitgpt 程式
 - `wheelhouse/`：Python 3.9 Linux wheels
-- `INSTALL.sh`：互動式一鍵安裝
+- `INSTALL.sh`：互動式一鍵安裝入口
 - `install_offline.sh`：實際安裝腳本
-- `install.env.example`：非互動設定範本
-- `rpms/README.txt`：OS RPM 準備說明
+- `install.env.example`：範例設定
+- `rpms/README.txt`：提醒 OS RPM 不在 App 包內
 
-## 2. 檢查離線包內容
+## 3. 驗證 App 離線包
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\verify_offline_bundle.ps1 -Archive .\dist\<bundle>.tar.gz
 ```
 
-確認結果必須通過：
+驗證重點：
 
 - 找得到 `INSTALL.sh`
 - 找得到 `install_offline.sh`
 - 找得到 `wheelhouse/`
 - 找得到 `requirements.txt`
-- 沒有 `data/`、`logs/`、`backup/`、`venv/`、`.git/`
+- 不含 `data/`、`logs/`、`backup/`、`venv/`、`.git/`
 
-## 3. OS RPM 準備
+## 4. 安裝 webitgpt App
 
-Python wheels 已在 `wheelhouse/`，但 OS 套件如 Python、curl、rsync、nmap 仍可能需要 RPM。
-
-若 `1.224` 不能上網，請在相同 Rocky/RHEL 版本、有 repo 的主機先下載：
-
-```bash
-cd /path/to/webitgpt
-OUT_DIR=/tmp/webitgpt_rpms bash scripts/prepare_offline_rpms.sh
-```
-
-再把 `/tmp/webitgpt_rpms/*.rpm` 放進離線包的 `rpms/` 目錄。
-
-## 4. 將包移到新主機
-
-在 `192.168.1.224`：
+在新主機執行：
 
 ```bash
 tar -xzf webitgpt_offline_*.tar.gz
@@ -86,31 +115,37 @@ sudo bash INSTALL.sh
 
 - 安裝路徑，預設 `/opt/webitgpt`
 - Runtime user/group，預設 `sysinfra:itagent`
-- MongoDB URI
-- MongoDB DB name
+- MongoDB URI，預設 `mongodb://localhost:27017`
+- MongoDB DB name，預設 `webitgpt`
 - 是否匯入 CMDB CSV
-- 初始 `superadmin` 密碼
+- `superadmin` 初始密碼
 
-## 5. MongoDB
+## 5. MongoDB 原則
 
-如果新主機已經有 MongoDB：
+如果新主機已有 MongoDB：
 
 ```text
 MongoDB URI: mongodb://localhost:27017
 MongoDB DB: webitgpt
 ```
 
-安裝程式只初始化 webitgpt 需要的 collections/indexes，不應覆蓋其他 DB。
+如果新主機沒有 MongoDB，先執行前置套件包，不要直接跑 App 包。
+
+禁止把家中測試 Mongo dump 當成新主機初始資料。正式環境資料來源只允許：
+
+- CMDB Excel/CSV 匯入
+- 少量人工建檔
+- 後續掃描建立草稿
 
 ## 6. CMDB 匯入
-
-初次安裝可以不匯入 CMDB。安裝完成後再從 UI 匯入也可以。
 
 最小 CSV 欄位：
 
 ```csv
 asset_name,hostname,primary_ip,os,environment,datacenter,owner,admin,notes
 ```
+
+新主機第一次建置時可以用 `INSTALL.sh` 指定 CSV，也可以先安裝空系統，再從 UI 匯入。
 
 ## 7. 安裝後驗證
 
@@ -121,7 +156,7 @@ systemctl status webitgpt --no-pager
 journalctl -u webitgpt -n 80 --no-pager
 ```
 
-瀏覽器：
+瀏覽器開：
 
 ```text
 http://192.168.1.224:8002
@@ -129,15 +164,15 @@ http://192.168.1.224:8002
 
 確認：
 
-- webapp 可以開
-- superadmin 可以登入
+- webapp 可開啟
 - MongoDB ready
-- 沒有 221 測試主機資料
-- 可以匯入 CMDB CSV 或手動新增資產
+- superadmin 可登入
+- 沒有家中測試資料
+- CMDB CSV 匯入結果正確
 
-## 8. 不能做的事
+## 8. 不可做
 
-- 不要把 221 的 MongoDB dump 當成新主機初始資料。
-- 不要把家中測試資料帶到正式主機。
-- 不要在正式包內保存 superadmin 密碼。
-- 不要要求目標主機上網下載 Python 套件。
+- 不要把 221 的 MongoDB dump 匯到新正式主機。
+- 不要把測試 hosts 當正式資料。
+- 不要把密碼寫進 GitHub。
+- 不要把 App 包誤認為完整 OS 離線安裝包。
