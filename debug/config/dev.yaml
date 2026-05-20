@@ -1,0 +1,5 @@
+debug:
+  dry_run: true
+  verbose: false
+  mask_sensitive_data: true
+  intended_llm: GPT Enterprise only

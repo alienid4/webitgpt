@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}平台支援 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>平台支援</h1>
+  <div class="summary-grid">
+    <a class="metric" href="#platform-details"><strong>{{ "就緒" if status.vmware_ready else "待設定" }}</strong><span>VMware</span></a>
+    <a class="metric" href="#platform-details"><strong>{{ "就緒" if status.aix_ready else "未就緒" }}</strong><span>AIX ssh_raw</span></a>
+    <a class="metric" href="#platform-details"><strong>{{ "就緒" if status.as400_ready else "未就緒" }}</strong><span>AS400</span></a>
+    <a class="metric" href="#platform-details"><strong>{{ "啟用" if status.read_only_mode else "停用" }}</strong><span>Phase 唯讀模式</span></a>
+  </div>
+  <table id="platform-details">
+    <thead><tr><th>主機類型</th><th>數量</th></tr></thead>
+    <tbody>{% for key, value in status.counts.items() %}<tr><td>{{ key }}</td><td>{{ value }}</td></tr>{% endfor %}</tbody>
+  </table>
+</section>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}帳號設定 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel narrow" id="mfa-details">
+  <h1>帳號設定</h1>
+  <div class="notice">OTP / MFA 驗證目前已停用。開發階段登入只需要帳號與密碼。</div>
+  <div class="summary-grid">
+    <a class="metric" href="#mfa-details"><strong>停用</strong><span>OTP 驗證</span></a>
+    <a class="metric" href="#mfa-details"><strong>{{ user.username }}</strong><span>目前帳號</span></a>
+  </div>
+</section>
+{% endblock %}

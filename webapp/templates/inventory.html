@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - webitgpt{% endblock %}
+{% block content %}
+<section class="panel report-hero">
+  <div>
+    <p class="eyebrow">SOFTWARE INVENTORY</p>
+    <h1>{{ title }}</h1>
+    <p class="muted">支援套件搜尋、主機篩選、版本變更追蹤，以及 CSV / JSON 匯出。</p>
+  </div>
+  <div class="actions">
+    {% if kind == "software" %}
+    <form method="post" action="{{ url_for('api_inventory.software_collect_page') }}" data-submit-status data-submit-message="正在採集軟體盤點資料，請稍候。"><button class="btn primary" type="submit">沿用冷卻規則採集</button></form>
+    <form method="post" action="{{ url_for('api_inventory.software_collect_page') }}" data-submit-status data-submit-message="正在採集軟體盤點資料，請稍候。"><input type="hidden" name="force" value="1"><button class="btn secondary" type="submit">強制重新盤點</button></form>
+    <a class="btn" href="{{ url_for('api_inventory.software_csv_page', q=inventory.filters.q, host=inventory.filters.host) }}">匯出 CSV</a>
+    <a class="btn" href="{{ url_for('api_inventory.software_json_page', q=inventory.filters.q, host=inventory.filters.host) }}">JSON</a>
+    <a class="btn secondary" href="{{ url_for('api_inventory.inventory_diff_report_page', kind=kind) }}">差異報告</a>
+    {% else %}
+    <button class="btn primary" type="button" data-api-post="/api/inventory/{{ kind }}/collect" data-payload='{"limit":50}' data-reload-on-success="true" data-busy-text="採集中" data-submit-message="正在採集盤點資料，請稍候。">立即採集</button>
+    <a class="btn" href="/api/inventory/{{ kind }}">JSON API</a>
+    {% endif %}
+  </div>
+  <div class="submit-status" hidden aria-live="polite"></div>
+</section>
+
+{% if kind == "software" %}
+<section class="panel sticky-toolbar">
+  <form class="filter-bar" method="get" action="{{ url_for('api_inventory.software_page') }}">
+    <label><span>主機</span><select name="host"><option value="">全部</option>{% for host in inventory.hosts %}<option value="{{ host }}" {% if inventory.filters.host == host %}selected{% endif %}>{{ host }}</option>{% endfor %}</select></label>
+    <label><span>搜尋</span><input name="q" value="{{ inventory.filters.q or '' }}" placeholder="套件 / 版本 / 來源 / 狀態 / 主機 / IP"></label>
+    <button class="btn primary" type="submit">篩選</button>
+    <a class="btn secondary" href="{{ url_for('api_inventory.software_page') }}">清除</a>
+  </form>
+  <div class="filter-result-line">
+    <strong>搜尋結果：{{ inventory.summary.packages }} 筆</strong>
+    <span class="text-muted-sm">
+      {% if inventory.filters.host %}主機={{ inventory.filters.host }}{% else %}全部主機{% endif %}
+      {% if inventory.filters.q %} / 關鍵字="{{ inventory.filters.q }}"{% endif %}
+    </span>
+  </div>
+  <div class="submit-status" hidden aria-live="polite"></div>
+</section>
+
+<section class="panel">
+  <div class="summary-grid">
+    <a class="metric inventory-metric-link" href="#software-packages"><strong>{{ inventory.summary.hosts }}</strong><span>符合主機</span></a>
+    <a class="metric inventory-metric-link" href="#software-history"><strong>{{ inventory.summary.hosts_total }}</strong><span>已採集主機</span></a>
+    <a class="metric inventory-metric-link" href="#software-packages"><strong>{{ inventory.summary.packages }}</strong><span>套件筆數</span></a>
+    <a class="metric inventory-metric-link" href="#software-changes"><strong>{{ inventory.summary.changes }}</strong><span>版本異動</span></a>
+  </div>
+  {% if inventory.history.latest %}
+  <p class="text-muted-sm">最近盤點批次：{{ inventory.history.latest.run_id }} / {{ inventory.history.latest.started_at }} / 狀態 {{ inventory.history.latest.status }}。預設 360 分鐘內再次盤點會沿用最近結果，避免造成網路與主機負擔。</p>
+  {% endif %}
+</section>
+
+<section class="panel" id="software-history">
+  <h2>盤點歷史與差異</h2>
+  <div class="summary-grid">
+    <a class="metric inventory-metric-link" href="#software-history-table"><strong>{{ inventory.history.runs|length }}</strong><span>歷史批次</span></a>
+    <a class="metric inventory-metric-link" href="{{ url_for('api_inventory.inventory_diff_report_page', kind=kind, change_type='新增') }}#diff-details"><strong>{{ inventory.history.diff.added if inventory.history.diff else 0 }}</strong><span>新增</span></a>
+    <a class="metric inventory-metric-link" href="{{ url_for('api_inventory.inventory_diff_report_page', kind=kind, change_type='移除') }}#diff-details"><strong>{{ inventory.history.diff.removed if inventory.history.diff else 0 }}</strong><span>移除</span></a>
+    <a class="metric inventory-metric-link" href="{{ url_for('api_inventory.inventory_diff_report_page', kind=kind, change_type='變更') }}#diff-details"><strong>{{ inventory.history.diff.changed if inventory.history.diff else 0 }}</strong><span>變更</span></a>
+  </div>
+  <table class="data-table" id="software-history-table">
+    <thead><tr><th>批次</th><th>開始時間</th><th>筆數</th><th>狀態</th><th>模式</th></tr></thead>
+    <tbody>
+      {% for run in inventory.history.runs %}
+      <tr><td class="code-inline">{{ run.run_id }}</td><td>{{ run.started_at }}</td><td>{{ run.count or "-" }}</td><td>{{ run.status }}</td><td>{% if run.force %}強制{% else %}一般{% endif %}</td></tr>
+      {% else %}
+      <tr><td colspan="5" class="no-data">尚無盤點歷史。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel" id="software-changes">
+  <h2>版本變更追蹤</h2>
+  <table class="data-table">
+    <thead><tr><th>時間</th><th>主機</th><th>變更</th></tr></thead>
+    <tbody>
+      {% for row in inventory.changes %}
+      <tr>
+        <td>{{ row.created_at }}</td>
+        <td>{{ row.hostname }}</td>
+        <td>{% for change in row.changes %}<span class="badge-warn">{{ change.type }} {{ change.name }} {{ change.before }} → {{ change.after }}</span>{% endfor %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3" class="no-data">目前沒有版本變更紀錄。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel" id="software-packages">
+  <h2>套件清冊</h2>
+  <table class="data-table">
+    <thead><tr><th>主機</th><th>IP</th><th>平台</th><th>套件</th><th>版本</th><th>來源</th><th>狀態</th><th>採集時間</th></tr></thead>
+    <tbody>
+      {% for item in inventory["items"] %}
+      <tr>
+        <td>{{ item.hostname }}</td>
+        <td>{{ item.ip or "-" }}</td>
+        <td>{{ item.host_type }}</td>
+        <td><strong>{{ item.name }}</strong></td>
+        <td>{{ item.version or "-" }}</td>
+        <td>{{ item.source or "-" }}</td>
+        <td>{{ item.status }}</td>
+        <td>{{ item.collected_at }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" class="no-data">尚無軟體盤點資料，請先按「立即採集」。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% else %}
+<section class="panel">
+  <table class="data-table">
+    <thead><tr><th>資產編號</th><th>主機名稱</th><th>類型</th><th>項目</th><th>採集時間</th></tr></thead>
+    <tbody>
+      {% for row in inventory["items"] %}
+      <tr>
+        <td>{{ row.asset_seq }}</td>
+        <td>{{ row.hostname }}</td>
+        <td>{{ row.host_type }}</td>
+        <td>{% for item in row["items"] %}<span class="badge-ok">{{ item.name or item.user }} {{ item.status }}</span>{% endfor %}</td>
+        <td>{{ row.collected_at }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="no-data">尚無盤點資料。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/admin_tools.js') }}"></script>{% endblock %}

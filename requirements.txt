@@ -1,0 +1,14 @@
+Flask>=3.0,<4
+pymongo>=4.6,<5
+paramiko>=3.4,<4
+pywinrm>=0.5,<1
+flask-smorest>=0.44,<1
+APScheduler>=3.10,<4
+cryptography>=42,<46
+pyotp>=2.9,<3
+Werkzeug>=3.0,<4
+gunicorn>=22,<24
+prometheus-client>=0.20,<1
+structlog>=24,<26
+requests>=2.31,<3
+pytest>=8,<10

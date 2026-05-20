@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Housekeeping - webitgpt{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div>
+    <p class="eyebrow">HOUSEKEEPING</p>
+    <h1>Housekeeping</h1>
+    <p class="muted">管理 Mongo、NMON raw、主機資料、正式程式碼快取、patch 回滾備份與暫存檔。預設可先 dry-run，只列出會清什麼，不直接刪除。</p>
+  </div>
+  <div class="actions">
+    <button class="btn" type="button" data-busy-text="試跑中" data-submit-message="正在執行 housekeeping dry-run，只檢查不刪除。" data-api-post="/api/housekeeping/run-all" data-payload='{"dry_run":true}'>全部試跑</button>
+    <button class="btn btn-fix" type="button" data-busy-text="清理中" data-submit-message="正在正式執行 housekeeping，會依保留策略清理資料。" data-api-post="/api/housekeeping/run-all" data-payload='{"dry_run":false}'>正式清理</button>
+  </div>
+  <div class="submit-status" hidden aria-live="polite"></div>
+</section>
+
+<section class="panel">
+  <div class="summary-grid">
+    <a class="metric" href="#housekeeping-details"><strong>{{ disk.used_pct }}%</strong><span>磁碟使用率</span></a>
+    <a class="metric" href="#housekeeping-details"><strong>{{ disk.free_h }}</strong><span>可用空間</span></a>
+    <a class="metric" href="#housekeeping-details"><strong>{{ disk.used_h }}</strong><span>已用空間</span></a>
+    <a class="metric" href="#housekeeping-details"><strong>{{ disk.path }}</strong><span>檢查路徑</span></a>
+  </div>
+</section>
+
+<section class="panel" id="housekeeping-details">
+  <div class="section-title compact-title">
+    <h2>清理任務</h2>
+    <span class="text-muted-sm">正式資料不碰主機主檔、使用者、feature flags、API token 內容與 audit log；patch 備份固定保留最新 20 份。</span>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>任務</th>
+        <th>排程</th>
+        <th>目標</th>
+        <th>保留</th>
+        <th>最近結果</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for task in tasks %}
+      <tr>
+        <td><strong>{{ task.name }}</strong><div class="text-muted-sm">{{ task.description }}</div></td>
+        <td>{{ task.schedule }}</td>
+        <td><span class="code-inline">{{ task.target }}</span></td>
+        <td>
+          {% if task.keep_count %}
+          最新 {{ task.keep_count }} 份
+          {% elif task.retention_days %}
+          {{ task.retention_days }} 天
+          {% else %}
+          只檢查
+          {% endif %}
+        </td>
+        <td>
+          {% if task.last_run %}
+          <span class="{% if task.last_run.status == 'fail' %}badge-error{% elif task.last_run.status == 'warn' %}badge-warn{% else %}badge-ok{% endif %}">{{ task.last_run.status }}</span>
+          <div class="text-muted-sm">刪除 {{ task.last_run.deleted_count or 0 }} / 釋放 {{ task.last_run.freed_h or "-" }}</div>
+          {% else %}
+          <span class="text-muted-sm">尚未執行</span>
+          {% endif %}
+        </td>
+        <td>
+          <form method="post" action="{{ url_for('api_housekeeping.run_task_page', task=task.name) }}" data-submit-status data-submit-message="正在執行 housekeeping 任務，請稍候。">
+            <label class="toggle-label"><input type="checkbox" name="dry_run" checked><span>dry-run</span></label>
+            <button class="btn secondary" type="submit">執行</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="no-data">尚無 Housekeeping 任務。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/admin_tools.js') }}"></script>{% endblock %}

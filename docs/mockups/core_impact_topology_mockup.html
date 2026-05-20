@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>核心系統影響圖 Mockup</title>
+  <style>
+    :root {
+      --g1: #26A889;
+      --g2: #1E8A6F;
+      --g-text: #0D5C47;
+      --g-light: #EBF7E8;
+      --orange: #E87C07;
+      --red: #E00B00;
+      --blue: #1f6feb;
+      --purple: #6f42c1;
+      --c1: #141413;
+      --c2: #333333;
+      --c3: #888888;
+      --c4: #BEBEBE;
+      --bg: #FAF9F5;
+      --bg2: #F5F5F5;
+      --white: #FFFFFF;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      color: var(--c1);
+      background: var(--bg);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 18px;
+      background: var(--white);
+      border-bottom: 1px solid var(--c4);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.25;
+    }
+
+    .muted {
+      color: var(--c3);
+      font-size: 13px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    input,
+    select,
+    button {
+      height: 38px;
+      border: 1px solid var(--c4);
+      border-radius: 6px;
+      background: var(--white);
+      padding: 0 12px;
+      font: inherit;
+    }
+
+    input { width: 260px; }
+
+    button {
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .btn-primary {
+      background: var(--g1);
+      color: var(--white);
+      border-color: var(--g1);
+    }
+
+    .btn-warn {
+      color: var(--orange);
+      border-color: var(--orange);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(900px, 1fr) 360px;
+      gap: 14px;
+      padding: 14px;
+    }
+
+    .panel {
+      background: var(--white);
+      border: 1px solid var(--c4);
+      border-radius: var(--radius);
+    }
+
+    .graph-panel {
+      overflow: hidden;
+      min-height: 720px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--c4);
+      font-size: 13px;
+      color: var(--c2);
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      border: 2px solid currentColor;
+    }
+
+    .core-dot { color: var(--red); background: var(--g-light); }
+    .system-dot { color: var(--blue); background: #EEF5FF; }
+    .host-dot { color: var(--g1); background: var(--white); }
+    .risk-dot { color: var(--orange); background: #FFF6E8; }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: 720px;
+      background: var(--white);
+    }
+
+    .lane-title {
+      font-size: 15px;
+      font-weight: 900;
+      fill: var(--g-text);
+    }
+
+    .lane-subtitle {
+      font-size: 12px;
+      fill: var(--c3);
+    }
+
+    .lane-bg {
+      fill: var(--bg2);
+      stroke: var(--c4);
+      stroke-dasharray: 4 4;
+    }
+
+    .edge {
+      fill: none;
+      stroke: var(--blue);
+      stroke-width: 3;
+      marker-end: url(#arrow-blue);
+    }
+
+    .edge-soft {
+      fill: none;
+      stroke: rgba(31, 111, 235, .38);
+      stroke-width: 2;
+      stroke-dasharray: 6 6;
+      marker-end: url(#arrow-blue-soft);
+    }
+
+    .edge-warn {
+      fill: none;
+      stroke: var(--orange);
+      stroke-width: 4;
+      stroke-dasharray: 8 6;
+      marker-end: url(#arrow-orange);
+    }
+
+    .edge-loop {
+      fill: none;
+      stroke: var(--purple);
+      stroke-width: 2.5;
+      stroke-dasharray: 5 6;
+      marker-end: url(#arrow-purple);
+    }
+
+    .edge-label {
+      font: 700 12px "JetBrains Mono", Consolas, monospace;
+      fill: var(--c2);
+      paint-order: stroke;
+      stroke: var(--white);
+      stroke-width: 5px;
+      text-anchor: middle;
+    }
+
+    .node rect,
+    .node circle {
+      stroke-width: 3;
+    }
+
+    .node text {
+      fill: var(--c1);
+      pointer-events: none;
+    }
+
+    .node-main {
+      font-size: 15px;
+      font-weight: 900;
+      text-anchor: middle;
+    }
+
+    .node-sub {
+      font-size: 12px;
+      fill: var(--c3);
+      text-anchor: middle;
+    }
+
+    .core rect {
+      fill: var(--g-light);
+      stroke: var(--g1);
+    }
+
+    .core.selected rect {
+      stroke: var(--red);
+      stroke-width: 4;
+    }
+
+    .system rect {
+      fill: #EEF5FF;
+      stroke: var(--blue);
+    }
+
+    .system.focus rect {
+      fill: #FFF6E8;
+      stroke: var(--orange);
+      stroke-width: 4;
+    }
+
+    .host rect {
+      fill: var(--white);
+      stroke: var(--g1);
+    }
+
+    .host.warn rect {
+      fill: #FFF6E8;
+      stroke: var(--orange);
+    }
+
+    .side {
+      padding: 16px;
+      align-self: start;
+      position: sticky;
+      top: 12px;
+    }
+
+    .side h2 {
+      margin: 0 0 4px;
+      font-size: 23px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border: 1px solid var(--orange);
+      border-radius: 999px;
+      color: var(--orange);
+      font-size: 12px;
+      font-weight: 800;
+      background: #FFF6E8;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 7px 10px;
+      margin: 16px 0;
+    }
+
+    .kv dt {
+      color: var(--c3);
+    }
+
+    .kv dd {
+      margin: 0;
+      font-weight: 800;
+    }
+
+    .section-title {
+      margin: 18px 0 8px;
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    .impact-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .impact-item {
+      border: 1px solid var(--c4);
+      border-radius: 8px;
+      padding: 10px;
+      background: var(--white);
+    }
+
+    .impact-item strong {
+      display: block;
+    }
+
+    .impact-item small {
+      color: var(--c3);
+    }
+
+    .notice {
+      border: 1px solid var(--orange);
+      border-radius: 8px;
+      background: #FFF6E8;
+      padding: 10px;
+    }
+
+    .notice ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .side-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    @media (max-width: 1260px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+      .side {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>核心系統影響圖</h1>
+      <div class="muted">第一欄是六大核心，第二欄是關聯系統，第三欄是選取系統底下的主機 / IP。</div>
+    </div>
+    <div class="toolbar">
+      <input aria-label="搜尋系統" value="好麥證券">
+      <select aria-label="檢視範圍">
+        <option>好麥證券：二跳影響</option>
+        <option>全部六大核心</option>
+        <option>只看維護影響</option>
+        <option>顯示主機 / IP</option>
+      </select>
+      <button class="btn-warn">模擬維護</button>
+      <button class="btn-primary">匯出通知名單</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel graph-panel">
+      <div class="legend">
+        <span><i class="legend-dot core-dot"></i>核心</span>
+        <span><i class="legend-dot system-dot"></i>關聯系統</span>
+        <span><i class="legend-dot host-dot"></i>主機 / IP</span>
+        <span><i class="legend-dot risk-dot"></i>維護或警示焦點</span>
+        <span>實線：已確認關聯</span>
+        <span>虛線：待驗證 / 自動採集</span>
+        <span>紫線：Loop 或反向依賴</span>
+      </div>
+
+      <svg viewBox="0 0 1180 720" role="img" aria-label="核心系統影響圖">
+        <defs>
+          <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 0 L10 5 L0 10 Z" fill="#1f6feb"></path>
+          </marker>
+          <marker id="arrow-blue-soft" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 0 L10 5 L0 10 Z" fill="rgba(31,111,235,.55)"></path>
+          </marker>
+          <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 0 L10 5 L0 10 Z" fill="#E87C07"></path>
+          </marker>
+          <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 0 L10 5 L0 10 Z" fill="#6f42c1"></path>
+          </marker>
+        </defs>
+
+        <rect class="lane-bg" x="18" y="56" width="240" height="610" rx="8"></rect>
+        <rect class="lane-bg" x="326" y="56" width="420" height="610" rx="8"></rect>
+        <rect class="lane-bg" x="820" y="56" width="338" height="610" rx="8"></rect>
+
+        <text class="lane-title" x="36" y="35">第一圈：六大核心</text>
+        <text class="lane-subtitle" x="36" y="53">先看核心業務分類</text>
+        <text class="lane-title" x="344" y="35">第二圈：關聯系統</text>
+        <text class="lane-subtitle" x="344" y="53">看核心連到哪些系統</text>
+        <text class="lane-title" x="838" y="35">第三圈：主機 / IP</text>
+        <text class="lane-subtitle" x="838" y="53">點選系統後才展開</text>
+
+        <!-- core nodes -->
+        <g class="node core selected">
+          <rect x="54" y="90" width="168" height="58" rx="8"></rect>
+          <text class="node-main" x="138" y="116">好麥證券</text>
+          <text class="node-sub" x="138" y="138">核心 1</text>
+        </g>
+        <g class="node core">
+          <rect x="54" y="174" width="168" height="58" rx="8"></rect>
+          <text class="node-main" x="138" y="200">交易核心</text>
+          <text class="node-sub" x="138" y="222">核心 2</text>
+        </g>
+        <g class="node core">
+          <rect x="54" y="258" width="168" height="58" rx="8"></rect>
+          <text class="node-main" x="138" y="284">帳務核心</text>
+          <text class="node-sub" x="138" y="306">核心 3</text>
+        </g>
+        <g class="node core">
+          <rect x="54" y="342" width="168" height="58" rx="8"></rect>
+          <text class="node-main" x="138" y="368">通路核心</text>
+          <text class="node-sub" x="138" y="390">核心 4</text>
+        </g>
+        <g class="node core">
+          <rect x="54" y="426" width="168" height="58" rx="8"></rect>
+          <text class="node-main" x="138" y="452">資料核心</text>
+          <text class="node-sub" x="138" y="474">核心 5</text>
+        </g>
+        <g class="node core">
+          <rect x="54" y="510" width="168" height="58" rx="8"></rect>
+          <text class="node-main" x="138" y="536">巡檢系統</text>
+          <text class="node-sub" x="138" y="558">第六核心</text>
+        </g>
+
+        <!-- system nodes -->
+        <g class="node system focus">
+          <rect x="380" y="88" width="220" height="62" rx="8"></rect>
+          <text class="node-main" x="490" y="114">S-004 好麥證券</text>
+          <text class="node-sub" x="490" y="138">維護焦點 / AP</text>
+        </g>
+        <g class="node system">
+          <rect x="452" y="178" width="220" height="58" rx="8"></rect>
+          <text class="node-main" x="562" y="204">好麥內湖</text>
+          <text class="node-sub" x="562" y="226">前端入口</text>
+        </g>
+        <g class="node system">
+          <rect x="390" y="262" width="220" height="58" rx="8"></rect>
+          <text class="node-main" x="500" y="288">好麥經紀 R6DB</text>
+          <text class="node-sub" x="500" y="310">資料庫</text>
+        </g>
+        <g class="node system">
+          <rect x="470" y="346" width="220" height="58" rx="8"></rect>
+          <text class="node-main" x="580" y="372">批次匯入</text>
+          <text class="node-sub" x="580" y="394">Batch</text>
+        </g>
+        <g class="node system">
+          <rect x="380" y="430" width="220" height="58" rx="8"></rect>
+          <text class="node-main" x="490" y="456">好麥風控</text>
+          <text class="node-sub" x="490" y="478">風控檢核</text>
+        </g>
+        <g class="node system">
+          <rect x="488" y="514" width="220" height="58" rx="8"></rect>
+          <text class="node-main" x="598" y="540">巡檢系統主機</text>
+          <text class="node-sub" x="598" y="562">監控 / 告警</text>
+        </g>
+
+        <!-- host nodes -->
+        <g class="node host warn">
+          <rect x="872" y="88" width="210" height="54" rx="8"></rect>
+          <text class="node-main" x="977" y="112">10.1.4.21</text>
+          <text class="node-sub" x="977" y="134">AP / 維護中</text>
+        </g>
+        <g class="node host">
+          <rect x="872" y="164" width="210" height="54" rx="8"></rect>
+          <text class="node-main" x="977" y="188">10.1.4.22</text>
+          <text class="node-sub" x="977" y="210">FE</text>
+        </g>
+        <g class="node host">
+          <rect x="872" y="240" width="210" height="54" rx="8"></rect>
+          <text class="node-main" x="977" y="264">10.1.4.23</text>
+          <text class="node-sub" x="977" y="286">DB</text>
+        </g>
+        <g class="node host">
+          <rect x="872" y="316" width="210" height="54" rx="8"></rect>
+          <text class="node-main" x="977" y="340">10.1.4.24</text>
+          <text class="node-sub" x="977" y="362">Batch</text>
+        </g>
+        <g class="node host">
+          <rect x="872" y="514" width="210" height="54" rx="8"></rect>
+          <text class="node-main" x="977" y="538">192.168.1.221</text>
+          <text class="node-sub" x="977" y="560">巡檢主機</text>
+        </g>
+
+        <!-- edges core -> systems -->
+        <path class="edge-warn" d="M222 119 C285 119, 320 119, 380 119"></path>
+        <path class="edge" d="M222 119 C310 138, 365 170, 452 207"></path>
+        <path class="edge" d="M222 119 C300 175, 335 230, 390 291"></path>
+        <path class="edge-soft" d="M222 119 C320 220, 405 305, 470 375"></path>
+        <path class="edge-soft" d="M222 119 C300 270, 335 355, 380 459"></path>
+        <path class="edge-loop" d="M222 539 C310 540, 400 541, 488 543"></path>
+
+        <!-- edges systems -> hosts -->
+        <path class="edge-warn" d="M600 119 C700 116, 780 114, 872 115"></path>
+        <path class="edge-soft" d="M600 119 C700 150, 780 176, 872 191"></path>
+        <path class="edge-soft" d="M600 119 C700 190, 780 238, 872 267"></path>
+        <path class="edge-soft" d="M600 119 C695 225, 770 300, 872 343"></path>
+        <path class="edge" d="M708 543 C760 543, 815 542, 872 541"></path>
+
+        <!-- edges between second-ring systems -->
+        <path class="edge" d="M600 119 C660 140, 690 165, 672 207"></path>
+        <path class="edge" d="M600 119 C640 172, 636 230, 610 291"></path>
+        <path class="edge-loop" d="M490 430 C412 360, 417 230, 490 150"></path>
+
+        <text class="edge-label" x="298" y="108">核心關聯</text>
+        <text class="edge-label" x="740" y="105">443 HTTPS</text>
+        <text class="edge-label" x="760" y="252">1521 Oracle</text>
+        <text class="edge-label" x="795" y="532">9444 Edge</text>
+        <text class="edge-label" x="425" y="355">Loop</text>
+      </svg>
+    </section>
+
+    <aside class="panel side">
+      <span class="badge">模擬維護</span>
+      <h2>S-004 好麥證券</h2>
+      <div class="muted">從核心「好麥證券」展開，顯示二跳影響。</div>
+
+      <dl class="kv">
+        <dt>所屬核心</dt><dd>好麥證券</dd>
+        <dt>關聯系統</dt><dd>5 套</dd>
+        <dt>主機 / IP</dt><dd>4 台</dd>
+        <dt>Loop</dt><dd>1 條</dd>
+        <dt>通知對象</dt><dd>4 組</dd>
+      </dl>
+
+      <div class="section-title">可能受影響</div>
+      <div class="impact-list">
+        <div class="impact-item">
+          <strong>好麥內湖</strong>
+          <small>443 HTTPS，前端入口需觀察。</small>
+        </div>
+        <div class="impact-item">
+          <strong>好麥經紀 R6DB</strong>
+          <small>1521 Oracle，查詢與批次可能受影響。</small>
+        </div>
+        <div class="impact-item">
+          <strong>批次匯入</strong>
+          <small>夜間批次，避免維護時間重疊。</small>
+        </div>
+        <div class="impact-item">
+          <strong>巡檢系統主機</strong>
+          <small>9444 Edge，維護中可能少一段採集資料。</small>
+        </div>
+      </div>
+
+      <div class="section-title">通知名單</div>
+      <div class="notice">
+        <ul>
+          <li>好麥證券 AP 負責人</li>
+          <li>DBA 值班窗口</li>
+          <li>批次排程負責人</li>
+          <li>系統架構部值班主管</li>
+        </ul>
+      </div>
+
+      <div class="side-actions">
+        <button>只看一跳</button>
+        <button>看二跳</button>
+        <button>編輯關聯</button>
+        <button class="btn-primary">匯出通知</button>
+      </div>
+    </aside>
+  </main>
+</body>
+</html>

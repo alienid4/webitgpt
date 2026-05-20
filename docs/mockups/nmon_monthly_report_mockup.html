@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>效能月報 mockup</title>
+  <style>
+    :root {
+      --g1: #26A889;
+      --g2: #1E8A6F;
+      --g-text: #0D5C47;
+      --g-light: #EBF7E8;
+      --orange: #E87C07;
+      --red: #E00B00;
+      --c1: #141413;
+      --c2: #333333;
+      --c3: #888888;
+      --c4: #BEBEBE;
+      --bg: #FAF9F5;
+      --bg2: #F5F5F5;
+      --white: #fff;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 10px 28px rgba(20, 20, 19, .08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--c1);
+      font-family: "Noto Sans TC", system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .topbar {
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--c4);
+      background: var(--white);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .brand { font-weight: 900; font-size: 20px; }
+    .meta { color: var(--c2); font-family: "JetBrains Mono", monospace; font-weight: 700; }
+
+    .nav {
+      display: flex;
+      gap: 20px;
+      padding: 10px 20px;
+      background: var(--white);
+      border-bottom: 1px solid var(--c4);
+      font-weight: 800;
+    }
+    .nav span { color: var(--c2); }
+    .nav .active { color: var(--g-text); border-bottom: 3px solid var(--g1); padding-bottom: 6px; }
+
+    main { padding: 18px; display: grid; gap: 14px; }
+    .panel {
+      background: var(--white);
+      border: 1px solid var(--c4);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    .eyebrow {
+      margin: 0 0 6px;
+      color: var(--g-text);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    h1, h2, h3 { margin: 0; }
+    h1 { font-size: 30px; }
+    h2 { font-size: 22px; margin-bottom: 12px; }
+    h3 { font-size: 16px; }
+    .muted { color: var(--c3); }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 150px 180px 180px 180px 1fr auto auto;
+      gap: 10px;
+      align-items: end;
+      margin-top: 16px;
+    }
+    label { display: grid; gap: 5px; font-weight: 800; color: var(--c2); }
+    select, input {
+      min-height: 38px;
+      border: 1px solid var(--c4);
+      border-radius: 6px;
+      padding: 8px 10px;
+      background: var(--white);
+      font: inherit;
+    }
+    .btn {
+      min-height: 38px;
+      border: 1px solid var(--c4);
+      background: var(--white);
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-weight: 800;
+    }
+    .btn.primary { background: var(--g1); border-color: var(--g1); color: var(--white); }
+
+    .status-strip {
+      display: grid;
+      grid-template-columns: 260px repeat(5, 1fr);
+      gap: 10px;
+    }
+    .month-status {
+      border: 2px solid var(--orange);
+      background: #fffaf2;
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      display: grid;
+      gap: 8px;
+    }
+    .status-word {
+      font-size: 34px;
+      font-weight: 900;
+      color: var(--orange);
+    }
+    .metric {
+      display: grid;
+      gap: 8px;
+      border: 1px solid var(--c4);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      text-decoration: none;
+      color: inherit;
+      background: var(--white);
+    }
+    .metric strong {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 26px;
+    }
+    .metric span { color: var(--c3); font-size: 13px; }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 14px;
+    }
+    .chart {
+      height: 260px;
+      border: 1px solid var(--c4);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 10px;
+      background:
+        linear-gradient(to top, transparent 24%, rgba(190,190,190,.35) 25%, transparent 26%),
+        linear-gradient(to top, transparent 49%, rgba(190,190,190,.35) 50%, transparent 51%),
+        linear-gradient(to top, transparent 74%, rgba(190,190,190,.35) 75%, transparent 76%),
+        var(--white);
+    }
+    .bars {
+      display: grid;
+      grid-template-columns: repeat(31, 1fr);
+      align-items: end;
+      gap: 4px;
+      min-height: 160px;
+    }
+    .bar {
+      border-radius: 5px 5px 0 0;
+      background: var(--g1);
+      min-height: 8px;
+    }
+    .bar.warn { background: var(--orange); }
+    .bar.error { background: var(--red); }
+    .legend { display: flex; gap: 14px; color: var(--c3); font-size: 13px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+    .dot.ok { background: var(--g1); }
+    .dot.warn { background: var(--orange); }
+    .dot.error { background: var(--red); }
+
+    .heatmap {
+      display: grid;
+      gap: 10px;
+    }
+    .host-row {
+      display: grid;
+      grid-template-columns: 150px 1fr 68px;
+      gap: 10px;
+      align-items: center;
+    }
+    .cells {
+      display: grid;
+      grid-template-columns: repeat(31, 1fr);
+      gap: 3px;
+    }
+    .cell {
+      aspect-ratio: 1;
+      border-radius: 3px;
+      background: var(--g-light);
+      border: 1px solid rgba(38,168,137,.35);
+    }
+    .cell.warn { background: #fff1de; border-color: rgba(232,124,7,.55); }
+    .cell.error { background: #ffe8e6; border-color: rgba(224,11,0,.55); }
+    .score {
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 900;
+      color: var(--g-text);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .risk-card {
+      border: 1px solid var(--c4);
+      border-left: 5px solid var(--g1);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+      min-height: 138px;
+    }
+    .risk-card.warn { border-left-color: var(--orange); }
+    .risk-card.error { border-left-color: var(--red); }
+    .risk-card strong { font-size: 22px; font-family: "JetBrains Mono", monospace; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--white);
+    }
+    th, td {
+      text-align: left;
+      border-bottom: 1px solid var(--c4);
+      padding: 10px 12px;
+      vertical-align: top;
+    }
+    th { color: var(--c3); background: var(--bg2); }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--g1);
+      color: var(--g-text);
+      background: var(--g-light);
+      border-radius: 999px;
+      padding: 3px 10px;
+      white-space: nowrap;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .badge.warn { border-color: var(--orange); color: var(--orange); background: #fffaf2; }
+    .badge.error { border-color: var(--red); color: var(--red); background: #fff4f3; }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .recommend-list {
+      display: grid;
+      gap: 10px;
+    }
+    .recommend {
+      border: 1px solid var(--c4);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      background: var(--white);
+    }
+    .recommend b { color: var(--g-text); }
+
+    @media (max-width: 1100px) {
+      .filters, .status-strip, .dashboard-grid, .cards, .two-col { grid-template-columns: 1fr; }
+      .hero { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">IT 巡檢系統</div>
+    <div class="meta">v1.0.2.x | 2026-05-17 09:30</div>
+  </header>
+  <nav class="nav">
+    <span>資產管理</span>
+    <span>帳號盤點</span>
+    <span>開門檢查</span>
+    <span class="active">效能月報</span>
+    <span>系統拓撲</span>
+    <span>系統管理</span>
+  </nav>
+
+  <main>
+    <section class="panel hero">
+      <div>
+        <p class="eyebrow">NMON PERFORMANCE MONTHLY REPORT</p>
+        <h1>效能月報</h1>
+        <p class="muted">先給主管看本月容量與風險，再給維運追到主機、日期與指標。</p>
+        <div class="filters">
+          <label>月份
+            <input value="2026-05">
+          </label>
+          <label>系統
+            <select><option>全部系統</option><option>巡檢系統主機</option></select>
+          </label>
+          <label>環境
+            <select><option>全部環境</option><option>DEV</option><option>PROD</option></select>
+          </label>
+          <label>機房
+            <select><option>全部機房</option><option>敦南</option><option>內湖</option></select>
+          </label>
+          <label>搜尋
+            <input placeholder="主機 / IP / 部門">
+          </label>
+          <button class="btn">套用</button>
+          <button class="btn primary">匯出月報</button>
+        </div>
+      </div>
+      <div class="month-status">
+        <span class="muted">本月結論</span>
+        <div class="status-word">注意</div>
+        <div>3 台主機需追蹤，1 台磁碟容量接近 90%。</div>
+      </div>
+    </section>
+
+    <section class="status-strip">
+      <div class="metric">
+        <strong>23</strong>
+        <span>納管主機</span>
+      </div>
+      <div class="metric">
+        <strong>21</strong>
+        <span>資料完整主機</span>
+      </div>
+      <div class="metric">
+        <strong>3</strong>
+        <span>需追蹤主機</span>
+      </div>
+      <div class="metric">
+        <strong>1</strong>
+        <span>容量風險</span>
+      </div>
+      <div class="metric">
+        <strong>96%</strong>
+        <span>採樣覆蓋率</span>
+      </div>
+      <div class="metric">
+        <strong>2,976</strong>
+        <span>本月採樣筆數</span>
+      </div>
+    </section>
+
+    <section class="dashboard-grid">
+      <div class="panel">
+        <h2>本月整體趨勢</h2>
+        <div class="chart">
+          <div class="legend">
+            <span><i class="dot ok"></i>正常</span>
+            <span><i class="dot warn"></i>注意</span>
+            <span><i class="dot error"></i>異常</span>
+          </div>
+          <div class="bars">
+            <i class="bar" style="height:34%"></i><i class="bar" style="height:38%"></i><i class="bar" style="height:33%"></i>
+            <i class="bar" style="height:43%"></i><i class="bar warn" style="height:72%"></i><i class="bar" style="height:36%"></i>
+            <i class="bar" style="height:41%"></i><i class="bar" style="height:39%"></i><i class="bar" style="height:46%"></i>
+            <i class="bar" style="height:47%"></i><i class="bar warn" style="height:78%"></i><i class="bar" style="height:44%"></i>
+            <i class="bar" style="height:42%"></i><i class="bar" style="height:40%"></i><i class="bar" style="height:43%"></i>
+            <i class="bar" style="height:45%"></i><i class="bar" style="height:47%"></i><i class="bar warn" style="height:69%"></i>
+            <i class="bar" style="height:50%"></i><i class="bar" style="height:49%"></i><i class="bar" style="height:52%"></i>
+            <i class="bar" style="height:54%"></i><i class="bar" style="height:51%"></i><i class="bar error" style="height:91%"></i>
+            <i class="bar warn" style="height:80%"></i><i class="bar" style="height:57%"></i><i class="bar" style="height:53%"></i>
+            <i class="bar" style="height:52%"></i><i class="bar" style="height:48%"></i><i class="bar" style="height:46%"></i>
+            <i class="bar" style="height:44%"></i>
+          </div>
+          <div class="muted">每日最高資源壓力分數，點日期可展開當日異常主機。</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>主機熱區圖</h2>
+        <div class="heatmap">
+          <div class="host-row">
+            <b>secansible</b>
+            <div class="cells">
+              <i class="cell"></i><i class="cell"></i><i class="cell warn"></i><i class="cell"></i><i class="cell"></i>
+              <i class="cell"></i><i class="cell warn"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+              <i class="cell"></i><i class="cell"></i><i class="cell warn"></i><i class="cell"></i><i class="cell"></i>
+              <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell error"></i><i class="cell warn"></i>
+              <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+              <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+            </div>
+            <span class="score">78</span>
+          </div>
+          <div class="host-row">
+            <b>secclient1</b>
+            <div class="cells">
+              <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+              <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell warn"></i><i class="cell"></i>
+              <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+              <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+              <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+              <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+            </div>
+            <span class="score">92</span>
+          </div>
+          <div class="host-row">
+            <b>sec9c2</b>
+            <div class="cells">
+              <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+              <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+              <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+              <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+              <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+              <i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i>
+            </div>
+            <span class="score">99</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cards">
+      <article class="risk-card warn">
+        <h3>磁碟容量</h3>
+        <strong>91%</strong>
+        <span>secansible `/` 分割區偏高</span>
+        <span class="badge warn">需規劃清理或擴充</span>
+      </article>
+      <article class="risk-card">
+        <h3>CPU 尖峰</h3>
+        <strong>64%</strong>
+        <span>本月沒有長時間 CPU 壓力</span>
+        <span class="badge">正常</span>
+      </article>
+      <article class="risk-card">
+        <h3>記憶體</h3>
+        <strong>74%</strong>
+        <span>尖峰可接受，沒有持續升高</span>
+        <span class="badge">正常</span>
+      </article>
+      <article class="risk-card warn">
+        <h3>採樣品質</h3>
+        <strong>96%</strong>
+        <span>1 台主機有 2 天缺資料</span>
+        <span class="badge warn">需補採樣</span>
+      </article>
+    </section>
+
+    <section class="two-col">
+      <div class="panel">
+        <h2>Top 風險主機</h2>
+        <table>
+          <thead>
+            <tr><th>主機</th><th>本月狀態</th><th>主要原因</th><th>建議</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>secansible</td><td><span class="badge warn">注意</span></td><td>磁碟 91%，採樣有尖峰</td><td>7 天內清理或擴充</td></tr>
+            <tr><td>secclient1</td><td><span class="badge">正常</span></td><td>記憶體尖峰 68%</td><td>持續觀察</td></tr>
+            <tr><td>sec9c2</td><td><span class="badge">正常</span></td><td>CPU / MEM / DISK 穩定</td><td>不需處置</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h2>主管摘要</h2>
+        <div class="recommend-list">
+          <div class="recommend"><b>本月整體：</b>系統可用，沒有 CPU 或記憶體容量危機。</div>
+          <div class="recommend"><b>需要處理：</b>secansible 磁碟使用率達 91%，建議安排清理或擴充。</div>
+          <div class="recommend"><b>需要補強：</b>部分主機採樣覆蓋率不足，需確認排程或 agent 狀態。</div>
+          <div class="recommend"><b>下月追蹤：</b>磁碟成長率、採樣完整率、Top 5 高負載主機。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>維運明細</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>主機</th><th>CPU 平均 / P95 / Max</th><th>Memory 平均 / P95 / Max</th><th>Disk Max</th><th>Swap Max</th><th>採樣率</th><th>狀態</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>secansible</td><td>9% / 31% / 64%</td><td>68% / 72% / 74%</td><td>91%</td><td>2%</td><td>98%</td><td><span class="badge warn">注意</span></td></tr>
+          <tr><td>secclient1</td><td>6% / 22% / 48%</td><td>54% / 62% / 68%</td><td>63%</td><td>0%</td><td>94%</td><td><span class="badge">正常</span></td></tr>
+          <tr><td>sec9c2</td><td>3% / 14% / 21%</td><td>16% / 20% / 25%</td><td>18%</td><td>0%</td><td>97%</td><td><span class="badge">正常</span></td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

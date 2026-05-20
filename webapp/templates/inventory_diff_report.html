@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}盤點差異報告 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="page-header">
+    <div>
+      <p class="eyebrow">INVENTORY DIFF REPORT</p>
+      <h1>盤點差異報告</h1>
+      <p class="text-muted-sm">
+        類型：{{ report.kind }} /
+        本次批次：{{ report.run.run_id if report.run else "-" }} /
+        前次批次：{{ report.previous_run.run_id if report.previous_run else "無前次資料" }}
+        {% if report.filter.change_type %} /
+        目前篩選：{{ report.filter.change_type }}
+        {% endif %}
+      </p>
+    </div>
+    <div class="actions">
+      <a class="btn secondary" href="{{ url_for('api_inventory.inventory_history_api', kind=report.kind) }}">JSON</a>
+      <a class="btn primary" href="{{ url_for('api_inventory.inventory_diff_report_csv', kind=report.kind, run_id=report.run.run_id if report.run else '', change_type=report.filter.change_type) }}">匯出 CSV</a>
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <a class="metric inventory-metric-link" href="{{ url_for('api_inventory.inventory_diff_report_page', kind=report.kind, run_id=report.run.run_id if report.run else '', change_type='新增') }}#diff-details"><strong>{{ report.summary.added }}</strong><span>新增</span></a>
+    <a class="metric inventory-metric-link" href="{{ url_for('api_inventory.inventory_diff_report_page', kind=report.kind, run_id=report.run.run_id if report.run else '', change_type='移除') }}#diff-details"><strong>{{ report.summary.removed }}</strong><span>移除</span></a>
+    <a class="metric inventory-metric-link" href="{{ url_for('api_inventory.inventory_diff_report_page', kind=report.kind, run_id=report.run.run_id if report.run else '', change_type='變更') }}#diff-details"><strong>{{ report.summary.changed }}</strong><span>變更</span></a>
+    <a class="metric inventory-metric-link" href="#diff-details"><strong>{{ report.rows|length }}</strong><span>{% if report.filter.change_type %}{{ report.filter.change_type }}明細{% else %}差異明細{% endif %}</span></a>
+  </div>
+</section>
+
+<section class="panel" id="diff-details">
+  <div class="page-header">
+    <div>
+      <h2>差異明細</h2>
+      <p class="text-muted-sm">用來交給主管或稽核確認：哪台主機、哪個帳號或套件、前後差在哪裡。</p>
+    </div>
+  </div>
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>異動</th>
+          <th>資產編號</th>
+          <th>主機</th>
+          <th>類型</th>
+          <th>項目</th>
+          <th>異動欄位</th>
+          <th>前次值</th>
+          <th>本次值</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in report.rows %}
+        <tr>
+          <td><span class="{% if row.change_type == '新增' %}badge-ok{% elif row.change_type == '移除' %}badge-error{% else %}badge-warn{% endif %}">{{ row.change_type }}</span></td>
+          <td>{{ row.asset_seq }}</td>
+          <td>{{ row.hostname }}</td>
+          <td>{{ row.host_type }}</td>
+          <td><strong>{{ row.item_name }}</strong></td>
+          <td>{{ row.changed_fields or "-" }}</td>
+          <td><code>{{ row.before or "-" }}</code></td>
+          <td><code>{{ row.after or "-" }}</code></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="no-data">目前沒有差異，或尚無前次盤點可比較。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

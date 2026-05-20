@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}資產異常清單 - webitgpt{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <p class="eyebrow">ASSET QUALITY</p>
+    <h1>資產異常清單</h1>
+    <p class="text-muted-sm">給主管與資產管理人員看的 CMDB 可信度清單：先處理紅色與橘色項目，再回到資產主檔修正。</p>
+  </div>
+  <div class="actions">
+    <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">回資產管理</a>
+    <a class="btn secondary" href="{{ url_for('api_hosts.host_new_page') }}">新增 / 掃描匯入</a>
+    <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM</a>
+  </div>
+</section>
+
+<section class="summary-grid">
+  <a class="metric" href="#asset-quality-details"><strong>{{ report.hosts_total }}</strong><span>納管資產</span></a>
+  <a class="metric" href="#asset-quality-details"><strong>{{ report.issues_total }}</strong><span>異常項目</span></a>
+  <a class="metric" href="#asset-quality-details"><strong>{{ report.severity_counts.critical }}</strong><span>重大</span></a>
+  <a class="metric" href="#asset-quality-details"><strong>{{ report.severity_counts.high }}</strong><span>高風險</span></a>
+  <a class="metric" href="#asset-quality-details"><strong>{{ report.severity_counts.medium }}</strong><span>待確認</span></a>
+</section>
+
+<section class="panel compact">
+  <strong>怎麼使用</strong>
+  <span class="text-muted-sm">這張表不是直接判斷主機壞掉，而是找出「資產資料不可信」或「掃描與清冊不一致」的地方。處理完後再重新掃描或回主檔確認。</span>
+</section>
+
+<section class="table-wrap" id="asset-quality-details">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>等級</th>
+        <th>問題</th>
+        <th>資產 / IP</th>
+        <th>證據</th>
+        <th>建議處理</th>
+        <th>來源</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for issue in report.issues %}
+      <tr>
+        <td>
+          {% if issue.severity == "critical" %}<span class="badge-error">重大</span>
+          {% elif issue.severity == "high" %}<span class="badge-error">高</span>
+          {% elif issue.severity == "medium" %}<span class="badge-warn">中</span>
+          {% else %}<span class="badge-ok">低</span>{% endif %}
+        </td>
+        <td><strong>{{ issue.title }}</strong><div class="text-muted-sm">{{ issue.type }}</div></td>
+        <td>
+          {% if issue.hostname and current_user.role in ["admin", "super", "superadmin"] %}
+          <a class="code-inline" href="{{ url_for('api_hosts.host_edit_page', asset_seq=issue.hostname) }}">{{ issue.hostname }}</a>
+          {% elif issue.hostname %}
+          <span class="code-inline">{{ issue.hostname }}</span>
+          {% else %}
+          <span class="code-inline">-</span>
+          {% endif %}
+          <div class="text-muted-sm">{{ issue.asset_name or "-" }}</div>
+          <div class="text-muted-sm">{{ issue.ip or "-" }}</div>
+        </td>
+        <td>{{ issue.detail }}</td>
+        <td>{{ issue.action }}</td>
+        <td><span class="text-muted-sm">{{ issue.source }}</span></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="no-data">目前沒有發現資產資料異常。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

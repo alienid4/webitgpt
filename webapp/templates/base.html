@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}webitgpt{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cathay.css') }}">
+</head>
+<body>
+  {% set role = current_user.role %}
+  {% set is_login_page = request.endpoint in ["auth.login_page", "auth.login"] %}
+  {% set is_authenticated = current_user.username != "anonymous" %}
+  {% set show_app_shell = is_authenticated and not is_login_page %}
+  {% set is_superadmin = role == "superadmin" %}
+  {% set role_label = {"viewer":"檢視者","admin":"管理員","super":"進階管理員","superadmin":"最高管理員","anonymous":"訪客"}.get(role, role) %}
+  {% set endpoint = request.endpoint or "" %}
+  <header class="app-header">
+    <div class="header-main">
+      <a class="brand" href="{{ url_for('api_hosts.hosts_page') }}">IT 巡檢系統</a>
+      {% if show_app_shell %}
+      <form class="quick-search" method="get" action="{{ url_for('api_hosts.global_search_page') }}">
+        <span aria-hidden="true">搜尋</span>
+        <input name="q" placeholder="搜尋資產 / 功能 / IP..." autocomplete="off">
+      </form>
+      {% endif %}
+      <div class="build-chip" title="{{ patch_id }} / {{ release_note }}">v{{ app_version }} <span>|</span> {{ build_time }}</div>
+      {% if show_app_shell %}
+        <div class="user-chip">{{ role_label }} ({{ current_user.username }})</div>
+        <a class="header-link" href="{{ url_for('auth.mfa_page') }}">帳號設定</a>
+        <button class="header-link" id="themeToggle" type="button" title="切換深色模式">深色</button>
+        <form method="post" action="{{ url_for('auth.logout') }}"><button class="header-link danger" type="submit">登出</button></form>
+      {% elif not is_login_page %}
+        <a class="header-link" href="{{ url_for('auth.login_page') }}">登入</a>
+      {% endif %}
+    </div>
+    {% if show_app_shell %}
+    <nav class="nav">
+      <a data-nav-key="dashboard" draggable="true" title="儀表板" class="{% if endpoint == 'api_reports.dashboard_page' %}active{% endif %}" href="{{ url_for('api_reports.dashboard_page') }}">儀表板</a>
+      <a data-nav-key="executive_dashboard" draggable="true" title="主管儀表板" class="nav-strong {% if endpoint == 'api_reports.executive_page' %}active{% endif %}" href="{{ url_for('api_reports.executive_page') }}">主管儀表板</a>
+      <a data-nav-key="daily_report" draggable="true" title="開門檢查" class="{% if endpoint == 'api_operations.inspections_page' %}active{% endif %}" href="{{ url_for('api_operations.inspections_page') }}">開門檢查</a>
+      {% if feature_enabled("module_compliance_security", default=false) %}
+      <a data-nav-key="accounts" draggable="true" title="帳號盤點" class="{% if endpoint == 'api_inventory.accounts_page' %}active{% endif %}" href="{{ url_for('api_inventory.accounts_page') }}">帳號盤點</a>
+      <a data-nav-key="software" draggable="true" title="軟體盤點" class="{% if endpoint == 'api_inventory.software_page' %}active{% endif %}" href="{{ url_for('api_inventory.software_page') }}">軟體盤點</a>
+      {% endif %}
+      <a data-nav-key="performance_monthly" draggable="true" title="效能月報" class="{% if endpoint == 'api_operations.nmon_page' %}active{% endif %}" href="{{ url_for('api_operations.nmon_page') }}">效能月報</a>
+      {% if feature_enabled("module_compliance_security", default=false) %}
+      <a data-nav-key="twgcb" draggable="true" title="TWGCB 合規" class="{% if endpoint.startswith('api_compliance.') %}active{% endif %}" href="{{ url_for('api_compliance.security_audit_page') }}">TWGCB 合規</a>
+      {% endif %}
+      <a data-nav-key="topology" draggable="true" title="系統拓撲" class="{% if endpoint in ['api_reports.dependencies_page','api_dependencies.dependencies_fullscreen_page'] %}active{% endif %}" href="{{ url_for('api_reports.dependencies_page') }}">系統拓撲</a>
+      <a data-nav-key="assets" draggable="true" title="資產管理" class="nav-warn {% if endpoint.startswith('api_hosts.') %}active{% endif %}" href="{{ url_for('api_hosts.hosts_page') }}">▣ 資產管理</a>
+      {% if is_superadmin %}
+        {% set dev_console_endpoints = ['api_superadmin.validation_page','api_superadmin.dev_console_page','api_superadmin.logs_page','api_superadmin.jobs_page'] %}
+        <a data-nav-key="system_admin" draggable="true" title="系統管理" class="nav-warn {% if endpoint.startswith('api_superadmin.') and endpoint not in dev_console_endpoints %}active{% endif %}" href="{{ url_for('api_superadmin.superadmin_page') }}">系統管理</a>
+        <a data-nav-key="dev_console" draggable="true" title="開發後台" class="nav-danger {% if endpoint in dev_console_endpoints %}active{% endif %}" href="{{ url_for('api_superadmin.validation_page') }}">開發後台</a>
+      {% endif %}
+    </nav>
+    {% endif %}
+  </header>
+  <main class="page">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}<div class="notice">{{ messages|join(' / ') }}</div>{% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  {% if show_app_shell and feature_enabled("ai_chat_panel", default=false) %}{% include "_partials/ai_chat.html" %}{% endif %}
+  <footer class="app-footer no-print">IT 巡檢系統 / {{ app_name }} v{{ app_version }} / {{ patch_id }} / {{ release_note }} / build {{ build_time }} / port 8002 /opt/webitgpt</footer>
+  {% if show_app_shell and feature_enabled("ai_chat_panel", default=false) %}<script src="{{ url_for('static', filename='js/ai_chat.js') }}"></script>{% endif %}
+  {% if show_app_shell %}<script src="{{ url_for('static', filename='js/ui_tools.js') }}"></script>{% endif %}
+  {% if show_app_shell %}<script src="{{ url_for('static', filename='js/table_sort.js') }}"></script>{% endif %}
+  {% block scripts %}{% endblock %}
+</body>
+</html>

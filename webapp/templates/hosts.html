@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+{% block title %}資產管理系統 - webitgpt{% endblock %}
+{% block content %}
+<section class="asset-workbench">
+  <div class="asset-toolbar panel">
+    <div class="asset-toolbar-title">
+      <p class="eyebrow">ASSET MANAGEMENT</p>
+      <h1>資產管理系統</h1>
+      <p class="text-muted-sm">以主機名稱作為唯一索引；資產編號保留為資產流水與對外識別。支援一台主機多 IP、多網段與完整資產明細。</p>
+    </div>
+    <div class="asset-actions">
+      {% if current_user.role in ["admin", "super", "superadmin"] %}
+      <form method="post" action="{{ url_for('api_hosts.hosts_refresh_identity_submit') }}" data-submit-status data-submit-message="正在重整本頁資產 Hostname / OS，請稍候。">
+        <input type="hidden" name="scope" value="page">
+        <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
+        <input type="hidden" name="status" value="{{ request.args.get('status','') }}">
+        <input type="hidden" name="group_name" value="{{ request.args.get('group_name','') }}">
+        <input type="hidden" name="environment" value="{{ request.args.get('environment','') }}">
+        <input type="hidden" name="host_type" value="{{ request.args.get('host_type','') }}">
+        <input type="hidden" name="dc" value="{{ request.args.get('dc','') }}">
+        <input type="hidden" name="page" value="{{ data.get('page', 1) }}">
+        <input type="hidden" name="page_size" value="{{ data.get('page_size', 25) }}">
+        <button class="btn secondary" type="submit">重整本頁資產</button>
+      </form>
+      <form method="post" action="{{ url_for('api_hosts.hosts_refresh_identity_submit') }}" data-submit-status data-submit-message="正在重整全部納管資產 Hostname / OS，請稍候。">
+        <input type="hidden" name="scope" value="all">
+        <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
+        <input type="hidden" name="status" value="{{ request.args.get('status','') }}">
+        <input type="hidden" name="group_name" value="{{ request.args.get('group_name','') }}">
+        <input type="hidden" name="environment" value="{{ request.args.get('environment','') }}">
+        <input type="hidden" name="host_type" value="{{ request.args.get('host_type','') }}">
+        <input type="hidden" name="dc" value="{{ request.args.get('dc','') }}">
+        <input type="hidden" name="page" value="{{ data.get('page', 1) }}">
+        <input type="hidden" name="page_size" value="{{ data.get('page_size', 25) }}">
+        <button class="btn secondary" type="submit">重整全部納管資產</button>
+      </form>
+      {% endif %}
+      <a class="btn secondary" href="{{ url_for('api_hosts.csv_export') }}">匯出 CSV</a>
+      <a class="btn secondary" href="{{ url_for('api_hosts.csv_template') }}">下載範本</a>
+      <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM</a>
+      <a class="btn secondary" href="{{ url_for('api_hosts.asset_quality_page') }}">異常清單</a>
+      <a class="btn secondary" href="{{ url_for('api_hosts.extension_fields_page') }}">擴充欄位</a>
+      <a class="btn primary" href="{{ url_for('api_hosts.host_new_page') }}">新增資產</a>
+    </div>
+    <form class="asset-filter-compact" method="get">
+      <label class="asset-search-field">搜尋
+        <input name="q" value="{{ q }}" placeholder="資產編號 / 主機名稱 / IP / 網段 / 系統名稱">
+      </label>
+      <label>狀態
+        <select name="status">
+          <option value="">全部狀態</option>
+          {% for value in ["draft","pending_ip","pending_data","pending_deploy","active","disabled","retired","pending_retire"] %}
+          <option value="{{ value }}" {% if request.args.get("status") == value %}selected{% endif %}>{{ status_labels.get(value, value) }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>環境
+        <select name="environment">
+          <option value="">全部環境</option>
+          {% for value in ["OA","PROD","UAT","BACKUP","TEST","DEV"] %}
+          <option value="{{ value }}" {% if request.args.get("environment") == value %}selected{% endif %}>{{ value }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>類型
+        <select name="host_type">
+          <option value="">全部類型</option>
+          {% for value in ["linux","windows","aix","as400","vmware_host","vmware_vm","vmware_vcenter","network_device","end_device"] %}
+          <option value="{{ value }}" {% if request.args.get("host_type") == value %}selected{% endif %}>{{ host_type_labels.get(value, value) }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>機房
+        <select name="dc">
+          <option value="">全部機房</option>
+          {% for value in ["dunan","neihu","banciao"] %}
+          <option value="{{ value }}" {% if request.args.get("dc") == value %}selected{% endif %}>{{ dc_labels.get(value, value) }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>每頁
+        <select name="page_size">
+          {% for value in [10,25,50,100] %}
+          <option value="{{ value }}" {% if request.args.get("page_size", data.get("page_size", 25)|string) == value|string %}selected{% endif %}>{{ value }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button class="btn secondary" type="submit">篩選</button>
+      <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">清除</a>
+    </form>
+  </div>
+
+  <section class="summary-grid asset-summary">
+    <a class="metric" href="#asset-details"><strong>{{ data.get("total", 0) }}</strong><span>資產總數</span></a>
+    <a class="metric" href="{{ url_for('api_hosts.hosts_page', status='draft') }}"><strong>{{ status_counts.get("draft", 0) }}</strong><span>草稿</span></a>
+    <a class="metric" href="#asset-details"><strong>{{ asset_summary.complete_assets }}</strong><span>必填完整</span></a>
+    <a class="metric" href="#asset-details"><strong>{{ asset_summary.missing_required }}</strong><span>缺漏必填欄位</span></a>
+    <a class="metric" href="#asset-details"><strong>{{ asset_summary.environments }}</strong><span>環境數</span></a>
+    <a class="metric" href="#asset-details"><strong>{{ asset_summary.types }}</strong><span>平台類型數</span></a>
+  </section>
+
+  <section class="panel compact">
+    <form class="asset-draft-form" method="post" action="{{ url_for('api_hosts.host_draft_submit') }}">
+      <strong>快速建立草稿</strong>
+      <input name="asset_name" placeholder="資產名稱 / 系統名稱" required>
+      <input name="ticket" placeholder="需求單號">
+      <button class="btn secondary" type="submit">建立草稿</button>
+      {% if request.args.get("draft_error") %}<span class="text-muted-sm">{{ request.args.get("draft_error") }}</span>{% endif %}
+    </form>
+    <div class="saved-view-row">
+      <strong>常用篩選</strong>
+      {% if request.args.get("save_view_error") %}<span class="text-muted-sm">{{ request.args.get("save_view_error") }}</span>{% endif %}
+      {% if current_user.username == "anonymous" %}
+        <span class="muted">登入後可儲存常用篩選。</span>
+      {% else %}
+        {% for view in saved_views %}
+          <a class="btn secondary" title="{{ view.params }}" href="{{ url_for('api_hosts.hosts_page', **view.params) }}">{{ view.name }}</a>
+          <form method="post" action="{{ url_for('api_hosts.host_delete_view_page') }}">
+            <input type="hidden" name="name" value="{{ view.name }}">
+            <button class="icon-btn" title="刪除常用篩選" type="submit">刪除</button>
+          </form>
+        {% else %}
+          <span class="muted">尚無常用篩選。</span>
+        {% endfor %}
+        <form class="inline-form" method="post" action="{{ url_for('api_hosts.host_save_view_page') }}">
+          <input name="name" placeholder="篩選名稱" required>
+          <select name="host_type" title="作業系統/平台">
+            <option value="">全部作業系統/平台</option>
+            {% for value in ["linux","windows","aix","as400","vmware_host","vmware_vm","vmware_vcenter","network_device","end_device"] %}
+            <option value="{{ value }}" {% if request.args.get("host_type") == value %}selected{% endif %}>{{ host_type_labels.get(value, value) }}</option>
+            {% endfor %}
+          </select>
+          <select name="environment" title="環境">
+            <option value="">全部環境</option>
+            {% for value in ["OA","PROD","UAT","BACKUP","TEST","DEV"] %}
+            <option value="{{ value }}" {% if request.args.get("environment") == value %}selected{% endif %}>{{ value }}</option>
+            {% endfor %}
+          </select>
+          <select name="dc" title="機房">
+            <option value="">全部機房</option>
+            {% for value in ["dunan","neihu","banciao"] %}
+            <option value="{{ value }}" {% if request.args.get("dc") == value %}selected{% endif %}>{{ dc_labels.get(value, value) }}</option>
+            {% endfor %}
+          </select>
+          <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
+          <input type="hidden" name="status" value="{{ request.args.get('status','') }}">
+          <input type="hidden" name="group_name" value="{{ request.args.get('group_name','') }}">
+          <input type="hidden" name="page_size" value="{{ data.get('page_size', 25) }}">
+          <button class="btn" type="submit">儲存目前條件</button>
+        </form>
+      {% endif %}
+    </div>
+  </section>
+
+  {% if data.get("error") %}<div class="notice danger">{{ data.get("error") }}</div>{% endif %}
+  {% if request.args.get("refresh_updated") is not none %}
+  <div class="notice">
+    資產資料重整完成：{{ "全部納管資產" if request.args.get("refresh_scope") == "all" else "本頁資產" }}，
+    成功 {{ request.args.get("refresh_updated", 0) }} 台，
+    失敗 {{ request.args.get("refresh_failed", 0) }} 台，
+    略過 {{ request.args.get("refresh_skipped", 0) }} 台。
+  </div>
+  {% endif %}
+  {% if request.args.get("bulk_deleted") is not none %}
+  <div class="notice">批次刪除草稿：刪除 {{ request.args.get("bulk_deleted", 0) }} 筆，略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
+  {% endif %}
+  {% if request.args.get("bulk_error") %}<div class="notice danger">{{ request.args.get("bulk_error") }}</div>{% endif %}
+
+  <section class="table-wrap asset-table-wrap" id="asset-details">
+    {% if current_user.role in ["admin", "super", "superadmin"] %}
+    <div class="asset-bulk-actions">
+      <strong>批次草稿處理</strong>
+      <label><input type="checkbox" data-select-drafts> 全選本頁草稿</label>
+      <input form="bulkDraftDeleteForm" name="reason" placeholder="刪除原因，例如：掃描誤建、測試草稿清理" required>
+      <input form="bulkDraftDeleteForm" type="hidden" name="return_status" value="{{ request.args.get('status','') }}">
+      <button form="bulkDraftDeleteForm" class="btn btn-danger" type="submit" onclick="return confirm('只會刪除已勾選的草稿；正式資產會略過。確定執行？')">刪除勾選草稿</button>
+      <span class="text-muted-sm">正式資產不允許批次硬刪，請走下線 / 封存流程。</span>
+    </div>
+    <form id="bulkDraftDeleteForm" method="post" action="{{ url_for('api_hosts.host_bulk_delete_drafts_submit') }}" data-submit-status data-submit-message="正在批次刪除草稿，正式資產會自動略過。"></form>
+    {% endif %}
+    <table class="data-table asset-table asset-table-compact">
+      <thead>
+        <tr>
+          {% if current_user.role in ["admin", "super", "superadmin"] %}<th class="asset-col-select" data-sortable="false">選取</th>{% endif %}
+          <th class="asset-col-name">資產名稱 *</th>
+          <th class="asset-col-hostname">Hostname</th>
+          <th class="asset-col-ip">IP</th>
+          <th class="asset-col-os">OS</th>
+          <th class="asset-col-device">設備類型</th>
+          <th class="asset-col-rack">機櫃</th>
+          <th class="asset-col-env">環境</th>
+          <th class="asset-col-dc">機房</th>
+          <th class="asset-col-note">備註</th>
+          <th class="asset-col-actions" data-sortable="false">操作</th>
+          <th class="asset-col-expand" data-sortable="false">展開</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for host in data.get("items", []) %}
+        {% set missing = [] %}
+        {% for field in required_fields %}
+          {% if host.get(field) in [none, ""] %}{% set _ = missing.append(field) %}{% endif %}
+        {% endfor %}
+        <tr>
+          {% if current_user.role in ["admin", "super", "superadmin"] %}
+          <td>
+            {% if host.status == "draft" %}
+            <input form="bulkDraftDeleteForm" type="checkbox" name="asset_seq" value="{{ host.hostname or host.asset_seq }}" data-draft-checkbox>
+            {% else %}
+            <span class="text-muted-sm">-</span>
+            {% endif %}
+          </td>
+          {% endif %}
+          <td class="sticky-col asset-name-cell">
+            <strong>{{ host.asset_name or "-" }}</strong>
+            {% if missing %}
+            <span class="asset-missing-inline">缺 {{ missing|length }} 欄</span>
+            {% endif %}
+          </td>
+          <td>
+            <strong class="code-inline">{{ host.hostname or "-" }}</strong>
+            <span class="asset-source-pill {% if host.hostname_source == 'actual_runner' %}verified{% else %}unverified{% endif %}" title="Hostname 來源：{{ host.hostname_source or host.import_source or 'manual' }}">
+              {% if host.hostname_source == "actual_runner" %}實採{% else %}未驗證{% endif %}
+            </span>
+            <div class="text-muted-sm">{{ host.asset_seq or "-" }}</div>
+          </td>
+          <td>
+            <span class="code-inline">{{ host.ip or "-" }}</span>
+            {% if (host.ip_addresses or [])|length > 1 %}
+            <span class="text-muted-sm">+{{ (host.ip_addresses or [])|length - 1 }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <strong>{{ host.os or host_type_labels.get(host.host_type, host.host_type or "-") }}</strong>
+            <span class="asset-source-pill {% if host.os_source == 'actual_runner' %}verified{% else %}unverified{% endif %}" title="OS 來源：{{ host.os_source or host.import_source or 'manual' }}">
+              {% if host.os_source == "actual_runner" %}實採{% else %}未驗證{% endif %}
+            </span>
+          </td>
+          <td>{{ host.device_type or "-" }}</td>
+          <td>{{ host.rack_no or "-" }}</td>
+          <td>{{ host.environment or "-" }}</td>
+          <td>{{ dc_labels.get(host.dc, host.dc or "-") }}</td>
+          <td class="asset-note-cell" title="{{ host.note or '' }}">{{ host.note or "-" }}</td>
+          <td class="actions asset-row-actions">
+            {% if current_user.role in ["admin", "super", "superadmin"] %}
+            <details class="asset-row-menu">
+              <summary>動作</summary>
+              <a class="btn-sm btn-secondary" href="{{ url_for('api_hosts.host_edit_page', asset_seq=host.hostname or host.asset_seq) }}">編輯</a>
+              <form method="post" action="{{ url_for('api_hosts.host_verify_identity_submit', asset_seq=host.hostname or host.asset_seq) }}" data-submit-status data-submit-message="正在連線採集真實 Hostname / OS，請稍候。">
+                <button class="btn-sm btn-secondary" type="submit">驗證名稱/OS</button>
+              </form>
+              <button class="btn-sm btn-secondary" data-self-check="{{ host.asset_seq }}" type="button">自檢</button>
+              {% if current_user.role == "superadmin" %}
+              <button class="btn-sm btn-secondary" data-debug="{{ host.asset_seq }}" type="button">Debug</button>
+              {% endif %}
+              {% if current_user.role == "superadmin" and feature_enabled("module_compliance_security", default=false) %}
+              <form method="post" action="{{ url_for('api_compliance.evaluate_host_page', asset_seq=host.asset_seq) }}" data-submit-status data-submit-message="正在執行資安稽核，請稍候。">
+                <button class="btn-sm btn-secondary">資安</button>
+              </form>
+              {% endif %}
+            </details>
+            {% else %}
+            <span class="text-muted-sm">-</span>
+            {% endif %}
+          </td>
+          <td>
+            <button class="btn-sm btn-secondary asset-detail-toggle" type="button" data-asset-detail-toggle="asset-detail-{{ loop.index }}">展開</button>
+          </td>
+        </tr>
+        <tr class="asset-detail-row" id="asset-detail-{{ loop.index }}" hidden>
+          <td colspan="{% if current_user.role in ["admin", "super", "superadmin"] %}12{% else %}11{% endif %}">
+            <div class="asset-detail-panel">
+              <h3>資產明細：{{ host.hostname or host.asset_seq }}</h3>
+              <div class="asset-detail-grid">
+                {% for field in asset_fields %}
+                <div class="asset-detail-item {% if field in required_fields %}required{% endif %}">
+                  <span>{{ "%02d"|format(loop.index) }} {{ asset_field_labels.get(field, field) }}</span>
+                  <strong>{{ host.get(field) if host.get(field) not in [none, ""] else "-" }}</strong>
+                </div>
+                {% endfor %}
+              </div>
+              <div class="asset-tech-grid">
+                <div><span>連線方式</span><strong>{{ host.connection or "-" }}</strong></div>
+                <div><span>SSH / WinRM 使用者</span><strong>{{ host.ssh_user or "-" }}</strong></div>
+                <div><span>全部 IP</span><strong>{{ (host.ip_addresses or [])|join("、") if host.ip_addresses else "-" }}</strong></div>
+                <div><span>網段</span><strong>{{ (host.network_segments or [])|join("、") if host.network_segments else "-" }}</strong></div>
+                <div><span>最後自檢</span><strong>{{ host.last_self_check_at or "-" }}</strong></div>
+                <div><span>更新時間</span><strong>{{ host.updated_at or "-" }}</strong></div>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="{% if current_user.role in ["admin", "super", "superadmin"] %}12{% else %}11{% endif %}" class="no-data">尚無資產資料，請先從 CMDB 匯入或新增資產。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <div class="pager">
+    {% set page = data.get("page", 1) %}
+    {% set page_size = data.get("page_size", 25) %}
+    <span>第 {{ page }} 頁 / 每頁 {{ page_size }} 筆</span>
+    {% if page > 1 %}
+      <a class="btn" href="{{ url_for('api_hosts.hosts_page', q=q, page=page-1, page_size=page_size, status=request.args.get('status',''), environment=request.args.get('environment',''), host_type=request.args.get('host_type',''), dc=request.args.get('dc','')) }}">上一頁</a>
+    {% endif %}
+    {% if data.get("total", 0) > page * page_size %}
+      <a class="btn" href="{{ url_for('api_hosts.hosts_page', q=q, page=page+1, page_size=page_size, status=request.args.get('status',''), environment=request.args.get('environment',''), host_type=request.args.get('host_type',''), dc=request.args.get('dc','')) }}">下一頁</a>
+    {% endif %}
+  </div>
+</section>
+<script src="{{ url_for('static', filename='js/hosts.js') }}"></script>
+{% endblock %}

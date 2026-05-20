@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block title %}開發後台 - webitgpt{% endblock %}
+{% block content %}
+<section class="dev-workbench">
+  <div class="dev-toolbar">
+    <div class="dev-title">
+      <strong>開發後台</strong>
+      <span>開發文件、檔案、備忘錄、提交紀錄、Debug Bundle 與模組管理。</span>
+    </div>
+    {% include "_partials/dev_tabs.html" %}
+  </div>
+</section>
+
+<section class="dev-admin-v317">
+  <div class="dev-admin-head">
+    <h1>開發後台</h1>
+    <span class="text-muted-sm">維護開發期資料、檔案、release note、AI debug loop 與功能模組開關。</span>
+  </div>
+
+  {% if saved %}<div class="notice">已儲存：{{ saved.path }}</div>{% endif %}
+
+  <section class="dev-admin-panel active" id="developer-docs" data-dev-panel-target="developer-docs">
+    <div class="dev-section-head">
+      <h2>開發文件</h2>
+      <span class="code-inline">{{ console.docs_dir }}</span>
+    </div>
+    <table class="data-table dev-table">
+      <thead><tr><th>檔名</th><th>類型</th><th>大小</th><th>修改時間</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for file in console.files %}
+        <tr>
+          <td><strong>{{ file.name }}</strong></td>
+          <td>{{ file.kind }}</td>
+          <td>{{ file.size }}</td>
+          <td>{{ file.mtime }}</td>
+          <td><a class="btn-sm" href="{{ url_for('api_superadmin.dev_console_doc_download', filename=file.name) }}">查看</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="no-data">沒有開發文件</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="dev-admin-panel" id="file-manager" data-dev-panel-target="file-manager">
+    <div class="dev-section-head">
+      <h2>檔案管理</h2>
+      <span class="code-inline">{{ console.docs_dir }}</span>
+    </div>
+    <form class="dev-upload-bar" method="post" action="{{ url_for('api_superadmin.dev_console_upload_page') }}" enctype="multipart/form-data" data-submit-status data-submit-message="正在上傳檔案，請稍候。">
+      <label class="btn primary">
+        選擇檔案
+        <input class="visually-hidden" type="file" name="file" required>
+      </label>
+      <button class="btn secondary" type="submit" data-busy-text="上傳中">上傳</button>
+      <a class="btn secondary" href="{{ url_for('api_superadmin.dev_console_page') }}#file-manager">重新整理</a>
+      <span class="text-muted-sm">單檔上限 20MB。</span>
+    </form>
+    <div class="submit-status" hidden aria-live="polite"></div>
+    <table class="data-table dev-table">
+      <thead><tr><th>名稱</th><th>類型</th><th>大小</th><th>修改時間</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for file in console.files %}
+        <tr><td>{{ file.name }}</td><td>{{ file.kind }}</td><td>{{ file.size }}</td><td>{{ file.mtime }}</td><td><a class="btn-sm" href="{{ url_for('api_superadmin.dev_console_doc_download', filename=file.name) }}">查看</a></td></tr>
+        {% else %}
+        <tr><td colspan="5" class="no-data">沒有檔案</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="dev-admin-panel" id="memo" data-dev-panel-target="memo">
+    <div class="dev-section-head">
+      <h2>備忘錄</h2>
+      <span class="badge-warn">開發期</span>
+    </div>
+    <form method="post" action="{{ url_for('api_superadmin.dev_console_notes_page') }}" data-submit-status data-submit-message="正在儲存備忘錄，請稍候。">
+      <textarea class="input-field dev-notes" name="notes" rows="12">{{ console.notes }}</textarea>
+      <div class="actions"><button class="btn primary" type="submit" data-busy-text="儲存中">儲存備忘錄</button></div>
+    </form>
+  </section>
+
+  <section class="dev-admin-panel" id="commit-log" data-dev-panel-target="commit-log">
+    <div class="dev-section-head">
+      <h2>提交紀錄</h2>
+      <span class="text-muted-sm">最近 release note 與 git log。</span>
+    </div>
+    <table class="data-table dev-table">
+      <thead><tr><th>版本</th><th>日期</th><th>Patch</th><th>變更摘要</th></tr></thead>
+      <tbody>
+        {% for release in console.release_notes %}
+        <tr>
+          <td><strong>v{{ release.version }}</strong></td>
+          <td>{{ release.date }}</td>
+          <td><span class="code-inline">{{ release.patch_id }}</span></td>
+          <td>
+            <ul class="dev-release-items">
+              {% for item in release.changes %}
+              <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="no-data">沒有 release note</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="dev-section-head compact">
+      <h2>最近提交</h2>
+      <span class="text-muted-sm">最近 20 筆 git log</span>
+    </div>
+    <pre class="detail dev-commits">{{ console.commits }}</pre>
+  </section>
+
+  <section class="dev-admin-panel" id="debug-bundle" data-dev-panel-target="debug-bundle">
+    <div class="dev-section-head">
+      <h2>Debug Bundle / AI Debug Loop</h2>
+      <span class="badge-warn">GPT Enterprise 專用</span>
+    </div>
+    <div class="notice">
+      最小 AI debug loop：公司 VM 產生去識別化 bundle → 複製 prompt 到 GPT Enterprise → Codex 依建議修 code → 補回歸測試 → 重新部署驗證。GPT 不直接連 VM。
+    </div>
+    <div class="summary-grid">
+      <a class="metric" href="{{ url_for('api_operations.nmon_page', period='month') }}#nmon-raw"><strong>{{ console.nmon_raw_pipeline.raw_files }}</strong><span>NMON raw 檔</span></a>
+      <a class="metric" href="{{ url_for('api_operations.nmon_page', period='month') }}#nmon-raw"><strong>{{ console.nmon_raw_pipeline.raw_samples }}</strong><span>raw sample</span></a>
+      <a class="metric" href="{{ url_for('api_operations.nmon_raw_pipeline_api') }}"><strong>{{ console.nmon_raw_pipeline.status }}</strong><span>NMON pipeline</span></a>
+      <a class="metric" href="{{ url_for('api_superadmin.dev_console_ai_runtime_manifest') }}"><strong>Runtime</strong><span>{{ console.ai_runtime_manifest.runtime_id }}</span></a>
+    </div>
+    <div class="notice soft">
+      Runtime Manifest：記錄此 debug loop 的輸入、輸出、狀態欄位、安全邊界、驗證指令與人工審核點。
+      <a href="{{ url_for('api_superadmin.dev_console_ai_runtime_manifest') }}">查看 JSON</a>
+    </div>
+
+    <form class="form-grid" method="post" action="{{ url_for('api_superadmin.dev_console_ai_debug_loop_page') }}" data-submit-status data-submit-message="正在建立 AI debug loop，請稍候。">
+      <div class="form-group">
+        <label>問題標題</label>
+        <input class="input-field" name="issue_title" placeholder="例如：效能月報 raw file 匯入失敗" required>
+      </div>
+      <div class="form-group">
+        <label>問題描述</label>
+        <textarea class="input-field" name="issue_detail" rows="4" placeholder="寫現象、操作步驟、預期結果、實際結果。"></textarea>
+      </div>
+      <label class="checkbox-line">
+        <input type="checkbox" name="verbose" value="1">
+        <span>verbose debug 模式</span>
+      </label>
+      <div class="actions">
+        <button class="btn primary" type="submit" data-busy-text="建立中">建立 AI debug loop</button>
+      </div>
+    </form>
+
+    <form class="dev-upload-bar" method="post" action="{{ url_for('api_superadmin.dev_console_debug_bundle_page') }}" data-submit-status data-submit-message="正在產生 Debug Bundle，請稍候。">
+      <input type="hidden" name="dry_run" value="1">
+      <label class="checkbox-line">
+        <input type="checkbox" name="verbose" value="1">
+        <span>只產生 Debug Bundle</span>
+      </label>
+      <button class="btn secondary" type="submit" data-busy-text="產生中">產生 Debug Bundle</button>
+      <span class="text-muted-sm">dry-run：只檢查與收集，不修改系統。</span>
+    </form>
+    <div class="submit-status" hidden aria-live="polite"></div>
+
+    <div class="dev-section-head compact">
+      <h2>最近 AI debug loop</h2>
+      <span class="text-muted-sm">每筆 loop 對應一個 bundle 與一份 GPT Enterprise prompt。</span>
+    </div>
+    <table class="data-table dev-table">
+      <thead><tr><th>Loop</th><th>問題</th><th>Bundle</th><th>Prompt</th><th>狀態</th><th>時間</th></tr></thead>
+      <tbody>
+        {% for ai_loop in console.ai_debug_loops %}
+        <tr>
+          <td><span class="code-inline">{{ ai_loop.loop_id }}</span></td>
+          <td>{{ ai_loop.title }}</td>
+          <td><span class="code-inline">{{ ai_loop.bundle }}</span></td>
+          <td><a class="btn-sm" href="{{ url_for('api_superadmin.dev_console_ai_debug_loop_prompt_download', loop_id=ai_loop.loop_id) }}">下載 prompt</a></td>
+          <td>{{ ai_loop.status }}</td>
+          <td>{{ ai_loop.mtime }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="no-data">尚未建立 AI debug loop。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="dev-section-head compact">
+      <h2>最近 Debug Bundle</h2>
+      <span class="text-muted-sm">可下載後提供給 GPT Enterprise。</span>
+    </div>
+    <table class="data-table dev-table">
+      <thead><tr><th>檔名</th><th>大小</th><th>建立時間</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for bundle in console.debug_bundles %}
+        <tr>
+          <td><span class="code-inline">{{ bundle.name }}</span></td>
+          <td>{{ bundle.size }}</td>
+          <td>{{ bundle.mtime }}</td>
+          <td><a class="btn-sm" href="{{ url_for('api_superadmin.dev_console_debug_bundle_download', filename=bundle.name) }}">下載</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="no-data">尚未產生 Debug Bundle。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="dev-admin-panel" id="module-manager" data-dev-panel-target="module-manager">
+    <div class="dev-section-head">
+      <h2>模組管理</h2>
+      <span class="text-muted-sm">依模組確認開關、影響範圍與建議狀態。</span>
+    </div>
+    <table class="data-table dev-table">
+      <thead><tr><th>分類</th><th>開關 / 功能</th><th>範圍</th><th>關閉影響</th><th>建議</th><th>狀態</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for item in console.modules %}
+        <tr>
+          <td>
+            <strong>{{ item.category_label }}</strong><br>
+            <span class="text-muted-sm">{{ item.level }}</span>
+          </td>
+          <td>
+            <strong>{{ item.name }}</strong><br>
+            <span class="code-inline">{{ item.key }}</span>
+            {% if item.parent_note %}<div class="text-muted-sm">{{ item.parent_note }}</div>{% endif %}
+          </td>
+          <td>{{ item.scope }}</td>
+          <td>{{ item.off_effect }}</td>
+          <td>{{ item.recommendation }}</td>
+          <td>
+            <span class="{{ 'badge-ok' if item.effective_enabled else 'badge-warn' }}">{{ "有效啟用" if item.effective_enabled else "未生效" }}</span>
+            {% if not item.effective_enabled and item.enabled %}
+            <div class="text-muted-sm">受上層開關控制</div>
+            {% endif %}
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('api_superadmin.dev_console_feature_update_page') }}" data-submit-status data-submit-message="正在更新模組開關，請稍候。">
+              <input type="hidden" name="key" value="{{ item.key }}">
+              <label class="toggle-label module-toggle">
+                <input type="checkbox" name="enabled" {% if item.enabled %}checked{% endif %} onchange="this.form.submit()">
+                <span>{{ "啟用" if item.enabled else "停用" }}</span>
+              </label>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="no-data">沒有模組資料</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</section>
+{% endblock %}

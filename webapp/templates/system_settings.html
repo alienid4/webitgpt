@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}設定管理 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="page-header">
+    <div>
+      <p class="eyebrow">SYSTEM SETTINGS</p>
+      <h1>設定管理</h1>
+      <p class="text-muted-sm">檢視執行環境與 Mongo 設定，不在此頁直接覆寫正式設定。</p>
+    </div>
+    <div class="actions">
+      <a class="btn secondary" href="{{ url_for('api_superadmin.superadmin_page') }}">返回系統管理</a>
+      <a class="btn" href="{{ url_for('api_superadmin.settings_api') }}">JSON API</a>
+    </div>
+  </div>
+  <div class="summary-grid">
+    {% for key, value in overview.runtime.items() %}
+    <a class="metric" href="#settings-details"><strong>{{ value }}</strong><span>{{ key }}</span></a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel" id="settings-details">
+  <h2>Mongo 設定</h2>
+  <table class="data-table">
+    <thead><tr><th>Key</th><th>Value</th></tr></thead>
+    <tbody>
+      {% for item in overview.settings %}
+      <tr><td class="code-inline">{{ item.key }}</td><td><pre class="detail">{{ item.value | tojson(indent=2) }}</pre></td></tr>
+      {% else %}
+      <tr><td colspan="2" class="no-data">沒有設定資料</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

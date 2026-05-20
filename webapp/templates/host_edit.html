@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == "new" %}新增資產{% else %}編輯資產{% endif %} - webitgpt{% endblock %}
+{% block content %}
+{% if error %}
+<div class="notice danger">{{ error }}</div>
+{% else %}
+<section class="asset-edit-page">
+  <div class="panel asset-edit-hero">
+    <div>
+      <p class="eyebrow">ASSET RECORD</p>
+      <h1>{% if mode == "new" %}新增資產{% else %}編輯資產：{{ host.hostname or host.asset_seq }}{% endif %}</h1>
+      <p class="text-muted-sm">主機名稱是唯一索引；資產編號保留為資產流水。多 IP 請填在「所有 IP」，一行一個或逗號分隔。</p>
+    </div>
+    <div class="asset-actions">
+      <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">返回列表</a>
+      <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM</a>
+      {% if mode != "new" and current_user.role in ["admin", "super", "superadmin"] %}
+      <button class="btn secondary" form="verifyIdentityForm" type="submit">驗證名稱/OS</button>
+      <button class="btn secondary" data-self-check="{{ host.asset_seq }}" type="button">自檢</button>
+      {% endif %}
+      {% if mode != "new" and current_user.role == "superadmin" %}
+      <button class="btn secondary" data-debug="{{ host.asset_seq }}" type="button">DEBUG</button>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if errors %}
+  <div class="notice danger form-message-list">
+    <strong>請先修正以下欄位：</strong>
+    <ul>
+      {% for item in errors %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  {% if warnings %}
+  <div class="notice form-message-list">
+    <strong>提醒：</strong>
+    <ul>
+      {% for item in warnings %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form class="panel asset-edit-form" method="post">
+    <div class="asset-edit-section">
+      <h2>資產主檔</h2>
+      <div class="asset-edit-grid">
+        {% for field in edit_fields %}
+          {% set value = host.get(field, "") %}
+          {% set has_error = field in (error_fields or []) %}
+          {% set has_warning = field in (warning_fields or []) %}
+          <label class="{% if field in ['note','ip_addresses','network_segments'] %}span-2{% endif %} {% if has_error %}field-has-error{% elif has_warning %}field-has-warning{% endif %}" id="field-{{ field }}">
+            <span>{{ field_labels.get(field, field) }}{% if field in required_fields %}<b>*</b>{% endif %}</span>
+            {% if has_error %}<em class="field-help danger">這個欄位需要修正</em>{% elif has_warning %}<em class="field-help">請確認這個欄位</em>{% endif %}
+            {% if field in ["note","ip_addresses","network_segments"] %}
+              <textarea name="{{ field }}" rows="3" {% if field in required_fields %}required{% endif %}>{{ value|join('\n') if value is iterable and value is not string else value }}</textarea>
+            {% elif field == "status" %}
+              <select name="{{ field }}" {% if field in required_fields %}required{% endif %}>
+                {% for option, label in {"draft":"草稿","pending_ip":"待分配 IP","pending_data":"待補資料","pending_deploy":"待部署","active":"使用中","disabled":"停用","retired":"已汰除","pending_retire":"待汰除"}.items() %}
+                <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            {% elif field == "environment" %}
+              <select name="{{ field }}" {% if field in required_fields %}required{% endif %}>
+                {% for option in ["OA","PROD","UAT","BACKUP","TEST","DEV"] %}
+                <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            {% elif field == "host_type" %}
+              <select name="{{ field }}" {% if field in required_fields %}required{% endif %}>
+                {% for option, label in {"linux":"Linux","windows":"Windows","aix":"AIX","as400":"AS400","vmware_host":"VMware 主機","vmware_vm":"VMware VM","vmware_vcenter":"vCenter","network_device":"網路設備","end_device":"端點設備"}.items() %}
+                <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            {% elif field == "dc" %}
+              <select name="{{ field }}" {% if field in required_fields %}required{% endif %}>
+                {% for option, label in {"dunan":"敦南","neihu":"內湖","banciao":"板橋"}.items() %}
+                <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            {% elif field == "connection" %}
+              <select name="{{ field }}">
+                {% for option, label in {"":"未設定","ssh":"SSH","ssh_raw":"SSH Raw","winrm":"WinRM","vcenter_api":"vCenter API","as400_api":"AS400 API","local":"本機"}.items() %}
+                <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            {% else %}
+              <input name="{{ field }}" value="{{ value }}" {% if field in required_fields %}required{% endif %}>
+            {% endif %}
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if mode != "new" %}
+    <div class="asset-edit-section">
+      <h2>IP 分配</h2>
+      <p class="text-muted-sm">從 IPAM 網段挑下一個可用 IP。系統會避開已在 CMDB 使用或已預留的 IP。</p>
+      <div class="asset-inline-tool">
+        <select form="allocateIpForm" name="cidr" required>
+          <option value="">選擇網段</option>
+          {% for network in ipam_networks %}
+          <option value="{{ network.cidr }}">{{ network.name }} / {{ network.cidr }} / 可用 {{ network.available_count }}</option>
+          {% endfor %}
+        </select>
+        <button form="allocateIpForm" class="btn secondary" type="submit">分配下一個可用 IP</button>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if mode != "new" and current_user.role in ["admin", "super", "superadmin"] %}
+    <div class="asset-edit-section asset-lifecycle-box">
+      <h2>資產生命週期</h2>
+      <p class="text-muted-sm">掃描誤建的草稿可以刪除；正式資產請走停用、申請下線或下線封存，系統會留下操作紀錄。</p>
+      {% if host.lifecycle_reason %}
+      <div class="notice">最近處理：{{ host.lifecycle_reason }} / {{ host.lifecycle_updated_by or "-" }}</div>
+      {% endif %}
+      <label>
+        <span>處理原因 *</span>
+        <textarea form="assetLifecycleForm" name="reason" rows="3" placeholder="例如：掃描誤建、不需納管、主機已下線、等待變更單核准" required></textarea>
+      </label>
+      <div class="asset-edit-actions">
+        {% if host.status == "draft" %}
+        <button form="assetLifecycleForm" class="btn btn-danger" name="action" value="delete_draft" type="submit" onclick="return confirm('確定刪除這筆草稿？刪除後不會出現在資產清冊。')">刪除草稿</button>
+        {% endif %}
+        {% if host.status != "retired" %}
+        <button form="assetLifecycleForm" class="btn secondary" name="action" value="disable" type="submit">停用</button>
+        <button form="assetLifecycleForm" class="btn secondary" name="action" value="request_retire" type="submit">申請下線</button>
+        <button form="assetLifecycleForm" class="btn btn-danger" name="action" value="retire" type="submit" onclick="return confirm('確定下線封存？此資產會改為已汰除並封存資料目錄。')">下線封存</button>
+        {% else %}
+        <button form="assetLifecycleForm" class="btn primary" name="action" value="restore" type="submit">恢復使用中</button>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if extension_definitions %}
+    <div class="asset-edit-section">
+      <h2>擴充欄位</h2>
+      <div class="asset-edit-grid">
+        {% for item in extension_definitions %}
+        {% set ext_value = (host.extensions or {}).get(item.key, "") %}
+        <label>
+          <span>{{ item.label }}{% if item.required %}<b>*</b>{% endif %}</span>
+          <input name="ext__{{ item.key }}" value="{{ ext_value }}" {% if item.required %}required{% endif %}>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="asset-edit-actions">
+      <button class="btn primary" type="submit">儲存資產</button>
+      <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">取消</a>
+    </div>
+  </form>
+  {% if mode != "new" %}
+  <div class="panel asset-identity-panel">
+    <h2>主機名稱 / OS 可信度</h2>
+    <div class="asset-tech-grid">
+      <div><span>Hostname 來源</span><strong>{{ "實際採集" if host.hostname_source == "actual_runner" else "尚未驗證" }}</strong></div>
+      <div><span>OS 來源</span><strong>{{ "實際採集" if host.os_source == "actual_runner" else "尚未驗證" }}</strong></div>
+      <div><span>最後驗證</span><strong>{{ host.identity_verified_at or "-" }}</strong></div>
+      <div><span>採集器</span><strong>{{ host.identity_runner or "-" }}</strong></div>
+      <div><span>觀察到 Hostname</span><strong>{{ host.hostname_observed or "-" }}</strong></div>
+      <div><span>觀察到 OS</span><strong>{{ host.os_observed or "-" }}</strong></div>
+    </div>
+    <p class="text-muted-sm">nmap 與人工輸入只當作草稿線索；正式納管後請用「驗證名稱/OS」透過 SSH、SSH Raw、WinRM 或 vCenter 取得真實資料。</p>
+  </div>
+  <form id="allocateIpForm" method="post" action="{{ url_for('api_hosts.host_allocate_ip', asset_seq=host.hostname or host.asset_seq) }}"></form>
+  <form id="assetLifecycleForm" method="post" action="{{ url_for('api_hosts.host_lifecycle_submit', asset_seq=host.hostname or host.asset_seq) }}"></form>
+  <form id="verifyIdentityForm" method="post" action="{{ url_for('api_hosts.host_verify_identity_submit', asset_seq=host.hostname or host.asset_seq) }}" data-submit-status data-submit-message="正在連線採集真實 Hostname / OS，請稍候。"></form>
+  {% endif %}
+</section>
+<script src="{{ url_for('static', filename='js/hosts.js') }}"></script>
+{% endif %}
+{% endblock %}

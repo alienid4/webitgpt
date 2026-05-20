@@ -1,0 +1,31 @@
+language: "zh-TW"
+tone_instructions: "請用繁體中文回覆，優先指出可重現的 bug、安全風險、部署風險、測試缺口與 Python 3.9 相容性問題。"
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+
+path_filters:
+  - "!dist/**"
+  - "!data/**"
+  - "!logs/**"
+  - "!tmp/**"
+  - "!backup/**"
+  - "!venv/**"
+  - "!**/__pycache__/**"
+  - "!**/*.pyc"
+  - "!**/*.tar.gz"
+
+path_instructions:
+  - path: "webapp/routes/**"
+    instructions: "請重點檢查 Flask route 的認證、權限、feature flag、HTTP status code、path traversal、輸入驗證與錯誤處理。"
+  - path: "webapp/services/**"
+    instructions: "請重點檢查 Mongo schema 使用、一致性、job lock、race condition、資料保留、敏感資料遮罩與 Python 3.9 相容性。"
+  - path: "scripts/**"
+    instructions: "請重點檢查部署與 bootstrap 腳本是否可能破壞既有服務、覆蓋資料、漏建 index 或誤動 legacy 資料庫。"
+  - path: "webapp/templates/**"
+    instructions: "請重點檢查畫面文字是否為繁體中文、功能名稱是否和實際 route/API 一致、權限不足時是否不應顯示入口。"
+  - path: "tests/**"
+    instructions: "請指出缺少的單元測試、整合測試與安全測試，尤其是 deep-check job/report/remedy API。"

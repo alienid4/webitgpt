@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}AI 供應商 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel narrow">
+  <h1>AI 供應商</h1>
+  <form class="form" method="post">
+    <label>供應商
+      <select name="provider">
+        {% for value in ["disabled","ollama","openai-compatible"] %}
+        <option value="{{ value }}" {% if settings.provider == value %}selected{% endif %}>{{ value }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>基礎 URL<input name="base_url" value="{{ settings.base_url }}"></label>
+    <label>模型<input name="model" value="{{ settings.model }}"></label>
+    <label>API 金鑰<input name="api_key" type="password" placeholder="{{ settings.api_key }}"></label>
+    <label class="toggle"><input type="checkbox" name="enabled" {% if settings.enabled %}checked{% endif %}> <span>啟用</span></label>
+    <button class="btn primary" type="submit">儲存設定</button>
+  </form>
+</section>
+{% endblock %}

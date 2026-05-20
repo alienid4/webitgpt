@@ -1,0 +1,422 @@
+{% extends "base.html" %}
+{% block title %}系統拓撲 - webitgpt{% endblock %}
+{% block content %}
+{% set show_ports = request.args.get('show_ports') in ['1', 'true', 'yes', 'on'] %}
+{% set failed_node = request.args.get('failed_node', '') %}
+{% set focus_impact = request.args.get('focus_impact') in ['1', 'true', 'yes', 'on'] %}
+{% set graph_width = topology.meta.width or 1100 %}
+{% set graph_height = topology.meta.height or 520 %}
+{% set fullscreen_args = {
+  'view': topology.view,
+  'center': request.args.get('center', ''),
+  'depth': request.args.get('depth', '2'),
+  'include_external': 1 if topology.meta.include_external else 0,
+  'include_unmanaged': 1 if topology.meta.include_unmanaged else 0,
+  'show_ports': 1 if show_ports else 0,
+  'failed_node': failed_node,
+  'focus_impact': 1 if focus_impact else 0
+} %}
+
+{% if fullscreen %}
+<section class="topology-fullscreen-panel">
+{% else %}
+<section class="panel report-hero">
+{% endif %}
+  <div>
+    <p class="eyebrow">TOPOLOGY</p>
+    {% if topology.view == "core_impact" %}
+    <h1>核心系統影響圖</h1>
+    <p class="muted">第一欄是六大核心，第二欄是關聯系統，第三欄是選取系統底下的主機 / IP。</p>
+    {% else %}
+    <h1>系統拓撲</h1>
+    <p class="muted">整合 CMDB、主機連線關係、ss/nmap 對帳與故障節點影響分析。</p>
+    {% endif %}
+  </div>
+  <div class="actions">
+    {% if not fullscreen %}
+    {% if topology.view == "core_impact" %}
+    <a class="btn btn-fix" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=request.args.get('center', ''), depth=request.args.get('depth', '2'), failed_node=request.args.get('center', ''), focus_impact=1) }}">模擬維護</a>
+    <a class="btn primary" href="{{ url_for('api_reports.dependencies_api', view='core_impact', center=request.args.get('center', ''), depth=request.args.get('depth', '2')) }}">匯出通知名單</a>
+    {% else %}
+    <form method="post" action="{{ url_for('api_dependencies.collect_trigger_page') }}" data-submit-status data-submit-message="正在執行 ss -tunp 採集，請稍候。">
+      <input type="hidden" name="view" value="{{ topology.view }}">
+      <button class="btn primary" type="submit" data-busy-text="採集中">採集 ss 關係</button>
+    </form>
+    <form method="post" action="{{ url_for('api_dependencies.reconcile_trigger_page') }}" data-submit-status data-submit-message="正在執行 ss+nmap 對帳，請稍候。">
+      <input type="hidden" name="view" value="{{ topology.view }}">
+      <button class="btn" type="submit" data-busy-text="對帳中">ss+nmap 對帳</button>
+    </form>
+    <a class="btn" href="{{ url_for('api_reports.dependencies_api') }}">JSON API</a>
+    {% endif %}
+    {% else %}
+    <a class="btn" href="{{ url_for('api_reports.dependencies_page', **fullscreen_args) }}">返回一般視圖</a>
+    {% endif %}
+  </div>
+  <div class="submit-status" hidden aria-live="polite"></div>
+</section>
+
+{% if not fullscreen %}
+<nav class="topology-tabs" aria-label="拓撲圖視角">
+  <a class="topology-tab {% if topology.view == 'core_impact' %}active{% endif %}" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=request.args.get('center', ''), depth=request.args.get('depth', '2')) }}">
+    <strong>1. 核心影響</strong>
+    <span>核心、關聯系統、主機/IP</span>
+  </a>
+  <a class="topology-tab {% if topology.view in ['core_radial', 'radial'] %}active{% endif %}" href="{{ url_for('api_reports.dependencies_page', view='core_radial', center=request.args.get('center', ''), depth=request.args.get('depth', '2')) }}">
+    <strong>2. 系統關聯圓圖</strong>
+    <span>系統關係、Loop、反向依賴</span>
+  </a>
+  <a class="topology-tab {% if topology.view in ['system', 'host', 'ip'] %}active{% endif %}" href="{{ url_for('api_reports.dependencies_page', view='host', center=request.args.get('center', ''), depth=request.args.get('depth', '2'), show_ports=1, include_unmanaged=1) }}">
+    <strong>3. 連線偵測 / 對帳</strong>
+    <span>ss+nmap、Ghost、Port 差異</span>
+  </a>
+</nav>
+{% endif %}
+
+{% if topology.view != "core_impact" %}
+<section class="panel compact-panel topology-status-panel">
+  <strong>拓撲狀態</strong>
+  <span class="status-pill status-pill-info">資料來源：CMDB / ss -tunp / nmap</span>
+  <span class="text-muted-sm">{{ topology.meta.message }}</span>
+  {% if topology.meta.run_id %}
+    <span class="status-pill">最近採集 {{ (topology.meta.last_collect_at or "-")[:19]|replace("T", " ") }}</span>
+    <span class="status-pill">連線 {{ topology.meta.edge_count }} 筆</span>
+  {% else %}
+    <span class="text-muted-sm">尚未採集拓撲資料。</span>
+  {% endif %}
+  {% if collect_runs %}
+    {% set last_run = collect_runs[0] %}
+    <span class="status-pill status-pill-{{ 'ok' if last_run.status == 'success' else 'warn' if last_run.status in ['running', 'partial'] else 'error' }}">最近採集：{{ last_run.status }}</span>
+    {% if last_run.errors %}
+      <span class="text-muted-sm">錯誤：{{ last_run.errors[0].host }} {{ last_run.errors[0].error }}</span>
+    {% endif %}
+  {% endif %}
+</section>
+{% endif %}
+
+{% if reconcile_report and topology.view != "core_impact" %}
+<section class="panel">
+  <h2>ss+nmap / 網段對帳摘要</h2>
+  <p class="text-muted-sm">上方拓撲圖顯示主機之間實際連線；下方網段對帳才是「掃到幾台、哪些未納管」。</p>
+  <div class="metric-grid">
+    <a class="metric metric-card" href="#reconcile-details"><strong>{{ reconcile_report.summary.matched or 0 }}</strong><span>一致</span></a>
+    <a class="metric metric-card" href="#reconcile-details"><strong>{{ reconcile_report.summary.ss_only or 0 }}</strong><span>ss only</span></a>
+    <a class="metric metric-card" href="#reconcile-details"><strong>{{ reconcile_report.summary.nmap_only or 0 }}</strong><span>nmap only</span></a>
+    <a class="metric metric-card" href="#reconcile-details"><strong>{{ reconcile_report.summary.external_skipped or 0 }}</strong><span>外部略過</span></a>
+    <a class="metric metric-card" href="#network-scan-details"><strong>{{ (network_scan_report.discovered_count if network_scan_report else reconcile_report.summary.network_discovered) or 0 }}</strong><span>網段掃描發現</span></a>
+    <a class="metric metric-card" href="#network-scan-details"><strong>{{ (network_scan_report.cmdb_count if network_scan_report else reconcile_report.summary.network_cmdb) or 0 }}</strong><span>CMDB 已納管</span></a>
+    <a class="metric metric-card" href="#network-scan-details"><strong>{{ (network_scan_report.mismatch_count if network_scan_report else reconcile_report.summary.network_mismatch) or 0 }}</strong><span>未納管 / 不一致</span></a>
+  </div>
+  {% if network_scan_report %}
+  <details class="dev-detail" id="network-scan-details" open>
+    <summary>網段掃描明細：{{ network_scan_report.cidr }} / {{ (network_scan_report.started_at|string)[:19]|replace("T", " ") }}</summary>
+    <table class="data-table">
+      <thead><tr><th>狀態</th><th>IP</th><th>Hostname</th><th>OS / 類型</th><th>開放服務</th><th>建議</th></tr></thead>
+      <tbody>
+        {% for row in network_scan_report.rows[:80] %}
+        <tr>
+          <td>{{ row.type_label or row.status }}</td>
+          <td><code>{{ row.ip }}</code></td>
+          <td>{{ row.hostname or "-" }}</td>
+          <td>{{ row.os or row.host_type or "-" }}</td>
+          <td>
+            {% for port in row.open_ports or [] %}
+              <span class="badge">{{ port.service or port.port }}:{{ port.port }}</span>
+            {% else %}
+              -
+            {% endfor %}
+          </td>
+          <td>{{ row.suggestion }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="no-data">尚無網段掃描明細，請按 ss+nmap 對帳或到 IPAM 執行掃描。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </details>
+  {% endif %}
+  <details class="dev-detail" id="reconcile-details">
+    <summary>Port 對帳明細</summary>
+    <table class="data-table">
+      <thead><tr><th>狀態</th><th>來源</th><th>遠端 IP</th><th>Port</th><th>服務</th><th>程序</th><th>建議</th></tr></thead>
+      <tbody>
+        {% for row in reconcile_report.rows[:40] %}
+        <tr>
+          <td>{{ row.status_label }}</td>
+          <td>{{ row.source or "-" }}</td>
+          <td>{{ row.remote_ip }}</td>
+          <td>{{ row.port }}</td>
+          <td>{{ row.service or "-" }}</td>
+          <td>{{ row.process or "-" }}</td>
+          <td>{{ row.suggestion }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="no-data">沒有對帳明細</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+<section class="panel {% if fullscreen %}topology-fullscreen-card{% endif %}" data-topology-panel>
+  <div class="topology-toolbar">
+    <form class="filter-bar" method="get" action="{{ url_for('api_dependencies.dependencies_fullscreen_page') if fullscreen else url_for('api_reports.dependencies_page') }}" data-topology-filter>
+      {% if topology.view == "core_impact" %}
+      <input type="hidden" name="view" value="core_impact">
+      <input name="center" value="{{ request.args.get('center', '') }}" list="topology-system-options" placeholder="搜尋系統名稱 / 核心 / 主機">
+      <datalist id="topology-system-options">
+        {% for system in systems or [] %}
+        <option value="{{ system.system_id }}">{{ system.display_name }}</option>
+        <option value="{{ system.display_name }}">{{ system.system_id }}</option>
+        {% endfor %}
+      </datalist>
+      <select name="depth" data-auto-submit>
+        <option value="1" {% if request.args.get('depth', '2')|int == 1 %}selected{% endif %}>一跳影響</option>
+        <option value="2" {% if request.args.get('depth', '2')|int == 2 %}selected{% endif %}>二跳影響</option>
+        <option value="3" {% if request.args.get('depth', '2')|int == 3 %}selected{% endif %}>三跳影響</option>
+      </select>
+      <input name="failed_node" value="{{ failed_node }}" placeholder="模擬維護：輸入系統 / 主機 / IP">
+      <label class="toggle-label"><input type="checkbox" name="focus_impact" value="1" {% if focus_impact %}checked{% endif %} data-auto-submit>只看直接影響</label>
+      <button type="submit">套用</button>
+      {% if fullscreen %}
+        <a class="btn" href="{{ url_for('api_reports.dependencies_page', **fullscreen_args) }}">退出全螢幕</a>
+      {% else %}
+        <button class="btn primary" type="button" data-topology-fullscreen-enter data-fullscreen-url="{{ url_for('api_dependencies.dependencies_fullscreen_page', **fullscreen_args) }}">全螢幕</button>
+        <a class="btn topology-fullscreen-fallback" href="{{ url_for('api_dependencies.dependencies_fullscreen_page', **fullscreen_args) }}">全螢幕頁面</a>
+      {% endif %}
+      <button class="btn danger topology-fullscreen-exit" type="button" data-topology-fullscreen-exit>退出全螢幕</button>
+      {% else %}
+      <select name="view" data-auto-submit>
+        <option value="core_radial" {% if topology.view == "core_radial" %}selected{% endif %}>核心關聯圓圖</option>
+        <option value="core_impact" {% if topology.view == "core_impact" %}selected{% endif %}>核心影響清單圖</option>
+        <option value="radial" {% if topology.view == "radial" %}selected{% endif %}>系統關聯圓圖</option>
+        <option value="system" {% if topology.view == "system" %}selected{% endif %}>系統層級</option>
+        <option value="host" {% if topology.view == "host" %}selected{% endif %}>主機視圖</option>
+        <option value="ip" {% if topology.view == "ip" %}selected{% endif %}>IP 視圖</option>
+      </select>
+      <input name="center" value="{{ request.args.get('center', '') }}" list="topology-system-options" placeholder="選系統 / 輸入系統名稱">
+      <datalist id="topology-system-options">
+        {% for system in systems or [] %}
+        <option value="{{ system.system_id }}">{{ system.display_name }}</option>
+        <option value="{{ system.display_name }}">{{ system.system_id }}</option>
+        {% endfor %}
+      </datalist>
+      <select name="depth" data-auto-submit>
+        <option value="1" {% if request.args.get('depth', '2')|int == 1 %}selected{% endif %}>一層</option>
+        <option value="2" {% if request.args.get('depth', '2')|int == 2 %}selected{% endif %}>二層</option>
+        <option value="3" {% if request.args.get('depth', '2')|int == 3 %}selected{% endif %}>三層</option>
+        <option value="4" {% if request.args.get('depth', '2')|int == 4 %}selected{% endif %}>四層</option>
+      </select>
+      <input name="failed_node" value="{{ failed_node }}" placeholder="故障節點：主機/IP">
+      <label class="toggle-label"><input type="checkbox" name="focus_impact" value="1" {% if focus_impact %}checked{% endif %} data-auto-submit>只看直接影響</label>
+      <label class="toggle-label"><input type="checkbox" name="include_unmanaged" value="1" {% if topology.meta.include_unmanaged %}checked{% endif %} data-auto-submit>顯示未納管</label>
+      <label class="toggle-label"><input type="checkbox" name="include_external" value="1" {% if topology.meta.include_external %}checked{% endif %} data-auto-submit>顯示外部節點</label>
+      <label class="toggle-label"><input type="checkbox" name="show_ports" value="1" {% if show_ports %}checked{% endif %} data-auto-submit>顯示 Port</label>
+      <button type="submit">套用</button>
+      <a class="btn" href="{{ url_for('api_dependencies.dependencies_ghosts_page', include_external=1 if topology.meta.include_external else 0) }}">Ghost 清單</a>
+      {% if fullscreen %}
+        <a class="btn" href="{{ url_for('api_reports.dependencies_page', **fullscreen_args) }}">退出全螢幕</a>
+      {% else %}
+        <button class="btn primary" type="button" data-topology-fullscreen-enter data-fullscreen-url="{{ url_for('api_dependencies.dependencies_fullscreen_page', **fullscreen_args) }}">全螢幕</button>
+        <a class="btn topology-fullscreen-fallback" href="{{ url_for('api_dependencies.dependencies_fullscreen_page', **fullscreen_args) }}">全螢幕頁面</a>
+      {% endif %}
+      <button class="btn danger topology-fullscreen-exit" type="button" data-topology-fullscreen-exit>退出全螢幕</button>
+      {% endif %}
+    </form>
+    <div class="topology-legend">
+      <span><i class="topology-dot topology-dot-dc"></i>機房</span>
+      <span><i class="topology-dot topology-dot-system"></i>系統</span>
+      <span><i class="topology-dot topology-dot-host"></i>主機</span>
+      {% if topology.view == "ip" %}<span><i class="topology-dot topology-dot-ip"></i>IP</span>{% endif %}
+      <span><i class="topology-line topology-line-manual"></i>人工/可信</span>
+      <span><i class="topology-line topology-line-auto"></i>自動採集</span>
+      <span><i class="topology-dot topology-dot-failed"></i>故障節點</span>
+      <span><i class="topology-dot topology-dot-affected"></i>受影響</span>
+    </div>
+    <div class="topology-zoom" data-topology-controls>
+      <button class="btn-sm" type="button" data-topology-zoom-out title="縮小拓撲">縮小</button>
+      <button class="btn-sm" type="button" data-topology-zoom-in title="放大拓撲">放大</button>
+      <button class="btn-sm" type="button" data-topology-zoom-reset title="重設縮放">重設</button>
+      <span class="topology-zoom-value" data-topology-zoom-value>80%</span>
+    </div>
+  </div>
+
+  <div class="topology-workspace {% if topology.meta.simulation.enabled or topology.view == 'core_impact' %}topology-workspace-with-panel{% endif %}">
+    <div class="topology-canvas" data-topology-canvas>
+      <div class="topology-stage" data-topology-stage style="--topology-width: {{ graph_width }}px; --topology-height: {{ graph_height }}px;">
+        <svg viewBox="0 0 {{ graph_width }} {{ graph_height }}" role="img" aria-label="系統拓撲圖">
+          <defs>
+            <marker id="topology-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z"></path>
+            </marker>
+          </defs>
+
+          {% for guide in topology.meta.layer_guides or [] %}
+            <g class="topology-layer-guide">
+              <line x1="{{ guide.x }}" y1="58" x2="{{ guide.x }}" y2="{{ graph_height - 24 }}"></line>
+              <text x="{{ guide.x }}" y="{{ guide.y }}" text-anchor="middle">{{ guide.label }}</text>
+            </g>
+          {% endfor %}
+
+          {% for edge in topology.edges %}
+            <g class="topology-edge topology-edge-focus-{{ edge.focus_state or 'normal' }} {% if edge.simulation_status == 'affected' %}topology-edge-affected{% elif edge.simulation_status == 'related' %}topology-edge-related{% endif %}" tabindex="0">
+              <title>{{ edge.detail_label or edge.source_label ~ " -> " ~ edge.target_label }}</title>
+              <line class="topology-line-{{ edge.trust or 'manual' }}" x1="{{ edge.x1 }}" y1="{{ edge.y1 }}" x2="{{ edge.x2 }}" y2="{{ edge.y2 }}"></line>
+              {% if show_ports and edge.port_label %}
+                <text class="topology-edge-label topology-edge-label-short" x="{{ edge.label_x or ((edge.x1 + edge.x2) / 2) }}" y="{{ edge.label_y or ((edge.y1 + edge.y2) / 2 - 28) }}" text-anchor="middle">{{ edge.port_label_short or edge.port_label }}</text>
+              {% endif %}
+            </g>
+          {% endfor %}
+
+          {% for node in topology.nodes %}
+            <g class="topology-node topology-node-radial-{{ node.radial_role or 'none' }} topology-node-focus-{{ node.focus_state or 'normal' }} {% if node.kind == '機房' %}topology-node-dc{% elif node.kind in ['系統', '未納管系統'] %}topology-node-system{% elif node.kind in ['內網未納管', '內網未納管 IP'] %}topology-node-unmanaged{% elif node.kind in ['外部節點', '外部 IP', '外網未知'] %}topology-node-ghost{% elif node.kind == 'IP' %}topology-node-ip{% else %}topology-node-host{% endif %} {% if node.simulation_status == 'failed' %}topology-node-failed{% elif node.simulation_status == 'affected' %}topology-node-affected{% elif node.simulation_status == 'related' %}topology-node-related{% endif %}" tabindex="0" data-topology-node-id="{{ node.id }}">
+              <title>{{ node.kind }}：{{ node.label }}</title>
+              {% if topology.view == "core_impact" %}
+              <rect class="topology-impact-node-box" x="{{ node.x - 112 }}" y="{{ node.y - 31 }}" width="224" height="62" rx="10"></rect>
+              <text class="topology-node-label" x="{{ node.x }}" y="{{ node.y - 5 }}" text-anchor="middle">{{ node.label[:16] }}</text>
+              <text class="topology-node-kind" x="{{ node.x }}" y="{{ node.y + 17 }}" text-anchor="middle">{{ node.role_label or node.kind }}</text>
+              {% else %}
+              <circle cx="{{ node.x }}" cy="{{ node.y }}" r="{{ 58 if node.radial_role == 'center' else 42 if node.radial_role == 'direct' else 32 }}"></circle>
+              <text class="topology-node-label" x="{{ node.x }}" y="{{ node.y - 5 }}" text-anchor="middle">{{ node.label[:14] }}</text>
+              <text class="topology-node-kind" x="{{ node.x }}" y="{{ node.y + 17 }}" text-anchor="middle">{{ node.kind }}</text>
+              {% endif %}
+            </g>
+          {% endfor %}
+        </svg>
+      </div>
+    </div>
+    {% if topology.view == "core_impact" and topology.meta.impact_panel %}
+    <aside class="topology-impact-panel">
+      <span class="badge-warn">影響檢視</span>
+      <h2>{{ topology.meta.impact_panel.focus_label }}</h2>
+      <p class="muted">從核心「{{ topology.meta.impact_panel.core_label }}」展開，顯示關聯系統與主機 / IP。</p>
+      <dl>
+        <div><dt>所屬核心</dt><dd>{{ topology.meta.impact_panel.core_label }}</dd></div>
+        <div><dt>關聯系統</dt><dd>{{ topology.meta.impact_panel.system_count }} 套</dd></div>
+        <div><dt>主機 / IP</dt><dd>{{ topology.meta.impact_panel.host_count }} 台</dd></div>
+        <div><dt>Loop</dt><dd>{{ topology.meta.impact_panel.loop_count }} 條</dd></div>
+        <div><dt>通知對象</dt><dd>{{ topology.meta.impact_panel.notification_count }} 組</dd></div>
+      </dl>
+      <h3>可能受影響</h3>
+      <div class="topology-impact-list">
+        {% for item in topology.meta.impact_panel.affected_items %}
+        <div>
+          <strong>{{ item.name }}</strong>
+          <span>{{ item.note }}</span>
+        </div>
+        {% else %}
+        <div><strong>尚無關聯系統</strong><span>請先在手動關聯管理建立正式 CMDB 關聯。</span></div>
+        {% endfor %}
+      </div>
+    </aside>
+    {% endif %}
+  </div>
+</section>
+
+{% if not fullscreen and topology.view != "core_impact" %}
+<section class="panel" id="relation-editor">
+  <div class="page-header">
+    <div>
+      <h2>手動關聯管理</h2>
+      <p class="text-muted-sm">用來登錄 CMDB 確認過的系統關聯；ss/nmap 自動採集仍會以「自動」來源保留，方便比對。</p>
+    </div>
+    <a class="btn" href="{{ url_for('api_reports.dependencies_page', view='core_radial') }}">回核心關聯圓圖</a>
+  </div>
+  {% if current_user.role in ["admin", "super", "superadmin"] %}
+  <form class="relation-editor-grid" method="post" action="{{ url_for('api_dependencies.relation_save_page') }}">
+    <label>來源系統
+      <select name="from_system" required>
+        <option value="">選擇來源</option>
+        {% for system in systems or [] %}
+        <option value="{{ system.system_id }}">{{ system.display_name }} / {{ system.system_id }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>目標系統
+      <select name="to_system" required>
+        <option value="">選擇目標</option>
+        {% for system in systems or [] %}
+        <option value="{{ system.system_id }}">{{ system.display_name }} / {{ system.system_id }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>關聯類型
+      <select name="rel_type">
+        <option value="depends_on">依賴</option>
+        <option value="connects_to">連線</option>
+        <option value="same_system">同系統</option>
+        <option value="backup_of">備援</option>
+      </select>
+    </label>
+    <label>Port
+      <input name="remote_port" placeholder="例如 443">
+    </label>
+    <label>服務
+      <input name="service_name" placeholder="例如 HTTPS / Oracle">
+    </label>
+    <label class="relation-editor-note">備註
+      <input name="description" placeholder="用途、介接說明、維護窗口或例外原因">
+    </label>
+    <button class="btn primary" type="submit">儲存關聯</button>
+  </form>
+  {% else %}
+  <p class="no-data">目前帳號只能檢視關聯；新增、修改與刪除需 admin 以上權限。</p>
+  {% endif %}
+  <table class="data-table">
+    <thead><tr><th>來源</th><th>目標</th><th>類型</th><th>來源別</th><th>Port / 服務</th><th>備註</th><th>更新</th><th>操作</th></tr></thead>
+    <tbody>
+      {% for relation in relation_items or [] %}
+      {% set ports = relation.evidence.remote_ports if relation.evidence and relation.evidence.remote_ports else [] %}
+      <tr>
+        <td><code>{{ relation.from_system }}</code></td>
+        <td><code>{{ relation.to_system }}</code></td>
+        <td>{{ relation.rel_type or "-" }}</td>
+        <td>{{ "手動" if relation.source == "manual" else "自動" if relation.source == "auto" else relation.source or "-" }}</td>
+        <td>{{ ports|join(", ") if ports else relation.evidence.service_name if relation.evidence and relation.evidence.service_name else "-" }}</td>
+        <td>{{ relation.description or "-" }}</td>
+        <td>{{ (relation.updated_at|string)[:19]|replace("T", " ") if relation.updated_at else "-" }}</td>
+        <td>
+          {% if current_user.role in ["admin", "super", "superadmin"] %}
+          <form method="post" action="{{ url_for('api_dependencies.relation_delete_page', relation_id=relation._id) }}" onsubmit="return confirm('確認刪除此關聯？');">
+            <button class="btn-sm danger" type="submit">刪除</button>
+          </form>
+          {% else %}
+          -
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" class="no-data">尚無關聯資料。可先用手動關聯建立，或執行 ss/nmap 採集。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% if topology.view != "core_impact" %}
+<section class="panel {% if fullscreen %}topology-fullscreen-list{% endif %}">
+  <h2>連線清單</h2>
+  <table class="data-table">
+    <thead><tr><th>來源</th><th>目標</th><th>類型</th><th>Port</th><th>程序</th><th>次數</th><th>最後看到</th></tr></thead>
+    <tbody>
+      {% for edge in topology.edges %}
+      <tr>
+        <td>{{ edge.source_label }}</td>
+        <td>{{ edge.target_label }}</td>
+        <td>{{ edge.label or "-" }}</td>
+        <td>{{ edge.port_summary or "-" }}</td>
+        <td>{{ edge.process_name or "-" }}</td>
+        <td>{{ edge.seen_count or "-" }}</td>
+        <td>{{ edge.last_seen or "-" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="no-data">沒有拓撲連線資料</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+{% if fullscreen %}
+</section>
+{% endif %}
+{% endblock %}

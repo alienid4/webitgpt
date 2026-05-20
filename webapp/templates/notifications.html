@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}通知設定 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>通知設定</h1>
+  <table>
+    <thead><tr><th>通道</th><th>啟用</th><th>目標</th><th>設定</th><th>測試</th></tr></thead>
+    <tbody>
+      {% for channel in channels %}
+      <tr>
+        <td>{{ channel.channel }}</td>
+        <td>{{ channel.enabled }}</td>
+        <td>{{ channel.target }}</td>
+        <td>
+          <form class="inline-form" method="post">
+            <input type="hidden" name="channel" value="{{ channel.channel }}">
+            <input name="target" value="{{ channel.target }}">
+            <label class="toggle"><input type="checkbox" name="enabled" {% if channel.enabled %}checked{% endif %}><span>啟用</span></label>
+            <button class="btn" type="submit">儲存</button>
+          </form>
+          <div class="submit-status" hidden aria-live="polite"></div>
+        </td>
+        <td>
+          <form method="post" action="{{ url_for('api_notifications.send_test_page', channel=channel.channel) }}" data-submit-status data-submit-message="正在送出通知測試，請稍候。">
+            <button class="btn" type="submit">送出測試</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

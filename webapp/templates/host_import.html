@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}資產匯入 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>資產匯入結果</h1>
+  {% if import_result %}
+  <div class="notice">匯入完成：新增 {{ import_result.created }}，更新 {{ import_result.updated }}，失敗 {{ import_result.failed }}</div>
+  {% if import_result.errors %}<div class="notice danger">{{ import_result.errors }}</div>{% endif %}
+  {% endif %}
+  {% if scan_result %}
+  <div class="notice">網段預覽：{{ scan_result.cidr }} / {{ scan_result.discovered|length }} 筆 / {{ scan_result.mode }}</div>
+  <table class="data-table">
+    <thead><tr><th>資產編號</th><th>主機名稱</th><th>IP</th><th>網段</th><th>動作</th></tr></thead>
+    <tbody>
+      {% for item in scan_result.discovered %}
+      <tr><td>{{ item.asset_seq }}</td><td>{{ item.hostname }}</td><td>{{ item.ip }}</td><td>{{ item.network_segments|join("、") }}</td><td>{{ item.action }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  <a class="btn primary" href="{{ url_for('api_hosts.hosts_page') }}">回資產管理</a>
+</section>
+{% endblock %}

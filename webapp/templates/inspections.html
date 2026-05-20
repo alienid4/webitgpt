@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% block title %}開門檢查 - webitgpt{% endblock %}
+{% block content %}
+<section class="page-hero inspection-hero">
+  <div>
+    <p class="eyebrow">OPENING CHECK</p>
+    <h1>開門檢查</h1>
+    <p class="muted">開門檢查以系統範圍為主，例如巡檢系統主機；深度檢查以單台主機為主，Linux / RHEL / Debian / CentOS / AIX 可依平台執行 L3。</p>
+  </div>
+  <div class="actions">
+    <button class="btn primary" type="button" data-submit-message="正在執行開門檢查，請稍候。" data-api-post="/api/inspections/run" data-payload='{"limit":100,"system":"{{ diagnostics.selected_system }}"}' data-reload-on-success="true" data-busy-text="巡檢中">巡檢目前範圍</button>
+    <a class="btn secondary" href="{{ url_for('api_operations.today_report_api') }}">JSON API</a>
+  </div>
+</section>
+
+<pre id="apiResult" class="notice" hidden></pre>
+
+<section class="panel compact">
+  <form class="filter-bar" method="get" action="{{ url_for('api_operations.inspections_page') }}">
+    <input type="hidden" name="platform" value="{{ diagnostics.platform }}">
+    <label>搜尋系統
+      <input type="search" data-opening-system-search placeholder="輸入系統名稱">
+    </label>
+    <label>開門檢查系統
+      <select name="system" data-opening-system-select>
+        <option value="{{ diagnostics.all_systems_value }}" {% if not diagnostics.selected_system %}selected{% endif %}>全部系統（{{ diagnostics.all_systems_count }} 台）</option>
+        {% for option in diagnostics.system_options %}
+        <option value="{{ option.name }}" {% if diagnostics.selected_system == option.name %}selected{% endif %}>{{ option.name }}（{{ option.count }} 台）</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button class="btn-sm" type="submit">套用</button>
+  </form>
+  <div class="summary-grid">
+    <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.hosts }}</strong><span>{{ diagnostics.selected_system_label }} / {{ diagnostics.platform|upper }}</span></a>
+    <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.ok }}</strong><span>正常項目</span></a>
+    <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.warn }}</strong><span>警示項目</span></a>
+    <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.pending }}</strong><span>待檢項目</span></a>
+  </div>
+</section>
+
+<section class="panel compact">
+  <div class="tab-row">
+    {% for tab in diagnostics.tabs %}
+    <a class="tab-btn {% if diagnostics.platform == tab.key %}active{% endif %}" href="{{ url_for('api_operations.inspections_page', platform=tab.key, system=diagnostics.selected_system if diagnostics.selected_system else diagnostics.all_systems_value) }}">{{ tab.label }}</a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="opening-dashboard" id="opening-hosts">
+  {% for host in diagnostics["items"] %}
+  <article class="gauge-card gauge-{{ host.overall or 'pending' }}" id="host-{{ host.asset_seq }}">
+    <div class="gauge-head">
+      <div>
+        <p class="eyebrow">HOST DASHBOARD</p>
+        <h2>{{ host.asset_name or host.system_name or host.hostname }}</h2>
+        <div class="text-muted-sm">{{ host.hostname or "-" }} / {{ host.ip or "-" }} / {{ host.os or host.host_type }}</div>
+      </div>
+      <span class="gauge-state">{{ host.overall_label or "待檢" }}</span>
+    </div>
+
+    <div class="gauge-body">
+      <div class="score-meter">
+        <div class="score-ring" data-score-ring data-score="{{ host.summary.score if host.summary else 0 }}" aria-label="健康分數 {{ host.summary.score if host.summary else 0 }}">
+          <strong>{{ host.summary.score if host.summary else 0 }}</strong>
+          <span>健康分數</span>
+        </div>
+        <div class="score-bars">
+          <div><b>{{ host.summary.ok if host.summary else 0 }}</b><span>正常</span></div>
+          <div><b>{{ host.summary.warn if host.summary else 0 }}</b><span>警示</span></div>
+          <div><b>{{ host.summary.pending if host.summary else 0 }}</b><span>待檢</span></div>
+        </div>
+      </div>
+
+      <div class="aspect-lights" aria-label="9 面向檢查">
+        {% for check in host.checks %}
+        <details class="aspect-light aspect-{{ check.status }}">
+          <summary>
+            <span class="light {% if check.status == 'ok' %}light-pass{% elif check.status == 'warn' %}light-exception{% elif check.status in ['fail', 'error'] %}light-fail{% else %}light-na{% endif %}"></span>
+            <strong>
+              {{ check.label }}
+              {% if check.key == "log" %}
+              <a class="aspect-helper-link" href="{{ url_for('api_superadmin.log_exceptions_page') }}">系統日誌白名單 / 例外管理</a>
+              {% endif %}
+              {% if check.key == "service" %}
+              <a class="aspect-helper-link" href="{{ url_for('api_superadmin.important_services_page') }}">重要服務設定</a>
+              {% endif %}
+            </strong>
+            <em>{{ check.status }}</em>
+          </summary>
+          {% if check.visual_rows %}
+          <div class="aspect-visual">
+            {% for row in check.visual_rows %}
+            <div class="aspect-row {% if row.percent is not none %}has-bar{% endif %}">
+              <span>{{ row.label }}</span>
+              <strong>{{ row.value }}</strong>
+              {% if row.percent is not none %}
+              <div class="mini-bar" aria-label="{{ row.label }} {{ row.percent }}%">
+                <i style="width: {{ row.percent }}%"></i>
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <pre class="detail">{{ check.detail }}</pre>
+          {% endif %}
+        </details>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% set l3 = host.latest_deep_check %}
+    <section class="l3-panel">
+      <div class="l3-head">
+        <div>
+          <strong>L3 深度檢查</strong>
+          {% if l3 %}
+          <span class="text-muted-sm">最近：{{ l3.parsed.display_timestamp or l3.parsed.timestamp }} / {{ l3.parsed.status }}</span>
+          {% else %}
+          <span class="text-muted-sm">尚未執行 L3。</span>
+          {% endif %}
+        </div>
+        {% if host.host_type in ["linux", "aix"] %}
+        <button class="btn-sm btn-primary" type="button" data-submit-message="正在執行 L3 深度檢查，請稍候。" data-api-post="/api/deep-check/run" data-payload='{"hostname":"{{ host.hostname }}"}' data-reload-on-success="true" data-busy-text="檢查中">執行 L3</button>
+        {% elif host.host_type in ["windows"] %}
+        <span class="badge-warn">WinRM 待接</span>
+        {% else %}
+        <span class="badge-warn">平台待接</span>
+        {% endif %}
+      </div>
+      {% if l3 %}
+      <div class="l3-summary">
+        <button type="button" data-l3-filter="PASS"><b>{{ l3.parsed.stats.pass }}</b><span>PASS</span></button>
+        <button type="button" data-l3-filter="WARN"><b>{{ l3.parsed.stats.warn }}</b><span>WARN</span></button>
+        <button type="button" data-l3-filter="FAIL"><b>{{ l3.parsed.stats.fail }}</b><span>FAIL</span></button>
+        <button type="button" data-l3-filter="N/A"><b>{{ l3.parsed.stats.na }}</b><span>N/A</span></button>
+      </div>
+      <ul class="l3-impact-summary">
+        {% for line in l3.parsed.customer_impact_lines or [l3.parsed.customer_impact] %}
+        <li>{{ line }}</li>
+        {% endfor %}
+      </ul>
+      <details class="diagnostic-history">
+        <summary>展開 L3 9 面向與 Remedy</summary>
+        <div class="l3-items">
+          {% for item in l3.parsed["items"] %}
+          <details class="l3-item l3-{{ item.level }}" data-l3-verdict="{{ item.verdict }}">
+            <summary class="l3-item-summary">
+              <span>
+                <strong>{{ item.idx }}. {{ item.name }}</strong>
+                <em>{{ item.problem or item.impact }}</em>
+              </span>
+              <span class="{{ 'badge-ok' if item.verdict == 'PASS' else 'badge-warn' if item.verdict == 'WARN' else 'badge-error' }}">{{ item.verdict }}</span>
+            </summary>
+            <div class="l3-focus">
+              <p class="l3-problem"><strong>問題點：</strong>{{ item.problem or item.impact }}</p>
+              <p class="l3-threshold"><strong>警示門檻：</strong>{{ item.threshold or item.baseline }}</p>
+              <div class="l3-recommendation"><strong>建議處置：</strong><pre>{{ item.recommendation or item.action }}</pre></div>
+            </div>
+            <details class="l3-raw-output">
+              <summary>查看判定證據與命令</summary>
+              <div class="l3-evidence">
+                <div>
+                  <b>檢查指令</b>
+                  <pre class="detail">{{ item.cmd }}</pre>
+                </div>
+                <div>
+                  <b>回傳碼</b>
+                  <p>rc={{ item.returncode if item.returncode is defined else "-" }}</p>
+                </div>
+                <div>
+                  <b>證據摘要</b>
+                  <pre class="detail">{{ item.evidence or item.actual }}</pre>
+                </div>
+                <div>
+                  <b>原始輸出節錄</b>
+                  <pre class="detail">{{ item.actual }}</pre>
+                </div>
+              </div>
+            </details>
+            {% if item.remedies %}
+            <div class="remedy-list">
+              {% for remedy in item.remedies %}
+              <details>
+                <summary>{{ remedy.title }}</summary>
+                <div class="grid-2col">
+                  <div><b>Commands</b><pre class="detail">{{ "\n".join(remedy.commands) }}</pre></div>
+                  <div><b>Verify</b><pre class="detail">{{ "\n".join(remedy.verify) }}</pre></div>
+                </div>
+                <p class="text-muted-sm">風險：{{ "；".join(remedy.risks) }}</p>
+              </details>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </details>
+          {% endfor %}
+        </div>
+      </details>
+      <div class="gauge-actions l3-links">
+        <a class="btn-sm" href="/api/deep-check/reports/{{ l3.summary_filename }}/parsed">Parsed JSON</a>
+        <a class="btn-sm" href="/api/deep-check/reports/{{ l3.summary_filename }}/preview">純文字摘要</a>
+        <a class="btn-sm" href="/api/deep-check/reports/{{ l3.detail_filename }}/download">下載明細</a>
+      </div>
+      {% endif %}
+    </section>
+
+    <div class="gauge-actions">
+      <form method="post" action="{{ url_for('api_operations.deep_diagnostic_page', asset_seq=host.asset_seq) }}" data-submit-status data-submit-message="正在執行 L1 快速檢查，請稍候。">
+        <button class="btn-sm btn-secondary" type="submit">L1 快速檢查</button>
+      </form>
+      <a class="btn-sm" href="/api/deep-check/history?hostname={{ host.hostname }}">L3 歷史 API</a>
+      <details class="diagnostic-history">
+        <summary>最近一週 L1 {{ host.recent|length if host.recent else 0 }} 筆</summary>
+        {% for run in host.recent %}
+        <div class="diagnostic-run">
+          <strong>{{ run.checked_at }}</strong>
+          <span class="text-muted-sm">OK={{ run.summary.ok }} / WARN={{ run.summary.warn }} / PENDING={{ run.summary.pending }}</span>
+        </div>
+        {% else %}
+        <div class="text-muted-sm">尚無快速檢查紀錄。</div>
+        {% endfor %}
+      </details>
+    </div>
+  </article>
+  {% else %}
+  <div class="panel no-data">尚未產生開門檢查資料。</div>
+  {% endfor %}
+</section>
+
+<section class="panel">
+  <h2>今日巡檢明細</h2>
+  <table class="data-table">
+    <thead><tr><th>資產編號</th><th>主機名稱</th><th>類型</th><th>狀態</th><th>CPU</th><th>記憶體</th><th>磁碟</th><th>資料來源</th></tr></thead>
+    <tbody>
+      {% for item in report["items"] %}
+      <tr>
+        <td>{{ item.asset_seq }}</td>
+        <td>{{ item.hostname }}</td>
+        <td>{{ item.host_type }}</td>
+        <td>{{ item.status }}</td>
+        <td>{% if item.cpu_pct is not none %}{{ item.cpu_pct }}%{% else %}-{% endif %}</td>
+        <td>{% if item.mem_pct is not none %}{{ item.mem_pct }}%{% else %}-{% endif %}</td>
+        <td>{% if item.disk_pct is not none %}{{ item.disk_pct }}%{% else %}-{% endif %}</td>
+        <td>{{ item.metric_source or "not_collected" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" class="no-data">尚未產生開門檢查資料。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/admin_tools.js') }}"></script>{% endblock %}

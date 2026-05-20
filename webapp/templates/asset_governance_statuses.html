@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}資產治理狀態 - webitgpt{% endblock %}
+{% block content %}
+<section class="admin-page">
+  <aside class="admin-sidebar">
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.superadmin_page') }}">總覽</a>
+    <a class="admin-side-link active" href="{{ url_for('api_superadmin.asset_governance_statuses_page') }}">資產治理狀態</a>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.important_services_page') }}">重要服務設定</a>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.log_exceptions_page') }}">系統日誌例外</a>
+  </aside>
+  <div class="admin-content">
+    <section class="admin-hero">
+      <div>
+        <p class="eyebrow">ASSET GOVERNANCE</p>
+        <h1>資產治理狀態</h1>
+        <p class="muted">治理狀態用來標示匯入、掃描與實際環境之間的不一致。之後想到新狀態，可在這裡新增，不需要改程式。</p>
+      </div>
+      <a class="btn secondary" href="{{ url_for('api_superadmin.superadmin_page') }}">回系統管理</a>
+    </section>
+
+    {% if saved %}<div class="notice success">已儲存：{{ saved.name }}</div>{% endif %}
+    {% if error %}<div class="notice danger">{{ error }}</div>{% endif %}
+
+    <section class="admin-section">
+      <h2>新增或更新狀態</h2>
+      <form class="form-grid" method="post" action="{{ url_for('api_superadmin.asset_governance_statuses_save_page') }}">
+        <div class="form-group">
+          <label>狀態代碼</label>
+          <input class="input-field" name="code" required placeholder="例如 waiting_firewall">
+        </div>
+        <div class="form-group">
+          <label>狀態名稱</label>
+          <input class="input-field" name="name" required placeholder="例如 等待防火牆開通">
+        </div>
+        <div class="form-group">
+          <label>分類</label>
+          <select class="input-field" name="category">
+            <option>待處理</option>
+            <option>異常</option>
+            <option>正常</option>
+            <option>例外</option>
+            <option>結案</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>風險</label>
+          <select class="input-field" name="risk">
+            <option>中</option>
+            <option>高</option>
+            <option>低</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>顏色</label>
+          <select class="input-field" name="color">
+            <option value="orange">橘色</option>
+            <option value="red">紅色</option>
+            <option value="green">綠色</option>
+            <option value="blue">藍色</option>
+            <option value="gray">灰色</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>排序</label>
+          <input class="input-field" name="sort_order" type="number" value="500">
+        </div>
+        <div class="form-group span-2">
+          <label>說明</label>
+          <input class="input-field" name="description" placeholder="給主管或資產管理人員看的說明">
+        </div>
+        <label class="toggle-label"><input type="checkbox" name="visible_in_report" checked><span>顯示在主管報表</span></label>
+        <label class="toggle-label"><input type="checkbox" name="blocks_activation"><span>阻擋正式納管</span></label>
+        <label class="toggle-label"><input type="checkbox" name="requires_reason"><span>必填原因</span></label>
+        <label class="toggle-label"><input type="checkbox" name="requires_expiry"><span>需要到期日</span></label>
+        <label class="toggle-label"><input type="checkbox" name="auto_assignable"><span>允許系統自動標記</span></label>
+        <label class="toggle-label"><input type="checkbox" name="enabled" checked><span>啟用</span></label>
+        <button class="btn btn-primary" type="submit">儲存狀態</button>
+      </form>
+    </section>
+
+    <section class="admin-section">
+      <h2>狀態清單</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>排序</th>
+              <th>狀態</th>
+              <th>分類 / 風險</th>
+              <th>規則</th>
+              <th>說明</th>
+              <th>狀態</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in statuses %}
+            <tr>
+              <td>{{ item.sort_order }}</td>
+              <td><strong>{{ item.name }}</strong><div class="text-muted-sm code-inline">{{ item.code }}</div></td>
+              <td>{{ item.category }} / {{ item.risk }}</td>
+              <td>
+                {% if item.visible_in_report %}<span class="badge-ok">報表</span>{% endif %}
+                {% if item.blocks_activation %}<span class="badge-error">阻擋納管</span>{% endif %}
+                {% if item.requires_reason %}<span class="badge-warn">需原因</span>{% endif %}
+                {% if item.requires_expiry %}<span class="badge-warn">需到期日</span>{% endif %}
+                {% if item.auto_assignable %}<span class="badge-ok">可自動</span>{% endif %}
+              </td>
+              <td>{{ item.description or "-" }}</td>
+              <td><span class="{{ 'badge-ok' if item.enabled else 'badge-warn' }}">{{ "啟用" if item.enabled else "停用" }}</span></td>
+              <td>
+                <form class="inline-form" method="post" action="{{ url_for('api_superadmin.asset_governance_statuses_toggle_page', code=item.code) }}">
+                  <label class="toggle-label"><input type="checkbox" name="enabled" {% if not item.enabled %}checked{% endif %}><span>{{ "停用" if item.enabled else "啟用" }}</span></label>
+                  <button class="btn-sm" type="submit">套用</button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="no-data">尚未建立資產治理狀態。</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</section>
+{% endblock %}

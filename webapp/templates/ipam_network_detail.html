@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}IPAM IP 明細 - webitgpt{% endblock %}
+{% block content %}
+<section class="asset-workbench">
+  <div class="panel asset-edit-hero">
+    <div>
+      <p class="eyebrow">IPAM DETAIL</p>
+      <h1>{{ detail.network.name or detail.network.cidr }}</h1>
+      <p class="text-muted-sm">CIDR：<span class="code-inline">{{ detail.network.cidr }}</span>。此頁以 CMDB 資產與 IP 保留紀錄為準，標示每個 IP 是否已納入系統。</p>
+    </div>
+    <div class="asset-actions">
+      <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">回 IPAM</a>
+      <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">回資產管理</a>
+    </div>
+  </div>
+
+  <section class="metric-grid">
+    <a class="metric" href="#ipam-address-details"><strong>{{ detail.network.total_usable }}</strong><span>可用位址總數</span></a>
+    <a class="metric" href="#ipam-address-details"><strong>{{ detail.network.used_count }}</strong><span>已納入資產</span></a>
+    <a class="metric" href="#ipam-address-details"><strong>{{ detail.network.reserved_count }}</strong><span>已保留未納管</span></a>
+    <a class="metric" href="#ipam-address-details"><strong>{{ detail.network.available_count }}</strong><span>目前可分配</span></a>
+  </section>
+
+  <section class="table-wrap asset-table-wrap" id="ipam-address-details">
+    <h2>IP 明細</h2>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>IP</th>
+          <th>納管狀態</th>
+          <th>主機名稱</th>
+          <th>資產名稱</th>
+          <th>作業系統</th>
+          <th>平台類型</th>
+          <th>資產狀態</th>
+          <th>需求 / 說明</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in detail.rows %}
+          {% if row.hosts %}
+            {% for host in row.hosts %}
+            <tr>
+              <td class="code-inline">{{ row.ip }}</td>
+              <td><span class="badge-ok">{{ row.enrolled_label }}</span></td>
+              <td>{{ host.hostname }}</td>
+              <td>{{ host.asset_name or "-" }}</td>
+              <td>{{ host.os or "-" }}</td>
+              <td>{{ host_type_labels.get(host.host_type, host.host_type or "-") }}</td>
+              <td>{{ status_labels.get(host.status, host.status or "-") }}</td>
+              <td>{{ host.note or "-" }}</td>
+              <td><a class="btn btn-sm" href="{{ url_for('api_hosts.host_edit_page', asset_seq=host.hostname) }}">開啟資產</a></td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td class="code-inline">{{ row.ip }}</td>
+              <td>
+                {% if row.state == "reserved" %}
+                  <span class="badge-warn">{{ row.enrolled_label }}</span>
+                {% else %}
+                  <span class="badge-ok">{{ row.state_label }}</span>
+                {% endif %}
+              </td>
+              <td>{{ row.reservation.hostname if row.reservation else "-" }}</td>
+              <td>{{ row.reservation.asset_name if row.reservation else "-" }}</td>
+              <td>-</td>
+              <td>-</td>
+              <td>-</td>
+              <td>
+                {% if row.reservation %}
+                  {{ row.reservation.ticket or "IP 已保留" }}
+                {% elif row.reserved_by_rule %}
+                  {{ detail.network.reserved_note or "網段規則保留" }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td>-</td>
+            </tr>
+          {% endif %}
+        {% else %}
+        <tr><td colspan="9" class="no-data">此網段沒有可用位址。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</section>
+{% endblock %}

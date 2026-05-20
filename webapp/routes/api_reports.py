@@ -1,0 +1,178 @@
+from __future__ import annotations
+
+import csv
+import io
+
+from flask import Blueprint, Response, jsonify, render_template, request
+
+from webapp.decorators import require_feature
+from webapp.services.compliance_service import dashboard as compliance_dashboard
+from webapp.services.feature_flags import is_enabled
+from webapp.services.host_service import list_hosts
+from webapp.services.inventory_service import account_report_summary
+from webapp.services import dependency_service
+from webapp.services.dependency_service import topology
+
+bp = Blueprint("api_reports", __name__)
+
+
+def _include_external() -> bool:
+    return request.args.get("include_external") in {"1", "true", "yes", "on"}
+
+
+def _include_unmanaged() -> bool:
+    return request.args.get("include_unmanaged") in {"1", "true", "yes", "on"}
+
+
+def _focus_impact() -> bool:
+    return request.args.get("focus_impact") in {"1", "true", "yes", "on"}
+
+
+def _summary() -> dict:
+    hosts = list_hosts(page=1, page_size=10000)["items"]
+    by_env: dict[str, int] = {}
+    by_status: dict[str, int] = {}
+    by_type: dict[str, int] = {}
+    by_dc: dict[str, int] = {}
+    for host in hosts:
+        by_env[host.get("environment", "")] = by_env.get(host.get("environment", ""), 0) + 1
+        by_status[host.get("status", "")] = by_status.get(host.get("status", ""), 0) + 1
+        by_type[host.get("host_type") or host.get("os_group") or "-"] = by_type.get(host.get("host_type") or host.get("os_group") or "-", 0) + 1
+        by_dc[host.get("dc") or host.get("location") or "-"] = by_dc.get(host.get("dc") or host.get("location") or "-", 0) + 1
+    compliance = compliance_dashboard() if is_enabled("module_compliance_security", default=False) else {"open_findings": 0, "rules_total": 0}
+    return {
+        "hosts_total": len(hosts),
+        "by_env": by_env,
+        "by_status": by_status,
+        "by_type": by_type,
+        "by_dc": by_dc,
+        "compliance": compliance,
+        "accounts": account_report_summary(),
+    }
+
+
+def _bar_items(rows, total: int = 0, limit: int = 8) -> list[dict]:
+    if isinstance(rows, dict):
+        items = [{"name": name or "-", "count": count} for name, count in rows.items()]
+    else:
+        items = [{"name": row.get("name") or "-", "count": int(row.get("count") or 0)} for row in rows]
+    items = sorted(items, key=lambda row: (-row["count"], row["name"]))[:limit]
+    denominator = max(total or sum(row["count"] for row in items), 1)
+    return [{**row, "pct": round((row["count"] / denominator) * 100, 1), "width": max(2, round((row["count"] / denominator) * 100, 1))} for row in items]
+
+
+def _executive_charts(summary: dict) -> dict:
+    account_summary = summary["accounts"]["summary"]
+    risk_total = max(account_summary.get("total", 0), 1)
+    risk_rows = [
+        {"name": "異常帳號", "count": account_summary.get("abnormal", 0)},
+        {"name": "高權限帳號", "count": account_summary.get("privileged", 0)},
+        {"name": "長期未登入", "count": account_summary.get("never_login", 0)},
+        {"name": "服務帳號可登入", "count": account_summary.get("service_login", 0)},
+        {"name": "PAM 納管", "count": account_summary.get("pam_managed", 0)},
+    ]
+    compliance_open = int(summary["compliance"].get("open_findings", 0) or 0)
+    rules_total = int(summary["compliance"].get("rules_total", 0) or 0)
+    return {
+        "asset_status": _bar_items(summary["by_status"], summary["hosts_total"]),
+        "asset_type": _bar_items(summary["by_type"], summary["hosts_total"]),
+        "asset_env": _bar_items(summary["by_env"], summary["hosts_total"]),
+        "asset_dc": _bar_items(summary["by_dc"], summary["hosts_total"]),
+        "account_risk": _bar_items(risk_rows, risk_total),
+        "account_by_host": _bar_items(summary["accounts"].get("by_host", []), account_summary.get("total", 0), limit=5),
+        "compliance": {
+            "open_findings": compliance_open,
+            "rules_total": rules_total,
+            "ok_pct": 100 if not rules_total and not compliance_open else max(0, round(100 - min(100, compliance_open * 10), 1)),
+        },
+    }
+
+
+@bp.get("/reports")
+@require_feature("summary")
+def reports_page():
+    return render_template("reports.html", summary=_summary())
+
+
+@bp.get("/dashboard")
+@require_feature("summary")
+def dashboard_page():
+    return render_template("dashboard.html", summary=_summary())
+
+
+@bp.get("/executive")
+@require_feature("summary")
+def executive_page():
+    summary = _summary()
+    risk_items = summary["accounts"].get("abnormal_items", [])[:5]
+    return render_template("executive.html", summary=summary, risk_items=risk_items, charts=_executive_charts(summary))
+
+
+@bp.get("/api/reports/summary")
+@require_feature("summary")
+def reports_summary_api():
+    return jsonify(_summary())
+
+
+@bp.get("/api/reports/summary.csv")
+@require_feature("summary")
+def reports_summary_csv():
+    summary = _summary()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["section", "name", "value"])
+    writer.writerow(["summary", "hosts_total", summary["hosts_total"]])
+    writer.writerow(["summary", "open_findings", summary["compliance"].get("open_findings", 0)])
+    writer.writerow(["summary", "rules_total", summary["compliance"].get("rules_total", 0)])
+    account_summary = summary["accounts"]["summary"]
+    writer.writerow(["accounts", "total", account_summary.get("total", 0)])
+    writer.writerow(["accounts", "abnormal", account_summary.get("abnormal", 0)])
+    writer.writerow(["accounts", "privileged", account_summary.get("privileged", 0)])
+    writer.writerow(["accounts", "service_login", account_summary.get("service_login", 0)])
+    writer.writerow(["accounts", "never_login", account_summary.get("never_login", 0)])
+    writer.writerow(["accounts", "password_old", account_summary.get("password_old", 0)])
+    writer.writerow(["accounts", "system_default_hidden", account_summary.get("system_default_hidden", 0)])
+    for key, value in summary["by_env"].items():
+        writer.writerow(["environment", key, value])
+    for key, value in summary["by_status"].items():
+        writer.writerow(["status", key, value])
+    for item in summary["accounts"]["by_department"]:
+        writer.writerow(["accounts_by_department", item["name"], item["count"]])
+    for item in summary["accounts"]["by_host"]:
+        writer.writerow(["accounts_by_host", item["name"], item["count"]])
+    for item in summary["accounts"]["by_risk"]:
+        writer.writerow(["accounts_by_risk", item["name"], item["count"]])
+    return Response(output.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=webitgpt_summary.csv"})
+
+
+@bp.get("/dependencies")
+@require_feature("dependencies")
+def dependencies_page():
+    collect_runs = dependency_service.collect_runs(limit=5)
+    systems = dependency_service.list_systems()
+    relations = dependency_service.list_relations()
+    data = topology(
+        view=request.args.get("view", "core_impact"),
+        center=request.args.get("center", ""),
+        depth=int(request.args.get("depth", 2)),
+        limit=int(request.args.get("limit", 200)),
+        include_external=_include_external(),
+        include_unmanaged=_include_unmanaged(),
+        failed_node=request.args.get("failed_node", ""),
+        focus_impact=_focus_impact(),
+    )
+    return render_template(
+        "dependencies.html",
+        topology=data,
+        reconcile_report=dependency_service.filtered_reconcile_report(include_external=_include_external(), include_unmanaged=_include_unmanaged()),
+        network_scan_report=dependency_service.latest_network_scan_report(),
+        collect_runs=collect_runs,
+        systems=systems,
+        relation_items=relations,
+    )
+
+
+@bp.get("/api/dependencies")
+@require_feature("dependencies")
+def dependencies_api():
+    return jsonify(topology(view=request.args.get("view", "core_impact"), center=request.args.get("center", ""), depth=int(request.args.get("depth", 2)), limit=int(request.args.get("limit", 200)), include_external=_include_external(), include_unmanaged=_include_unmanaged(), failed_node=request.args.get("failed_node", ""), focus_impact=_focus_impact()))

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}工作排程 - webitgpt{% endblock %}
+{% block content %}
+<section class="dev-workbench">
+  <div class="dev-toolbar">
+    <div class="dev-title">
+      <strong>開發後台</strong>
+      <span>功能驗證 / 開發設定 / 日誌與排程。</span>
+    </div>
+    {% include "_partials/dev_tabs.html" %}
+  </div>
+</section>
+
+<section class="panel">
+  <div class="page-header">
+    <div>
+      <p class="eyebrow">JOB SCHEDULE</p>
+      <h1>工作排程</h1>
+      <p class="text-muted-sm">檢視 systemd timer、Housekeeping 與 IPAM 對帳排程。</p>
+    </div>
+    <div class="actions">
+      <a class="btn secondary" href="{{ url_for('api_superadmin.superadmin_page') }}">返回系統管理</a>
+      <a class="btn" href="{{ url_for('api_superadmin.jobs_api') }}">JSON API</a>
+    </div>
+  </div>
+  <div class="summary-grid">
+    <a class="metric" href="#job-details"><strong>{{ jobs.housekeeping }}</strong><span>Housekeeping 執行</span></a>
+    <a class="metric" href="#job-details"><strong>{{ jobs.ipam_reports }}</strong><span>IPAM 報告</span></a>
+  </div>
+</section>
+<section class="panel" id="job-details">
+  <h2>systemd timers</h2>
+  <pre class="detail">{{ jobs.timers }}</pre>
+</section>
+{% endblock %}

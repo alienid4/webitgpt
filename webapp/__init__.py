@@ -1,0 +1,2 @@
+"""webitgpt Flask application package."""
+
