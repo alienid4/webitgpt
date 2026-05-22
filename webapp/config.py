@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.2.97"
-PATCH_ID = "full-system-validation-artifacts"
-RELEASE_NOTE = "修復 SuperAdmin/健康檢查 UI，補強 Backup/DR 與遠端 artifact 驗證"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-22 08:35:00 +08:00")
+VERSION = "1.0.2.98"
+PATCH_ID = "offline-install-lf-idempotent"
+RELEASE_NOTE = "修復完整離線包 INSTALL_ALL 換行格式與重複執行流程，讓新主機一鍵安裝可由非工程人員操作"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-22 22:52:46 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

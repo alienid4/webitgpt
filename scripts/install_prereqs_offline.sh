@@ -53,6 +53,7 @@ ensure_mongo_container() {
 
   if podman ps --format '{{.Names}}' | grep -qx "$MONGO_CONTAINER"; then
     echo "MongoDB container already running: $MONGO_CONTAINER"
+    ensure_mongo_systemd_unit
     return 0
   fi
 
@@ -74,9 +75,13 @@ ensure_mongo_container() {
       "$image" --bind_ip_all
   fi
 
+  ensure_mongo_systemd_unit
+}
+
+ensure_mongo_systemd_unit() {
   if command -v systemctl >/dev/null 2>&1; then
     unit="/etc/systemd/system/${MONGO_CONTAINER}.service"
-    podman generate systemd --new --name "$MONGO_CONTAINER" >"$unit" || true
+    podman generate systemd --new --name "$MONGO_CONTAINER" >"$unit" 2>/dev/null || true
     systemctl daemon-reload || true
     systemctl enable --now "${MONGO_CONTAINER}.service" || true
   fi

@@ -66,6 +66,9 @@ cp "$ROOT/scripts/install_interactive_template.sh" "$STAGE/INSTALL.sh"
 chmod +x "$STAGE/install_offline.sh" "$STAGE/INSTALL.sh"
 cp "$ROOT/deploy/install.env.example" "$STAGE/install.env.example" 2>/dev/null || true
 
+echo "Normalizing shell scripts to Linux LF line endings"
+find "$STAGE" -type f -name '*.sh' -exec sed -i 's/\r$//' {} +
+
 echo "Downloading Python wheels to $WHEELHOUSE"
 "$PYTHON_BIN" -m pip download \
   --dest "$WHEELHOUSE" \

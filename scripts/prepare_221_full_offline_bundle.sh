@@ -79,6 +79,13 @@ fi
 mkdir -p "$WORK_DIR"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
+normalize_shell_scripts() {
+  local dir="$1"
+  if command -v sed >/dev/null 2>&1; then
+    find "$dir" -type f -name '*.sh' -exec sed -i 's/\r$//' {} +
+  fi
+}
+
 echo "============================================================"
 echo " webitgpt full offline installer"
 echo "============================================================"
@@ -91,6 +98,7 @@ if [ -z "$prereq_archive" ]; then
 fi
 tar -xzf "$prereq_archive" -C "$WORK_DIR"
 prereq_dir="$(find "$WORK_DIR" -maxdepth 1 -type d -name 'webitgpt_prereqs_rocky9_*' | head -n 1)"
+normalize_shell_scripts "$prereq_dir"
 bash "$prereq_dir/install_prereqs_offline.sh"
 
 echo
@@ -102,6 +110,7 @@ if [ -z "$app_archive" ]; then
 fi
 tar -xzf "$app_archive" -C "$WORK_DIR"
 app_dir="$(find "$WORK_DIR" -maxdepth 1 -type d -name 'webitgpt_offline_*' | head -n 1)"
+normalize_shell_scripts "$app_dir"
 bash "$app_dir/INSTALL.sh"
 
 echo
@@ -112,6 +121,7 @@ echo "  curl http://localhost:8002/ready"
 echo "  systemctl status webitgpt --no-pager"
 EOF
 chmod +x "$STAGE/INSTALL_ALL.sh"
+sed -i 's/\r$//' "$STAGE/INSTALL_ALL.sh"
 
 cat >"$STAGE/README_INSTALL.txt" <<EOF
 webitgpt full offline package
