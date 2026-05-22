@@ -6,10 +6,10 @@
     <div>
       <p class="eyebrow">AUDIT LOGS</p>
       <h1>操作紀錄</h1>
-      <p class="text-muted-sm">所有管理動作都應寫入稽核紀錄，並由 hash chain 保護。</p>
+      <p class="text-muted-sm">檢視最高管理員與系統操作，搭配 audit hash chain 驗證。</p>
     </div>
     <div class="actions">
-      <a class="btn secondary" href="{{ url_for('api_superadmin.superadmin_page') }}">回管理總覽</a>
+      <a class="btn secondary" href="{{ url_for('api_superadmin.superadmin_page') }}">返回系統管理</a>
       <a class="btn" href="{{ url_for('api_superadmin.audit_logs_api') }}">JSON API</a>
       <a class="btn primary" href="{{ url_for('api_superadmin.audit_logs_csv') }}">匯出 CSV</a>
     </div>
@@ -26,7 +26,7 @@
         <td><pre class="detail">{{ row.get("detail", row.get("details", {})) | tojson(indent=2) }}</pre></td>
       </tr>
       {% else %}
-      <tr><td colspan="5" class="no-data">尚無操作紀錄。</td></tr>
+      <tr><td colspan="5" class="no-data">沒有操作紀錄</td></tr>
       {% endfor %}
     </tbody>
   </table>

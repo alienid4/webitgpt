@@ -5,6 +5,8 @@ APP_HOME="${INSPECTION_HOME:-/opt/webitgpt}"
 RUN_USER="${WEBITGPT_USER:-sysinfra}"
 RUN_GROUP="${WEBITGPT_GROUP:-itagent}"
 BUILD_TIME="${WEBITGPT_BUILD_TIME:-$(date '+%Y-%m-%d %H:%M:%S %:z')}"
+MONGO_URI_VALUE="${MONGO_URI:-mongodb://localhost:27017}"
+MONGO_DB_VALUE="${MONGO_DB:-webitgpt}"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "install_systemd.sh must run as root (use sudo)" >&2
@@ -22,7 +24,8 @@ User=${RUN_USER}
 Group=${RUN_GROUP}
 WorkingDirectory=${APP_HOME}/webapp
 Environment="INSPECTION_HOME=${APP_HOME}"
-Environment="MONGO_DB=webitgpt"
+Environment="MONGO_URI=${MONGO_URI_VALUE}"
+Environment="MONGO_DB=${MONGO_DB_VALUE}"
 Environment="PYTHONPATH=${APP_HOME}"
 Environment="WEBITGPT_BUILD_TIME=${BUILD_TIME}"
 ExecStart=${APP_HOME}/venv/bin/gunicorn \\
@@ -49,7 +52,8 @@ User=${RUN_USER}
 Group=${RUN_GROUP}
 WorkingDirectory=${APP_HOME}
 Environment="INSPECTION_HOME=${APP_HOME}"
-Environment="MONGO_DB=webitgpt"
+Environment="MONGO_URI=${MONGO_URI_VALUE}"
+Environment="MONGO_DB=${MONGO_DB_VALUE}"
 Environment="PYTHONPATH=${APP_HOME}"
 Environment="WEBITGPT_BUILD_TIME=${BUILD_TIME}"
 ExecStart=${APP_HOME}/venv/bin/python ${APP_HOME}/edge/edge_agent.py
@@ -71,7 +75,8 @@ User=${RUN_USER}
 Group=${RUN_GROUP}
 WorkingDirectory=${APP_HOME}
 Environment="INSPECTION_HOME=${APP_HOME}"
-Environment="MONGO_DB=webitgpt"
+Environment="MONGO_URI=${MONGO_URI_VALUE}"
+Environment="MONGO_DB=${MONGO_DB_VALUE}"
 Environment="PYTHONPATH=${APP_HOME}"
 ExecStart=${APP_HOME}/venv/bin/python ${APP_HOME}/scripts/weekly_ipam_reconcile.py
 StandardOutput=append:${APP_HOME}/logs/ipam_reconcile.log

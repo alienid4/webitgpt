@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import ipaddress
 import hashlib
+import math
 import re
 import shutil
 import subprocess
 import xml.etree.ElementTree as ET
 import uuid
+import zipfile
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
@@ -58,6 +61,8 @@ PORT_SERVICE_NAMES = {
 }
 
 COMMON_EXPOSURE_PORTS = ["22", "80", "443", "445", "3389", "5432", "3306", "1521", "27017", "6379", "8080", "8443"]
+XLSX_NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+CORE_SYSTEM_NAMES = ["好麥證券", "交易核心", "帳務核心", "通路核心", "資料核心", "巡檢系統"]
 
 
 def _now() -> datetime:
@@ -92,6 +97,218 @@ def _system_id(name: str) -> str:
         return f"SYS-{key}"
     digest = hashlib.sha1(name.strip().encode("utf-8")).hexdigest()[:8].upper()
     return f"SYS-{digest}"
+
+
+def _system_id_from_code_or_name(code: str, name: str) -> str:
+    raw = (code or "").strip() or (name or "").strip()
+    key = re.sub(r"[^a-zA-Z0-9]+", "-", raw).strip("-").upper()
+    if key:
+        return f"SYS-{key}"
+    return _system_id(name or "unknown")
+
+
+def _confidence_value(label: str) -> float:
+    text = (label or "").strip()
+    if text in {"高", "high", "HIGH"}:
+        return 0.9
+    if text in {"低", "low", "LOW"}:
+        return 0.3
+    return 0.6
+
+
+def _xlsx_shared_strings(archive: zipfile.ZipFile) -> list[str]:
+    try:
+        root = ET.fromstring(archive.read("xl/sharedStrings.xml"))
+    except KeyError:
+        return []
+    values: list[str] = []
+    for item in root.findall("m:si", XLSX_NS):
+        parts = []
+        for text_node in item.iter("{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t"):
+            parts.append(text_node.text or "")
+        values.append("".join(parts))
+    return values
+
+
+def _xlsx_sheet_paths(archive: zipfile.ZipFile) -> list[tuple[str, str]]:
+    rel_root = ET.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
+    rels = {item.attrib["Id"]: item.attrib["Target"] for item in rel_root}
+    wb_root = ET.fromstring(archive.read("xl/workbook.xml"))
+    paths: list[tuple[str, str]] = []
+    for sheet in wb_root.findall("m:sheets/m:sheet", XLSX_NS):
+        rid = sheet.attrib.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id", "")
+        target = rels.get(rid, "")
+        if not target:
+            continue
+        path = target[1:] if target.startswith("/") else f"xl/{target}"
+        paths.append((sheet.attrib.get("name", ""), path))
+    return paths
+
+
+def _xlsx_rows(path: str | Path) -> list[dict[str, str]]:
+    """Read the system relation sheet without requiring openpyxl on Rocky Python 3.9."""
+    with zipfile.ZipFile(path) as archive:
+        shared_strings = _xlsx_shared_strings(archive)
+        for _, sheet_path in _xlsx_sheet_paths(archive):
+            root = ET.fromstring(archive.read(sheet_path))
+            raw_rows: list[list[str]] = []
+            for row in root.findall(".//m:sheetData/m:row", XLSX_NS):
+                values = []
+                for cell in row.findall("m:c", XLSX_NS):
+                    value_node = cell.find("m:v", XLSX_NS)
+                    if value_node is None:
+                        values.append("")
+                        continue
+                    value = value_node.text or ""
+                    if cell.attrib.get("t") == "s":
+                        value = shared_strings[int(value)] if value.isdigit() and int(value) < len(shared_strings) else ""
+                    values.append(value.strip())
+                raw_rows.append(values)
+            if not raw_rows:
+                continue
+            header = raw_rows[0]
+            required = {"來源系統名稱", "目標系統名稱"}
+            if not required.issubset(set(header)):
+                continue
+            rows = []
+            for row in raw_rows[1:]:
+                padded = row + [""] * max(0, len(header) - len(row))
+                item = {header[idx]: padded[idx].strip() for idx in range(len(header))}
+                if item.get("來源系統名稱") or item.get("目標系統名稱"):
+                    rows.append(item)
+            return rows
+    return []
+
+
+def import_system_relations_xlsx(path: str | Path, actor: str = "system", dry_run: bool = False) -> dict[str, Any]:
+    rows = _xlsx_rows(path)
+    now = _now()
+    systems: dict[str, dict[str, Any]] = {}
+    relations: list[dict[str, Any]] = []
+    for idx, row in enumerate(rows, start=2):
+        source_name = row.get("來源系統名稱", "").strip()
+        target_name = row.get("目標系統名稱", "").strip()
+        if not source_name or not target_name:
+            continue
+        source_id = _system_id_from_code_or_name(row.get("來源系統代號", ""), source_name)
+        target_id = _system_id_from_code_or_name(row.get("目標系統代號", ""), target_name)
+        systems.setdefault(
+            source_id,
+            {
+                "system_id": source_id,
+                "display_name": source_name,
+                "category": "AP",
+                "tier": "C",
+                "description": "由系統關聯清單匯入，需由 CMDB 管理者覆核。",
+                "owner": "",
+                "host_refs": [],
+                "external": False,
+                "metadata": {"import_source": "system_relations_xlsx", "source_code": row.get("來源系統代號", ""), "review_status": row.get("覆核狀態", "")},
+            },
+        )
+        systems.setdefault(
+            target_id,
+            {
+                "system_id": target_id,
+                "display_name": target_name,
+                "category": "AP",
+                "tier": "C",
+                "description": "由系統關聯清單匯入，需由 CMDB 管理者覆核。",
+                "owner": "",
+                "host_refs": [],
+                "external": False,
+                "metadata": {"import_source": "system_relations_xlsx", "source_code": row.get("目標系統代號", ""), "review_status": row.get("覆核狀態", "")},
+            },
+        )
+        relations.append(
+            {
+                "from_system": source_id,
+                "to_system": target_id,
+                "rel_type": row.get("介接方式") or "未標示",
+                "source": "cmdb_import",
+                "confidence": _confidence_value(row.get("信心水準", "")),
+                "description": row.get("備註") or "由系統關聯清單匯入，需覆核方向與介接方式。",
+                "evidence": {
+                    "source_file": row.get("來源圖檔", ""),
+                    "direction": row.get("方向", ""),
+                    "review_status": row.get("覆核狀態", ""),
+                    "row": idx,
+                    "imported_at": now.isoformat(),
+                },
+                "metadata": {
+                    "source_name": source_name,
+                    "target_name": target_name,
+                    "source_code": row.get("來源系統代號", ""),
+                    "target_code": row.get("目標系統代號", ""),
+                    "interface_type": row.get("介接方式", ""),
+                },
+            }
+        )
+    if dry_run:
+        return {"status": "dry_run", "systems": len(systems), "relations": len(relations), "rows": len(rows)}
+
+    for item in systems.values():
+        upsert_system(item, actor)
+    imported = 0
+    for item in relations:
+        upsert_relation(item, actor)
+        imported += 1
+    get_collection("dependency_collect_runs").insert_one(
+        {
+            "run_id": f"cmdb-import-{now.strftime('%Y%m%d%H%M%S')}",
+            "status": "success",
+            "collector": "system_relations_xlsx",
+            "started_at": now,
+            "finished_at": _now(),
+            "started_by": actor,
+            "host_count": 0,
+            "edge_count": imported,
+            "snapshot_replaced": False,
+            "errors": [],
+            "summary": {"systems": len(systems), "relations": imported, "rows": len(rows)},
+        }
+    )
+    return {"status": "ok", "systems": len(systems), "relations": imported, "rows": len(rows)}
+
+
+def cleanup_imported_system_relations(actor: str = "system", dry_run: bool = False) -> dict[str, Any]:
+    """Remove only the temporary Excel-imported relation layer."""
+    relation_query = {"source": "cmdb_import"}
+    system_query = {"metadata.import_source": "system_relations_xlsx", "host_refs": {"$size": 0}}
+    relation_count = get_collection("dependency_relations").count_documents(relation_query)
+    run_count = get_collection("dependency_collect_runs").count_documents({"collector": "system_relations_xlsx"})
+    candidate_systems = list(get_collection("dependency_systems").find(system_query, {"system_id": 1}))
+    system_ids = [item.get("system_id") for item in candidate_systems if item.get("system_id")]
+
+    if dry_run:
+        return {
+            "status": "dry_run",
+            "relations": relation_count,
+            "collect_runs": run_count,
+            "candidate_systems": len(system_ids),
+        }
+
+    get_collection("dependency_relations").delete_many(relation_query)
+    still_referenced = {
+        item.get("from_system")
+        for item in get_collection("dependency_relations").find({"from_system": {"$in": system_ids}}, {"from_system": 1})
+    }
+    still_referenced.update(
+        item.get("to_system")
+        for item in get_collection("dependency_relations").find({"to_system": {"$in": system_ids}}, {"to_system": 1})
+    )
+    removable_systems = [system_id for system_id in system_ids if system_id not in still_referenced]
+    system_deleted = 0
+    if removable_systems:
+        system_deleted = get_collection("dependency_systems").delete_many({"system_id": {"$in": removable_systems}, "host_refs": {"$size": 0}}).deleted_count
+    run_deleted = get_collection("dependency_collect_runs").delete_many({"collector": "system_relations_xlsx"}).deleted_count
+    return {
+        "status": "ok",
+        "relations_deleted": relation_count,
+        "systems_deleted": int(system_deleted),
+        "collect_runs_deleted": int(run_deleted),
+        "updated_by": actor,
+    }
 
 
 def _hosts() -> list[dict[str, Any]]:
@@ -311,6 +528,15 @@ def latest_reconcile_report() -> Optional[dict[str, Any]]:
     return _public(get_collection("dependency_reconcile_reports").find_one({}, sort=[("started_at", -1)]))
 
 
+def latest_network_scan_report() -> Optional[dict[str, Any]]:
+    try:
+        from webapp.services import cmdb_service
+
+        return cmdb_service.latest_network_reconcile("")
+    except Exception:  # noqa: BLE001 - topology page should still render if IPAM is unavailable
+        return _public(get_collection("network_scan_reports").find_one({}, sort=[("started_at", -1)]))
+
+
 def filtered_reconcile_report(include_external: bool = False, include_unmanaged: bool = False) -> Optional[dict[str, Any]]:
     report = latest_reconcile_report()
     if not report:
@@ -380,6 +606,26 @@ def reconcile_ss_nmap(actor: str = "system", limit_hosts: int = 20) -> dict[str,
             for port in result.get("open_ports") or []:
                 nmap_pairs[(ip, str(port))] = {"remote_ip": ip, "port": str(port), "service": _port_service_name(port) or ""}
 
+    network_reports = []
+    try:
+        from webapp.services import cmdb_service
+
+        for network in cmdb_service.list_networks()[:10]:
+            cidr = network.get("cidr")
+            if not cidr:
+                continue
+            network_reports.append(
+                cmdb_service.run_asset_discovery_scan(
+                    cidr,
+                    user=actor,
+                    environment=network.get("environment", ""),
+                    dc=network.get("dc", ""),
+                    scan_mode="combined",
+                )
+            )
+    except Exception as exc:  # noqa: BLE001 - keep ss+nmap result even if IPAM scan fails
+        scan_errors.append({"target": "IPAM", "error": f"網段掃描對帳失敗：{exc}"})
+
     rows = []
     for key in sorted(set(ss_pairs) | set(nmap_pairs), key=lambda item: (item[0], int(item[1]) if item[1].isdigit() else 99999)):
         ss_item = ss_pairs.get(key)
@@ -421,6 +667,10 @@ def reconcile_ss_nmap(actor: str = "system", limit_hosts: int = 20) -> dict[str,
         "ss_only": sum(1 for row in rows if row["status"] == "ss_only"),
         "nmap_only": sum(1 for row in rows if row["status"] == "nmap_only"),
         "external_skipped": sum(1 for row in rows if row["status"] == "external_skipped"),
+        "network_discovered": sum(int(report.get("discovered_count") or 0) for report in network_reports),
+        "network_cmdb": sum(int(report.get("cmdb_count") or 0) for report in network_reports),
+        "network_mismatch": sum(int(report.get("mismatch_count") or 0) for report in network_reports),
+        "network_count": len(network_reports),
     }
     report = {
         "run_id": run_id,
@@ -434,6 +684,7 @@ def reconcile_ss_nmap(actor: str = "system", limit_hosts: int = 20) -> dict[str,
         "row_count": len(rows),
         "summary": summary,
         "rows": rows,
+        "network_reports": network_reports,
         "errors": scan_errors,
     }
     report["finished_at_local"] = _local_iso(report["finished_at"])
@@ -690,6 +941,54 @@ def _layout(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> dict[st
     return {"width": int(max(canvas_width, 1100)), "height": int(max(y_offset, 520))}
 
 
+def _layout_radial(nodes: list[dict[str, Any]], edges: list[dict[str, Any]], center_id: str = "") -> dict[str, Any]:
+    if not nodes:
+        return {"width": 1100, "height": 620, "layout_mode": "system_radial"}
+    width = 1280
+    height = 720
+    cx = width / 2
+    cy = height / 2
+    by_id = {str(node["id"]): node for node in nodes}
+    degree: dict[str, int] = {str(node["id"]): 0 for node in nodes}
+    for edge in edges:
+        source = str(edge.get("source") or "")
+        target = str(edge.get("target") or "")
+        if source in degree:
+            degree[source] += 1
+        if target in degree:
+            degree[target] += 1
+    if not center_id or center_id not in by_id:
+        center_id = sorted(degree, key=lambda item: (degree[item], item), reverse=True)[0]
+    center = by_id[center_id]
+    center.update({"x": cx, "y": cy, "radial_role": "center"})
+    direct_ids: set[str] = set()
+    for edge in edges:
+        source = str(edge.get("source") or "")
+        target = str(edge.get("target") or "")
+        if source == center_id and target in by_id:
+            direct_ids.add(target)
+        if target == center_id and source in by_id:
+            direct_ids.add(source)
+    direct = sorted([by_id[item] for item in direct_ids], key=lambda node: str(node.get("label") or node.get("id")))
+    ring_radius = 250
+    if direct:
+        for index, node in enumerate(direct):
+            angle = -3.14159 / 2 + (2 * 3.14159 * index / len(direct))
+            node.update({"x": round(cx + ring_radius * math.cos(angle), 1), "y": round(cy + ring_radius * math.sin(angle), 1), "radial_role": "direct"})
+    other = [node for node in nodes if node["id"] != center_id and str(node["id"]) not in direct_ids]
+    outer_radius = 330
+    for index, node in enumerate(other):
+        angle = -3.14159 / 2 + (2 * 3.14159 * index / max(1, len(other)))
+        node.update({"x": round(cx + outer_radius * math.cos(angle), 1), "y": round(cy + outer_radius * math.sin(angle), 1), "radial_role": "other"})
+    for edge in edges:
+        source = by_id.get(edge.get("source"))
+        target = by_id.get(edge.get("target"))
+        if source and target:
+            x1, y1, x2, y2 = source["x"], source["y"], target["x"], target["y"]
+            edge.update({"x1": x1, "y1": y1, "x2": x2, "y2": y2, "label_x": round((x1 + x2) / 2, 1), "label_y": round((y1 + y2) / 2 - 18, 1)})
+    return {"width": width, "height": height, "layout_mode": "system_radial", "radial_center": center_id, "direct_relations": len(direct_ids)}
+
+
 def _layout_host_system_trunks(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> dict[str, Any]:
     if not nodes:
         return {"width": 1100, "height": 520, "groups": []}
@@ -870,6 +1169,22 @@ def _edge_payload(rel: dict[str, Any], source_label: str, target_label: str) -> 
     }
 
 
+def _merge_topology_relation(target: dict[str, Any], source: dict[str, Any]) -> None:
+    target_evidence = target.setdefault("evidence", {})
+    source_evidence = source.get("evidence") or {}
+    ports = set(str(port) for port in (target_evidence.get("remote_ports") or []) if port)
+    for key in ("last_remote_port", "remote_port", "last_local_port", "local_port"):
+        if source_evidence.get(key):
+            ports.add(str(source_evidence.get(key)))
+    if ports:
+        target_evidence["remote_ports"] = sorted(ports, key=lambda item: (len(item), item))
+    for key in ("last_local_ip", "last_local_port", "last_remote_ip", "last_remote_port", "process_name", "last_seen_at"):
+        target_evidence[key] = source_evidence.get(key) or target_evidence.get(key)
+    target_evidence["seen_count"] = int(target_evidence.get("seen_count") or 0) + int(source_evidence.get("seen_count") or 1)
+    if source.get("description") and not target.get("description"):
+        target["description"] = source.get("description")
+
+
 def _layer_edge(source: str, target: str, label: str, source_label: str, target_label: str, evidence: Optional[dict[str, Any]] = None, trust: str = "manual") -> dict[str, Any]:
     return _edge_payload(
         {
@@ -898,23 +1213,34 @@ def _topology_meta(view: str) -> dict[str, Any]:
             "collect_status": "never",
             "message": "尚未執行 ss -tunp 採集，拓撲只顯示節點，不顯示連線。",
         }
+    collector = latest.get("collector")
+    if collector == "system_relations_xlsx":
+        message = "目前顯示 CMDB 系統關聯匯入資料，可再用 ss/nmap 驗證實際連線。"
+    else:
+        message = "目前顯示最後一次成功 ss -tunp 採集快照。"
     return {
         "view": view,
         "collect_status": latest.get("status"),
         "run_id": latest.get("run_id"),
-        "collector": latest.get("collector"),
+        "collector": collector,
         "last_collect_at": _iso(latest.get("finished_at") or latest.get("started_at")),
         "edge_count": latest.get("edge_count", 0),
-        "message": "目前顯示最後一次成功 ss -tunp 採集快照。",
+        "message": message,
     }
 
 
 def topology(view: str = "system", center: str = "", depth: int = 2, limit: int = 200, include_external: bool = False, include_unmanaged: bool = False, failed_node: str = "", focus_impact: bool = False) -> dict[str, Any]:
-    view = view if view in {"system", "host", "ip"} else "system"
+    view = view if view in {"core_radial", "core_impact", "radial", "system", "host", "ip"} else "core_radial"
     if view == "host":
         data = _host_topology(limit, include_external=include_external, include_unmanaged=include_unmanaged)
     elif view == "ip":
         data = _ip_topology(limit, include_external=include_external, include_unmanaged=include_unmanaged)
+    elif view == "core_radial":
+        data = _core_radial_topology(center=center, depth=depth, limit=limit, include_external=include_external, include_unmanaged=include_unmanaged)
+    elif view == "core_impact":
+        data = _core_impact_topology(center=center, depth=depth, limit=limit, include_external=include_external, include_unmanaged=include_unmanaged)
+    elif view == "radial":
+        data = _system_radial_topology(center=center, limit=limit, include_external=include_external, include_unmanaged=include_unmanaged)
     else:
         data = _system_topology(center=center, depth=depth, limit=limit, include_external=include_external, include_unmanaged=include_unmanaged)
     _apply_failure_simulation(data, failed_node, max_depth=max(depth, 1))
@@ -1037,16 +1363,29 @@ def _system_topology(center: str = "", depth: int = 2, limit: int = 200, include
     systems = list_systems()
     system_map = {item["system_id"]: item for item in systems}
     host_to_system = _host_system_index()
-    latest = latest_collect_run()
-    raw_relations = list_relations({"run_id": latest["run_id"]}) if latest else []
+    latest_auto = _public(get_collection("dependency_collect_runs").find_one({"status": "success", "collector": "ss -tunp"}, sort=[("finished_at", -1)]))
+    latest_auto_run_id = latest_auto.get("run_id") if latest_auto else ""
+    all_relations = list_relations()
+    raw_relations: list[dict[str, Any]] = []
     relation_map: dict[tuple[str, str], dict[str, Any]] = {}
-    for rel in raw_relations:
-        source_host = rel.get("from_system")
+    for rel in all_relations:
+        if rel.get("source") == "auto" and (rel.get("evidence") or {}).get("run_id") != latest_auto_run_id:
+            continue
+        raw_relations.append(rel)
+        source_key = rel.get("from_system")
+        target_key = rel.get("to_system")
+        if source_key in system_map and target_key in system_map:
+            source_system = str(source_key)
+            target_system = str(target_key)
+            key = (source_system, target_system)
+            relation_map.setdefault(key, dict(rel))
+            continue
+        source_host = source_key
         source_system = host_to_system.get(source_host or "")
         if not source_system:
             continue
         evidence = rel.get("evidence") or {}
-        target_host = rel.get("to_system")
+        target_host = target_key
         remote_ip = evidence.get("last_remote_ip") or str(target_host).replace("UNKNOWN-", "")
         target_system = host_to_system.get(target_host or "")
         if not target_system and str(target_host).startswith("UNKNOWN-"):
@@ -1098,6 +1437,341 @@ def _system_topology(center: str = "", depth: int = 2, limit: int = 200, include
     meta.update(dimensions)
     meta.update({"systems": len(nodes), "relations": len(edges), "center": center, "depth": depth, "include_external": include_external, "include_unmanaged": include_unmanaged, "layer_mode": "system_only"})
     return {"view": "system", "nodes": nodes, "edges": edges, "meta": meta}
+
+
+def _match_system_id(query: str, systems: list[dict[str, Any]]) -> str:
+    text = (query or "").strip().lower()
+    if not text:
+        return ""
+    for item in systems:
+        if str(item.get("system_id", "")).lower() == text:
+            return str(item.get("system_id"))
+    for item in systems:
+        if text in str(item.get("display_name", "")).lower() or text in str(item.get("system_id", "")).lower():
+            return str(item.get("system_id"))
+    return ""
+
+
+def _system_radial_topology(center: str = "", limit: int = 160, include_external: bool = False, include_unmanaged: bool = False) -> dict[str, Any]:
+    systems = list_systems()
+    system_map = {item["system_id"]: item for item in systems}
+    relations = [
+        rel
+        for rel in list_relations()
+        if rel.get("from_system") in system_map and rel.get("to_system") in system_map and (include_external or not system_map.get(rel.get("to_system"), {}).get("external"))
+    ]
+    if not include_unmanaged:
+        systems = [item for item in systems if not str(item.get("system_id", "")).startswith("UNKNOWN-")]
+    degree: dict[str, int] = {}
+    for rel in relations:
+        degree[str(rel.get("from_system"))] = degree.get(str(rel.get("from_system")), 0) + 1
+        degree[str(rel.get("to_system"))] = degree.get(str(rel.get("to_system")), 0) + 1
+    center_id = _match_system_id(center, systems)
+    if not center_id and degree:
+        center_id = sorted(degree, key=lambda item: (degree[item], item), reverse=True)[0]
+    direct_ids = {center_id} if center_id else set()
+    for rel in relations:
+        if rel.get("from_system") == center_id:
+            direct_ids.add(str(rel.get("to_system")))
+        if rel.get("to_system") == center_id:
+            direct_ids.add(str(rel.get("from_system")))
+    if center_id and direct_ids:
+        selected_systems = [item for item in systems if item["system_id"] in direct_ids]
+        selected_relations = [rel for rel in relations if rel.get("from_system") in direct_ids and rel.get("to_system") in direct_ids]
+    else:
+        ranked = {item["system_id"] for item in sorted(systems, key=lambda item: degree.get(item["system_id"], 0), reverse=True)[:limit]}
+        selected_systems = [item for item in systems if item["system_id"] in ranked]
+        selected_relations = [rel for rel in relations if rel.get("from_system") in ranked and rel.get("to_system") in ranked]
+    nodes = [_node(item) for item in selected_systems[:limit]]
+    node_ids = {node["id"] for node in nodes}
+    edges = [
+        _edge_payload(rel, system_map.get(rel.get("from_system"), {}).get("display_name", rel.get("from_system")), system_map.get(rel.get("to_system"), {}).get("display_name", rel.get("to_system")))
+        for rel in selected_relations
+        if rel.get("from_system") in node_ids and rel.get("to_system") in node_ids
+    ]
+    dimensions = _layout_radial(nodes, edges, center_id=center_id)
+    meta = _topology_meta("radial")
+    meta.update(dimensions)
+    meta.update(
+        {
+            "systems": len(nodes),
+            "relations": len(edges),
+            "center": center_id,
+            "center_label": system_map.get(center_id, {}).get("display_name", center_id),
+            "include_external": include_external,
+            "include_unmanaged": include_unmanaged,
+        }
+    )
+    return {"view": "radial", "nodes": nodes, "edges": edges, "meta": meta}
+
+
+def _core_id(name: str) -> str:
+    return "core:" + hashlib.sha1(name.encode("utf-8")).hexdigest()[:10]
+
+
+def _core_name_for_system(system: dict[str, Any]) -> str:
+    metadata = system.get("metadata") or {}
+    explicit = metadata.get("core_name") or metadata.get("core") or system.get("core_name")
+    if explicit:
+        return str(explicit)
+    display = str(system.get("display_name") or system.get("system_id") or "")
+    for name in CORE_SYSTEM_NAMES:
+        if name in display:
+            return name
+    if any(token in display for token in ("巡檢", "受監控", "webitgpt", "secansible")):
+        return "巡檢系統"
+    return "好麥證券"
+
+
+def _core_node(name: str) -> dict[str, Any]:
+    return {"id": _core_id(name), "label": name, "kind": "核心", "tier": "A", "category": "core", "owner": "", "external": False}
+
+
+def _position_edge_labels(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> None:
+    by_id = {node["id"]: node for node in nodes}
+    for edge in edges:
+        source = by_id.get(edge.get("source"))
+        target = by_id.get(edge.get("target"))
+        if not source or not target:
+            continue
+        x1, y1, x2, y2 = source["x"], source["y"], target["x"], target["y"]
+        dx = x2 - x1
+        dy = y2 - y1
+        length = max((dx * dx + dy * dy) ** 0.5, 1)
+        label_offset = 20
+        edge.update(
+            {
+                "x1": x1,
+                "y1": y1,
+                "x2": x2,
+                "y2": y2,
+                "label_x": round((x1 + x2) / 2 - (dy / length) * label_offset, 1),
+                "label_y": round((y1 + y2) / 2 + (dx / length) * label_offset, 1),
+            }
+        )
+
+
+def _core_radial_topology(center: str = "", depth: int = 2, limit: int = 200, include_external: bool = False, include_unmanaged: bool = False) -> dict[str, Any]:
+    systems = [item for item in list_systems() if include_unmanaged or not str(item.get("system_id", "")).startswith("UNKNOWN-")]
+    system_map = {item["system_id"]: item for item in systems}
+    relations = [
+        rel
+        for rel in list_relations()
+        if rel.get("from_system") in system_map and rel.get("to_system") in system_map and (include_external or not system_map.get(rel.get("to_system"), {}).get("external"))
+    ]
+    core_names = list(CORE_SYSTEM_NAMES)
+    core_by_system = {item["system_id"]: _core_name_for_system(item) for item in systems}
+    for name in sorted(set(core_by_system.values())):
+        if name not in core_names:
+            core_names.append(name)
+    center_system_id = _match_system_id(center, systems)
+    selected_core = core_by_system.get(center_system_id, "")
+    if not selected_core and str(center).startswith("core:"):
+        selected_core = next((name for name in core_names if _core_id(name) == center), "")
+    if not selected_core and center:
+        center_text = str(center).strip().lower()
+        selected_core = next((name for name in core_names if center_text in str(name).lower() or str(name).lower() in center_text), "")
+
+    width = 1280
+    height = 760
+    cx = width / 2
+    cy = height / 2
+    core_radius = 205
+    nodes = [_core_node(name) for name in core_names[:8]]
+    core_ids = {node["label"]: node["id"] for node in nodes}
+    for index, node in enumerate(nodes):
+        angle = -math.pi / 2 + 2 * math.pi * index / max(1, len(nodes))
+        node.update({"x": round(cx + core_radius * math.cos(angle), 1), "y": round(cy + core_radius * math.sin(angle), 1), "radial_role": "direct"})
+
+    selected_systems = systems[: max(0, limit - len(nodes))]
+    for index, system in enumerate(selected_systems):
+        core_name = core_by_system.get(system["system_id"], CORE_SYSTEM_NAMES[0])
+        core_index = max(0, core_names.index(core_name) if core_name in core_names else 0)
+        base_angle = -math.pi / 2 + 2 * math.pi * core_index / max(1, len(nodes))
+        sibling_index = sum(1 for prev in selected_systems[:index] if core_by_system.get(prev["system_id"]) == core_name)
+        angle = base_angle + (sibling_index - 1.5) * 0.13
+        radius = 335 + (sibling_index % 3) * 42
+        node = _node(system)
+        node.update({"x": round(cx + radius * math.cos(angle), 1), "y": round(cy + radius * math.sin(angle), 1), "radial_role": "other", "core_name": core_name})
+        nodes.append(node)
+
+    node_ids = {node["id"] for node in nodes}
+    edges: list[dict[str, Any]] = []
+    for system in selected_systems:
+        core_name = core_by_system.get(system["system_id"], CORE_SYSTEM_NAMES[0])
+        core_id = core_ids.get(core_name)
+        if core_id:
+            edges.append(_layer_edge(core_id, system["system_id"], "核心關聯", core_name, system.get("display_name") or system["system_id"], trust="manual"))
+    for rel in relations:
+        if rel.get("from_system") in node_ids and rel.get("to_system") in node_ids:
+            edges.append(
+                _edge_payload(
+                    rel,
+                    system_map.get(rel.get("from_system"), {}).get("display_name", rel.get("from_system")),
+                    system_map.get(rel.get("to_system"), {}).get("display_name", rel.get("to_system")),
+                )
+            )
+    active_ids: set[str] = set()
+    if center_system_id:
+        active_ids.add(center_system_id)
+        active_ids.add(_core_id(core_by_system.get(center_system_id, CORE_SYSTEM_NAMES[0])))
+        for rel in relations:
+            if rel.get("from_system") == center_system_id:
+                active_ids.add(str(rel.get("to_system")))
+                active_ids.add(_core_id(core_by_system.get(str(rel.get("to_system")), CORE_SYSTEM_NAMES[0])))
+            if rel.get("to_system") == center_system_id:
+                active_ids.add(str(rel.get("from_system")))
+                active_ids.add(_core_id(core_by_system.get(str(rel.get("from_system")), CORE_SYSTEM_NAMES[0])))
+    elif selected_core:
+        active_ids.add(_core_id(selected_core))
+        active_ids.update(item["system_id"] for item in selected_systems if core_by_system.get(item["system_id"]) == selected_core)
+    if active_ids:
+        for node in nodes:
+            node["focus_state"] = "active" if node["id"] in active_ids else "muted"
+        for edge in edges:
+            edge["focus_state"] = "active" if edge.get("source") in active_ids and edge.get("target") in active_ids else "muted"
+    else:
+        for node in nodes:
+            node["focus_state"] = "normal"
+        for edge in edges:
+            edge["focus_state"] = "normal"
+    _position_edge_labels(nodes, edges)
+    meta = _topology_meta("core_radial")
+    meta.update({"width": width, "height": height, "layout_mode": "core_radial", "systems": len(selected_systems), "relations": len(edges), "center": center, "include_external": include_external, "include_unmanaged": include_unmanaged, "message": "CMDB 畫正式核心關聯；ss+nmap 用於補漏與驗證，覆核後才進正式圖。"})
+    return {"view": "core_radial", "nodes": nodes, "edges": edges, "meta": meta}
+
+
+def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, include_external: bool = False, include_unmanaged: bool = False) -> dict[str, Any]:
+    systems = [item for item in list_systems() if include_unmanaged or not str(item.get("system_id", "")).startswith("UNKNOWN-")]
+    system_map = {item["system_id"]: item for item in systems}
+    core_by_system = {item["system_id"]: _core_name_for_system(item) for item in systems}
+    center_system_id = _match_system_id(center, systems)
+    selected_core = core_by_system.get(center_system_id) if center_system_id else ""
+    if not selected_core and str(center).startswith("core:"):
+        selected_core = next((name for name in CORE_SYSTEM_NAMES if _core_id(name) == center), "")
+    if not selected_core:
+        selected_core = "巡檢系統" if any(_core_name_for_system(item) == "巡檢系統" for item in systems) else CORE_SYSTEM_NAMES[0]
+    core_nodes = [_core_node(name) for name in CORE_SYSTEM_NAMES]
+    related_systems = [item for item in systems if core_by_system.get(item["system_id"]) == selected_core]
+    if center_system_id:
+        relations_all = list_relations({"system_id": center_system_id})
+        linked_ids = {center_system_id}
+        for rel in relations_all:
+            linked_ids.add(str(rel.get("from_system")))
+            linked_ids.add(str(rel.get("to_system")))
+        related_systems = [item for item in systems if item["system_id"] in linked_ids or core_by_system.get(item["system_id"]) == selected_core]
+    related_systems = related_systems[: max(1, min(limit, 12))]
+    selected_ids = {item["system_id"] for item in related_systems}
+
+    hosts = _hosts()
+    host_nodes = []
+    for system in related_systems:
+        for host_ref in system.get("host_refs") or []:
+            host = next((item for item in hosts if item.get("hostname") == host_ref or item.get("asset_seq") == host_ref), None)
+            if not host:
+                continue
+            node_id = "host:" + str(host.get("hostname") or host.get("asset_seq"))
+            host_nodes.append(
+                {
+                    "id": node_id,
+                    "label": host.get("ip") or host.get("hostname") or host.get("asset_seq"),
+                    "kind": "主機",
+                    "system_id": system["system_id"],
+                    "category": "host",
+                    "tier": system.get("tier") or "C",
+                }
+            )
+    host_nodes = host_nodes[:18]
+
+    nodes: list[dict[str, Any]] = []
+    nodes.extend(core_nodes)
+    nodes.extend([_node(item) for item in related_systems])
+    nodes.extend(host_nodes)
+    for node in nodes:
+        if str(node.get("id", "")).startswith("core:"):
+            node["role_label"] = "核心"
+        elif str(node.get("id", "")).startswith("host:"):
+            node["role_label"] = "主機 / IP"
+        else:
+            node["role_label"] = "關聯系統"
+        node["shape"] = "card"
+    related_host_ids = {node["id"] for node in host_nodes}
+    selected_core_id = _core_id(selected_core)
+    active_ids = {selected_core_id} | selected_ids | related_host_ids
+    for node in nodes:
+        node["focus_state"] = "active" if node["id"] in active_ids else "muted"
+
+    height = max(720, max(len(core_nodes), len(related_systems), len(host_nodes), 1) * 92 + 130)
+    guides = [
+        {"label": "第一圈：六大核心", "x": 130, "y": 36},
+        {"label": "第二圈：關聯系統", "x": 470, "y": 36},
+        {"label": "第三圈：主機 / IP", "x": 850, "y": 36},
+    ]
+    columns = [("core", 170, core_nodes), ("system", 555, [node for node in nodes if node["id"] in selected_ids]), ("host", 965, host_nodes)]
+    by_id = {node["id"]: node for node in nodes}
+    for _, x, items in columns:
+        gap = (height - 120) / (len(items) + 1) if items else 1
+        for index, node in enumerate(items):
+            target = by_id.get(node["id"])
+            if target:
+                target.update({"x": x, "y": round(70 + gap * (index + 1), 1), "radial_role": "direct" if x == 170 else "other"})
+
+    relations = [
+        rel
+        for rel in list_relations()
+        if rel.get("from_system") in system_map and rel.get("to_system") in system_map and rel.get("from_system") in selected_ids and rel.get("to_system") in selected_ids and (include_external or not system_map.get(rel.get("to_system"), {}).get("external"))
+    ]
+    edges: list[dict[str, Any]] = []
+    for system in related_systems:
+        edges.append(_layer_edge(selected_core_id, system["system_id"], "核心關聯", selected_core, system.get("display_name") or system["system_id"], trust="manual"))
+    host_by_node = {node["id"]: node for node in host_nodes}
+    for host_node in host_nodes:
+        system = system_map.get(host_node.get("system_id"))
+        if system:
+            edges.append(_layer_edge(system["system_id"], host_node["id"], "主機/IP", system.get("display_name") or system["system_id"], host_node["label"], trust="manual"))
+    for rel in relations:
+        edges.append(_edge_payload(rel, system_map.get(rel.get("from_system"), {}).get("display_name", rel.get("from_system")), system_map.get(rel.get("to_system"), {}).get("display_name", rel.get("to_system"))))
+    for edge in edges:
+        edge["focus_state"] = "active" if edge.get("source") in active_ids and edge.get("target") in active_ids else "muted"
+    _position_edge_labels(nodes, edges)
+    focus_system = system_map.get(center_system_id or "")
+    focus_label = (focus_system or {}).get("display_name") or selected_core
+    affected_items = []
+    for system in related_systems:
+        if system.get("system_id") == center_system_id:
+            continue
+        affected_items.append(
+            {
+                "name": system.get("display_name") or system.get("system_id"),
+                "note": system.get("description") or "需依 CMDB 關聯與主機狀態確認影響。",
+            }
+        )
+    if not affected_items and related_systems:
+        affected_items = [
+            {
+                "name": related_systems[0].get("display_name") or related_systems[0].get("system_id"),
+                "note": "目前此核心底下的主要關聯系統。",
+            }
+        ]
+    meta = _topology_meta("core_impact")
+    meta.update({"width": 1120, "height": int(height), "layout_mode": "core_impact", "systems": len(related_systems), "relations": len(edges), "center": center_system_id or selected_core, "center_label": selected_core, "include_external": include_external, "include_unmanaged": include_unmanaged, "layer_guides": guides, "message": "處理角度：先看核心，再看關聯系統，最後展開主機 / IP 與通知對象。"})
+    meta.update(
+        {
+            "width": 1220,
+            "message": "核心影響圖：第一欄是六大核心，第二欄是關聯系統，第三欄是主機 / IP。",
+            "impact_panel": {
+                "focus_label": focus_label,
+                "core_label": selected_core,
+                "system_count": len(related_systems),
+                "host_count": len(host_nodes),
+                "relation_count": len(edges),
+                "loop_count": sum(1 for rel in relations if rel.get("from_system") == rel.get("to_system")),
+                "notification_count": len({(item.get("owner") or "").strip() for item in related_systems if (item.get("owner") or "").strip()}),
+                "affected_items": affected_items[:6],
+            },
+        }
+    )
+    return {"view": "core_impact", "nodes": nodes, "edges": edges, "meta": meta}
 
 
 def _layered_system_ip_topology(
@@ -1285,7 +1959,7 @@ def _host_topology(limit: int = 200, include_external: bool = False, include_unm
     ip_map = _known_host_ip_map()
     nodes = [{"id": host.get("hostname"), "label": host.get("hostname"), "kind": "主機", "ip": host.get("ip"), "os": host.get("os"), "system": host.get("system_name") or ""} for host in hosts if host.get("hostname")]
     node_ids = {node["id"] for node in nodes}
-    edges = []
+    edge_relations: dict[tuple[str, str], dict[str, Any]] = {}
     latest = latest_collect_run()
     relations = list_relations({"run_id": latest["run_id"]}) if latest else []
     for rel in relations:
@@ -1302,13 +1976,55 @@ def _host_topology(limit: int = 200, include_external: bool = False, include_unm
             kind = _unknown_node_kind(remote_ip) if str(target).startswith("UNKNOWN-") else "主機"
             nodes.append({"id": target, "label": label, "kind": kind, "ip": remote_ip, "os": ""})
             node_ids.add(target)
+        key = (str(source), str(target))
+        if key not in edge_relations:
+            edge_relations[key] = dict(rel)
+            edge_relations[key]["evidence"] = dict(evidence)
+        else:
+            _merge_topology_relation(edge_relations[key], rel)
+    edges = []
+    for rel in edge_relations.values():
+        source = rel.get("from_system")
+        target = rel.get("to_system")
+        evidence = rel.get("evidence") or {}
         source_label = host_map.get(source, {}).get("hostname") or source
         target_label = host_map.get(target, {}).get("hostname") or evidence.get("last_remote_ip") or target
         edges.append(_edge_payload(rel, source_label, target_label))
-    dimensions = _layout_host_system_trunks(nodes, edges)
+    if include_unmanaged or include_external:
+        known_node_ips = {str(node.get("ip") or node.get("label") or "") for node in nodes}
+        scan_report = latest_network_scan_report() or {}
+        for row in scan_report.get("rows") or []:
+            if row.get("type") != "scan_not_in_cmdb":
+                continue
+            ip_text = str(row.get("ip") or "").strip()
+            if not ip_text or ip_text in known_node_ips:
+                continue
+            is_internal = _is_internal_ip(ip_text)
+            if is_internal and not include_unmanaged:
+                continue
+            if not is_internal and not include_external:
+                continue
+            node_id = f"SCAN-{ip_text}"
+            if node_id in node_ids:
+                continue
+            nodes.append(
+                {
+                    "id": node_id,
+                    "label": ip_text,
+                    "kind": "內網未納管" if is_internal else "外網未知",
+                    "ip": ip_text,
+                    "os": row.get("os") or row.get("host_type") or "",
+                    "system": "掃描未納管",
+                    "scan_status": row.get("type_label") or "掃描到但未納管",
+                    "open_ports": row.get("open_ports") or [],
+                }
+            )
+            node_ids.add(node_id)
+            known_node_ips.add(ip_text)
+    dimensions = _layout(nodes, edges)
     meta = _topology_meta("host")
     meta.update(dimensions)
-    meta.update({"hosts": len(hosts), "relations": len(edges), "include_external": include_external, "include_unmanaged": include_unmanaged, "layout_mode": "system_trunks"})
+    meta.update({"hosts": len(hosts), "relations": len(edges), "include_external": include_external, "include_unmanaged": include_unmanaged, "layout_mode": "host_relation_graph"})
     return {"view": "host", "nodes": nodes, "edges": edges, "meta": meta}
 
 

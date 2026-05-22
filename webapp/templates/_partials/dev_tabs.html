@@ -1,11 +1,12 @@
 {% set endpoint = request.endpoint or "" %}
 <nav class="dev-tabs" data-tab-storage="webitgpt-dev-section-tabs">
   <a class="{% if endpoint == 'api_superadmin.validation_page' %}active{% endif %}" href="{{ url_for('api_superadmin.validation_page') }}" data-dev-tab-key="validation" draggable="true">驗證報告</a>
-  <a class="{% if endpoint == 'api_superadmin.dev_console_page' %}active{% endif %}" href="{{ url_for('api_superadmin.dev_console_page') }}#developer-docs" data-dev-tab-key="developer-docs" data-dev-panel="developer-docs" draggable="true">📄 開發者文件</a>
-  <a href="{{ url_for('api_superadmin.dev_console_page') }}#file-manager" data-dev-tab-key="file-manager" data-dev-panel="file-manager" draggable="true">📁 檔案管理</a>
-  <a href="{{ url_for('api_superadmin.dev_console_page') }}#memo" data-dev-tab-key="memo" data-dev-panel="memo" draggable="true">📝 備忘錄</a>
-  <a href="{{ url_for('api_superadmin.dev_console_page') }}#commit-log" data-dev-tab-key="commit-log" data-dev-panel="commit-log" draggable="true">📜 提交紀錄</a>
-  <a href="{{ url_for('api_superadmin.dev_console_page') }}#module-manager" data-dev-tab-key="module-manager" data-dev-panel="module-manager" draggable="true">🎛️ 模組管理</a>
+  <a class="{% if endpoint == 'api_superadmin.dev_console_page' %}active{% endif %}" href="{{ url_for('api_superadmin.dev_console_page') }}#developer-docs" data-dev-tab-key="developer-docs" data-dev-panel="developer-docs" draggable="true">開發文件</a>
+  <a href="{{ url_for('api_superadmin.dev_console_page') }}#file-manager" data-dev-tab-key="file-manager" data-dev-panel="file-manager" draggable="true">檔案管理</a>
+  <a href="{{ url_for('api_superadmin.dev_console_page') }}#memo" data-dev-tab-key="memo" data-dev-panel="memo" draggable="true">備忘錄</a>
+  <a href="{{ url_for('api_superadmin.dev_console_page') }}#commit-log" data-dev-tab-key="commit-log" data-dev-panel="commit-log" draggable="true">提交紀錄</a>
+  <a href="{{ url_for('api_superadmin.dev_console_page') }}#debug-bundle" data-dev-tab-key="debug-bundle" data-dev-panel="debug-bundle" draggable="true">Debug Bundle</a>
+  <a href="{{ url_for('api_superadmin.dev_console_page') }}#module-manager" data-dev-tab-key="module-manager" data-dev-panel="module-manager" draggable="true">模組管理</a>
   <a class="{% if endpoint == 'api_superadmin.logs_page' %}active{% endif %}" href="{{ url_for('api_superadmin.logs_page') }}" data-dev-tab-key="logs" draggable="true">日誌</a>
   <a class="{% if endpoint == 'api_superadmin.jobs_page' %}active{% endif %}" href="{{ url_for('api_superadmin.jobs_page') }}" data-dev-tab-key="jobs" draggable="true">排程</a>
 </nav>

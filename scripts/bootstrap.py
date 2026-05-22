@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sys
 from datetime import datetime, timezone
@@ -16,6 +17,7 @@ if str(ROOT) not in sys.path:
 from webapp import config
 from webapp.services.asset_governance_status_service import ensure_default_statuses
 from webapp.services.compliance_service import ensure_default_rules
+from webapp.services.csv_service import import_csv
 from webapp.services.feature_flags import ensure_feature_flags
 from webapp.services.host_dir_service import init_dir
 from webapp.services.mongo_service import get_db
@@ -162,6 +164,13 @@ ACTUAL_HOSTS = [
 ]
 
 
+def _env_enabled(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
 def ensure_collections() -> None:
     db = get_db()
     existing = set(db.list_collection_names())
@@ -219,6 +228,8 @@ def ensure_indexes() -> None:
 
 
 def seed_hosts() -> int:
+    if not _env_enabled("WEBITGPT_SEED_DEMO_HOSTS", True):
+        return 0
     hosts = get_db().hosts
     now = datetime.now(timezone.utc)
     inserted = 0
@@ -276,6 +287,8 @@ def seed_hosts() -> int:
 
 
 def seed_cmdb_support() -> dict[str, int]:
+    if not _env_enabled("WEBITGPT_SEED_DEMO_HOSTS", True):
+        return {"ipam_networks_inserted": 0, "extension_definitions_inserted": 0}
     db = get_db()
     now = datetime.now(timezone.utc)
     network_result = db.ipam_networks.update_one(
@@ -332,6 +345,16 @@ def seed_cmdb_support() -> dict[str, int]:
 
 
 def cleanup_non_actual_data() -> dict[str, int]:
+    if not _env_enabled("WEBITGPT_CLEANUP_TEST_DATA", True):
+        return {
+            "skipped": 1,
+            "fake_hosts_removed": 0,
+            "fake_related_rows_removed": 0,
+            "stale_inventory_removed": 0,
+            "stale_inspections_removed": 0,
+            "stale_findings_removed": 0,
+            "stale_remediation_plans_removed": 0,
+        }
     db = get_db()
     hosts = db.hosts
     fake_query = {
@@ -376,9 +399,21 @@ def ensure_host_directories() -> int:
     return count
 
 
+def import_initial_hosts() -> dict[str, object]:
+    csv_path = os.environ.get("WEBITGPT_INITIAL_HOSTS_CSV", "").strip()
+    if not csv_path:
+        return {"skipped": 1, "created": 0, "updated": 0, "failed": 0}
+    path = Path(csv_path)
+    if not path.exists():
+        return {"skipped": 0, "created": 0, "updated": 0, "failed": 1, "error": f"initial hosts CSV not found: {path}"}
+    result = import_csv(path.read_text(encoding="utf-8-sig"), user="bootstrap_csv")
+    return {"skipped": 0, **result}
+
+
 def seed_superadmin() -> bool:
     now = datetime.now(timezone.utc)
     users = get_db().users
+    initial_password = os.environ.get("WEBITGPT_SUPERADMIN_PASSWORD") or "change-me-before-login"
     result = users.update_one(
         {"username": "superadmin"},
         {
@@ -386,7 +421,7 @@ def seed_superadmin() -> bool:
                 "username": "superadmin",
                 "display_name": "Super Admin",
                 "role": "superadmin",
-                "password_hash": generate_password_hash("1qaz@WSX"),
+                "password_hash": generate_password_hash(initial_password),
                 "must_change": True,
                 "mfa_enabled": False,
                 "mfa_secret": None,
@@ -459,7 +494,10 @@ def write_runtime_files() -> None:
             ),
             encoding="utf-8",
         )
-    seed_path.write_text(json.dumps(ACTUAL_HOSTS, ensure_ascii=False, indent=2), encoding="utf-8")
+    if _env_enabled("WEBITGPT_SEED_DEMO_HOSTS", True):
+        seed_path.write_text(json.dumps(ACTUAL_HOSTS, ensure_ascii=False, indent=2), encoding="utf-8")
+    elif not seed_path.exists():
+        seed_path.write_text("[]\n", encoding="utf-8")
 
 
 def main() -> None:
@@ -468,6 +506,7 @@ def main() -> None:
     host_count = seed_hosts()
     cmdb_support = seed_cmdb_support()
     cleanup_stats = cleanup_non_actual_data()
+    imported_hosts = import_initial_hosts()
     host_dirs = ensure_host_directories()
     flag_count = ensure_feature_flags()
     otp_disabled_users = disable_otp_verification()
@@ -483,6 +522,7 @@ def main() -> None:
                 "hosts_seeded": host_count,
                 "cmdb_support": cmdb_support,
                 "cleanup": cleanup_stats,
+                "initial_hosts_import": imported_hosts,
                 "host_dirs_synced": host_dirs,
                 "feature_flags_inserted": flag_count,
                 "otp_disabled_users": otp_disabled_users,

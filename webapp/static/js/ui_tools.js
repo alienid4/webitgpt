@@ -115,7 +115,8 @@ function enableSortableTabs(container, selector, keyName, storageKey) {
 
   container.addEventListener("drop", (event) => {
     const target = event.target.closest(selector);
-    const source = container.querySelector(`[data-${keyName.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}="${draggedKey}"]`);
+    const attrName = keyName.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+    const source = container.querySelector(`[data-${attrName}="${draggedKey}"]`);
     if (!target || !source || source === target) return;
     event.preventDefault();
     target.classList.remove("nav-drop-target");
@@ -191,7 +192,7 @@ document.querySelectorAll("form[data-submit-status]").forEach((form) => {
     }
     if (status) {
       status.hidden = false;
-      status.innerHTML = `<span class="spinner-sm" aria-hidden="true"></span><span>${form.dataset.submitMessage || "已送出，正在處理中，請稍候。"}</span>`;
+      status.innerHTML = `<span class="spinner-sm" aria-hidden="true"></span><span>${form.dataset.submitMessage || "正在送出，請稍候。"}</span>`;
     }
 
     form.querySelectorAll("button[type='submit']").forEach((button) => {
@@ -207,14 +208,28 @@ function setTopologyFullscreen(panel, enabled) {
   if (!panel) return;
   panel.classList.toggle("topology-client-fullscreen", enabled);
   document.body.classList.toggle("body-topology-fullscreen", enabled);
+  if (enabled) {
+    window.setTimeout(() => {
+      panel.querySelectorAll("[data-topology-canvas]").forEach((canvas) => {
+        const stage = canvas.querySelector("[data-topology-stage]");
+        if (!stage) return;
+        const isCoreImpact = document.querySelector('[name="view"]')?.value === "core_impact";
+        canvas.scrollLeft = isCoreImpact ? 0 : Math.max(0, (stage.scrollWidth - canvas.clientWidth) / 2);
+        canvas.scrollTop = isCoreImpact ? 0 : Math.max(0, (stage.scrollHeight - canvas.clientHeight) / 2);
+      });
+    }, 80);
+  }
 }
 
 document.querySelectorAll("[data-topology-fullscreen-enter]").forEach((button) => {
   button.addEventListener("click", async () => {
+    const fallback = button.dataset.fullscreenUrl;
+    if (fallback) {
+      window.location.href = fallback;
+      return;
+    }
     const panel = document.querySelector("[data-topology-panel]");
     if (!panel) {
-      const fallback = button.dataset.fullscreenUrl;
-      if (fallback) window.location.href = fallback;
       return;
     }
     setTopologyFullscreen(panel, true);
@@ -256,6 +271,11 @@ document.querySelectorAll("[data-topology-canvas]").forEach((canvas) => {
   if (!stage) return;
 
   let scale = 0.8;
+  const isCoreImpact = document.querySelector('[name="view"]')?.value === "core_impact";
+  const centerCanvas = () => {
+    canvas.scrollLeft = isCoreImpact ? 0 : Math.max(0, (stage.scrollWidth - canvas.clientWidth) / 2);
+    canvas.scrollTop = isCoreImpact ? 0 : Math.max(0, (stage.scrollHeight - canvas.clientHeight) / 2);
+  };
   const setScale = (nextScale) => {
     scale = Math.min(1.6, Math.max(0.45, Math.round(nextScale * 100) / 100));
     stage.style.setProperty("--topology-scale", String(scale));
@@ -266,7 +286,7 @@ document.querySelectorAll("[data-topology-canvas]").forEach((canvas) => {
   zoomOut?.addEventListener("click", () => setScale(scale - 0.1));
   zoomReset?.addEventListener("click", () => {
     setScale(0.8);
-    canvas.scrollTo({ left: 0, top: 0, behavior: "smooth" });
+    centerCanvas();
   });
 
   canvas.addEventListener("wheel", (event) => {
@@ -299,7 +319,7 @@ document.querySelectorAll("[data-topology-canvas]").forEach((canvas) => {
   canvas.querySelectorAll("[data-topology-node-id]").forEach((node) => {
     node.addEventListener("click", () => {
       const form = document.querySelector("[data-topology-filter]");
-      const input = form?.querySelector('input[name="failed_node"]');
+      const input = form?.querySelector('[name="center"]');
       if (!form || !input) return;
       input.value = node.dataset.topologyNodeId || "";
       form.requestSubmit();
@@ -307,4 +327,5 @@ document.querySelectorAll("[data-topology-canvas]").forEach((canvas) => {
   });
 
   setScale(scale);
+  window.setTimeout(centerCanvas, 80);
 });

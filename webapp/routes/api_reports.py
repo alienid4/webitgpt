@@ -149,8 +149,10 @@ def reports_summary_csv():
 @require_feature("dependencies")
 def dependencies_page():
     collect_runs = dependency_service.collect_runs(limit=5)
+    systems = dependency_service.list_systems()
+    relations = dependency_service.list_relations()
     data = topology(
-        view=request.args.get("view", "host"),
+        view=request.args.get("view", "core_impact"),
         center=request.args.get("center", ""),
         depth=int(request.args.get("depth", 2)),
         limit=int(request.args.get("limit", 200)),
@@ -159,10 +161,18 @@ def dependencies_page():
         failed_node=request.args.get("failed_node", ""),
         focus_impact=_focus_impact(),
     )
-    return render_template("dependencies.html", topology=data, reconcile_report=dependency_service.filtered_reconcile_report(include_external=_include_external(), include_unmanaged=_include_unmanaged()), collect_runs=collect_runs)
+    return render_template(
+        "dependencies.html",
+        topology=data,
+        reconcile_report=dependency_service.filtered_reconcile_report(include_external=_include_external(), include_unmanaged=_include_unmanaged()),
+        network_scan_report=dependency_service.latest_network_scan_report(),
+        collect_runs=collect_runs,
+        systems=systems,
+        relation_items=relations,
+    )
 
 
 @bp.get("/api/dependencies")
 @require_feature("dependencies")
 def dependencies_api():
-    return jsonify(topology(view=request.args.get("view", "host"), center=request.args.get("center", ""), depth=int(request.args.get("depth", 2)), limit=int(request.args.get("limit", 200)), include_external=_include_external(), include_unmanaged=_include_unmanaged(), failed_node=request.args.get("failed_node", ""), focus_impact=_focus_impact()))
+    return jsonify(topology(view=request.args.get("view", "core_impact"), center=request.args.get("center", ""), depth=int(request.args.get("depth", 2)), limit=int(request.args.get("limit", 200)), include_external=_include_external(), include_unmanaged=_include_unmanaged(), failed_node=request.args.get("failed_node", ""), focus_impact=_focus_impact()))

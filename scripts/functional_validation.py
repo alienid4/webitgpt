@@ -4,7 +4,9 @@ import argparse
 import csv
 import io
 import json
+import os
 import random
+import re
 import sys
 import time
 import urllib.error
@@ -172,7 +174,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run webitgpt v1.0 functional validation.")
     parser.add_argument("--base-url", default="http://127.0.0.1:8002")
     parser.add_argument("--username", default="superadmin")
-    parser.add_argument("--password", default="1qaz@WSX")
+    parser.add_argument("--password", default=os.environ.get("WEBITGPT_SUPERADMIN_PASSWORD", "change-me-before-login"))
     parser.add_argument("--output", default="")
     args = parser.parse_args()
 
@@ -182,6 +184,15 @@ def main() -> int:
 
     status, _, health = request(opener, "GET", f"{base}/health")
     check(report, "health", status == 200 and health and health.get("status") == "ok", health)
+    check(
+        report,
+        "version_policy_1x",
+        status == 200
+        and health
+        and bool(re.match(r"^1\.\d+\.\d+\.\d+$", str(health.get("version", ""))))
+        and not str(health.get("version", "")).startswith("2."),
+        {"version": (health or {}).get("version"), "patch_id": (health or {}).get("patch_id")},
+    )
 
     status, _, ready = request(opener, "GET", f"{base}/ready")
     check(report, "ready_mongo", status == 200 and ready and ready.get("mongo") == "ok", ready)
@@ -279,7 +290,19 @@ def main() -> int:
     check(report, "api_v1_hosts_before", status == 200 and before_total >= 3, {"total": before_total})
 
     status, home_page, _ = request(opener, "GET", f"{base}/hosts")
-    check(report, "ui_version_visible", status == 200 and "webitgpt v1.0.2.53" in home_page and "badge-text-inline" in home_page and "IT 巡檢系統" in home_page, {"status": status})
+    expected_version = (health or {}).get("version", "")
+    expected_patch_id = (health or {}).get("patch_id", "")
+    check(
+        report,
+        "ui_version_visible",
+        status == 200
+        and bool(expected_version)
+        and bool(expected_patch_id)
+        and f"webitgpt v{expected_version}" in home_page
+        and expected_patch_id in home_page
+        and "IT 巡檢系統" in home_page,
+        {"status": status, "expected_version": expected_version, "expected_patch_id": expected_patch_id},
+    )
     check(report, "ui_asset_nav_active", status == 200 and 'class="nav-warn active"' in home_page and "▣ 資產管理" in home_page, {"status": status})
     status, quality_page, _ = request(opener, "GET", f"{base}/hosts/quality")
     check(report, "asset_quality_page_loads", status == 200 and "資產異常清單" in quality_page and "納管資產" in quality_page, {"status": status})
@@ -488,8 +511,14 @@ def main() -> int:
     status, csv_export_text, _ = request(opener, "GET", f"{base}/api/hosts/csv/export")
     check(report, "csv_export", status == 200 and "asset_seq" in csv_export_text and csv_asset_seq in csv_export_text, csv_export_text[:300])
 
-    host_root = Path("/opt/webitgpt/data/hosts")
-    if host_root.exists():
+    status, _, health_after_artifacts = request(opener, "GET", f"{base}/api/superadmin/system-health")
+    artifact_counts = (health_after_artifacts or {}).get("host_artifacts", {}) if status == 200 else {}
+    if artifact_counts:
+        check(report, "per_host_meta_files", int(artifact_counts.get("meta_files", 0)) >= after_total, {"host_artifacts": artifact_counts, "hosts_total": after_total})
+        check(report, "self_check_file_written", bool(self_check and self_check.get("artifact_path")) or int(artifact_counts.get("self_check_files", 0)) > 0, {"artifact_path": (self_check or {}).get("artifact_path"), "host_artifacts": artifact_counts})
+        check(report, "debug_snapshot_file_written", bool(debug and debug.get("artifact_path")) or int(artifact_counts.get("debug_snapshot_files", 0)) > 0, {"artifact_path": (debug or {}).get("artifact_path"), "host_artifacts": artifact_counts})
+    else:
+        host_root = Path(os.environ.get("WEBITGPT_VALIDATION_HOST_ROOT", "/opt/webitgpt/data/hosts"))
         meta_files = list(host_root.glob("*/meta.json"))
         check(report, "per_host_meta_files", len(meta_files) >= after_total, {"meta_files": len(meta_files), "hosts_total": after_total})
         check(report, "self_check_file_written", any((host_root / "HW-00000221" / "self_check").glob("*.json")), "HW-00000221/self_check")

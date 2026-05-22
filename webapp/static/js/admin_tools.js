@@ -142,7 +142,7 @@ document.addEventListener("click", async (event) => {
   button.disabled = true;
   button.classList.add("is-busy");
   button.textContent = button.dataset.busyText || "處理中";
-  setApiStatus(status || result, button.dataset.submitMessage || "已送出，正在處理中，請稍候。", "info", true);
+  setApiStatus(status || result, button.dataset.submitMessage || "正在送出，請稍候。", "info", true);
 
   try {
     const response = await fetch(button.dataset.apiPost, {
@@ -166,12 +166,17 @@ document.addEventListener("click", async (event) => {
     }
 
     if (button.dataset.reloadOnSuccess === "true") {
-      setApiStatus(status || result, data.message || "處理完成，正在重新整理畫面。", "ok", false);
+      setApiStatus(status || result, data.message || "操作完成，正在重新整理。", "ok", false);
       window.location.reload();
       return;
     }
 
-    setApiStatus(status || result, data.message || `處理完成：${data.count ?? data.job_id ?? "ok"}`, "ok", false);
+    const summary = data.message || `操作完成：${data.count ?? data.job_id ?? "ok"}`;
+    if ((status || result)?.tagName === "PRE") {
+      setApiStatus(status || result, JSON.stringify(data, null, 2), "ok", false);
+    } else {
+      setApiStatus(status || result, summary, "ok", false);
+    }
   } catch (error) {
     const message = `操作失敗：${error.message || error}`;
     setApiStatus(status || result, message, "error", false);

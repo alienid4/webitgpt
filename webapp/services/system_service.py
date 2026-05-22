@@ -11,9 +11,11 @@ from typing import Any
 
 from webapp import config
 from webapp.services.audit_log_service import verify_chain
+from webapp.services.debug_bundle_service import ai_runtime_manifest, list_ai_debug_loops, list_debug_bundles
 from webapp.services.feature_flags import DEFAULT_FLAGS
 from webapp.services.housekeeping_service import disk_status
 from webapp.services.mongo_service import get_db
+from webapp.services.nmon_raw_service import nmon_raw_pipeline_status
 
 
 MODULE_CATEGORY_LABELS = {
@@ -108,6 +110,214 @@ MODULE_IMPACT = {
 }
 
 
+RECENT_PATCH_RELEASES = [
+    {
+        "version": "1.0.2.97",
+        "date": "2026-05-22 08:35 +08:00",
+        "patch_id": "full-system-validation-artifacts",
+        "changes": [
+            "修復 SuperAdmin、使用者、健康檢查、Backup/DR 與 Patch 回滾頁面模板，恢復可渲染 UI。",
+            "健康檢查 API 補上 host artifact 統計，功能驗證可透過遠端 API 確認 meta/self-check/debug snapshot 寫入。",
+            "Backup manifest 對目錄權限問題回傳可稽核 warning，不讓 DR dry-run 直接 500。",
+            "保留 Phase 只讀模式，受監控主機寫入動作仍由 phase_readonly_mode 封鎖。",
+        ],
+    },
+    {
+        "version": "1.0.2.96",
+        "date": "2026-05-19 22:55 +08:00",
+        "patch_id": "offline-onekey-install",
+        "changes": [
+            "新增離線一鍵安裝流程，支援既有 MongoDB、正式主機 CSV 匯入與不帶測試資料安裝。",
+            "補齊離線 bundle 準備腳本與安裝文件，讓封閉環境可先準備 RPM / Python wheel 後部署。",
+            "保留 Phase 只讀模式，平行評比期間不開放受監控主機寫入動作。",
+        ],
+    },
+    {
+        "version": "1.0.2.92",
+        "date": "2026-05-19 07:25 +08:00",
+        "patch_id": "full-system-package-metadata-sync",
+        "changes": [
+            "同步 overnight build 的版本、patch id、make_patch 預設套件名稱與功能驗證版本規則。",
+            "保留 Phase 只讀模式，不開放受監控主機寫入動作。",
+        ],
+    },
+    {
+        "version": "1.0.2.91",
+        "date": "2026-05-19 06:34 +08:00",
+        "patch_id": "topology-overlay-unmanaged-scan",
+        "changes": [
+            "連線偵測圖自動疊加網段掃描未納管 IP 節點。",
+            "讓系統拓撲能同時呈現 CMDB 內節點與掃描發現的待治理節點。",
+        ],
+    },
+    {
+        "version": "1.0.2.71",
+        "date": "2026-05-18 07:55 +08:00",
+        "patch_id": "opening-filesystem-mount-label",
+        "changes": [
+            "開門檢查檔案系統小卡改顯示最高使用率掛載點，例如 / 77% 或 /var 91%。",
+            "保留臨時 75% WARN 門檻供畫面觀察；看完後再改回正式門檻。",
+        ],
+    },
+    {
+        "version": "1.0.2.70",
+        "date": "2026-05-18 07:45 +08:00",
+        "patch_id": "opening-disk-threshold-preview-75",
+        "changes": [
+            "臨時預覽版：開門檢查 Filesystem WARN 門檻由 85% 暫調為 75%，用來觀察 77% 會如何呈現。",
+            "FAIL 門檻仍維持 95%。看完後可改回正式 85% 門檻。",
+        ],
+    },
+    {
+        "version": "1.0.2.69",
+        "date": "2026-05-18 07:30 +08:00",
+        "patch_id": "opening-disk-full-threshold",
+        "changes": [
+            "修正開門檢查檔案系統只看 rc=0 導致 DISK FULL 沒有轉成警示的問題。",
+            "Filesystem 使用率 85% 以上標示 WARN，95% 以上標示 FAIL；77% 仍屬正常容量觀察值。",
+            "舊的開門檢查紀錄在畫面 normalize 時也會重新依百分比判定，避免歷史資料仍顯示全綠。",
+        ],
+    },
+    {
+        "version": "1.0.2.68",
+        "date": "2026-05-18 07:15 +08:00",
+        "patch_id": "housekeeping-code-cache-scope",
+        "changes": [
+            "收斂 code_cache_purge 範圍，只清目前程式碼、scripts、tests、ansible、edge 與根目錄 .pytest_cache。",
+            "避免正式清理掃到 venv、data、logs、backup 等不應歸類為程式碼快取的目錄。",
+        ],
+    },
+    {
+        "version": "1.0.2.67",
+        "date": "2026-05-18 07:05 +08:00",
+        "patch_id": "housekeeping-data-retention",
+        "changes": [
+            "Housekeeping 擴充到 Mongo 歷史資料、NMON raw file、主機資料、log/debug bundle 與正式程式碼快取。",
+            "Mongo 清理採 collection 對應時間欄位與 retention days，不碰 hosts、users、feature_flags、api_tokens 內容與 audit_logs。",
+            "NMON raw 檔保留 180 天，nmon_data 與 raw metadata 保留 400 天，讓效能月報與差異追蹤不斷層。",
+        ],
+    },
+    {
+        "version": "1.0.2.66",
+        "date": "2026-05-18 06:45 +08:00",
+        "patch_id": "housekeeping-postinstall-runner-fix",
+        "changes": [
+            "修正 scripts/run_housekeeping.py 直接執行時找不到 webapp package 的匯入路徑問題。",
+            "部署後 post-install housekeeping 可正常執行，會清 /tmp 舊 patch 並保留最新 20 份回滾備份。",
+        ],
+    },
+    {
+        "version": "1.0.2.65",
+        "date": "2026-05-18 06:35 +08:00",
+        "patch_id": "housekeeping-retention-mechanism",
+        "changes": [
+            "Housekeeping 補上正式 patch 回滾備份保留機制，固定保留最新 20 份 preinstall 備份目錄。",
+            "新增部署暫存清理，清除 /tmp 舊 webitgpt patch 解壓與 tarball 暫存。",
+            "install.sh 部署後自動執行 post-install housekeeping，避免磁碟再次累積到 98%。",
+        ],
+    },
+    {
+        "version": "1.0.2.64",
+        "date": "2026-05-17 23:55 +08:00",
+        "patch_id": "dev-console-complete-release-notes",
+        "changes": [
+            "開發後台提交紀錄改為合併近期 patch release notes、CHANGELOG 與 git log，避免部署目錄不是完整 git repo 時紀錄不完整。",
+            "補齊 v1.0.2.55 之後的主要修補紀錄，讓版本、時間、patch id 與變更摘要可追溯。",
+        ],
+    },
+    {
+        "version": "1.0.2.63",
+        "date": "2026-05-17 23:45 +08:00",
+        "patch_id": "nmon-ibm-profile",
+        "changes": [
+            "效能月報與 NMON 派送改以 IBM nmon -x 容量規劃採樣口徑為主。",
+            "畫面、API、Ansible playbook 與文件明確顯示 nmon -x 等同 nmon -ft -s 900 -c 96。",
+        ],
+    },
+    {
+        "version": "1.0.2.62",
+        "date": "2026-05-17 23:25 +08:00",
+        "patch_id": "nmon-ansible-install-coverage",
+        "changes": [
+            "效能月報新增 NMON 安裝覆蓋率檢查。",
+            "缺少 NMON 的 Linux 主機可由 Ansible playbook 派送安裝。",
+        ],
+    },
+    {
+        "version": "1.0.2.61",
+        "date": "2026-05-17 22:55 +08:00",
+        "patch_id": "dev-console-current-docs",
+        "changes": [
+            "開發後台文件改為產生目前系統狀態文件。",
+            "補齊資產、帳號、開門檢查、NMON、AI debug loop、部署與模組旗標文件入口。",
+        ],
+    },
+    {
+        "version": "1.0.2.60",
+        "date": "2026-05-17 22:45 +08:00",
+        "patch_id": "nmon-monthly-report-completion",
+        "changes": [
+            "效能月報補齊月份、系統、環境、機房與搜尋篩選。",
+            "新增 P95、採樣覆蓋率、主機熱區圖、CSV/JSON 與架構部數據摘要。",
+        ],
+    },
+    {
+        "version": "1.0.2.59",
+        "date": "2026-05-17 22:25 +08:00",
+        "patch_id": "ai-runtime-builder-manifest",
+        "changes": [
+            "開發後台新增 AI Runtime Manifest。",
+            "把最小 AI debug loop 的流程、限制、輸入輸出與人工核准點寫成機器可讀 manifest。",
+        ],
+    },
+    {
+        "version": "1.0.2.58",
+        "date": "2026-05-17 21:58 +08:00",
+        "patch_id": "minimal-ai-debug-loop",
+        "changes": [
+            "建立最小 AI debug loop：公司 VM 產生去識別化 debug bundle，再交由 GPT Enterprise 分析。",
+            "新增 prompt 產生與下載，並保留 dry-run、verbose debug 與 regression test 工作規則。",
+        ],
+    },
+    {
+        "version": "1.0.2.57",
+        "date": "2026-05-17 21:32 +08:00",
+        "patch_id": "nmon-raw-pipeline-debug",
+        "changes": [
+            "補強 NMON raw file pipeline 狀態，讓 debug bundle 能收集 NMON pipeline 摘要。",
+            "開發後台可看到 raw file、raw sample 與 pipeline 狀態。",
+        ],
+    },
+    {
+        "version": "1.0.2.56",
+        "date": "2026-05-17 21:19 +08:00",
+        "patch_id": "gpt-enterprise-debug-bundle",
+        "changes": [
+            "新增去識別化 Debug Bundle，收集版本、設定摘要、錯誤 log、OS、Python、套件與服務狀態。",
+            "敏感資訊遮蔽後才提供給 GPT Enterprise 分析。",
+        ],
+    },
+    {
+        "version": "1.0.2.55",
+        "date": "2026-05-17 20:55 +08:00",
+        "patch_id": "performance-monthly-architecture-report",
+        "changes": [
+            "效能月報改為系統架構部可閱讀的數字摘要版。",
+            "報表口氣改為只呈現數字、趨勢與選項，讓主管自行決策。",
+        ],
+    },
+    {
+        "version": "1.0.2.54",
+        "date": "2026-05-17 19:31 +08:00",
+        "patch_id": "full-system-ui-repair",
+        "changes": [
+            "修復多個功能頁 UI 一致性、中文化、統計卡可點擊與表格操作問題。",
+            "補強資產管理、帳號盤點、開門檢查與開發後台的主要操作入口。",
+        ],
+    },
+]
+
+
 MODULE_CATEGORY_LABELS = {
     "module": "大模組",
     "cmdb": "資產管理",
@@ -198,6 +408,22 @@ def admin_console_overview() -> dict[str, Any]:
 
 def health_dashboard() -> dict[str, Any]:
     db = get_db()
+    host_root = Path(config.HOSTS_DIR)
+    host_artifacts = {
+        "root": str(host_root),
+        "exists": host_root.exists(),
+        "meta_files": 0,
+        "self_check_files": 0,
+        "debug_snapshot_files": 0,
+    }
+    if host_root.exists():
+        host_artifacts.update(
+            {
+                "meta_files": len(list(host_root.glob("*/meta.json"))),
+                "self_check_files": len(list(host_root.glob("*/self_check/*.json"))),
+                "debug_snapshot_files": len(list(host_root.glob("*/debug_snapshots/*.json"))),
+            }
+        )
     return {
         "app": config.APP_NAME,
         "version": config.VERSION,
@@ -208,14 +434,15 @@ def health_dashboard() -> dict[str, Any]:
         "disk": disk_status(),
         "audit": verify_chain(),
         "collections": {name: db[name].count_documents({}) for name in ["hosts", "audit_logs", "users", "compliance_rules", "compliance_findings"]},
+        "host_artifacts": host_artifacts,
     }
 
 
 def create_backup_manifest(user: str = "system") -> dict[str, Any]:
     backup_dir = Path(config.BACKUP_DIR)
-    backup_dir.mkdir(parents=True, exist_ok=True)
     now = datetime.now(timezone.utc)
     manifest = {
+        "status": "ok",
         "app": config.APP_NAME,
         "version": config.VERSION,
         "patch_id": config.PATCH_ID,
@@ -226,10 +453,15 @@ def create_backup_manifest(user: str = "system") -> dict[str, Any]:
         "data_dir": config.DATA_DIR,
         "disk": disk_status(),
         "audit": verify_chain(),
+        "path": str(backup_dir / f"backup_manifest_{now.strftime('%Y%m%d_%H%M%S')}.json"),
     }
-    target = backup_dir / f"backup_manifest_{now.strftime('%Y%m%d_%H%M%S')}.json"
-    target.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
-    manifest["path"] = str(target)
+    try:
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        target = Path(manifest["path"])
+        target.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    except OSError as exc:
+        manifest["status"] = "warn"
+        manifest["error"] = str(exc)
     return manifest
 
 
@@ -350,16 +582,23 @@ def remote_tool_plan(action: str, target: str = "", service: str = "") -> dict[s
 def dev_console_payload() -> dict[str, Any]:
     docs_dir = Path(config.DOCS_DIR)
     docs_dir.mkdir(parents=True, exist_ok=True)
+    ensure_current_dev_docs(docs_dir)
     notes_path = docs_dir / "dev_notes.md"
     if not notes_path.exists():
-        notes_path.write_text("# Development notes\n\n- Track implementation notes and deployment decisions here.\n", encoding="utf-8")
+        notes_path.write_text("# 開發備忘錄\n\n- 這裡記錄人工補充的開發決策與待辦。\n", encoding="utf-8")
     try:
-        commits = subprocess.run(["git", "log", "--oneline", "-n", "20"], cwd=config.INSPECTION_HOME, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=8).stdout
+        git_result = subprocess.run(["git", "log", "--oneline", "-n", "20"], cwd=config.INSPECTION_HOME, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=8)
+        commits = git_result.stdout.strip() or git_result.stderr.strip()
     except Exception as exc:
         commits = str(exc)
+    current_line = f"目前部署版本：v{config.VERSION} / {config.PATCH_ID} / {config.BUILD_TIME} / {config.RELEASE_NOTE}"
+    if commits:
+        commits = f"{current_line}\n\nGit log:\n{commits}"
+    else:
+        commits = f"{current_line}\n\nGit log：部署目錄沒有可讀取的 git log，請以 release note 與 patch 備份為準。"
     files = []
     for path in sorted(docs_dir.glob("*"))[:100]:
-        files.append({"name": path.name, "size": path.stat().st_size, "mtime": datetime.fromtimestamp(path.stat().st_mtime, timezone.utc)})
+        files.append({"name": path.name, "size": path.stat().st_size, "mtime": datetime.fromtimestamp(path.stat().st_mtime, timezone.utc), "kind": "文件" if path.suffix.lower() in {".md", ".txt"} else "檔案"})
     root_files = []
     root_dir = Path(config.INSPECTION_HOME)
     for path in sorted(root_dir.glob("*"))[:80]:
@@ -410,29 +649,244 @@ def dev_console_payload() -> dict[str, Any]:
         "commits": commits,
         "release_notes": release_notes(),
         "modules": modules,
+        "debug_bundles": list_debug_bundles(),
+        "ai_debug_loops": list_ai_debug_loops(),
+        "ai_runtime_manifest": ai_runtime_manifest(),
+        "nmon_raw_pipeline": nmon_raw_pipeline_status(),
     }
 
 
+def ensure_current_dev_docs(docs_dir: Path) -> None:
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    generated_at = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S %z")
+    docs: dict[str, str] = {
+        "00_CURRENT_STATUS.md": f"""# itweb-gpt 目前狀態
+
+版本：v{config.VERSION}
+Patch：{config.PATCH_ID}
+更新時間：{generated_at}
+部署：{config.INSPECTION_HOME}
+Web Port：{config.WEB_PORT}
+Mongo DB：{config.MONGO_DB_NAME}
+
+## 本版重點
+
+- 資產管理系統：資產清冊、草稿、IPAM、網段掃描、資產治理狀態、真實 OS/hostname 更新流程。
+- 帳號盤點：帳號清冊、主機角度、帳號角度、PAM 納管註記、差異報告與歷史批次。
+- 開門檢查 / 深度檢查：L1 快速檢查、L3 深度檢查、9 面向、人類可讀摘要、Remedy 與原始證據分離。
+- 效能月報：NMON raw file pipeline、月份/系統/環境/機房篩選、P95、採樣覆蓋率、主機熱區圖、CSV/JSON。
+- 開發後台：Debug Bundle、AI debug loop、Runtime Manifest、模組管理、提交紀錄、檔案管理。
+
+## 驗證入口
+
+- 健康檢查：/health
+- 效能月報：/nmon?period=month
+- 開發後台：/superadmin/dev-console
+- AI Runtime Manifest：/superadmin/dev-console/ai-runtime-manifest
+""",
+        "01_ASSET_MANAGEMENT.md": """# 資產管理系統
+
+## 目的
+
+建立可信任 CMDB，不只是一張主機表。主機名稱是唯一索引，資產編號保留為資產流水與對外識別。
+
+## 目前功能
+
+- 一台一行的密集清冊。
+- 顯示資產名稱、hostname、IP、OS、設備類型、機櫃、環境、機房、備註。
+- 編輯頁可維護完整資產主檔。
+- IPAM 網段管理與網段掃描。
+- 掃描結果可建立草稿，避免直接正式納管錯誤設備。
+- 多筆刪除模式與下線/草稿狀態流程。
+- 資產治理狀態：等待防火牆開通、等待弱掃完成、等待 PAM 納管、例外保留。
+
+## 重要規則
+
+- hostname / OS 應以實際採集結果為主。
+- 人工匯入大量資料後，需透過掃描、SSH/WinRM/ssh_raw 或後續盤點校正可信度。
+- Windows 若未配置 WinRM 憑證，只能由 nmap/TCP 服務推估，不能當作可信 OS。
+- AIX 走 SSH Raw runner，AS400 目前保留後續協定支援。
+""",
+        "02_ACCOUNT_INVENTORY.md": """# 帳號盤點
+
+## 目的
+
+解決主管與稽核最常問的問題：哪台主機有哪些帳號、誰負責、是否高權限、是否納入 PAM、是否異常。
+
+## 目前功能
+
+- 帳號清冊、主機角度、帳號角度、合規、變更、處置、清冊。
+- 可依主機、部門、風險、搜尋條件篩選。
+- 統計格可點擊後在下方顯示細項，不把畫面捲到最底。
+- 系統預設帳號可隱藏；root 永遠列管。
+- PAM 納管、管理者/保管人、用途說明可維護。
+- 差異報告可比對新增、移除、變更。
+
+## 判斷口徑
+
+- 從未登入不直接算問題。
+- 服務帳號可登入顯示為「服務帳號可登入，需複核」。
+- 高權限帳號不是一定錯，但需要負責人與用途說明。
+""",
+        "03_OPENING_AND_DEEP_CHECK.md": """# 開門檢查與深度檢查
+
+## 開門檢查
+
+用於每天快速確認系統是否能營運。可用系統角度執行，不一定每台主機都做。
+
+## 深度檢查
+
+用於單台主機 L3 診斷。Linux、RHEL、Debian、CentOS、AIX 方向都要支援；Windows 與 AS400 依 runner 分階段補齊。
+
+## 顯示原則
+
+- 小卡只顯示人類看得懂的重點，不直接塞 raw output。
+- PASS 也要有證據，例如 CPU、MEM、SWAP、Filesystem、IO 或帳號鎖定數。
+- WARN 要說明：問題點、證據、影響、可執行指令。
+- raw data 放在原始證據、下載明細或 API。
+
+## 例外管理
+
+系統日誌可設定白名單 / 例外管理，避免已知非 AP 事件每天造成誤報。
+""",
+        "04_NMON_PERFORMANCE_MONTHLY.md": """# 效能月報
+
+## 定義
+
+效能月報是給主管與維運共同使用的容量與趨勢報表。資料來源包含 NMON raw file pipeline 與系統既有 nmon_data 採樣。
+
+## 目前功能
+
+- 日報 / 週報 / 月報。
+- 月份、系統、環境、機房、搜尋篩選。
+- NMON raw file 匯入與 pipeline 狀態。
+- NMON 安裝覆蓋率檢查；缺少時可從效能月報用 Ansible 派送安裝。
+- IBM nmon 採樣口徑：使用 `nmon -x`，等同 `nmon -ft -s 900 -c 96`。
+- 平均 CPU / 記憶體 / 磁碟。
+- CPU / 記憶體 / 磁碟尖峰。
+- 主機排名：平均 / P95 / Max。
+- 採樣覆蓋率。
+- 主機熱區圖。
+- 風險追蹤清單與可選處理方式。
+- CSV / JSON 匯出。
+
+## 注意
+
+目前沒有資料時不做假資料；報表會顯示待採樣或無資料。
+
+## NMON 派送
+
+- Linux 主機：使用 Ansible playbook `ansible/playbooks/install_nmon.yml` 安裝。
+- 派送後會建立 `/usr/local/sbin/webitgpt_nmon_collect.sh`。
+- 派送後會建立 `/etc/cron.d/webitgpt-nmon`，每日 00:05 產生 24 小時 `.nmon` raw file。
+- raw file 存放於 `/var/log/nmon`，再由本系統 raw pipeline 匯入月報。
+- 採樣依 IBM nmon recording mode：`nmon -x`；等同 15 分鐘一筆、96 筆、含 top process 的 spreadsheet raw 檔。
+- AIX：保留 ssh_raw runner 後續接入。
+- Windows / AS400：不使用 nmon，需走各平台自己的採樣方式。
+""",
+        "05_AI_DEBUG_LOOP.md": """# AI Debug Loop
+
+## 目的
+
+公司 VM 產生去識別化 Debug Bundle，GPT Enterprise 只負責分析，不直接連 VM。
+
+## 流程
+
+1. 在開發後台輸入問題標題與描述。
+2. 系統產生 Debug Bundle。
+3. 系統產生 GPT Enterprise prompt。
+4. 人工下載 prompt 與 bundle。
+5. 貼到 GPT Enterprise 分析。
+6. Codex 依分析修 code。
+7. 補 regression test。
+8. 重新部署到 VM 驗證。
+
+## 安全規則
+
+- IP、hostname、username、password、token、private key 會遮蔽。
+- 真實 DEV log 只用 GPT Enterprise。
+- 個人 GPT Pro 不接觸公司 VM log。
+- GPT 不直接連線 VM。
+- 部署、刪除、憑證調整與破壞性動作需人工確認。
+""",
+        "06_DEPLOY_AND_VERIFY.md": f"""# 部署與驗證
+
+## 部署目標
+
+- 路徑：{config.INSPECTION_HOME}
+- Web：port {config.WEB_PORT}
+- Edge：port {config.EDGE_PORT}
+- DB：{config.MONGO_DB_NAME}
+
+## 基本驗證
+
+```bash
+curl -fsS http://127.0.0.1:{config.WEB_PORT}/health
+cd {config.INSPECTION_HOME}
+./venv/bin/python -m pytest tests/test_ui_contracts.py tests/test_nmon_raw_service.py tests/test_app.py -q
+```
+
+## Patch 原則
+
+- 版號只能使用 1.X.X.X。
+- 第二、三、四段不得超過 99。
+- 每次 patch 要更新 VERSION、PATCH_ID、RELEASE_NOTE、BUILD_TIME。
+""",
+        "07_MODULE_FLAGS.md": """# 模組管理與功能開關
+
+## 目的
+
+讓未完成的大功能可以整體關閉，避免使用者看到半成品。
+
+## 使用方式
+
+- 到開發後台 → 模組管理。
+- 大模組可控制一群子功能，例如合規與資安。
+- 子功能會顯示控制範圍、關閉影響、建議狀態。
+
+## 原則
+
+- 未完成、未測完、不想開放給一般使用者時先關閉。
+- 沒權限的角色不應看到對應入口或操作按鈕。
+- Debug、資安、自檢等高風險功能應限制 admin / superadmin。
+""",
+    }
+    for name, content in docs.items():
+        target = docs_dir / name
+        target.write_text(content, encoding="utf-8")
+
+
 def release_notes(limit: int = 12) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    seen_versions: set[str] = set()
+    for item in RECENT_PATCH_RELEASES:
+        if item["version"] in seen_versions:
+            continue
+        entries.append({**item})
+        seen_versions.add(item["version"])
+        if len(entries) >= limit:
+            return entries
+
     candidates = [
         Path(config.INSPECTION_HOME) / "CHANGELOG.md",
         Path(__file__).resolve().parents[2] / "CHANGELOG.md",
     ]
     changelog = next((path for path in candidates if path.exists()), None)
     if not changelog:
-        return []
+        return entries[:limit]
 
     def clean_release_text(value: str) -> bool:
         return "\ufffd" not in value and "??" not in value
 
-    entries: list[dict[str, Any]] = []
     current: dict[str, Any] | None = None
     heading = re.compile(r"^## v(?P<version>\S+) - (?P<date>.+?) - (?P<patch_id>\S+)")
     for line in changelog.read_text(encoding="utf-8", errors="replace").splitlines():
         matched = heading.match(line)
         if matched:
             if current and current.get("changes"):
-                entries.append(current)
+                if current.get("version") not in seen_versions:
+                    entries.append(current)
+                    seen_versions.add(current.get("version", ""))
             if len(entries) >= limit:
                 break
             if not clean_release_text(line):
@@ -447,7 +901,7 @@ def release_notes(limit: int = 12) -> list[dict[str, Any]]:
             continue
         if current and line.startswith("- ") and clean_release_text(line):
             current["changes"].append(line[2:])
-    if current and current.get("changes") and len(entries) < limit:
+    if current and current.get("changes") and current.get("version") not in seen_versions and len(entries) < limit:
         entries.append(current)
     return entries[:limit]
 

@@ -1,0 +1,3 @@
+asset_name,hostname,primary_ip,os,environment,datacenter,owner,admin,notes
+sample-linux-host,linux-host-01,192.168.1.10,Rocky Linux 9.7,DEV,datacenter-a,owner-name,sysinfra,sample row only
+sample-debian-host,debian-host-01,192.168.1.11,Debian 13,DEV,datacenter-a,owner-name,sysinfra,sample row only

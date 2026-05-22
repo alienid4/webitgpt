@@ -117,16 +117,17 @@ fi
 
 "$APP_HOME/venv/bin/python" -m pip install --upgrade pip
 "$APP_HOME/venv/bin/pip" install -r "$APP_HOME/requirements.txt"
-INSPECTION_HOME="$APP_HOME" MONGO_DB="${MONGO_DB:-webitgpt}" WEBITGPT_BUILD_TIME="$WEBITGPT_BUILD_TIME" "$APP_HOME/venv/bin/python" "$APP_HOME/scripts/bootstrap.py"
+INSPECTION_HOME="$APP_HOME" MONGO_URI="${MONGO_URI:-mongodb://localhost:27017}" MONGO_DB="${MONGO_DB:-webitgpt}" WEBITGPT_SUPERADMIN_PASSWORD="${WEBITGPT_SUPERADMIN_PASSWORD:-}" WEBITGPT_BUILD_TIME="$WEBITGPT_BUILD_TIME" "$APP_HOME/venv/bin/python" "$APP_HOME/scripts/bootstrap.py"
+"$APP_HOME/venv/bin/python" "$APP_HOME/scripts/run_housekeeping.py" --mode post-install >>"$APP_HOME/logs/housekeeping_install.log" 2>&1 || true
 
 if [ "$(id -u)" -eq 0 ]; then
   chown -R "${RUN_USER}:${RUN_GROUP}" "$APP_HOME" || true
   chmod -R 750 "$APP_HOME" || true
-  WEBITGPT_BUILD_TIME="$WEBITGPT_BUILD_TIME" "$APP_HOME/scripts/install_systemd.sh"
+  INSPECTION_HOME="$APP_HOME" WEBITGPT_USER="$RUN_USER" WEBITGPT_GROUP="$RUN_GROUP" MONGO_URI="${MONGO_URI:-mongodb://localhost:27017}" MONGO_DB="${MONGO_DB:-webitgpt}" WEBITGPT_BUILD_TIME="$WEBITGPT_BUILD_TIME" "$APP_HOME/scripts/install_systemd.sh"
 elif command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
   sudo chown -R "${RUN_USER}:${RUN_GROUP}" "$APP_HOME" || true
   sudo chmod -R 750 "$APP_HOME" || true
-  sudo INSPECTION_HOME="$APP_HOME" WEBITGPT_USER="$RUN_USER" WEBITGPT_GROUP="$RUN_GROUP" WEBITGPT_BUILD_TIME="$WEBITGPT_BUILD_TIME" "$APP_HOME/scripts/install_systemd.sh"
+  sudo INSPECTION_HOME="$APP_HOME" WEBITGPT_USER="$RUN_USER" WEBITGPT_GROUP="$RUN_GROUP" MONGO_URI="${MONGO_URI:-mongodb://localhost:27017}" MONGO_DB="${MONGO_DB:-webitgpt}" WEBITGPT_BUILD_TIME="$WEBITGPT_BUILD_TIME" "$APP_HOME/scripts/install_systemd.sh"
 else
   echo "Not root: skipped systemd install/restart. Run scripts/install_systemd.sh with sudo." >&2
 fi

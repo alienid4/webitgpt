@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -188,7 +188,7 @@ def test_superadmin_full_system_surfaces_exist():
     assert "Hash chain：" in superadmin
     assert "effective_enabled" in superadmin
     assert "重設密碼" in users
-    assert "備用碼" in users
+    assert "備援碼" in users
     assert "健康檢查" in health
     assert "備份 / DR" in backup
     assert "Patch / 回滾" in patches
@@ -198,12 +198,15 @@ def test_phase_readonly_guard_remains_enabled_and_blocks_writes():
     flags = read("webapp/services/feature_flags.py")
     decorators = read("webapp/decorators.py")
     admin_routes = read("webapp/routes/api_admin.py")
+    operations_routes = read("webapp/routes/api_operations.py")
 
     assert '_flag("phase_readonly_mode"' in flags
     assert "雙寫評比期間封鎖受監控主機寫入動作" in flags
     assert "default=True" in decorators
     assert "Phase parallel review: monitored-host writes are locked" in decorators
     assert "monitored_write_blocked" in admin_routes
+    assert "monitored_write_blocked" in operations_routes
+    assert "@monitored_write_blocked\ndef nmon_deploy_api" in operations_routes
 
 
 def test_inventory_history_diff_and_topology_contracts_exist():
@@ -227,12 +230,69 @@ def test_inventory_history_diff_and_topology_contracts_exist():
         "def analyze_ghosts(",
         "def collect_topology(",
         "def reconcile_ss_nmap(",
+        "def import_system_relations_xlsx(",
+        "def _system_radial_topology(",
+        "def _layout_radial(",
+        "def _core_radial_topology(",
+        "def _core_impact_topology(",
     ]:
         assert name in dependency_service
+    assert "system_relations_xlsx" in dependency_service
+    assert "cmdb_import" in dependency_service
+    assert "def cleanup_imported_system_relations(" in dependency_service
+    import_script = read("scripts/import_system_relations.py")
+    cleanup_script = read("scripts/cleanup_imported_system_relations.py")
+    assert "import_system_relations_xlsx" in import_script
+    assert "--dry-run" in import_script
+    assert "cleanup_imported_system_relations" in cleanup_script
+    assert "--yes" in cleanup_script
     assert "/api/dependencies/topology" in dependency_routes
     assert "/api/dependencies/reconcile/trigger" in dependency_routes
     assert "data-topology-canvas" in ui_tools
     assert "data-topology-panel" in dependencies_page
+    assert 'value="core_radial"' in dependencies_page
+    assert 'value="core_impact"' in dependencies_page
+    assert "核心關聯圓圖" in dependencies_page
+    assert "核心影響清單圖" in dependencies_page
+    assert 'value="radial"' in dependencies_page
+    assert "系統關聯圓圖" in dependencies_page
+    assert "手動關聯管理" in dependencies_page
+    assert "relation_save_page" in read("webapp/routes/api_dependencies.py")
+    assert "topology-node-radial-center" in css
+    assert "topology-node-focus-muted" in css
+    assert "topology-edge-focus-muted" in css
+    assert "topology-edge-focus-" in dependencies_page
+    assert 'list="topology-system-options"' in dependencies_page
+    assert 'querySelector(\'[name="center"]\')' in ui_tools
+    assert "topology-impact-node-box" in dependencies_page
+    assert "topology-impact-panel" in dependencies_page
+    assert "核心系統影響圖" in dependencies_page
+    assert "topology-tabs" in dependencies_page
+    assert "1. 核心影響" in dependencies_page
+    assert "2. 系統關聯圓圖" in dependencies_page
+    assert "3. 連線偵測 / 對帳" in dependencies_page
+    assert 'view=request.args.get("view", "core_impact")' in read("webapp/routes/api_reports.py")
+    assert "impact_panel" in dependency_service
+    assert "核心影響圖" in dependency_service
+    assert ".topology-impact-panel" in css
+    assert "centerCanvas" in ui_tools
+    assert "stage.scrollWidth - canvas.clientWidth" in ui_tools
+    assert "min-height: calc(100vh - 150px)" in css
+    assert "height: calc(100vh - 260px)" in css
+    assert "flex-wrap: nowrap" in css
+    assert "host_relation_graph" in dependency_service
+    assert "edge_relations" in dependency_service
+    assert 'layout_mode": "system_trunks"' not in dependency_service
+    assert "latest_network_scan_report" in dependency_service
+    assert "network_reports" in dependency_service
+    assert "掃描未納管" in dependency_service
+    assert "topology-node-unmanaged" in dependencies_page
+    assert ".topology-node-unmanaged" in css
+    assert "網段掃描發現" in dependencies_page
+    assert "網段掃描明細" in dependencies_page
+    assert "Port 對帳明細" in dependencies_page
+    assert "window.location.href = fallback" in ui_tools
+    assert "panel.requestFullscreen" in ui_tools
     assert "topology-client-fullscreen" in css
 
 
@@ -244,6 +304,7 @@ def test_dev_console_contracts_exist():
     ui_tools = read("webapp/static/js/ui_tools.js")
     service = read("webapp/services/system_service.py")
     routes = read("webapp/routes/api_superadmin.py")
+    debug_service = read("webapp/services/debug_bundle_service.py")
 
     assert ".dev-workbench" in css
     assert ".dev-toolbar" in css
@@ -257,9 +318,31 @@ def test_dev_console_contracts_exist():
     assert "enableSortableTabs" in ui_tools
     assert "enableDevPanelTabs" in ui_tools
     assert "def release_notes" in service
+    assert "RECENT_PATCH_RELEASES" in service
+    assert "1.0.2.71" in service
+    assert "nmon-ibm-profile" in service
+    assert "目前部署版本" in service
     assert "save_dev_upload" in service
     assert "dev_console_upload_page" in routes
     assert "dev_console_feature_update_page" in routes
+    assert "dev_console_debug_bundle_page" in routes
+    assert "dev_console_debug_bundle_download" in routes
+    assert "dev_console_ai_debug_loop_page" in routes
+    assert "dev_console_ai_debug_loop_prompt_download" in routes
+    assert "dev_console_ai_runtime_manifest" in routes
+    assert "dev_console_doc_download" in routes
+    assert "ensure_current_dev_docs" in service
+    for doc_name in ["00_CURRENT_STATUS.md", "01_ASSET_MANAGEMENT.md", "04_NMON_PERFORMANCE_MONTHLY.md", "05_AI_DEBUG_LOOP.md"]:
+        assert doc_name in service
+    assert "Debug Bundle" in dev_console
+    assert "AI debug loop" in dev_console
+    assert "GPT Enterprise" in dev_console
+    assert "Runtime Manifest" in dev_console
+    assert "查看" in dev_console
+    assert "ai_runtime_manifest" in service
+    assert "debug-bundle" in dev_tabs
+    for marker in ["<IP_MASKED>", "<HOST_MASKED>", "<USER_MASKED>", "<SECRET_MASKED>", "collect_debug_bundle", "create_ai_debug_loop", "ai_runtime_manifest", "AI_RUNTIME_ID"]:
+        assert marker in debug_service
 
 
 def test_asset_governance_status_admin_contracts_exist():
@@ -374,13 +457,101 @@ def test_nmon_monthly_report_has_real_report_surfaces():
     service = read("webapp/services/legacy_parity_service.py")
     css = read("webapp/static/css/cathay.css")
 
-    for text in ["主機效能排名", "採樣明細", "時間趨勢", "CSV", "CPU 尖峰", "記憶體尖峰", "磁碟尖峰"]:
+    for text in [
+        "架構部數據摘要",
+        "架構檢視四個數字",
+        "風險追蹤清單",
+        "可選處理方式",
+        "主機效能排名",
+        "採樣明細",
+        "趨勢時間軸",
+        "主機熱區圖",
+        "覆蓋率",
+        "CSV",
+        "CPU 尖峰",
+        "記憶體尖峰",
+        "磁碟尖峰",
+    ]:
         assert text in template
     assert "nmon_report_csv_page" in routes
     assert "nmon_monthly_plan_api" in routes
+    assert "nmon_deploy_api" in routes
+    assert "/api/nmon/deploy" in template
+    assert "安裝缺少 NMON" in template
+    assert "IBM NMON 採樣口徑" in template
+    assert "IBM_NMON_EQUIVALENT_COMMAND" in read("webapp/services/inspection_service.py")
+    assert "equivalent_command" in template
+    assert "webitgpt_nmon_collect.sh" in read("ansible/playbooks/install_nmon.yml")
+    assert "/etc/cron.d/webitgpt-nmon" in read("ansible/playbooks/install_nmon.yml")
+    assert '"${nmon_bin}" -x -m "${out_dir}"' in read("ansible/playbooks/install_nmon.yml")
     assert "def nmon_report_csv" in service
     assert "def nmon_monthly_plan" in service
+    assert "def deploy_nmon_with_ansible" in read("webapp/services/inspection_service.py")
+    assert "install_nmon.yml" in read("webapp/services/inspection_service.py")
     assert "cpu_pct" in service
     assert "timeline" in service
+    assert "heatmap" in service
+    assert "_p95" in service
+    assert "_build_nmon_heatmap" in service
+    assert "_matches_nmon_filters" in service
+    assert "_build_nmon_architecture_summary" in service
+    assert "_build_nmon_risk_rows" in service
+    assert ".nmon-director-grid" in css
     assert ".nmon-timeline" in css
+    assert ".nmon-heatmap" in css
+
+
+def test_nmon_raw_pipeline_contracts_are_exposed():
+    template = read("webapp/templates/nmon.html")
+    routes = read("webapp/routes/api_operations.py")
+    service = read("webapp/services/legacy_parity_service.py")
+    raw_service = read("webapp/services/nmon_raw_service.py")
+    debug_service = read("webapp/services/debug_bundle_service.py")
+    dev_console = read("webapp/templates/dev_console.html")
+
+    for text in [
+        "效能月報",
+        "NMON raw file pipeline",
+        "匯入 raw file",
+        "Pipeline JSON",
+        "架構部數據摘要",
+        "採樣明細",
+    ]:
+        assert text in template
+    assert "nmon_raw_upload_page" in routes
+    assert "nmon_raw_pipeline_api" in routes
+    assert "raw_pipeline" in service
+    assert "def parse_nmon_raw" in raw_service
+    assert "def import_nmon_raw_file" in raw_service
+    assert "def nmon_raw_pipeline_status" in raw_service
+    assert "nmon_raw_pipeline.json" in debug_service
+    assert "NMON raw 檔" in dev_console
+
+
+def test_housekeeping_retention_mechanism_exists():
+    service = read("webapp/services/housekeeping_service.py")
+    template = read("webapp/templates/housekeeping.html")
+    install = read("scripts/install.sh")
+    runner = read("scripts/run_housekeeping.py")
+
+    assert "deploy_tmp_purge" in service
+    assert "patch_backup_keep" in service
+    assert "code_cache_purge" in service
+    assert 'root / "webapp"' in service
+    assert 'root / "scripts"' in service
+    assert "mongo_nmon_data_purge" in service
+    assert "nmon_raw_files_purge" in service
+    assert "host_accounts_purge" in service
+    assert "MONGO_RETENTION_FIELDS" in service
+    assert "_delete_old_collection_docs" in service
+    assert "_keep_newest_directories" in service
+    assert "preinstall_*" in service
+    assert "run_post_install_housekeeping" in service
+    assert "固定保留最新 20 份" in template
+    assert "正式清理" in template
+    assert "Mongo、NMON raw、主機資料、正式程式碼快取" in template
+    assert "不碰主機主檔" in template
+    assert "run_housekeeping.py\" --mode post-install" in install
+    assert "sys.path.insert" in runner
+    assert "--mode" in runner
 

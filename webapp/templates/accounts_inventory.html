@@ -74,6 +74,14 @@
     </div>
   </div>
 
+  <nav class="account-main-tabs panel" aria-label="帳號盤點主分頁">
+    <button class="account-main-tab active" type="button" data-account-main-tab="actual">帳號清冊</button>
+    <button class="account-main-tab" type="button" data-account-main-tab="excel">Excel 清冊</button>
+    <button class="account-main-tab" type="button" data-account-main-tab="diff">差異報告</button>
+    <button class="account-main-tab" type="button" data-account-main-tab="batches">盤點批次</button>
+  </nav>
+
+  <section class="account-main-panel active" data-account-main-panel="actual">
 <section class="account-summary-shell panel compact">
     <div class="summary-grid account-summary">
       <a class="metric account-metric-link" href="#host" data-account-tab-jump="host"><strong>{{ account_view.summary.managed_hosts }}</strong><span>總盤點設備</span></a>
@@ -277,6 +285,124 @@
             </tr>
             {% else %}
             <tr><td colspan="14" class="no-data">尚無盤點資料，請先執行盤點。</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  </section>
+
+  <section class="account-main-panel" data-account-main-panel="excel" id="excel">
+    <div class="panel account-panel">
+      <div class="flex-between account-list-head">
+        <div>
+          <h2>Excel 清冊</h2>
+          <p class="text-muted-sm">管理單位認定「應該存在」的帳號清單。上傳後先建立批次，再與上次 Excel 與主機實際帳號比對。</p>
+        </div>
+        <a class="btn secondary" href="{{ url_for('api_inventory.accounts_template_xlsx') }}">下載 Excel 範本</a>
+      </div>
+      <form class="account-upload-bar" method="post" action="{{ url_for('api_inventory.accounts_excel_upload') }}" enctype="multipart/form-data" data-submit-status data-submit-message="正在上傳 Excel 清冊，請稍候。">
+        <label>上傳 .xlsx
+          <input type="file" name="file" accept=".xlsx" required>
+        </label>
+        <button class="btn primary" type="submit">上傳並比對</button>
+        <span class="text-muted-sm">必要欄位：主機、帳號。建議欄位：部門、管理者、PAM、用途說明、權限、類型、狀態。</span>
+      </form>
+      <div class="summary-grid account-summary mini">
+        <a class="metric account-metric-link" href="#excel-preview"><strong>{{ account_view.excel.latest.row_count if account_view.excel.latest else 0 }}</strong><span>本次 Excel 筆數</span></a>
+        <a class="metric account-metric-link" href="#excel-errors"><strong>{{ account_view.excel.latest.error_count if account_view.excel.latest else 0 }}</strong><span>欄位錯誤</span></a>
+        <a class="metric account-metric-link" href="#excel-preview"><strong>{{ account_view.excel.latest.valid_count if account_view.excel.latest else 0 }}</strong><span>有效帳號</span></a>
+        <a class="metric account-metric-link" href="#excel-batches"><strong>{{ account_view.excel.batches|length }}</strong><span>歷史批次</span></a>
+      </div>
+      <div id="excel-preview" class="account-table-scroll">
+        <table class="data-table account-compact-table">
+          <thead><tr><th>主機</th><th>帳號</th><th>部門</th><th>管理者</th><th>PAM</th><th>用途說明</th><th>狀態</th></tr></thead>
+          <tbody>
+            {% for item in account_view.excel.rows %}
+            <tr><td>{{ item.hostname }}</td><td><strong class="code-inline">{{ item.name }}</strong></td><td>{{ item.department or "-" }}</td><td>{{ item.owner or "-" }}</td><td>{% if item.pam_managed %}<span class="badge-ok">已納管</span>{% else %}-{% endif %}</td><td>{{ item.usage_note or "-" }}</td><td>{% if item.valid %}<span class="badge-ok">有效</span>{% else %}<span class="badge-warn">需修正</span>{% endif %}</td></tr>
+            {% else %}
+            <tr><td colspan="7" class="no-data">尚未上傳 Excel 清冊。</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div id="excel-errors" class="account-table-scroll">
+        <h3>欄位錯誤清單</h3>
+        <table class="data-table account-compact-table">
+          <thead><tr><th>列</th><th>欄位</th><th>問題</th></tr></thead>
+          <tbody>
+            {% if account_view.excel.latest and account_view.excel.latest.errors %}
+              {% for error in account_view.excel.latest.errors %}
+              <tr><td>{{ error.row }}</td><td>{{ error.field }}</td><td>{{ error.message }}</td></tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="3" class="no-data">目前沒有欄位錯誤。</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="account-main-panel" data-account-main-panel="diff" id="diff">
+    <div class="panel account-panel">
+      <div class="flex-between account-list-head">
+        <div>
+          <h2>差異報告</h2>
+          <p class="text-muted-sm">同時看兩種差異：本次 Excel vs 上次 Excel，以及 Excel 管理清冊 vs 主機實際帳號。</p>
+        </div>
+        <a class="btn" href="{{ url_for('api_inventory.accounts_excel_diff_csv') }}">匯出 CSV</a>
+      </div>
+      <div class="summary-grid account-summary mini">
+        <a class="metric account-metric-link" href="#excel-diff-table"><strong>{{ account_view.excel.diff.summary.excel_added }}</strong><span>Excel 新增</span></a>
+        <a class="metric account-metric-link" href="#excel-diff-table"><strong>{{ account_view.excel.diff.summary.excel_removed }}</strong><span>Excel 刪除</span></a>
+        <a class="metric account-metric-link" href="#excel-diff-table"><strong>{{ account_view.excel.diff.summary.excel_changed }}</strong><span>Excel 異動</span></a>
+        <a class="metric account-metric-link" href="#cross-diff-table"><strong>{{ account_view.excel.diff.summary.host_only }}</strong><span>主機有，Excel 沒有</span></a>
+        <a class="metric account-metric-link" href="#cross-diff-table"><strong>{{ account_view.excel.diff.summary.excel_only }}</strong><span>Excel 有，主機沒有</span></a>
+        <a class="metric account-metric-link" href="#cross-diff-table"><strong>{{ account_view.excel.diff.summary.matched }}</strong><span>兩邊一致</span></a>
+      </div>
+      <h3>Excel 前後次差異</h3>
+      <div id="excel-diff-table" class="account-table-scroll">
+        <table class="data-table account-compact-table">
+          <thead><tr><th>類型</th><th>主機</th><th>帳號</th><th>異動欄位</th></tr></thead>
+          <tbody>
+            {% for item in account_view.excel.diff.excel_rows %}
+            <tr><td>{{ item.change_type }}</td><td>{{ item.hostname }}</td><td><strong class="code-inline">{{ item.name }}</strong></td><td>{{ item.changed_fields }}</td></tr>
+            {% else %}
+            <tr><td colspan="4" class="no-data">尚無 Excel 前後次差異資料。</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <h3>Excel 清冊 vs 主機實際帳號</h3>
+      <div id="cross-diff-table" class="account-table-scroll">
+        <table class="data-table account-compact-table">
+          <thead><tr><th>狀態</th><th>主機</th><th>帳號</th><th>說明</th></tr></thead>
+          <tbody>
+            {% for item in account_view.excel.diff.cross_rows %}
+            <tr><td>{% if item.status == "一致" %}<span class="badge-ok">一致</span>{% else %}<span class="badge-warn">{{ item.status }}</span>{% endif %}</td><td>{{ item.hostname }}</td><td><strong class="code-inline">{{ item.name }}</strong></td><td>{% if item.status == "主機有，Excel 沒有" %}實際主機存在，但管理清冊未列入，需確認是否漏登。{% elif item.status == "Excel 有，主機沒有" %}管理清冊列有帳號，但主機未採集到，需確認是否已下線或清冊未更新。{% else %}帳號同時存在於管理清冊與主機實際盤點。{% endif %}</td></tr>
+            {% else %}
+            <tr><td colspan="4" class="no-data">尚無交叉比對資料。</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="account-main-panel" data-account-main-panel="batches" id="batches">
+    <div class="panel account-panel">
+      <h2>盤點批次</h2>
+      <p class="text-muted-sm">保留每次 Excel 上傳紀錄，方便追蹤誰在何時上傳、幾筆成功、幾筆需要修正。</p>
+      <div id="excel-batches" class="account-table-scroll">
+        <table class="data-table account-compact-table">
+          <thead><tr><th>批次</th><th>檔名</th><th>狀態</th><th>筆數</th><th>錯誤</th><th>上傳人</th><th>時間</th></tr></thead>
+          <tbody>
+            {% for item in account_view.excel.batches %}
+            <tr><td><span class="code-inline">{{ item.run_id }}</span></td><td>{{ item.filename }}</td><td>{% if item.status == "ok" %}<span class="badge-ok">完成</span>{% else %}<span class="badge-warn">需複核</span>{% endif %}</td><td>{{ item.row_count }}</td><td>{{ item.error_count }}</td><td>{{ item.created_by }}</td><td>{{ item.created_at }}</td></tr>
+            {% else %}
+            <tr><td colspan="7" class="no-data">尚未建立 Excel 盤點批次。</td></tr>
             {% endfor %}
           </tbody>
         </table>

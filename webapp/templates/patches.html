@@ -9,9 +9,9 @@
       <p class="text-muted-sm">{{ inventory.release_note }} / build {{ inventory.build_time }}</p>
     </div>
     <div class="actions">
-      <a class="btn secondary" href="{{ url_for('api_superadmin.superadmin_page') }}">回系統管理</a>
+      <a class="btn secondary" href="{{ url_for('api_superadmin.superadmin_page') }}">返回系統管理</a>
       <a class="btn" href="{{ url_for('api_superadmin.patches_api') }}">JSON API</a>
-      <button class="btn primary" type="button" data-busy-text="產生中" data-submit-message="正在產生回滾計畫，請稍候。" data-api-post="/api/superadmin/patches/rollback-plan" data-payload='{"target":"latest"}'>產生回滾計畫</button>
+      <button class="btn primary" type="button" data-busy-text="規劃中" data-submit-message="正在產生回滾計畫，請稍候。" data-api-post="/api/superadmin/patches/rollback-plan" data-payload='{"target":"latest"}'>產生回滾計畫</button>
     </div>
   </div>
   <div class="summary-grid">
@@ -30,7 +30,7 @@
       {% for patch in inventory.patches %}
       <tr><td>{{ patch.name }}</td><td>{{ patch.size }}</td><td>{{ patch.mtime }}</td></tr>
       {% else %}
-      <tr><td colspan="3" class="no-data">尚無 patch 備份。</td></tr>
+      <tr><td colspan="3" class="no-data">沒有 patch 備份</td></tr>
       {% endfor %}
     </tbody>
   </table>

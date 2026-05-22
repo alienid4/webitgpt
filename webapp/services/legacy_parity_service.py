@@ -18,6 +18,7 @@ from webapp.services.important_service_service import enabled_service_names
 from webapp.services.inventory_service import DEFAULT_MIN_INTERVAL_MINUTES, inventory_history
 from webapp.services.log_exception_service import assess_lines
 from webapp.services.mongo_service import get_collection
+from webapp.services.nmon_raw_service import nmon_raw_pipeline_status
 
 
 PLATFORM_TABS = [
@@ -29,6 +30,8 @@ PLATFORM_TABS = [
 
 OPENING_DEFAULT_SYSTEM = "巡檢系統主機"
 OPENING_ALL_SYSTEMS_VALUE = "__all__"
+FILESYSTEM_WARN_PCT = 75
+FILESYSTEM_FAIL_PCT = 95
 
 DIAGNOSTIC_ASPECTS = [
     ("connectivity", "連線狀態"),
@@ -221,6 +224,53 @@ def _connectivity_detail(status: str, raw: str) -> str:
 def _max_percent(text: str):
     values = [int(value) for value in re.findall(r"\b(\d{1,3})%", text or "") if int(value) <= 100]
     return max(values) if values else None
+
+
+def _max_filesystem_usage(text: str) -> tuple[str, int | None]:
+    best_mount = "Filesystem"
+    best_percent = None
+    for line in (text or "").splitlines():
+        cleaned = line.strip()
+        if not cleaned or cleaned.lower().startswith("filesystem"):
+            continue
+        match = re.search(r"\b(\d{1,3})%(?=\s|$)", cleaned)
+        if not match:
+            continue
+        percent = int(match.group(1))
+        if percent > 100:
+            continue
+        parts = cleaned.split()
+        mount = parts[-1] if parts else "Filesystem"
+        if best_percent is None or percent > best_percent:
+            best_mount = mount
+            best_percent = percent
+    return best_mount, best_percent
+
+
+def _filesystem_check_status(rc: int, raw: str) -> str:
+    if rc != 0:
+        return "warn"
+    percent = _max_percent(raw)
+    if percent is None:
+        return "ok"
+    if percent >= FILESYSTEM_FAIL_PCT:
+        return "fail"
+    if percent >= FILESYSTEM_WARN_PCT:
+        return "warn"
+    return "ok"
+
+
+def _resource_check_status(rc: int, raw: str) -> str:
+    if rc != 0:
+        return "warn"
+    percent = _max_percent(raw)
+    if percent is None:
+        return "ok"
+    if percent >= FILESYSTEM_FAIL_PCT:
+        return "fail"
+    if percent >= FILESYSTEM_WARN_PCT:
+        return "warn"
+    return "ok"
 
 
 def _cpu_usage_percent(text: str):
@@ -431,13 +481,6 @@ def _account_check_command() -> str:
 def _human_diagnostic_detail(key: str, status: str, raw: str) -> str:
     if key == "connectivity":
         return _connectivity_detail(status, raw)
-    if status != "ok":
-        return "\n".join(
-            [
-                "檢查狀態：此項目回應異常，可能需要 IT 人員確認。",
-                "建議處置：先看原始證據中的錯誤訊息，修正後重新執行開門檢查。",
-            ]
-        )
     if key == "resource":
         return "\n".join(
             [
@@ -447,10 +490,16 @@ def _human_diagnostic_detail(key: str, status: str, raw: str) -> str:
             ]
         )
     if key == "filesystem":
+        mount, percent = _max_filesystem_usage(raw)
+        lines = [_short_percent(mount, percent), _short_percent("IO", _iowait_percent(raw))]
+        if status in {"warn", "fail"} and percent is not None:
+            lines.append(f"狀態:{'磁碟已接近滿載' if status == 'fail' else '磁碟需觀察'}")
+        return "\n".join(lines)
+    if status != "ok":
         return "\n".join(
             [
-                _short_percent("Filesystem", _max_percent(raw)),
-                _short_percent("IO", _iowait_percent(raw)),
+                "檢查狀態：此項目回應異常，可能需要 IT 人員確認。",
+                "建議處置：先看原始證據中的錯誤訊息，修正後重新執行開門檢查。",
             ]
         )
     if key == "process":
@@ -492,6 +541,12 @@ def _build_diagnostic_check(key: str, label: str, rc: int, out: str, err: str) -
     elif key == "service":
         status = _service_check_status(raw) if rc == 0 else "warn"
         detail = _human_diagnostic_detail(key, status, raw)
+    elif key == "filesystem":
+        status = _filesystem_check_status(rc, raw)
+        detail = _human_diagnostic_detail(key, status, raw)
+    elif key == "resource":
+        status = _resource_check_status(rc, raw)
+        detail = _human_diagnostic_detail(key, status, raw)
     else:
         status = "ok" if rc == 0 else "warn"
         detail = _human_diagnostic_detail(key, status, raw)
@@ -511,9 +566,14 @@ def _normalize_diagnostic_row(row: dict[str, Any]) -> dict[str, Any]:
             changed = True
         elif check.get("key") in {key for key, _label in DIAGNOSTIC_ASPECTS}:
             raw = check.get("raw_detail") or check.get("detail") or ""
-            status = check.get("status") or "ok"
+            if check.get("key") == "filesystem":
+                status = _filesystem_check_status(0, raw)
+            elif check.get("key") == "resource":
+                status = _resource_check_status(0, raw)
+            else:
+                status = check.get("status") or "ok"
             detail = _human_diagnostic_detail(check.get("key"), status, raw)
-            normalized = {**check, "detail": detail[:1800], "raw_detail": raw[:1800], "visual_rows": _visual_rows(detail)}
+            normalized = {**check, "status": status, "detail": detail[:1800], "raw_detail": raw[:1800], "visual_rows": _visual_rows(detail)}
             checks.append(normalized)
             changed = True
         else:
@@ -991,6 +1051,14 @@ def _max(values: list[Any]) -> float:
     return round(max(clean), 1) if clean else 0.0
 
 
+def _p95(values: list[Any]) -> float:
+    clean = sorted(float(value) for value in values if value is not None and value != "")
+    if not clean:
+        return 0.0
+    index = max(0, min(len(clean) - 1, int(round((len(clean) - 1) * 0.95))))
+    return round(clean[index], 1)
+
+
 def _sample_status(row: dict[str, Any]) -> str:
     if row.get("error"):
         return "異常"
@@ -999,27 +1067,302 @@ def _sample_status(row: dict[str, Any]) -> str:
     return "正常"
 
 
-def nmon_report(period: str = "day") -> dict[str, Any]:
+def _pct_width(value: Any) -> float:
+    try:
+        return round(max(0.0, min(100.0, float(value))), 1)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _host_lookup() -> dict[str, dict[str, Any]]:
+    lookup: dict[str, dict[str, Any]] = {}
+    for host in _hosts():
+        for key in [host.get("hostname"), host.get("asset_seq"), host.get("primary_ip")]:
+            if key:
+                lookup[str(key)] = host
+                lookup[str(key).lower()] = host
+    return lookup
+
+
+def _host_meta_for_nmon(row: dict[str, Any], lookup: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    for key in [row.get("hostname"), row.get("asset_seq"), row.get("primary_ip")]:
+        if key and (str(key) in lookup or str(key).lower() in lookup):
+            return lookup.get(str(key)) or lookup.get(str(key).lower()) or {}
+    return {}
+
+
+def _month_range(month: str) -> tuple[datetime, datetime] | None:
+    if not month:
+        return None
+    try:
+        start = datetime.strptime(month, "%Y-%m").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+    year = start.year + (1 if start.month == 12 else 0)
+    next_month = 1 if start.month == 12 else start.month + 1
+    end = start.replace(year=year, month=next_month)
+    return start, end
+
+
+def _nmon_period_range(period: str, filters: dict[str, Any]) -> tuple[datetime, datetime, str]:
+    now = _now()
+    if period == "month":
+        month_range = _month_range(str(filters.get("month") or ""))
+        if month_range:
+            return month_range[0], month_range[1], month_range[0].strftime("%Y-%m")
+    since = now - {"day": timedelta(days=1), "week": timedelta(days=7), "month": timedelta(days=31)}[period]
+    return since, now, since.strftime("%Y-%m")
+
+
+def _nmon_filter_options(hosts: list[dict[str, Any]]) -> dict[str, list[str]]:
+    return {
+        "systems": sorted({_system_name(host) for host in hosts if _system_name(host)}),
+        "environments": sorted({str(host.get("environment") or "") for host in hosts if host.get("environment")}),
+        "dcs": sorted({str(host.get("dc") or "") for host in hosts if host.get("dc")}),
+    }
+
+
+def _matches_nmon_filters(row: dict[str, Any], host_meta: dict[str, Any], filters: dict[str, Any]) -> bool:
+    system_name = _system_name(host_meta) if host_meta else str(row.get("system_name") or "")
+    environment = str(host_meta.get("environment") or row.get("environment") or "")
+    dc = str(host_meta.get("dc") or row.get("dc") or "")
+    q = str(filters.get("q") or "").strip().lower()
+    if filters.get("system") and filters["system"] != system_name:
+        return False
+    if filters.get("environment") and filters["environment"] != environment:
+        return False
+    if filters.get("dc") and filters["dc"] != dc:
+        return False
+    if q:
+        haystack = " ".join(
+            str(value or "")
+            for value in [
+                row.get("hostname"),
+                row.get("asset_seq"),
+                row.get("primary_ip"),
+                host_meta.get("hostname"),
+                host_meta.get("asset_name"),
+                host_meta.get("primary_ip"),
+                system_name,
+                environment,
+                dc,
+            ]
+        ).lower()
+        if q not in haystack:
+            return False
+    return True
+
+
+def _pressure_score(row: dict[str, Any]) -> float:
+    return _max([row.get("cpu_pct"), row.get("mem_pct"), row.get("disk_pct")])
+
+
+def _coverage_pct(sample_count: int, period: str) -> float:
+    expected = {"day": 24, "week": 7 * 24, "month": 31 * 24}.get(period, 24)
+    return round(min(100.0, sample_count * 100 / expected), 1) if expected else 0.0
+
+
+def _build_nmon_heatmap(series: list[dict[str, Any]], period: str) -> list[dict[str, Any]]:
+    result = []
+    max_hosts = 12
+    for item in series[:max_hosts]:
+        buckets: dict[str, list[dict[str, Any]]] = {}
+        for row in item.get("items_all", []):
+            sampled_at = row.get("sampled_at")
+            if not sampled_at:
+                continue
+            label = sampled_at.strftime("%H") if period == "day" else sampled_at.strftime("%m/%d")
+            buckets.setdefault(label, []).append(row)
+        cells = []
+        for label, rows in sorted(buckets.items()):
+            pressure = _max([_pressure_score(row) for row in rows])
+            state = "error" if pressure >= 90 else "warn" if pressure >= 75 else "ok"
+            cells.append({"label": label, "pressure": pressure, "state": state})
+        result.append({"host": item.get("host"), "score": item.get("health_score"), "cells": cells[-31:]})
+    return result
+
+
+def _series_growth(items: list[dict[str, Any]], field: str) -> float:
+    values = [float(item.get(field) or 0) for item in items if item.get(field) is not None]
+    if len(values) < 2:
+        return 0.0
+    return round(values[-1] - values[0], 1)
+
+
+def _days_to_threshold(items: list[dict[str, Any]], field: str, threshold: float = 90.0) -> Any:
+    dated_values = [(item.get("sampled_at"), float(item.get(field) or 0)) for item in items if item.get("sampled_at") and item.get(field) is not None]
+    if len(dated_values) < 2:
+        return None
+    first_time, first_value = dated_values[0]
+    last_time, last_value = dated_values[-1]
+    days = max((last_time - first_time).total_seconds() / 86400, 1.0)
+    daily_growth = (last_value - first_value) / days
+    if daily_growth <= 0 or last_value >= threshold:
+        return 0 if last_value >= threshold else None
+    return max(1, int((threshold - last_value) / daily_growth))
+
+
+def _build_nmon_architecture_summary(series: list[dict[str, Any]], summary: dict[str, Any], count: int) -> dict[str, Any]:
+    if count == 0:
+        return {
+            "state": "待採樣",
+            "observation": "目前沒有採樣資料，尚無法判讀容量與趨勢。",
+            "reason": "請先執行採樣，或確認 nmon 排程是否已部署。",
+            "impact": "沒有資料時，報表只能顯示納管狀態，不能作為容量判斷依據。",
+            "options": "可選擇立即採樣、部署排程，或匯入既有 nmon 歷史資料。",
+            "operation": "尚無效能樣本。",
+            "capacity": "尚無容量樣本。",
+            "cost": "尚無回收判斷。",
+            "followup": "完成採樣後再產生月報。",
+            "decision_count": 0,
+            "immediate_count": 0,
+            "followup_count": 0,
+            "reclaim_count": 0,
+            "risk_label": "無資料",
+        }
+
+    capacity_candidates = [item for item in series if item.get("peak_disk", 0) >= 80 or item.get("disk_growth", 0) >= 5]
+    immediate_candidates = [item for item in series if item.get("peak_cpu", 0) >= 95 or item.get("peak_mem", 0) >= 95 or item.get("peak_disk", 0) >= 95]
+    reclaim_candidates = [
+        item
+        for item in series
+        if item.get("samples", 0) >= 3 and item.get("avg_cpu", 0) < 10 and item.get("avg_mem", 0) < 35 and item.get("avg_disk", 0) < 40
+    ]
+    top_capacity = max(series, key=lambda item: (item.get("peak_disk", 0), item.get("disk_growth", 0)), default={})
+    top_host = top_capacity.get("host", "-")
+    top_disk = top_capacity.get("peak_disk", 0)
+    growth = top_capacity.get("disk_growth", 0)
+    days = top_capacity.get("days_to_disk_90")
+    if capacity_candidates:
+        observation = f"{top_host} 磁碟最高 {top_disk}%，本期變化 {growth:+.1f}%。"
+        if days is not None:
+            observation += " 已達 90% 門檻。" if days == 0 else f" 依目前趨勢約 {days} 天接近 90%。"
+        risk_label = "待確認"
+    elif summary.get("warn_samples", 0):
+        observation = f"本期共有 {summary.get('warn_samples', 0)} 筆警示樣本，需查看主機排名確認來源。"
+        risk_label = "觀察"
+    else:
+        observation = "本期 CPU、記憶體與磁碟未達主要警示門檻。"
+        risk_label = "正常"
+
+    return {
+        "state": risk_label,
+        "observation": observation,
+        "reason": "依採樣資料計算 CPU、記憶體、磁碟尖峰與本期變化。",
+        "impact": "若容量持續上升，可能影響報表產生、log 寫入或批次作業。",
+        "options": "可選擇清理舊檔、調整保留天數、擴充磁碟或列入下期觀察。",
+        "operation": "未看到 CPU、記憶體或 I/O 長時間壅塞。" if not immediate_candidates else "有主機曾達高水位，請看風險追蹤清單。",
+        "capacity": "磁碟是本期主要容量觀察項。" if capacity_candidates else "未看到接近容量門檻的主機。",
+        "cost": "目前沒有明顯過度配置主機。" if not reclaim_candidates else f"{len(reclaim_candidates)} 台主機可列入資源回收觀察。",
+        "followup": "下期追蹤容量變化與尖峰時段。" if capacity_candidates or summary.get("warn_samples", 0) else "維持例行採樣。",
+        "decision_count": len(capacity_candidates),
+        "immediate_count": len(immediate_candidates),
+        "followup_count": len(capacity_candidates) + (1 if summary.get("warn_samples", 0) and not capacity_candidates else 0),
+        "reclaim_count": len(reclaim_candidates),
+        "risk_label": risk_label,
+    }
+
+
+def _build_nmon_risk_rows(series: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows = []
+    for item in series:
+        host = item.get("host", "-")
+        if item.get("peak_disk", 0) >= 80 or item.get("disk_growth", 0) >= 5:
+            days = item.get("days_to_disk_90")
+            evidence = f"磁碟最高 {item.get('peak_disk', 0)}%，本期變化 {item.get('disk_growth', 0):+.1f}%"
+            if days is not None:
+                evidence += "，已達 90% 門檻" if days == 0 else f"，約 {days} 天接近 90%"
+            rows.append(
+                {
+                    "priority": "P1" if item.get("peak_disk", 0) >= 90 else "P2",
+                    "item": "磁碟容量",
+                    "host": host,
+                    "evidence": evidence,
+                    "horizon": "本期確認" if item.get("peak_disk", 0) >= 90 else "下期觀察",
+                    "status": "待確認",
+                    "option": "清理舊檔、調整保留天數、擴充磁碟或列入下期觀察。",
+                }
+            )
+        if item.get("peak_cpu", 0) >= 85:
+            rows.append(
+                {
+                    "priority": "P2",
+                    "item": "CPU 尖峰",
+                    "host": host,
+                    "evidence": f"CPU 尖峰 {item.get('peak_cpu', 0)}%",
+                    "horizon": "下期觀察",
+                    "status": "觀察",
+                    "option": "比對尖峰時間、批次排程與 AP 負載。",
+                }
+            )
+        if item.get("peak_mem", 0) >= 85:
+            rows.append(
+                {
+                    "priority": "P2",
+                    "item": "記憶體尖峰",
+                    "host": host,
+                    "evidence": f"記憶體尖峰 {item.get('peak_mem', 0)}%",
+                    "horizon": "下期觀察",
+                    "status": "觀察",
+                    "option": "比對程式版本、批次時間與長駐程序。",
+                }
+            )
+    return sorted(rows, key=lambda item: (item["priority"], item["host"], item["item"]))[:10]
+
+
+def nmon_report(period: str = "day", filters: Any = None) -> dict[str, Any]:
     period = period if period in {"day", "week", "month"} else "day"
-    since = _now() - {"day": timedelta(days=1), "week": timedelta(days=7), "month": timedelta(days=31)}[period]
-    rows = list(get_collection("nmon_data").find({"sampled_at": {"$gte": since}}, {"_id": 0}).sort("sampled_at", 1).limit(5000))
+    filters = filters or {}
+    since, until, month_label = _nmon_period_range(period, filters)
+    host_lookup = _host_lookup()
+    filter_options = _nmon_filter_options(_hosts())
+    rows = list(get_collection("nmon_data").find({"sampled_at": {"$gte": since, "$lt": until}}, {"_id": 0}).sort("sampled_at", 1).limit(20000))
+    filtered_rows = []
+    for row in rows:
+        host_meta = _host_meta_for_nmon(row, host_lookup)
+        if not _matches_nmon_filters(row, host_meta, filters):
+            continue
+        row["system_name"] = _system_name(host_meta) if host_meta else row.get("system_name", "-")
+        row["environment"] = host_meta.get("environment") or row.get("environment") or "-"
+        row["dc"] = host_meta.get("dc") or row.get("dc") or "-"
+        row["primary_ip"] = host_meta.get("primary_ip") or row.get("primary_ip") or ""
+        filtered_rows.append(row)
+    rows = filtered_rows
     by_host: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
         row["status"] = _sample_status(row)
         by_host.setdefault(row.get("hostname") or row.get("asset_seq") or "-", []).append(row)
     series = []
     for host, items in by_host.items():
+        host_meta = host_lookup.get(host) or host_lookup.get(str(host).lower()) or _host_meta_for_nmon(items[-1], host_lookup)
+        disk_growth = _series_growth(items, "disk_pct")
+        peak_cpu = _max([item.get("cpu_pct") for item in items])
+        peak_mem = _max([item.get("mem_pct") for item in items])
+        peak_disk = _max([item.get("disk_pct") for item in items])
+        health_score = round(max(0.0, 100.0 - max(peak_cpu, peak_mem, peak_disk)), 1)
         series.append(
             {
                 "host": host,
+                "asset_seq": host_meta.get("asset_seq", items[-1].get("asset_seq") if items else ""),
+                "system_name": host_meta.get("system_name") or host_meta.get("asset_name") or "-",
+                "environment": host_meta.get("environment") or "-",
+                "dc": host_meta.get("dc") or "-",
                 "samples": len(items),
+                "coverage_pct": _coverage_pct(len(items), period),
+                "health_score": health_score,
                 "avg_cpu": _avg([item.get("cpu_pct") for item in items]),
                 "avg_mem": _avg([item.get("mem_pct") for item in items]),
                 "avg_disk": _avg([item.get("disk_pct") for item in items]),
-                "peak_cpu": _max([item.get("cpu_pct") for item in items]),
-                "peak_mem": _max([item.get("mem_pct") for item in items]),
-                "peak_disk": _max([item.get("disk_pct") for item in items]),
+                "p95_cpu": _p95([item.get("cpu_pct") for item in items]),
+                "p95_mem": _p95([item.get("mem_pct") for item in items]),
+                "p95_disk": _p95([item.get("disk_pct") for item in items]),
+                "peak_cpu": peak_cpu,
+                "peak_mem": peak_mem,
+                "peak_disk": peak_disk,
+                "disk_growth": disk_growth,
+                "days_to_disk_90": _days_to_threshold(items, "disk_pct", 90),
                 "warn_count": sum(1 for item in items if item["status"] != "正常"),
+                "items_all": items,
                 "items": items[-24:],
             }
         )
@@ -1043,6 +1386,7 @@ def nmon_report(period: str = "day") -> dict[str, Any]:
     ]
     summary = {
         "hosts": len(by_host),
+        "managed_hosts": len(filter_options["systems"]) and len(_hosts()) or 0,
         "avg_cpu": _avg([row.get("cpu_pct") for row in rows]),
         "avg_mem": _avg([row.get("mem_pct") for row in rows]),
         "avg_disk": _avg([row.get("disk_pct") for row in rows]),
@@ -1050,24 +1394,39 @@ def nmon_report(period: str = "day") -> dict[str, Any]:
         "peak_mem": _max([row.get("mem_pct") for row in rows]),
         "peak_disk": _max([row.get("disk_pct") for row in rows]),
         "warn_samples": sum(1 for row in rows if row["status"] != "正常"),
+        "avg_coverage": _avg([item.get("coverage_pct") for item in series]),
+        "tracked_hosts": sum(1 for item in series if item.get("warn_count") or item.get("peak_disk", 0) >= 80 or item.get("peak_cpu", 0) >= 85 or item.get("peak_mem", 0) >= 85),
     }
+    architecture = _build_nmon_architecture_summary(series, summary, len(rows))
+    risk_rows = _build_nmon_risk_rows(series)
+    top_pressure = series[:5]
+    heatmap = _build_nmon_heatmap(series, period)
     return {
         "period": period,
         "period_label": {"day": "日報", "week": "週報", "month": "月報"}[period],
+        "month": month_label,
+        "filters": filters,
+        "filter_options": filter_options,
         "since": since,
+        "until": until,
         "count": len(rows),
         "summary": summary,
+        "architecture": architecture,
+        "risk_rows": risk_rows,
+        "top_pressure": top_pressure,
+        "heatmap": heatmap,
         "series": series,
         "timeline": timeline,
         "rows": rows[-300:],
+        "raw_pipeline": nmon_raw_pipeline_status(),
         "generated_at": _now(),
     }
 
 
-def nmon_report_csv(period: str = "day") -> str:
-    report = nmon_report(period)
+def nmon_report_csv(period: str = "day", filters: Any = None) -> str:
+    report = nmon_report(period, filters)
     output = io.StringIO()
-    fields = ["sampled_at", "asset_seq", "hostname", "status", "cpu_pct", "mem_pct", "disk_pct", "load_avg", "error"]
+    fields = ["sampled_at", "asset_seq", "hostname", "system_name", "environment", "dc", "status", "cpu_pct", "mem_pct", "disk_pct", "load_avg", "source", "error"]
     writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")
     writer.writeheader()
     for row in report["rows"]:

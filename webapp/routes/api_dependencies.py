@@ -26,8 +26,10 @@ def _focus_impact() -> bool:
 @require_feature("dependencies")
 def dependencies_fullscreen_page():
     collect_runs = dependency_service.collect_runs(limit=5)
+    systems = dependency_service.list_systems()
+    relations = dependency_service.list_relations()
     data = dependency_service.topology(
-        view=request.args.get("view", "system"),
+        view=request.args.get("view", "core_radial"),
         center=request.args.get("center", ""),
         depth=int(request.args.get("depth", 2)),
         limit=int(request.args.get("limit", 200)),
@@ -36,7 +38,56 @@ def dependencies_fullscreen_page():
         failed_node=request.args.get("failed_node", ""),
         focus_impact=_focus_impact(),
     )
-    return render_template("dependencies.html", topology=data, fullscreen=True, reconcile_report=dependency_service.filtered_reconcile_report(include_external=_include_external(), include_unmanaged=_include_unmanaged()), collect_runs=collect_runs)
+    return render_template(
+        "dependencies.html",
+        topology=data,
+        fullscreen=True,
+        reconcile_report=dependency_service.filtered_reconcile_report(include_external=_include_external(), include_unmanaged=_include_unmanaged()),
+        network_scan_report=dependency_service.latest_network_scan_report(),
+        collect_runs=collect_runs,
+        systems=systems,
+        relation_items=relations,
+    )
+
+
+@bp.post("/dependencies/relations")
+@require_feature("dependencies")
+@require_role("admin")
+def relation_save_page():
+    form = request.form
+    remote_port = (form.get("remote_port") or "").strip()
+    service_name = (form.get("service_name") or "").strip()
+    evidence = {}
+    if remote_port:
+        evidence["remote_ports"] = [remote_port]
+        evidence["last_remote_port"] = remote_port
+    if service_name:
+        evidence["service_name"] = service_name
+        evidence["process_name"] = service_name
+    doc = dependency_service.upsert_relation(
+        {
+            "from_system": form.get("from_system", "").strip(),
+            "to_system": form.get("to_system", "").strip(),
+            "rel_type": form.get("rel_type") or "depends_on",
+            "source": "manual",
+            "confidence": form.get("confidence") or 1.0,
+            "description": form.get("description") or "",
+            "evidence": evidence,
+            "metadata": {"manual_note": form.get("manual_note") or ""},
+        },
+        current_user()["username"],
+    )
+    audit_log_service.append("dependencies.relation.page_save", current_user()["username"], {"from": doc.get("from_system"), "to": doc.get("to_system")})
+    return redirect(request.referrer or url_for("api_reports.dependencies_page", view="core_radial", center=doc.get("from_system", "")))
+
+
+@bp.post("/dependencies/relations/<relation_id>/delete")
+@require_feature("dependencies")
+@require_role("admin")
+def relation_delete_page(relation_id: str):
+    ok = dependency_service.delete_relation(relation_id)
+    audit_log_service.append("dependencies.relation.page_delete", current_user()["username"], {"relation_id": relation_id, "ok": ok})
+    return redirect(request.referrer or url_for("api_reports.dependencies_page", view="core_radial"))
 
 
 @bp.get("/dependencies/ghosts")
@@ -127,7 +178,7 @@ def relation_delete_api(relation_id: str):
 def topology_api():
     return jsonify(
         dependency_service.topology(
-            view=request.args.get("view", "system"),
+            view=request.args.get("view", "core_radial"),
             center=request.args.get("center", ""),
             depth=int(request.args.get("depth", 2)),
             limit=int(request.args.get("limit", 200)),
@@ -177,7 +228,7 @@ def collect_trigger_page():
 @require_role("admin")
 def reconcile_trigger_api():
     report = dependency_service.reconcile_ss_nmap(current_user()["username"])
-    audit_log_service.append("dependencies.reconcile.trigger", current_user()["username"], {"run_id": report.get("run_id"), "row_count": report.get("row_count")})
+    audit_log_service.append("dependencies.reconcile.trigger", current_user()["username"], {"run_id": report.get("run_id"), "row_count": report.get("row_count"), "network_count": report.get("summary", {}).get("network_count", 0)})
     return jsonify(report)
 
 
@@ -186,7 +237,7 @@ def reconcile_trigger_api():
 @require_role("admin")
 def reconcile_trigger_page():
     report = dependency_service.reconcile_ss_nmap(current_user()["username"])
-    audit_log_service.append("dependencies.reconcile.trigger", current_user()["username"], {"run_id": report.get("run_id"), "row_count": report.get("row_count")})
+    audit_log_service.append("dependencies.reconcile.trigger", current_user()["username"], {"run_id": report.get("run_id"), "row_count": report.get("row_count"), "network_count": report.get("summary", {}).get("network_count", 0)})
     return redirect(url_for("api_reports.dependencies_page", view=request.form.get("view", "host"), show_ports=1, reconcile_run=report.get("run_id"), reconcile_rows=report.get("row_count")))
 
 

@@ -2,9 +2,20 @@
 {% block title %}健康檢查 - webitgpt{% endblock %}
 {% block content %}
 <section class="panel">
-  <h1>健康檢查</h1>
+  <div class="page-header">
+    <div>
+      <p class="eyebrow">SYSTEM HEALTH</p>
+      <h1>健康檢查</h1>
+      <p class="text-muted-sm">顯示版本、磁碟、Mongo collection 與 audit hash chain 狀態。</p>
+    </div>
+    <div class="actions">
+      <a class="btn secondary" href="{{ url_for('api_superadmin.superadmin_page') }}">返回系統管理</a>
+      <a class="btn" href="{{ url_for('api_superadmin.system_health_api') }}">JSON API</a>
+    </div>
+  </div>
   <div class="summary-grid">
     <a class="metric" href="#health-details"><strong>{{ health.version }}</strong><span>版本</span></a>
+    <a class="metric" href="#health-details"><strong>{{ health.patch_id }}</strong><span>Patch ID</span></a>
     <a class="metric" href="#health-details"><strong>{{ health.disk.used_pct }}%</strong><span>磁碟使用率</span></a>
     <a class="metric" href="#health-details"><strong>{{ "正常" if health.audit.ok else "異常" }}</strong><span>Audit chain</span></a>
     <a class="metric" href="#health-details"><strong>{{ health.collections.hosts }}</strong><span>主機數</span></a>

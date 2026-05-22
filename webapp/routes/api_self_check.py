@@ -30,6 +30,7 @@ def self_check(asset_seq: str):
     target = Path(config.HOSTS_DIR) / asset_seq / "self_check" / f"{now.strftime('%Y%m%d_%H%M%S')}.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(result, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    result["artifact_path"] = str(target)
     get_collection("hosts").update_one(
         {"asset_seq": asset_seq},
         {"$set": {"last_self_check_at": now, "last_self_check_status": result.get("status", "unknown")}},
@@ -54,6 +55,7 @@ def global_self_check():
         target = Path(config.HOSTS_DIR) / host["asset_seq"] / "self_check" / f"{now.strftime('%Y%m%d_%H%M%S')}.json"
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(result, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+        result["artifact_path"] = str(target)
         get_collection("hosts").update_one(
             {"asset_seq": host["asset_seq"]},
             {"$set": {"last_self_check_at": now, "last_self_check_status": result.get("status", "unknown")}},

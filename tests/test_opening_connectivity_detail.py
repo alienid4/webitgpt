@@ -61,12 +61,52 @@ def test_resource_and_filesystem_cards_are_compact_metrics():
     )
 
     assert resource["detail"] == "CPU:12%\nMEMORY:36%\nSWAP:2%"
-    assert filesystem["detail"] == "Filesystem:15%\nIO:2%"
+    assert filesystem["detail"] == "/:15%\nIO:2%"
     assert resource["visual_rows"][0] == {"label": "CPU", "value": "12%", "percent": 12}
-    assert filesystem["visual_rows"][0] == {"label": "Filesystem", "value": "15%", "percent": 15}
+    assert filesystem["visual_rows"][0] == {"label": "/", "value": "15%", "percent": 15}
     assert "建議處置" not in resource["detail"]
     assert "建議處置" not in filesystem["detail"]
 
+
+
+def test_opening_filesystem_warns_when_disk_is_near_full():
+    check = _build_diagnostic_check(
+        "filesystem",
+        "????",
+        0,
+        "Filesystem Type Size Used Avail Use% Mounted on\n/dev/mapper/root xfs 17G 16G 1G 96% /",
+        "",
+    )
+
+    assert check["status"] == "fail"
+    assert "/:96%" in check["detail"]
+    assert "狀態:" in check["detail"]
+
+
+def test_opening_filesystem_77_percent_preview_warns_at_75_threshold():
+    check = _build_diagnostic_check(
+        "filesystem",
+        "????",
+        0,
+        "Filesystem Type Size Used Avail Use% Mounted on\n/dev/mapper/root xfs 17G 14G 4G 77% /",
+        "",
+    )
+
+    assert check["status"] == "warn"
+    assert check["detail"] == "/:77%\nIO:-%\n狀態:磁碟需觀察"
+
+
+def test_opening_filesystem_shows_highest_mount_point():
+    check = _build_diagnostic_check(
+        "filesystem",
+        "????",
+        0,
+        "Filesystem Type Size Used Avail Use% Mounted on\n/dev/root xfs 17G 10G 7G 60% /\n/dev/var xfs 20G 18G 2G 91% /var",
+        "",
+    )
+
+    assert check["status"] == "warn"
+    assert check["visual_rows"][0] == {"label": "/var", "value": "91%", "percent": 91}
 
 def test_opening_normal_cards_stay_compact():
     samples = {

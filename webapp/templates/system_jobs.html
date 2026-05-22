@@ -5,7 +5,7 @@
   <div class="dev-toolbar">
     <div class="dev-title">
       <strong>開發後台</strong>
-      <span>功能驗證 / 開發設定 / 文件與提交紀錄</span>
+      <span>功能驗證 / 開發設定 / 日誌與排程。</span>
     </div>
     {% include "_partials/dev_tabs.html" %}
   </div>
@@ -16,10 +16,10 @@
     <div>
       <p class="eyebrow">JOB SCHEDULE</p>
       <h1>工作排程</h1>
-      <p class="text-muted-sm">檢視 systemd timer、IPAM 對帳與 Housekeeping 執行紀錄。</p>
+      <p class="text-muted-sm">檢視 systemd timer、Housekeeping 與 IPAM 對帳排程。</p>
     </div>
     <div class="actions">
-      <a class="btn secondary" href="{{ url_for('api_superadmin.superadmin_page') }}">回管理總覽</a>
+      <a class="btn secondary" href="{{ url_for('api_superadmin.superadmin_page') }}">返回系統管理</a>
       <a class="btn" href="{{ url_for('api_superadmin.jobs_api') }}">JSON API</a>
     </div>
   </div>

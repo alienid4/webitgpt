@@ -12,7 +12,7 @@
   {% set is_authenticated = current_user.username != "anonymous" %}
   {% set show_app_shell = is_authenticated and not is_login_page %}
   {% set is_superadmin = role == "superadmin" %}
-  {% set role_label = {"viewer":"檢視者","admin":"管理員","super":"進階管理員","superadmin":"最高管理員","anonymous":"未登入"}.get(role, role) %}
+  {% set role_label = {"viewer":"檢視者","admin":"管理者","super":"主管管理者","superadmin":"最高管理員","anonymous":"未登入"}.get(role, role) %}
   {% set endpoint = request.endpoint or "" %}
   <header class="app-header">
     <div class="header-main">
@@ -20,14 +20,14 @@
       {% if show_app_shell %}
       <form class="quick-search" method="get" action="{{ url_for('api_hosts.global_search_page') }}">
         <span aria-hidden="true">搜尋</span>
-        <input name="q" placeholder="搜尋資產 / 主機 / IP..." autocomplete="off">
+        <input name="q" placeholder="搜尋資產 / 功能 / IP..." autocomplete="off">
       </form>
       {% endif %}
       <div class="build-chip" title="{{ patch_id }} / {{ release_note }}">v{{ app_version }} <span>|</span> {{ build_time }}</div>
       {% if show_app_shell %}
         <div class="user-chip">{{ role_label }} ({{ current_user.username }})</div>
         <a class="header-link" href="{{ url_for('auth.mfa_page') }}">帳號設定</a>
-        <button class="header-link" id="themeToggle" type="button" title="切換夜間模式">夜間</button>
+        <button class="header-link" id="themeToggle" type="button" title="切換深色模式">深色模式</button>
         <form method="post" action="{{ url_for('auth.logout') }}"><button class="header-link danger" type="submit">登出</button></form>
       {% elif not is_login_page %}
         <a class="header-link" href="{{ url_for('auth.login_page') }}">登入</a>
@@ -35,9 +35,9 @@
     </div>
     {% if show_app_shell %}
     <nav class="nav">
-      <a data-nav-key="dashboard" draggable="true" title="儀表板" class="{% if endpoint == 'api_reports.dashboard_page' %}active{% endif %}" href="{{ url_for('api_reports.dashboard_page') }}">儀表板</a>
-      <a data-nav-key="executive_dashboard" draggable="true" title="主管儀表板" class="nav-strong {% if endpoint == 'api_reports.executive_page' %}active{% endif %}" href="{{ url_for('api_reports.executive_page') }}">📊 主管儀表板</a>
-      <a data-nav-key="daily_report" draggable="true" title="開門檢查" class="{% if endpoint == 'api_operations.inspections_page' %}active{% endif %}" href="{{ url_for('api_operations.inspections_page') }}">開門檢查</a>
+      <a data-nav-key="dashboard" draggable="true" title="總覽" class="{% if endpoint == 'api_reports.dashboard_page' %}active{% endif %}" href="{{ url_for('api_reports.dashboard_page') }}">總覽</a>
+      <a data-nav-key="executive_dashboard" draggable="true" title="主管總覽" class="nav-strong {% if endpoint == 'api_reports.executive_page' %}active{% endif %}" href="{{ url_for('api_reports.executive_page') }}">主管總覽</a>
+      <a data-nav-key="daily_report" draggable="true" title="今日巡檢" class="{% if endpoint == 'api_operations.inspections_page' %}active{% endif %}" href="{{ url_for('api_operations.inspections_page') }}">今日巡檢</a>
       {% if feature_enabled("module_compliance_security", default=false) %}
       <a data-nav-key="accounts" draggable="true" title="帳號盤點" class="{% if endpoint == 'api_inventory.accounts_page' %}active{% endif %}" href="{{ url_for('api_inventory.accounts_page') }}">帳號盤點</a>
       <a data-nav-key="software" draggable="true" title="軟體盤點" class="{% if endpoint == 'api_inventory.software_page' %}active{% endif %}" href="{{ url_for('api_inventory.software_page') }}">軟體盤點</a>

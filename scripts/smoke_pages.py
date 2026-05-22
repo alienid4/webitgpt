@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import urllib.error
@@ -140,7 +141,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Smoke test webitgpt HTML pages before deployment handoff.")
     parser.add_argument("--base-url", default="http://127.0.0.1:8002")
     parser.add_argument("--username", default="superadmin")
-    parser.add_argument("--password", default="1qaz@WSX")
+    parser.add_argument("--password", default=os.environ.get("WEBITGPT_SUPERADMIN_PASSWORD", "change-me-before-login"))
     parser.add_argument("--timeout", type=int, default=15)
     parser.add_argument("--output", default="")
     parser.add_argument("--no-login", action="store_true")

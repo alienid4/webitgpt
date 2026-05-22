@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>效能月報 mockup</title>
+  <style>
+    :root {
+      --g1: #26A889;
+      --g2: #1E8A6F;
+      --g-text: #0D5C47;
+      --g-light: #EBF7E8;
+      --orange: #E87C07;
+      --red: #E00B00;
+      --c1: #141413;
+      --c2: #333333;
+      --c3: #888888;
+      --c4: #BEBEBE;
+      --bg: #FAF9F5;
+      --bg2: #F5F5F5;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --radius-xs: 6px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--c1);
+      font-family: "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      height: 58px;
+      padding: 0 22px;
+      background: rgba(255, 255, 255, 0.96);
+      border-bottom: 1px solid var(--c4);
+    }
+
+    .brand {
+      font-weight: 900;
+      font-size: 19px;
+    }
+
+    .top-meta {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--c2);
+      font-family: "JetBrains Mono", Consolas, monospace;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .page {
+      padding: 18px 22px 30px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      padding: 22px 24px;
+      background: #fff;
+      border: 1px solid var(--c4);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 24px rgba(20, 20, 19, 0.06);
+    }
+
+    .eyebrow {
+      color: var(--g-text);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 4px 0 8px;
+      font-size: 30px;
+      line-height: 1.25;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--c3);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr)) auto auto;
+      gap: 10px;
+      align-items: end;
+      min-width: 780px;
+    }
+
+    label {
+      display: grid;
+      gap: 4px;
+      color: var(--c2);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    select, input {
+      height: 40px;
+      padding: 0 12px;
+      border: 1px solid var(--c4);
+      border-radius: var(--radius-xs);
+      background: #fff;
+      color: var(--c1);
+      font: inherit;
+    }
+
+    .btn {
+      height: 40px;
+      padding: 0 16px;
+      border: 1px solid var(--c4);
+      border-radius: var(--radius-xs);
+      background: #fff;
+      color: var(--c1);
+      font-weight: 800;
+      cursor: default;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      border-color: var(--g1);
+      background: var(--g1);
+      color: #fff;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .summary {
+      grid-template-columns: 1.2fr 1fr 1fr 1fr;
+    }
+
+    .director-grid {
+      grid-template-columns: 1.1fr 1fr;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--c4);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: 0 6px 18px rgba(20, 20, 19, 0.045);
+    }
+
+    .result-card {
+      border-left: 6px solid var(--orange);
+    }
+
+    .result-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .result-title strong {
+      font-size: 22px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 58px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid currentColor;
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    .badge-warn { color: var(--orange); }
+    .badge-ok { color: var(--g2); }
+    .badge-error { color: var(--red); }
+
+    .plain-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .plain-list li {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--bg2);
+      padding-bottom: 6px;
+    }
+
+    .metric {
+      display: grid;
+      gap: 8px;
+    }
+
+    .metric-value {
+      font-family: "JetBrains Mono", Consolas, monospace;
+      font-size: 30px;
+      font-weight: 900;
+    }
+
+    .metric-label {
+      color: var(--c3);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .metric-note {
+      color: var(--c2);
+      font-size: 13px;
+    }
+
+    .decision-card {
+      border-left: 6px solid var(--g1);
+    }
+
+    .decision-card.warn {
+      border-left-color: var(--orange);
+    }
+
+    .decision-card.danger {
+      border-left-color: var(--red);
+    }
+
+    .decision-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .decision-head h2 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.3;
+    }
+
+    .decision-line {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      gap: 10px;
+      padding: 7px 0;
+      border-top: 1px solid var(--bg2);
+    }
+
+    .decision-line:first-of-type {
+      border-top: 0;
+    }
+
+    .decision-line span:first-child {
+      color: var(--c3);
+      font-weight: 900;
+    }
+
+    .risk-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .risk-item {
+      min-height: 94px;
+      padding: 14px;
+      border: 1px solid var(--c4);
+      border-radius: var(--radius-sm);
+      background: #fff;
+    }
+
+    .risk-item strong {
+      display: block;
+      font-family: "JetBrains Mono", Consolas, monospace;
+      font-size: 26px;
+      margin-bottom: 4px;
+    }
+
+    .risk-item b {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .timeline-row {
+      display: grid;
+      grid-template-columns: 72px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid var(--c4);
+      border-radius: var(--radius-sm);
+      background: #fff;
+    }
+
+    .timeline-row time {
+      font-family: "JetBrains Mono", Consolas, monospace;
+      font-weight: 900;
+    }
+
+    .section-grid {
+      grid-template-columns: 1.25fr 0.9fr;
+      align-items: stretch;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: 21px;
+    }
+
+    .chart {
+      height: 250px;
+      border: 1px solid var(--c4);
+      border-radius: var(--radius-sm);
+      background:
+        linear-gradient(to top, rgba(190,190,190,.22) 1px, transparent 1px) 0 0 / 100% 25%,
+        linear-gradient(to right, rgba(190,190,190,.18) 1px, transparent 1px) 0 0 / 8.33% 100%,
+        #fff;
+      overflow: hidden;
+      position: relative;
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      color: var(--c2);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      margin-right: 6px;
+      border-radius: 50%;
+      background: var(--g1);
+    }
+
+    .dot.orange { background: var(--orange); }
+    .dot.red { background: var(--red); }
+
+    .host-bars {
+      display: grid;
+      gap: 12px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 120px 1fr 48px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .bar-track {
+      height: 14px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: var(--bg2);
+      border: 1px solid var(--c4);
+    }
+
+    .bar {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--g1);
+    }
+
+    .bar.warn { background: var(--orange); }
+    .bar.danger { background: var(--red); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border: 1px solid var(--c4);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--c4);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--bg2);
+      color: var(--c3);
+      font-size: 13px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .compact {
+      font-size: 13px;
+      color: var(--c3);
+    }
+
+    .spark {
+      display: flex;
+      align-items: end;
+      gap: 3px;
+      height: 42px;
+    }
+
+    .spark i {
+      display: block;
+      width: 8px;
+      border-radius: 3px 3px 0 0;
+      background: var(--g1);
+    }
+
+    .spark i.warn { background: var(--orange); }
+
+    .forecast {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .mini {
+      padding: 14px;
+      border: 1px solid var(--c4);
+      border-radius: var(--radius-sm);
+      background: #fff;
+    }
+
+    .mini strong {
+      display: block;
+      font-family: "JetBrains Mono", Consolas, monospace;
+      font-size: 22px;
+      margin-bottom: 4px;
+    }
+
+    @media (max-width: 1100px) {
+      .hero { grid-template-columns: 1fr; }
+      .controls { min-width: 0; grid-template-columns: repeat(2, minmax(150px, 1fr)); }
+      .summary, .section-grid, .director-grid, .risk-strip { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">IT 巡檢系統</div>
+    <div class="top-meta">
+      <span>v1.0.2.5</span>
+      <span>|</span>
+      <span>2026-05-17 09:30 +08:00</span>
+      <span>|</span>
+      <span>效能月報 mockup</span>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">NMON PERFORMANCE MONTHLY REPORT</div>
+        <h1>效能月報</h1>
+        <p>給系統架構部看數字，給維運看證據。報表只呈現趨勢、風險區間、可選處理方式與影響範圍，最後由主管判斷是否執行。</p>
+      </div>
+      <div class="controls">
+        <label>月份
+          <input value="2026-05">
+        </label>
+        <label>系統
+          <select>
+            <option>巡檢系統主機</option>
+            <option>全部系統</option>
+          </select>
+        </label>
+        <label>環境
+          <select>
+            <option>PROD + DEV</option>
+            <option>PROD</option>
+            <option>DEV</option>
+          </select>
+        </label>
+        <label>機房
+          <select>
+            <option>全部機房</option>
+            <option>敦南</option>
+            <option>內湖</option>
+          </select>
+        </label>
+        <button class="btn">匯出 PDF</button>
+        <button class="btn btn-primary">產生月報</button>
+      </div>
+    </section>
+
+    <section class="grid summary">
+      <article class="card result-card">
+        <div class="result-title">
+          <strong>本月結論</strong>
+          <span class="badge badge-warn">注意</span>
+        </div>
+        <ul class="plain-list">
+          <li><span>整體可用</span><strong>正常</strong></li>
+          <li><span>容量風險</span><strong>2 台需追蹤</strong></li>
+          <li><span>下月觀察</span><strong>1 台磁碟接近門檻</strong></li>
+        </ul>
+      </article>
+
+      <article class="card metric">
+        <div class="metric-value">31</div>
+        <div class="metric-label">採樣天數</div>
+        <div class="metric-note">每日彙整 CPU / Memory / Disk / I/O</div>
+      </article>
+
+      <article class="card metric">
+        <div class="metric-value">3</div>
+        <div class="metric-label">納管主機</div>
+        <div class="metric-note">Linux 3、Windows 0、AIX 0</div>
+      </article>
+
+      <article class="card metric">
+        <div class="metric-value">2</div>
+        <div class="metric-label">本月警示</div>
+        <div class="metric-note">磁碟成長 1、尖峰負載 1</div>
+      </article>
+    </section>
+
+    <section class="grid director-grid">
+      <article class="card decision-card warn">
+        <div class="decision-head">
+          <h2>架構部數據摘要</h2>
+          <span class="badge badge-warn">待確認</span>
+        </div>
+        <div class="decision-line">
+          <span>觀察項</span>
+          <strong>巡檢系統主機 /opt 磁碟目前 88%，依本月成長速度，下月可能超過 90%。</strong>
+        </div>
+        <div class="decision-line">
+          <span>原因</span>
+          <div>本月最高 88%，月增 9%；依目前成長速度，約 20 天接近紅線。</div>
+        </div>
+        <div class="decision-line">
+          <span>影響</span>
+          <div>若未處理，可能影響巡檢報表、log 寫入與 patch 留存。</div>
+        </div>
+        <div class="decision-line">
+          <span>選項</span>
+          <div>可選擇清理舊 log、調整保留天數、擴充磁碟或列入下月觀察。負責單位：系統運維組。</div>
+        </div>
+      </article>
+
+      <article class="card decision-card">
+        <div class="decision-head">
+          <h2>本月架構判讀</h2>
+          <span class="badge badge-ok">可營運</span>
+        </div>
+        <div class="decision-line">
+          <span>穩定度</span>
+          <div>未看到 CPU、記憶體或 I/O 長時間壅塞。</div>
+        </div>
+        <div class="decision-line">
+          <span>容量</span>
+          <div>磁碟是本月唯一接近容量門檻的項目。</div>
+        </div>
+        <div class="decision-line">
+          <span>成本</span>
+          <div>目前沒有明顯過度配置主機；未列出可回收項目。</div>
+        </div>
+        <div class="decision-line">
+          <span>追蹤</span>
+          <div>CPU 尖峰屬短時間事件，下月觀察批次排程即可。</div>
+        </div>
+      </article>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <div class="section-title">
+          <h2>架構檢視四個數字</h2>
+          <span class="compact">點進正式版可查看各數字明細</span>
+        </div>
+        <div class="risk-strip">
+          <div class="risk-item">
+            <strong>1</strong>
+            <b>待確認項</b>
+            <span class="compact">磁碟清理、保留天數或擴充</span>
+          </div>
+          <div class="risk-item">
+            <strong>0</strong>
+            <b>立即營運風險</b>
+            <span class="compact">目前沒有服務中斷跡象</span>
+          </div>
+          <div class="risk-item">
+            <strong>2</strong>
+            <b>下月追蹤</b>
+            <span class="compact">容量、CPU 尖峰</span>
+          </div>
+          <div class="risk-item">
+            <strong>0</strong>
+            <b>可回收資源</b>
+            <span class="compact">尚未看到長期閒置主機</span>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="grid section-grid">
+      <article class="card">
+        <div class="section-title">
+          <h2>風險追蹤清單</h2>
+          <span class="compact">列出數字、影響與可選處理方式</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>優先</th>
+              <th>觀察項目</th>
+              <th>系統 / 主機</th>
+              <th>證據</th>
+              <th>觀察期限</th>
+              <th>狀態</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-warn">P1</span></td>
+              <td>磁碟容量處理</td>
+              <td>巡檢系統主機 / secansible</td>
+              <td>/opt 88%，月增 9%</td>
+              <td>2026-05-24</td>
+              <td>待確認</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-ok">P2</span></td>
+              <td>批次尖峰觀察</td>
+              <td>受監控主機-Rocky / secclient1</td>
+              <td>CPU 尖峰 78%，持續 12 分鐘</td>
+              <td>2026-06-05</td>
+              <td>追蹤中</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-ok">P3</span></td>
+              <td>資源回收評估</td>
+              <td>全部系統</td>
+              <td>本月未發現長期低用量主機</td>
+              <td>-</td>
+              <td>本月不處理</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <div class="section-title">
+          <h2>90 天容量預測</h2>
+          <span class="compact">紅線前先處理</span>
+        </div>
+        <div class="timeline">
+          <div class="timeline-row">
+            <time>20天</time>
+            <div><strong>secansible /opt</strong><br><span class="compact">預估達 90%，可評估清理、調整保留天數或擴充</span></div>
+            <span class="badge badge-warn">注意</span>
+          </div>
+          <div class="timeline-row">
+            <time>45天</time>
+            <div><strong>secclient1 Memory</strong><br><span class="compact">目前 71%，尚未達紅線</span></div>
+            <span class="badge badge-ok">觀察</span>
+          </div>
+          <div class="timeline-row">
+            <time>90天</time>
+            <div><strong>sec9c2</strong><br><span class="compact">沒有容量不足趨勢</span></div>
+            <span class="badge badge-ok">正常</span>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="grid summary">
+      <article class="card metric">
+        <div class="metric-value">42%</div>
+        <div class="metric-label">CPU P95</div>
+        <div class="metric-note">尖峰 78%，未超過紅線</div>
+      </article>
+      <article class="card metric">
+        <div class="metric-value">71%</div>
+        <div class="metric-label">Memory P95</div>
+        <div class="metric-note">secansible 持續偏高</div>
+      </article>
+      <article class="card metric">
+        <div class="metric-value">88%</div>
+        <div class="metric-label">Disk Max</div>
+        <div class="metric-note">/opt 成長 9%，下月可能達 90%</div>
+      </article>
+      <article class="card metric">
+        <div class="metric-value">3.2%</div>
+        <div class="metric-label">IO Wait P95</div>
+        <div class="metric-note">未見長時間 I/O 壅塞</div>
+      </article>
+    </section>
+
+    <section class="grid section-grid">
+      <article class="card">
+        <div class="section-title">
+          <h2>整體趨勢</h2>
+          <div class="legend">
+            <span><i class="dot"></i>CPU</span>
+            <span><i class="dot orange"></i>Memory</span>
+            <span><i class="dot red"></i>Disk</span>
+          </div>
+        </div>
+        <div class="chart" aria-label="效能趨勢圖">
+          <svg viewBox="0 0 900 250" role="img">
+            <polyline points="20,184 85,172 150,168 215,142 280,156 345,130 410,138 475,116 540,126 605,112 670,96 735,102 800,82 875,76"
+              fill="none" stroke="#26A889" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="20,146 85,138 150,132 215,126 280,118 345,114 410,108 475,104 540,96 605,92 670,88 735,84 800,80 875,76"
+              fill="none" stroke="#E87C07" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="20,202 85,198 150,192 215,188 280,180 345,172 410,168 475,158 540,150 605,138 670,128 735,110 800,92 875,76"
+              fill="none" stroke="#E00B00" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="20" y1="62" x2="880" y2="62" stroke="#E00B00" stroke-width="2" stroke-dasharray="8 8"/>
+            <text x="690" y="54" fill="#E00B00" font-size="18" font-weight="800">90% 容量紅線</text>
+            <text x="28" y="232" fill="#888" font-size="16">05/01</text>
+            <text x="410" y="232" fill="#888" font-size="16">05/15</text>
+            <text x="800" y="232" fill="#888" font-size="16">05/31</text>
+          </svg>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="section-title">
+          <h2>壓力最高主機</h2>
+          <span class="compact">依月 P95 排序</span>
+        </div>
+        <div class="host-bars">
+          <div class="bar-row">
+            <strong>secansible</strong>
+            <div class="bar-track"><div class="bar warn" style="width: 88%"></div></div>
+            <span>88%</span>
+          </div>
+          <div class="bar-row">
+            <strong>secclient1</strong>
+            <div class="bar-track"><div class="bar" style="width: 62%"></div></div>
+            <span>62%</span>
+          </div>
+          <div class="bar-row">
+            <strong>sec9c2</strong>
+            <div class="bar-track"><div class="bar" style="width: 38%"></div></div>
+            <span>38%</span>
+          </div>
+        </div>
+        <hr style="border:0;border-top:1px solid var(--c4);margin:18px 0">
+        <div class="forecast">
+          <div class="mini">
+            <strong>20 天</strong>
+            <span class="compact">/opt 預估到 90%</span>
+          </div>
+          <div class="mini">
+            <strong>0 台</strong>
+            <span class="compact">Swap 長期異常</span>
+          </div>
+          <div class="mini">
+            <strong>1 台</strong>
+            <span class="compact">容量接近門檻</span>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="grid section-grid">
+      <article class="card">
+        <div class="section-title">
+          <h2>可選處理方式</h2>
+          <span class="compact">呈現資料與選項，不代替主管決定</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>主機</th>
+              <th>問題</th>
+              <th>證據</th>
+              <th>可選方式</th>
+              <th>負責</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>secansible</strong><br><span class="compact">192.168.1.221</span></td>
+              <td><span class="badge badge-warn">容量</span></td>
+              <td>/opt 88%，本月 +9%</td>
+              <td>確認 log 保留策略；必要時擴充 20GB。</td>
+              <td>系統運維組</td>
+            </tr>
+            <tr>
+              <td><strong>secclient1</strong><br><span class="compact">192.168.1.222</span></td>
+              <td><span class="badge badge-ok">觀察</span></td>
+              <td>CPU 尖峰 78%，持續 12 分鐘</td>
+              <td>下月觀察同時段批次是否重疊。</td>
+              <td>系統運維組</td>
+            </tr>
+            <tr>
+              <td><strong>sec9c2</strong><br><span class="compact">192.168.1.223</span></td>
+              <td><span class="badge badge-ok">正常</span></td>
+              <td>CPU / Memory / Disk 均低於門檻</td>
+              <td>維持例行採樣。</td>
+              <td>-</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
+        <div class="section-title">
+          <h2>月內熱點</h2>
+          <span class="compact">點進正式版可看每日明細</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>主機</th>
+              <th>事件</th>
+              <th>趨勢</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>05/08</td>
+              <td>secansible</td>
+              <td>Disk 85% → 88%</td>
+              <td>
+                <div class="spark"><i style="height:18px"></i><i style="height:20px"></i><i class="warn" style="height:26px"></i><i class="warn" style="height:32px"></i></div>
+              </td>
+            </tr>
+            <tr>
+              <td>05/12</td>
+              <td>secclient1</td>
+              <td>CPU 尖峰 78%</td>
+              <td>
+                <div class="spark"><i style="height:10px"></i><i style="height:16px"></i><i class="warn" style="height:38px"></i><i style="height:13px"></i></div>
+              </td>
+            </tr>
+            <tr>
+              <td>05/15</td>
+              <td>sec9c2</td>
+              <td>維持正常</td>
+              <td>
+                <div class="spark"><i style="height:12px"></i><i style="height:11px"></i><i style="height:13px"></i><i style="height:12px"></i></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

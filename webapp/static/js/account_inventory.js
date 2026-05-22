@@ -1,4 +1,11 @@
 document.addEventListener("click", (event) => {
+  const mainTab = event.target.closest("[data-account-main-tab]");
+  if (mainTab) {
+    activateAccountMainTab(mainTab.dataset.accountMainTab);
+    history.replaceState(null, "", `#${mainTab.dataset.accountMainTab}`);
+    return;
+  }
+
   const tab = event.target.closest("[data-account-tab]");
   if (tab) {
     activateAccountTab(tab.dataset.accountTab);
@@ -50,14 +57,28 @@ function activateAccountTab(name) {
   document.querySelectorAll("[data-account-panel]").forEach((panel) => panel.classList.toggle("active", panel.dataset.accountPanel === name));
 }
 
+function activateAccountMainTab(name) {
+  document.querySelectorAll("[data-account-main-tab]").forEach((item) => item.classList.toggle("active", item.dataset.accountMainTab === name));
+  document.querySelectorAll("[data-account-main-panel]").forEach((panel) => panel.classList.toggle("active", panel.dataset.accountMainPanel === name));
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("tab") && document.querySelector(`[data-account-main-panel="${params.get("tab")}"]`)) {
+    activateAccountMainTab(params.get("tab"));
+  }
   const initial = window.location.hash.replace("#", "");
+  if (initial && document.querySelector(`[data-account-main-panel="${initial}"]`)) {
+    activateAccountMainTab(initial);
+    return;
+  }
   if (initial && document.querySelector(`[data-account-panel="${initial}"]`)) {
+    activateAccountMainTab("actual");
     activateAccountTab(initial);
     return;
   }
-  const params = new URLSearchParams(window.location.search);
   if (params.get("metric")) {
+    activateAccountMainTab("actual");
     activateAccountTab("list");
   }
 });

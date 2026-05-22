@@ -6,10 +6,13 @@ from webapp.decorators import current_user, require_feature, require_module, req
 from webapp.services import audit_log_service
 from webapp.services.inventory_service import (
     account_inventory_view,
+    account_excel_template_xlsx,
     collect_inventory,
     create_change_ticket,
+    export_account_excel_diff_csv,
     export_inventory_diff_csv,
     export_accounts_csv,
+    import_account_excel_inventory,
     inventory_diff_report,
     latest_inventory,
     list_change_tickets,
@@ -36,6 +39,41 @@ def accounts_csv():
         export_accounts_csv(dict(request.args)),
         mimetype="text/csv",
         headers={"Content-Disposition": "attachment; filename=accounts_inventory.csv"},
+    )
+
+
+@bp.get("/accounts/template.xlsx")
+@require_module("module_compliance_security")
+@require_feature("compliance_account")
+def accounts_template_xlsx():
+    return Response(
+        account_excel_template_xlsx(),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=account_inventory_template.xlsx"},
+    )
+
+
+@bp.post("/accounts/excel-upload")
+@require_module("module_compliance_security")
+@require_feature("compliance_account")
+@require_role("admin")
+def accounts_excel_upload():
+    uploaded = request.files.get("file")
+    if not uploaded:
+        return redirect(url_for("api_inventory.accounts_page", tab="excel", upload_error="missing_file"))
+    result = import_account_excel_inventory(uploaded.read(), uploaded.filename or "account_inventory.xlsx", current_user()["username"])
+    audit_log_service.append("account_excel.upload", current_user()["username"], {"run_id": result.get("run_id"), "status": result.get("status"), "rows": result.get("row_count", 0)})
+    return redirect(url_for("api_inventory.accounts_page", tab="excel", upload_run=result.get("run_id", "")) + "#excel")
+
+
+@bp.get("/accounts/excel-diff.csv")
+@require_module("module_compliance_security")
+@require_feature("compliance_account")
+def accounts_excel_diff_csv():
+    return Response(
+        export_account_excel_diff_csv(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=account_excel_vs_host_diff.csv"},
     )
 
 

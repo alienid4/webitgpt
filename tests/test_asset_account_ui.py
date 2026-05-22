@@ -64,6 +64,32 @@ def test_account_metrics_link_to_detail_views():
     assert 'metric == "system_default"' in service
 
 
+def test_account_excel_inventory_tabs_and_upload_contracts_exist():
+    html = read("webapp/templates/accounts_inventory.html")
+    js = read("webapp/static/js/account_inventory.js")
+    css = read("webapp/static/css/cathay.css")
+    routes = read("webapp/routes/api_inventory.py")
+    service = read("webapp/services/inventory_service.py")
+
+    for label in ["帳號清冊", "Excel 清冊", "差異報告", "盤點批次"]:
+        assert label in html
+    assert "data-account-main-tab" in html
+    assert "data-account-main-panel" in html
+    assert "accounts_template_xlsx" in routes
+    assert "accounts_excel_upload" in routes
+    assert "accounts_excel_diff_csv" in routes
+    assert "import_account_excel_inventory" in routes
+    assert "account_excel_template_xlsx" in service
+    assert "import_account_excel_inventory" in service
+    assert "account_excel_diff_view" in service
+    assert "account_excel_workbench" in service
+    assert "Excel 有，主機沒有" in html
+    assert "主機有，Excel 沒有" in html
+    assert "activateAccountMainTab" in js
+    assert ".account-main-tabs" in css
+    assert ".account-upload-bar" in css
+
+
 def test_account_checkboxes_use_inline_left_layout():
     html = read("webapp/templates/accounts_inventory.html")
     css = read("webapp/static/css/cathay.css")

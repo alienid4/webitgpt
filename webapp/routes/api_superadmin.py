@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from flask import Blueprint, Response, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, Response, flash, jsonify, redirect, render_template, request, send_file, url_for
 from werkzeug.utils import secure_filename
 
 from webapp import config
@@ -14,6 +14,7 @@ from webapp.services.asset_governance_status_service import list_statuses as lis
 from webapp.services.asset_governance_status_service import save_status as save_governance_status
 from webapp.services.asset_governance_status_service import set_status_enabled as set_governance_status_enabled
 from webapp.services.auth_service import generate_backup_codes, list_users, reset_password, set_user_locked, upsert_user
+from webapp.services.debug_bundle_service import ai_runtime_manifest, collect_debug_bundle, create_ai_debug_loop, get_ai_debug_loop_prompt, list_debug_bundles
 from webapp.services.feature_flags import DEFAULT_FLAGS, is_enabled, set_enabled, snapshot
 from webapp.services.important_service_service import delete_rule as delete_service_rule
 from webapp.services.important_service_service import list_rules as list_service_rules
@@ -624,3 +625,65 @@ def dev_console_upload_page():
     saved = save_dev_upload(filename, uploaded.read(), current_user()["username"])
     audit_log_service.append("dev_console.upload", current_user()["username"], {"path": saved["path"], "size": saved["size"]})
     return render_template("dev_console.html", console=dev_console_payload(), saved=saved)
+
+
+@bp.get("/superadmin/dev-console/docs/<path:filename>")
+@require_role("superadmin")
+def dev_console_doc_download(filename: str):
+    safe_name = secure_filename(filename)
+    docs_dir = Path(config.DOCS_DIR)
+    target = docs_dir / safe_name
+    if safe_name and target.exists() and target.parent == docs_dir:
+        return send_file(target, as_attachment=False, download_name=safe_name)
+    flash("找不到指定的開發文件。")
+    return redirect(url_for("api_superadmin.dev_console_page") + "#developer-docs")
+
+
+@bp.post("/superadmin/dev-console/debug-bundle")
+@require_role("superadmin")
+def dev_console_debug_bundle_page():
+    result = collect_debug_bundle(current_user()["username"], verbose=bool(request.form.get("verbose")))
+    audit_log_service.append("dev_console.debug_bundle", current_user()["username"], {"bundle": result["bundle"], "size": result["size"]})
+    flash(f"已產生 Debug Bundle：{result['bundle']}。")
+    return redirect(url_for("api_superadmin.dev_console_page") + "#debug-bundle")
+
+
+@bp.post("/superadmin/dev-console/ai-debug-loop")
+@require_role("superadmin")
+def dev_console_ai_debug_loop_page():
+    result = create_ai_debug_loop(
+        request.form.get("issue_title", ""),
+        request.form.get("issue_detail", ""),
+        current_user()["username"],
+        verbose=bool(request.form.get("verbose")),
+    )
+    audit_log_service.append("dev_console.ai_debug_loop", current_user()["username"], {"loop_id": result["loop_id"], "bundle": result["bundle"]})
+    flash(f"已建立 AI debug loop：{result['loop_id']}。")
+    return redirect(url_for("api_superadmin.dev_console_page") + "#debug-bundle")
+
+
+@bp.get("/superadmin/dev-console/ai-debug-loop/<loop_id>/prompt")
+@require_role("superadmin")
+def dev_console_ai_debug_loop_prompt_download(loop_id: str):
+    item = get_ai_debug_loop_prompt(loop_id)
+    if item:
+        return send_file(item["path"], as_attachment=True, download_name=item["name"])
+    flash("找不到指定的 AI debug loop prompt。")
+    return redirect(url_for("api_superadmin.dev_console_page") + "#debug-bundle")
+
+
+@bp.get("/superadmin/dev-console/ai-runtime-manifest")
+@require_role("superadmin")
+def dev_console_ai_runtime_manifest():
+    return jsonify(ai_runtime_manifest())
+
+
+@bp.get("/superadmin/dev-console/debug-bundle/<path:filename>")
+@require_role("superadmin")
+def dev_console_debug_bundle_download(filename: str):
+    safe_name = secure_filename(filename)
+    for item in list_debug_bundles(50):
+        if item["name"] == safe_name:
+            return send_file(item["path"], as_attachment=True, download_name=safe_name)
+    flash("找不到指定的 Debug Bundle。")
+    return redirect(url_for("api_superadmin.dev_console_page") + "#debug-bundle")

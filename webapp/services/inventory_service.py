@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 import csv
 import io
+import html
+import zipfile
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -24,6 +27,33 @@ def _hosts(limit: int = 100) -> list[dict[str, Any]]:
 
 DEFAULT_MIN_INTERVAL_MINUTES = 360
 
+XLSX_NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+ACCOUNT_EXCEL_HEADERS = [
+    "主機",
+    "帳號",
+    "部門",
+    "管理者",
+    "PAM",
+    "用途說明",
+    "權限",
+    "類型",
+    "狀態",
+    "最後登入",
+    "備註",
+]
+ACCOUNT_EXCEL_COMPARE_FIELDS = ["部門", "管理者", "PAM", "用途說明", "權限", "類型", "狀態", "最後登入", "備註"]
+ACCOUNT_EXCEL_FIELD_KEYS = {
+    "部門": "department",
+    "管理者": "owner",
+    "PAM": "pam_managed",
+    "用途說明": "usage_note",
+    "權限": "privilege",
+    "類型": "account_type",
+    "狀態": "status",
+    "最後登入": "last_login",
+    "備註": "remark",
+}
+
 
 def _item_key(item: dict[str, Any]) -> str:
     return str(item.get("name") or item.get("user") or item.get("id") or "")
@@ -38,6 +68,120 @@ def _latest_snapshot(kind: str) -> list[dict[str, Any]]:
     if not run:
         return []
     return list(get_collection("inventory_snapshots").find({"kind": kind, "run_id": run["run_id"]}, {"_id": 0}).sort("hostname", 1))
+
+
+def _xlsx_col_index(cell_ref: str) -> int:
+    letters = "".join(ch for ch in cell_ref if ch.isalpha()).upper()
+    value = 0
+    for ch in letters:
+        value = value * 26 + (ord(ch) - 64)
+    return max(0, value - 1)
+
+
+def _xlsx_shared_strings(archive: zipfile.ZipFile) -> list[str]:
+    try:
+        root = ET.fromstring(archive.read("xl/sharedStrings.xml"))
+    except KeyError:
+        return []
+    values: list[str] = []
+    for item in root.findall("m:si", XLSX_NS):
+        parts = []
+        for text_node in item.iter("{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t"):
+            parts.append(text_node.text or "")
+        values.append("".join(parts))
+    return values
+
+
+def _xlsx_sheet_paths(archive: zipfile.ZipFile) -> list[tuple[str, str]]:
+    rel_root = ET.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
+    rels = {item.attrib["Id"]: item.attrib["Target"] for item in rel_root}
+    wb_root = ET.fromstring(archive.read("xl/workbook.xml"))
+    paths: list[tuple[str, str]] = []
+    for sheet in wb_root.findall("m:sheets/m:sheet", XLSX_NS):
+        rid = sheet.attrib.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id", "")
+        target = rels.get(rid, "")
+        if not target:
+            continue
+        path = target[1:] if target.startswith("/") else f"xl/{target}"
+        paths.append((sheet.attrib.get("name", ""), path))
+    return paths
+
+
+def _xlsx_rows_from_bytes(payload: bytes) -> list[dict[str, str]]:
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        shared_strings = _xlsx_shared_strings(archive)
+        for _, sheet_path in _xlsx_sheet_paths(archive):
+            root = ET.fromstring(archive.read(sheet_path))
+            raw_rows: list[list[str]] = []
+            for row in root.findall(".//m:sheetData/m:row", XLSX_NS):
+                values: dict[int, str] = {}
+                max_index = -1
+                for cell in row.findall("m:c", XLSX_NS):
+                    cell_ref = cell.attrib.get("r", "")
+                    idx = _xlsx_col_index(cell_ref)
+                    max_index = max(max_index, idx)
+                    value = ""
+                    if cell.attrib.get("t") == "inlineStr":
+                        value = "".join(node.text or "" for node in cell.iter("{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t"))
+                    else:
+                        value_node = cell.find("m:v", XLSX_NS)
+                        if value_node is not None:
+                            value = value_node.text or ""
+                            if cell.attrib.get("t") == "s":
+                                value = shared_strings[int(value)] if value.isdigit() and int(value) < len(shared_strings) else ""
+                    values[idx] = value.strip()
+                if max_index >= 0:
+                    raw_rows.append([values.get(idx, "") for idx in range(max_index + 1)])
+            if not raw_rows:
+                continue
+            header = [cell.strip() for cell in raw_rows[0]]
+            rows = []
+            for row_idx, row in enumerate(raw_rows[1:], start=2):
+                padded = row + [""] * max(0, len(header) - len(row))
+                item = {header[idx]: padded[idx].strip() for idx in range(len(header)) if header[idx]}
+                if any(item.values()):
+                    item["_row_no"] = str(row_idx)
+                    rows.append(item)
+            return rows
+    return []
+
+
+def _simple_xlsx_bytes(headers: list[str], rows: list[list[Any]]) -> bytes:
+    def cell_ref(col_idx: int, row_idx: int) -> str:
+        col = ""
+        n = col_idx + 1
+        while n:
+            n, rem = divmod(n - 1, 26)
+            col = chr(65 + rem) + col
+        return f"{col}{row_idx}"
+
+    all_rows = [headers] + rows
+    sheet_rows = []
+    for row_idx, row in enumerate(all_rows, start=1):
+        cells = []
+        for col_idx, value in enumerate(row):
+            ref = cell_ref(col_idx, row_idx)
+            text = html.escape("" if value is None else str(value))
+            cells.append(f'<c r="{ref}" t="inlineStr"><is><t>{text}</t></is></c>')
+        sheet_rows.append(f'<row r="{row_idx}">{"".join(cells)}</row>')
+    sheet = f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>{"".join(sheet_rows)}</sheetData></worksheet>'''
+    workbook = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="帳號清冊" sheetId="1" r:id="rId1"/></sheets></workbook>'''
+    rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'''
+    wb_rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>'''
+    content_types = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>'''
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("[Content_Types].xml", content_types)
+        archive.writestr("_rels/.rels", rels)
+        archive.writestr("xl/workbook.xml", workbook)
+        archive.writestr("xl/_rels/workbook.xml.rels", wb_rels)
+        archive.writestr("xl/worksheets/sheet1.xml", sheet)
+    return output.getvalue()
 
 
 def _previous_run(kind: str, current_run_id: str) -> Optional[dict[str, Any]]:
@@ -618,6 +762,7 @@ def account_inventory_view(filters: Optional[dict[str, str]] = None) -> dict[str
         "changes": account_change_summary(rows),
         "department_hosts": department_hosts,
         "history": inventory_history("accounts", limit=10),
+        "excel": account_excel_workbench(),
     }
 
 
@@ -629,6 +774,236 @@ def export_accounts_csv(filters: Optional[dict[str, str]] = None) -> str:
     writer.writeheader()
     for item in view["items"]:
         writer.writerow(item)
+    return output.getvalue()
+
+
+def account_excel_template_xlsx() -> bytes:
+    rows = [
+        ["secansible", "root", "系統運維組", "李泰益", "Y", "最高權限系統管理帳號，必須保留盤點並定期確認保管人", "高", "特權帳號", "使用中", "", "範例資料請刪除"],
+        ["secclient1", "sysinfra", "系統運維組", "系統運維組", "Y", "已納入 PAM，由系統運維組管理", "一般", "服務帳號", "使用中", "", "範例資料請刪除"],
+    ]
+    return _simple_xlsx_bytes(ACCOUNT_EXCEL_HEADERS, rows)
+
+
+def _normalize_excel_bool(value: str) -> bool:
+    return str(value or "").strip().lower() in {"1", "y", "yes", "true", "是", "已納管", "v", "✓"}
+
+
+def _account_excel_key(hostname: str, account: str) -> str:
+    return f"{(hostname or '').strip().lower()}::{(account or '').strip().lower()}"
+
+
+def import_account_excel_inventory(payload: bytes, filename: str, user: str = "system") -> dict[str, Any]:
+    now = _now()
+    run_id = f"account-excel-{now.strftime('%Y%m%d%H%M%S%f')}"
+    if not filename.lower().endswith(".xlsx"):
+        doc = {
+            "run_id": run_id,
+            "kind": "account_excel",
+            "status": "failed",
+            "filename": filename,
+            "created_by": user,
+            "created_at": now,
+            "row_count": 0,
+            "valid_count": 0,
+            "error_count": 1,
+            "errors": [{"row": "-", "field": "檔案", "message": "只支援 .xlsx 檔案"}],
+        }
+        get_collection("account_excel_batches").insert_one(doc)
+        return doc
+    try:
+        rows = _xlsx_rows_from_bytes(payload)
+    except Exception as exc:
+        doc = {
+            "run_id": run_id,
+            "kind": "account_excel",
+            "status": "failed",
+            "filename": filename,
+            "created_by": user,
+            "created_at": now,
+            "row_count": 0,
+            "valid_count": 0,
+            "error_count": 1,
+            "errors": [{"row": "-", "field": "檔案", "message": f"Excel 檔案無法解析：{type(exc).__name__}"}],
+        }
+        get_collection("account_excel_batches").insert_one(doc)
+        return doc
+    normalized = []
+    errors = []
+    seen: set[str] = set()
+    for idx, row in enumerate(rows, start=1):
+        row_no = row.get("_row_no") or str(idx + 1)
+        hostname = row.get("主機") or row.get("Hostname") or row.get("hostname") or row.get("主機名稱") or ""
+        account = row.get("帳號") or row.get("Account") or row.get("account") or row.get("使用者") or ""
+        if not hostname:
+            errors.append({"row": row_no, "field": "主機", "message": "缺少主機欄位"})
+        if not account:
+            errors.append({"row": row_no, "field": "帳號", "message": "缺少帳號欄位"})
+        key = _account_excel_key(hostname, account)
+        if hostname and account and key in seen:
+            errors.append({"row": row_no, "field": "帳號", "message": "同一主機帳號重複"})
+        seen.add(key)
+        item = {
+            "run_id": run_id,
+            "row_no": row_no,
+            "hostname": hostname.strip(),
+            "name": account.strip(),
+            "department": (row.get("部門") or "").strip(),
+            "owner": (row.get("管理者") or row.get("保管人") or "").strip(),
+            "pam_managed": _normalize_excel_bool(row.get("PAM", "")),
+            "usage_note": (row.get("用途說明") or row.get("備註") or "").strip(),
+            "privilege": (row.get("權限") or "").strip(),
+            "account_type": (row.get("類型") or "").strip(),
+            "status": (row.get("狀態") or "").strip(),
+            "last_login": (row.get("最後登入") or "").strip(),
+            "remark": (row.get("備註") or "").strip(),
+            "source": "excel_upload",
+            "created_at": now,
+            "created_by": user,
+            "valid": bool(hostname and account),
+            "key": key,
+        }
+        normalized.append(item)
+    doc = {
+        "run_id": run_id,
+        "kind": "account_excel",
+        "status": "ok" if not errors else "needs_review",
+        "filename": filename,
+        "created_by": user,
+        "created_at": now,
+        "row_count": len(normalized),
+        "valid_count": sum(1 for item in normalized if item["valid"]),
+        "error_count": len(errors),
+        "errors": errors[:100],
+    }
+    get_collection("account_excel_batches").insert_one(doc)
+    if normalized:
+        get_collection("account_excel_rows").insert_many(normalized)
+    return doc
+
+
+def _latest_account_excel_batch() -> Optional[dict[str, Any]]:
+    return get_collection("account_excel_batches").find_one({}, {"_id": 0}, sort=[("created_at", -1)])
+
+
+def _previous_account_excel_batch(run_id: str) -> Optional[dict[str, Any]]:
+    return get_collection("account_excel_batches").find_one({"run_id": {"$ne": run_id}}, {"_id": 0}, sort=[("created_at", -1)])
+
+
+def _account_excel_rows(run_id: str, limit: int = 1000) -> list[dict[str, Any]]:
+    return list(get_collection("account_excel_rows").find({"run_id": run_id}, {"_id": 0}).sort([("hostname", 1), ("name", 1)]).limit(limit))
+
+
+def _actual_account_rows_for_compare() -> list[dict[str, Any]]:
+    rows = [row for row in latest_inventory("accounts", limit=10000)["items"] if not is_validation_inventory_row(row)]
+    result = []
+    for row in rows:
+        for item in row.get("items", []):
+            name = item.get("name") or item.get("user") or ""
+            hostname = row.get("hostname") or row.get("asset_seq") or ""
+            if not name or not hostname:
+                continue
+            result.append(
+                {
+                    "hostname": hostname,
+                    "name": name,
+                    "department": row.get("department") or "-",
+                    "privilege": "高" if bool(item.get("privileged")) or name == "root" else "一般",
+                    "account_type": item.get("account_type") or "-",
+                    "status": item.get("status") or "present",
+                    "last_login": item.get("last_login") or "-",
+                    "key": _account_excel_key(hostname, name),
+                }
+            )
+    return result
+
+
+def account_excel_diff_view() -> dict[str, Any]:
+    latest = _latest_account_excel_batch()
+    if not latest:
+        return {
+            "latest": None,
+            "previous": None,
+            "summary": {"excel_added": 0, "excel_removed": 0, "excel_changed": 0, "excel_unchanged": 0, "excel_only": 0, "host_only": 0, "matched": 0},
+            "excel_rows": [],
+            "cross_rows": [],
+        }
+    previous = _previous_account_excel_batch(latest["run_id"])
+    current_rows = _account_excel_rows(latest["run_id"], limit=5000)
+    previous_rows = _account_excel_rows(previous["run_id"], limit=5000) if previous else []
+    current_by_key = {row["key"]: row for row in current_rows if row.get("key")}
+    previous_by_key = {row["key"]: row for row in previous_rows if row.get("key")}
+    excel_rows = []
+    summary = {"excel_added": 0, "excel_removed": 0, "excel_changed": 0, "excel_unchanged": 0, "excel_only": 0, "host_only": 0, "matched": 0}
+    for key in sorted(set(current_by_key) | set(previous_by_key)):
+        current = current_by_key.get(key)
+        before = previous_by_key.get(key)
+        if current and not before:
+            change_type = "新增"
+            fields = []
+            summary["excel_added"] += 1
+        elif before and not current:
+            change_type = "刪除"
+            fields = []
+            summary["excel_removed"] += 1
+        else:
+            fields = [field for field in ACCOUNT_EXCEL_COMPARE_FIELDS if (current or {}).get(ACCOUNT_EXCEL_FIELD_KEYS[field]) != (before or {}).get(ACCOUNT_EXCEL_FIELD_KEYS[field])]
+            if fields:
+                change_type = "異動"
+                summary["excel_changed"] += 1
+            else:
+                change_type = "未異動"
+                summary["excel_unchanged"] += 1
+        row = current or before or {}
+        excel_rows.append({"change_type": change_type, "hostname": row.get("hostname", ""), "name": row.get("name", ""), "changed_fields": "、".join(fields) if fields else "-", "before": before or {}, "after": current or {}})
+    actual_rows = _actual_account_rows_for_compare()
+    actual_by_key = {row["key"]: row for row in actual_rows}
+    cross_rows = []
+    for key in sorted(set(current_by_key) | set(actual_by_key)):
+        excel_row = current_by_key.get(key)
+        actual_row = actual_by_key.get(key)
+        if excel_row and actual_row:
+            status = "一致"
+            summary["matched"] += 1
+        elif excel_row:
+            status = "Excel 有，主機沒有"
+            summary["excel_only"] += 1
+        else:
+            status = "主機有，Excel 沒有"
+            summary["host_only"] += 1
+        row = excel_row or actual_row or {}
+        cross_rows.append({"status": status, "hostname": row.get("hostname", ""), "name": row.get("name", ""), "excel": excel_row or {}, "actual": actual_row or {}})
+    return {"latest": latest, "previous": previous, "summary": summary, "excel_rows": excel_rows[:500], "cross_rows": cross_rows[:500]}
+
+
+def account_excel_workbench() -> dict[str, Any]:
+    try:
+        latest = _latest_account_excel_batch()
+        rows = _account_excel_rows(latest["run_id"], limit=200) if latest else []
+        batches = list(get_collection("account_excel_batches").find({}, {"_id": 0}).sort("created_at", -1).limit(20))
+        diff = account_excel_diff_view()
+    except Exception:
+        latest = None
+        rows = []
+        batches = []
+        diff = {
+            "latest": None,
+            "previous": None,
+            "summary": {"excel_added": 0, "excel_removed": 0, "excel_changed": 0, "excel_unchanged": 0, "excel_only": 0, "host_only": 0, "matched": 0},
+            "excel_rows": [],
+            "cross_rows": [],
+        }
+    return {"latest": latest, "rows": rows, "batches": batches, "diff": diff}
+
+
+def export_account_excel_diff_csv() -> str:
+    diff = account_excel_diff_view()
+    output = io.StringIO()
+    fields = ["status", "hostname", "name", "source"]
+    writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")
+    writer.writeheader()
+    for row in diff["cross_rows"]:
+        writer.writerow({"status": row["status"], "hostname": row["hostname"], "name": row["name"], "source": "excel_vs_host"})
     return output.getvalue()
 
 

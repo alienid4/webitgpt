@@ -1,0 +1,66 @@
+---
+- name: Install nmon for performance collection
+  hosts: nmon_targets
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Install EPEL on RedHat family when available
+      ansible.builtin.package:
+        name: epel-release
+        state: present
+      when: ansible_os_family == "RedHat"
+      ignore_errors: true
+
+    - name: Install nmon package
+      ansible.builtin.package:
+        name: nmon
+        state: present
+
+    - name: Verify nmon command
+      ansible.builtin.command: nmon -V
+      register: nmon_version
+      changed_when: false
+
+    - name: Create IBM nmon raw output directory
+      ansible.builtin.file:
+        path: /var/log/nmon
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install IBM nmon daily collector script
+      ansible.builtin.copy:
+        dest: /usr/local/sbin/webitgpt_nmon_collect.sh
+        owner: root
+        group: root
+        mode: "0755"
+        content: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          out_dir="/var/log/nmon"
+          mkdir -p "${out_dir}"
+
+          nmon_bin="$(command -v nmon)"
+          if pgrep -f "${nmon_bin} .* -x" >/dev/null 2>&1; then
+            exit 0
+          fi
+
+          cd "${out_dir}"
+          "${nmon_bin}" -x -m "${out_dir}"
+
+    - name: Schedule IBM nmon daily capacity profile
+      ansible.builtin.copy:
+        dest: /etc/cron.d/webitgpt-nmon
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          # IBM nmon daily raw capture for webitgpt.
+          # IBM -x is equivalent to -ft -s 900 -c 96: 24 hours, one snapshot every 15 minutes.
+          05 00 * * * root /usr/local/sbin/webitgpt_nmon_collect.sh >> /var/log/nmon/webitgpt_nmon_collect.log 2>&1
+
+    - name: Show nmon version
+      ansible.builtin.debug:
+        var: nmon_version.stdout
