@@ -36,13 +36,62 @@ EOS_WARN_DAYS = 365
 EOS_WATCH_DAYS = 730
 
 OS_EOS_CATALOG = [
-    {"key": "rhel_9", "label": "Red Hat Enterprise Linux 9", "patterns": ["red hat enterprise linux 9", "rhel 9"], "eos": "2032-05-31", "source": "Red Hat lifecycle reference"},
-    {"key": "rocky_9", "label": "Rocky Linux 9", "patterns": ["rocky linux 9", "rocky 9"], "eos": "2032-05-31", "source": "Rocky Linux release lifecycle reference"},
-    {"key": "debian_13", "label": "Debian 13", "patterns": ["debian 13", "trixie"], "eos": "2030-06-30", "source": "Debian release lifecycle reference"},
-    {"key": "debian_12", "label": "Debian 12", "patterns": ["debian 12", "bookworm"], "eos": "2028-06-30", "source": "Debian release lifecycle reference"},
-    {"key": "windows_server_2019", "label": "Windows Server 2019", "patterns": ["windows server 2019"], "eos": "2029-01-09", "source": "Microsoft lifecycle reference"},
-    {"key": "windows_server_2022", "label": "Windows Server 2022", "patterns": ["windows server 2022"], "eos": "2031-10-14", "source": "Microsoft lifecycle reference"},
-    {"key": "centos_7", "label": "CentOS 7", "patterns": ["centos 7"], "eos": "2024-06-30", "source": "CentOS lifecycle reference"},
+    {
+        "key": "rhel_9",
+        "label": "Red Hat Enterprise Linux 9",
+        "patterns": ["red hat enterprise linux 9", "rhel 9"],
+        "eos": "2032-05-31",
+        "source": "Red Hat lifecycle reference",
+        "source_url": "https://access.redhat.com/support/policy/updates/errata",
+    },
+    {
+        "key": "rocky_9",
+        "label": "Rocky Linux 9",
+        "patterns": ["rocky linux 9", "rocky 9"],
+        "eos": "2032-05-31",
+        "source": "Rocky Linux release lifecycle reference",
+        "source_url": "https://docs.rockylinux.org/release_notes/",
+    },
+    {
+        "key": "debian_13",
+        "label": "Debian 13",
+        "patterns": ["debian 13", "trixie"],
+        "eos": "2030-06-30",
+        "source": "Debian release lifecycle reference",
+        "source_url": "https://www.debian.org/releases/trixie/",
+    },
+    {
+        "key": "debian_12",
+        "label": "Debian 12",
+        "patterns": ["debian 12", "bookworm"],
+        "eos": "2028-06-30",
+        "source": "Debian release lifecycle reference",
+        "source_url": "https://wiki.debian.org/LTS",
+    },
+    {
+        "key": "windows_server_2019",
+        "label": "Windows Server 2019",
+        "patterns": ["windows server 2019"],
+        "eos": "2029-01-09",
+        "source": "Microsoft lifecycle reference",
+        "source_url": "https://learn.microsoft.com/en-us/lifecycle/products/windows-server-2019",
+    },
+    {
+        "key": "windows_server_2022",
+        "label": "Windows Server 2022",
+        "patterns": ["windows server 2022"],
+        "eos": "2031-10-14",
+        "source": "Microsoft lifecycle reference",
+        "source_url": "https://learn.microsoft.com/en-us/lifecycle/products/windows-server-2022",
+    },
+    {
+        "key": "centos_7",
+        "label": "CentOS 7",
+        "patterns": ["centos 7"],
+        "eos": "2024-06-30",
+        "source": "CentOS lifecycle reference",
+        "source_url": "https://www.centos.org/centos-linux-eol/",
+    },
 ]
 
 DIAGNOSTIC_ASPECTS = [
@@ -1210,7 +1259,17 @@ def _parse_iso_date(value: str) -> datetime:
 def _match_os_eos(os_text: str) -> dict[str, Any]:
     normalized = (os_text or "").lower()
     if not normalized or normalized == "-":
-        return {"os_label": "-", "eos_date": None, "days_left": None, "status": "unknown", "status_label": "未判斷", "source": "CMDB 未填 OS 版本"}
+        return {
+            "os_label": "-",
+            "eos_date": None,
+            "days_left": None,
+            "months_left": None,
+            "status": "unknown",
+            "status_label": "未判斷",
+            "source": "CMDB 未填 OS 版本",
+            "source_url": "",
+            "action": "補上實際 OS 版本後再判斷 EOS。",
+        }
     for item in OS_EOS_CATALOG:
         if any(pattern in normalized for pattern in item["patterns"]):
             eos_date = _parse_iso_date(item["eos"])
@@ -1228,11 +1287,34 @@ def _match_os_eos(os_text: str) -> dict[str, Any]:
                 "os_label": item["label"],
                 "eos_date": eos_date.strftime("%Y-%m-%d"),
                 "days_left": days_left,
+                "months_left": round(days_left / 30.4, 1),
                 "status": status,
                 "status_label": label,
                 "source": item["source"],
+                "source_url": item.get("source_url", ""),
+                "action": _eos_action(status),
             }
-    return {"os_label": os_text, "eos_date": None, "days_left": None, "status": "unknown", "status_label": "需補 EOS", "source": "未命中內建 EOS 參考表，請由系統管理補規則"}
+    return {
+        "os_label": os_text,
+        "eos_date": None,
+        "days_left": None,
+        "months_left": None,
+        "status": "unknown",
+        "status_label": "需補 EOS",
+        "source": "未命中內建 EOS 參考表，請由系統管理補規則",
+        "source_url": "",
+        "action": "在系統管理補公司核准的 EOS 日期，或修正 CMDB OS 名稱。",
+    }
+
+
+def _eos_action(status: str) -> str:
+    if status == "expired":
+        return "已過支援期限，列入優先升級或隔離評估。"
+    if status == "warning":
+        return "一年內到期，排入升級時程與預算確認。"
+    if status == "watch":
+        return "兩年內到期，列入年度汰換或升級規劃。"
+    return "仍在支援，維持例行盤點。"
 
 
 def _build_os_lifecycle_report(hosts: list[dict[str, Any]], filters: dict[str, Any]) -> dict[str, Any]:
@@ -1265,10 +1347,13 @@ def _build_os_lifecycle_report(hosts: list[dict[str, Any]], filters: dict[str, A
     nearest = next((row for row in rows if row["eos_date"]), None)
     summary["risk_total"] = summary["expired"] + summary["within_12_months"]
     summary["nearest_label"] = f"{nearest['hostname']} / {nearest['eos_date']}" if nearest else "-"
+    display_rows = [row for row in rows if row["status"] in {"expired", "warning", "watch", "unknown"}][:10]
+    if not display_rows:
+        display_rows = rows[:10]
     return {
         "summary": summary,
         "rows": rows[:100],
-        "top_risks": [row for row in rows if row["status"] in {"expired", "warning", "watch", "unknown"}][:10],
+        "top_risks": display_rows,
         "catalog_source": "內建 EOS 參考表；正式環境建議由系統管理維護公司核准日期。",
     }
 

@@ -125,7 +125,7 @@
 <section class="panel" id="nmon-eos-risk">
   <div class="section-title compact-title">
     <h2>EOS / 作業系統生命週期</h2>
-    <span class="text-muted-sm">主管關心：哪些 OS 已到期或一年內到期。</span>
+    <span class="text-muted-sm">主管關心：哪些 OS 已到期、即將到期，或缺少公司核准的 EOS 規則。</span>
   </div>
   <div class="summary-grid nmon-risk-strip">
     <a class="metric" href="#nmon-eos-details"><strong>{{ report.os_lifecycle.summary.expired }}</strong><span>已過 EOS</span></a>
@@ -134,26 +134,32 @@
     <a class="metric" href="#nmon-eos-details"><strong>{{ report.os_lifecycle.summary.unknown }}</strong><span>需補規則</span></a>
     <a class="metric" href="#nmon-eos-details"><strong>{{ report.os_lifecycle.summary.nearest_label }}</strong><span>最近 EOS</span></a>
   </div>
-  <table class="data-table nmon-exec-table">
-    <thead><tr><th>主機</th><th>系統</th><th>OS</th><th>EOS</th><th>狀態</th></tr></thead>
+  <table class="data-table nmon-exec-table" id="nmon-eos-details">
+    <thead><tr><th>主機</th><th>系統</th><th>OS</th><th>EOS</th><th>剩餘</th><th>狀態</th><th>建議</th></tr></thead>
     <tbody>
       {% for row in report.os_lifecycle.top_risks %}
       <tr>
         <td><strong>{{ row.hostname }}</strong></td>
         <td>{{ row.system_name }}</td>
-        <td>{{ row.os }}</td>
-        <td>{{ row.eos_date or "-" }}</td>
+        <td>{{ row.os_label or row.os }}</td>
+        <td>
+          {{ row.eos_date or "-" }}
+          {% if row.source_url %}<br><a class="text-muted-sm" href="{{ row.source_url }}" target="_blank" rel="noopener">來源</a>{% endif %}
+        </td>
+        <td>{% if row.months_left is not none %}約 {{ row.months_left }} 個月{% else %}-{% endif %}</td>
         <td>
           {% if row.status == "expired" %}<span class="badge-error">{{ row.status_label }}</span>
           {% elif row.status in ["warning", "watch", "unknown"] %}<span class="badge-warn">{{ row.status_label }}</span>
           {% else %}<span class="badge-ok">{{ row.status_label }}</span>{% endif %}
         </td>
+        <td>{{ row.action }}</td>
       </tr>
       {% else %}
-      <tr><td colspan="5" class="no-data">目前沒有一年內 EOS 或需補規則的主機。</td></tr>
+      <tr><td colspan="7" class="no-data">目前沒有 EOS 資料，請先在 CMDB 補 OS 版本。</td></tr>
       {% endfor %}
     </tbody>
   </table>
+  <p class="text-muted-sm">{{ report.os_lifecycle.catalog_source }}</p>
 </section>
 
 <section class="panel" id="nmon-risk-list">

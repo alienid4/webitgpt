@@ -493,6 +493,10 @@ def test_nmon_monthly_report_has_real_report_surfaces():
         "效能月報技術明細",
         "主管只看四個數字",
         "風險追蹤清單",
+        "EOS / 作業系統生命週期",
+        "剩餘",
+        "公司核准的 EOS 規則",
+        "report.os_lifecycle.catalog_source",
         "技術檢視摘要",
         "主機效能排名",
         "採樣明細",
@@ -540,6 +544,9 @@ def test_nmon_monthly_report_has_real_report_surfaces():
     assert "_matches_nmon_filters" in service
     assert "_build_nmon_architecture_summary" in service
     assert "_build_nmon_risk_rows" in service
+    assert "_build_os_lifecycle_report" in service
+    assert "source_url" in service
+    assert "_eos_action" in service
     assert ".nmon-director-grid" in css
     assert ".nmon-exec-grid" in css
     assert ".nmon-exec-card" in css
