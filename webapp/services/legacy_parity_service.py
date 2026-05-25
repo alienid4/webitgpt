@@ -32,6 +32,18 @@ OPENING_DEFAULT_SYSTEM = "巡檢系統主機"
 OPENING_ALL_SYSTEMS_VALUE = "__all__"
 FILESYSTEM_WARN_PCT = 75
 FILESYSTEM_FAIL_PCT = 95
+EOS_WARN_DAYS = 365
+EOS_WATCH_DAYS = 730
+
+OS_EOS_CATALOG = [
+    {"key": "rhel_9", "label": "Red Hat Enterprise Linux 9", "patterns": ["red hat enterprise linux 9", "rhel 9"], "eos": "2032-05-31", "source": "Red Hat lifecycle reference"},
+    {"key": "rocky_9", "label": "Rocky Linux 9", "patterns": ["rocky linux 9", "rocky 9"], "eos": "2032-05-31", "source": "Rocky Linux release lifecycle reference"},
+    {"key": "debian_13", "label": "Debian 13", "patterns": ["debian 13", "trixie"], "eos": "2030-06-30", "source": "Debian release lifecycle reference"},
+    {"key": "debian_12", "label": "Debian 12", "patterns": ["debian 12", "bookworm"], "eos": "2028-06-30", "source": "Debian release lifecycle reference"},
+    {"key": "windows_server_2019", "label": "Windows Server 2019", "patterns": ["windows server 2019"], "eos": "2029-01-09", "source": "Microsoft lifecycle reference"},
+    {"key": "windows_server_2022", "label": "Windows Server 2022", "patterns": ["windows server 2022"], "eos": "2031-10-14", "source": "Microsoft lifecycle reference"},
+    {"key": "centos_7", "label": "CentOS 7", "patterns": ["centos 7"], "eos": "2024-06-30", "source": "CentOS lifecycle reference"},
+]
 
 DIAGNOSTIC_ASPECTS = [
     ("connectivity", "連線狀態"),
@@ -1000,6 +1012,7 @@ def collect_nmon_sample(user: str = "system") -> dict[str, Any]:
         mem = float(lines[0]) if lines and lines[0] else None
         disk = float(lines[1]) if len(lines) > 1 and lines[1] else None
         cpu = _local_cpu_pct()
+        network_kbps = _local_network_kbps()
         doc = {
             "asset_seq": host.get("asset_seq"),
             "hostname": host.get("hostname"),
@@ -1007,6 +1020,7 @@ def collect_nmon_sample(user: str = "system") -> dict[str, Any]:
             "cpu_pct": cpu,
             "mem_pct": mem,
             "disk_pct": disk,
+            "network_kbps": network_kbps,
             "load_avg": Path("/proc/loadavg").read_text(encoding="utf-8").split()[0] if Path("/proc/loadavg").exists() else "",
             "created_by": user,
             "error": err if rc != 0 else "",
@@ -1014,6 +1028,34 @@ def collect_nmon_sample(user: str = "system") -> dict[str, Any]:
         get_collection("nmon_data").insert_one({**doc})
         docs.append(doc)
     return {"status": "ok", "count": len(docs), "items": docs}
+
+
+def _read_network_bytes() -> int | None:
+    try:
+        total = 0
+        for line in Path("/proc/net/dev").read_text(encoding="utf-8").splitlines()[2:]:
+            if ":" not in line:
+                continue
+            name, payload = line.split(":", 1)
+            if name.strip() == "lo":
+                continue
+            fields = payload.split()
+            if len(fields) >= 16:
+                total += int(fields[0]) + int(fields[8])
+        return total
+    except Exception:
+        return None
+
+
+def _local_network_kbps() -> float | None:
+    first = _read_network_bytes()
+    if first is None:
+        return None
+    time.sleep(0.2)
+    second = _read_network_bytes()
+    if second is None or second < first:
+        return None
+    return round((second - first) / 1024 / 0.2, 2)
 
 
 def _read_cpu_ticks() -> tuple[int, int] | None:
@@ -1153,6 +1195,84 @@ def _matches_nmon_filters(row: dict[str, Any], host_meta: dict[str, Any], filter
     return True
 
 
+def _host_os_text(host: dict[str, Any]) -> str:
+    for key in ["os", "os_version", "operating_system", "platform_version", "host_type"]:
+        value = host.get(key)
+        if value not in {None, ""}:
+            return str(value).strip()
+    return "-"
+
+
+def _parse_iso_date(value: str) -> datetime:
+    return datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+
+
+def _match_os_eos(os_text: str) -> dict[str, Any]:
+    normalized = (os_text or "").lower()
+    if not normalized or normalized == "-":
+        return {"os_label": "-", "eos_date": None, "days_left": None, "status": "unknown", "status_label": "未判斷", "source": "CMDB 未填 OS 版本"}
+    for item in OS_EOS_CATALOG:
+        if any(pattern in normalized for pattern in item["patterns"]):
+            eos_date = _parse_iso_date(item["eos"])
+            today = _now().replace(hour=0, minute=0, second=0, microsecond=0)
+            days_left = (eos_date - today).days
+            if days_left < 0:
+                status, label = "expired", "已過 EOS"
+            elif days_left <= EOS_WARN_DAYS:
+                status, label = "warning", "一年內 EOS"
+            elif days_left <= EOS_WATCH_DAYS:
+                status, label = "watch", "兩年內 EOS"
+            else:
+                status, label = "ok", "仍在支援"
+            return {
+                "os_label": item["label"],
+                "eos_date": eos_date.strftime("%Y-%m-%d"),
+                "days_left": days_left,
+                "status": status,
+                "status_label": label,
+                "source": item["source"],
+            }
+    return {"os_label": os_text, "eos_date": None, "days_left": None, "status": "unknown", "status_label": "需補 EOS", "source": "未命中內建 EOS 參考表，請由系統管理補規則"}
+
+
+def _build_os_lifecycle_report(hosts: list[dict[str, Any]], filters: dict[str, Any]) -> dict[str, Any]:
+    rows = []
+    for host in hosts:
+        if not _matches_nmon_filters({}, host, filters):
+            continue
+        eos = _match_os_eos(_host_os_text(host))
+        rows.append(
+            {
+                "hostname": host.get("hostname") or host.get("asset_seq") or "-",
+                "asset_seq": host.get("asset_seq") or "",
+                "system_name": _system_name(host),
+                "environment": host.get("environment") or "-",
+                "dc": host.get("dc") or "-",
+                "os": _host_os_text(host),
+                **eos,
+            }
+        )
+    priority = {"expired": 0, "warning": 1, "watch": 2, "unknown": 3, "ok": 4}
+    rows = sorted(rows, key=lambda row: (priority.get(row["status"], 9), row["days_left"] if row["days_left"] is not None else 999999, row["hostname"]))
+    summary = {
+        "total": len(rows),
+        "expired": sum(1 for row in rows if row["status"] == "expired"),
+        "within_12_months": sum(1 for row in rows if row["status"] == "warning"),
+        "within_24_months": sum(1 for row in rows if row["status"] == "watch"),
+        "unknown": sum(1 for row in rows if row["status"] == "unknown"),
+        "ok": sum(1 for row in rows if row["status"] == "ok"),
+    }
+    nearest = next((row for row in rows if row["eos_date"]), None)
+    summary["risk_total"] = summary["expired"] + summary["within_12_months"]
+    summary["nearest_label"] = f"{nearest['hostname']} / {nearest['eos_date']}" if nearest else "-"
+    return {
+        "summary": summary,
+        "rows": rows[:100],
+        "top_risks": [row for row in rows if row["status"] in {"expired", "warning", "watch", "unknown"}][:10],
+        "catalog_source": "內建 EOS 參考表；正式環境建議由系統管理維護公司核准日期。",
+    }
+
+
 def _pressure_score(row: dict[str, Any]) -> float:
     return _max([row.get("cpu_pct"), row.get("mem_pct"), row.get("disk_pct")])
 
@@ -1179,6 +1299,177 @@ def _build_nmon_heatmap(series: list[dict[str, Any]], period: str) -> list[dict[
             state = "error" if pressure >= 90 else "warn" if pressure >= 75 else "ok"
             cells.append({"label": label, "pressure": pressure, "state": state})
         result.append({"host": item.get("host"), "score": item.get("health_score"), "cells": cells[-31:]})
+    return result
+
+
+def _build_nmon_trend_chart(timeline: list[dict[str, Any]]) -> dict[str, Any]:
+    width = 720
+    height = 220
+    padding_x = 36
+    padding_y = 24
+    plot_w = width - padding_x * 2
+    plot_h = height - padding_y * 2
+    if not timeline:
+        return {
+            "width": width,
+            "height": height,
+            "cpu_path": "",
+            "mem_path": "",
+            "disk_path": "",
+            "points": [],
+            "labels": [],
+            "y_ticks": [],
+            "x_axis_label": "時間",
+            "y_axis_label": "使用率 (%)",
+        }
+
+    count = max(len(timeline) - 1, 1)
+
+    def point(index: int, value: Any) -> tuple[float, float]:
+        pct = max(0.0, min(100.0, float(value or 0)))
+        x = padding_x + (plot_w * index / count)
+        y = padding_y + plot_h - (plot_h * pct / 100.0)
+        return round(x, 1), round(y, 1)
+
+    def path(field: str) -> str:
+        return " ".join(f"{x},{y}" for x, y in (point(i, item.get(field)) for i, item in enumerate(timeline)))
+
+    points = []
+    for index, item in enumerate(timeline):
+        x, _ = point(index, 0)
+        points.append(
+            {
+                "label": item.get("label"),
+                "x": x,
+                "cpu": item.get("avg_cpu", 0),
+                "mem": item.get("avg_mem", 0),
+                "disk": item.get("avg_disk", 0),
+                "samples": item.get("samples", 0),
+            }
+        )
+
+    return {
+        "width": width,
+        "height": height,
+        "cpu_path": path("avg_cpu"),
+        "mem_path": path("avg_mem"),
+        "disk_path": path("avg_disk"),
+        "points": points,
+        "labels": points[-8:],
+        "y_ticks": [
+            {"label": "100%", "x": 6, "y": padding_y + 6},
+            {"label": "50%", "x": 14, "y": padding_y + plot_h / 2 + 6},
+            {"label": "0%", "x": 22, "y": padding_y + plot_h + 4},
+        ],
+        "x_axis_label": "時間",
+        "y_axis_label": "使用率 (%)",
+    }
+
+
+def _nmon_chart_value(row: dict[str, Any], field: str) -> Any:
+    if field == "network_kbps":
+        values = [
+            row.get("network_kbps"),
+            row.get("net_kbps"),
+            row.get("net_total_kbps"),
+        ]
+        if any(value not in {None, ""} for value in values):
+            return next(value for value in values if value not in {None, ""})
+        read_kbps = row.get("net_read_kbps")
+        write_kbps = row.get("net_write_kbps")
+        if read_kbps not in {None, ""} or write_kbps not in {None, ""}:
+            return float(read_kbps or 0) + float(write_kbps or 0)
+        return None
+    return row.get(field)
+
+
+def _build_nmon_metric_chart(items: list[dict[str, Any]], field: str, value_label: str) -> dict[str, Any]:
+    width = 640
+    height = 220
+    padding_x = 32
+    padding_y = 24
+    plot_w = width - padding_x * 2
+    plot_h = height - padding_y * 2
+    values = []
+    for row in items:
+        value = _nmon_chart_value(row, field)
+        if value in {None, ""}:
+            continue
+        try:
+            values.append((row.get("sampled_at"), round(float(value), 2)))
+        except (TypeError, ValueError):
+            continue
+    values = values[-96:]
+    axis_unit = "KB/s" if field == "network_kbps" else "%"
+    if not values:
+        return {
+            "width": width,
+            "height": height,
+            "path": "",
+            "points": [],
+            "max": None,
+            "min": None,
+            "avg": None,
+            "last": None,
+            "value_label": value_label,
+            "axis_unit": axis_unit,
+            "x_axis_label": "時間",
+            "y_axis_label": f"{value_label} ({axis_unit})",
+            "y_ticks": [],
+        }
+
+    max_value = max(100.0 if field != "network_kbps" else 1.0, max(value for _, value in values))
+    count = max(len(values) - 1, 1)
+
+    points = []
+    path_parts = []
+    for index, (sampled_at, value) in enumerate(values):
+        x = padding_x + (plot_w * index / count)
+        y = padding_y + plot_h - (plot_h * max(0.0, value) / max_value)
+        label = sampled_at.strftime("%H:%M") if hasattr(sampled_at, "strftime") else "-"
+        point = {"x": round(x, 1), "y": round(y, 1), "value": value, "label": label}
+        points.append(point)
+        path_parts.append(f"{point['x']},{point['y']}")
+
+    return {
+        "width": width,
+        "height": height,
+        "path": " ".join(path_parts),
+        "points": points,
+        "max": round(max(value for _, value in values), 1),
+        "min": round(min(value for _, value in values), 1),
+        "avg": round(sum(value for _, value in values) / len(values), 1),
+        "last": points[-1],
+        "value_label": value_label,
+        "axis_unit": axis_unit,
+        "x_axis_label": "時間",
+        "y_axis_label": f"{value_label} ({axis_unit})",
+        "y_ticks": [
+            {"label": f"{round(max_value, 1)}{axis_unit}", "x": 4, "y": padding_y + 6},
+            {"label": f"{round(max_value / 2, 1)}{axis_unit}", "x": 4, "y": padding_y + plot_h / 2 + 6},
+            {"label": f"0{axis_unit}", "x": 16, "y": padding_y + plot_h + 4},
+        ],
+    }
+
+
+def _build_nmon_host_charts(series: list[dict[str, Any]], period: str) -> list[dict[str, Any]]:
+    suffix = {"day": "日內時序", "week": "週內時序", "month": "月內時序"}.get(period, "時序")
+    result = []
+    for item in series[:12]:
+        samples = item.get("items_all", [])
+        host = item.get("host") or "-"
+        result.append(
+            {
+                "host": host,
+                "system_name": item.get("system_name") or "-",
+                "charts": [
+                    {"title": f"{host} · CPU 使用率 · {suffix}", "unit": "%", "data": _build_nmon_metric_chart(samples, "cpu_pct", "CPU")},
+                    {"title": f"{host} · 記憶體使用率 · {suffix}", "unit": "%", "data": _build_nmon_metric_chart(samples, "mem_pct", "RAM")},
+                    {"title": f"{host} · 磁碟最忙 (%busy) · {suffix}", "unit": "%", "data": _build_nmon_metric_chart(samples, "disk_pct", "Disk")},
+                    {"title": f"{host} · 網路吞吐 · {suffix}", "unit": "KB/s", "data": _build_nmon_metric_chart(samples, "network_kbps", "Network")},
+                ],
+            }
+        )
     return result
 
 
@@ -1315,7 +1606,8 @@ def nmon_report(period: str = "day", filters: Any = None) -> dict[str, Any]:
     filters = filters or {}
     since, until, month_label = _nmon_period_range(period, filters)
     host_lookup = _host_lookup()
-    filter_options = _nmon_filter_options(_hosts())
+    all_hosts = _hosts()
+    filter_options = _nmon_filter_options(all_hosts)
     rows = list(get_collection("nmon_data").find({"sampled_at": {"$gte": since, "$lt": until}}, {"_id": 0}).sort("sampled_at", 1).limit(20000))
     filtered_rows = []
     for row in rows:
@@ -1384,9 +1676,10 @@ def nmon_report(period: str = "day", filters: Any = None) -> dict[str, Any]:
         }
         for key, items in sorted(buckets.items())
     ]
+    trend_chart = _build_nmon_trend_chart(timeline)
     summary = {
         "hosts": len(by_host),
-        "managed_hosts": len(filter_options["systems"]) and len(_hosts()) or 0,
+        "managed_hosts": len(filter_options["systems"]) and len(all_hosts) or 0,
         "avg_cpu": _avg([row.get("cpu_pct") for row in rows]),
         "avg_mem": _avg([row.get("mem_pct") for row in rows]),
         "avg_disk": _avg([row.get("disk_pct") for row in rows]),
@@ -1401,6 +1694,8 @@ def nmon_report(period: str = "day", filters: Any = None) -> dict[str, Any]:
     risk_rows = _build_nmon_risk_rows(series)
     top_pressure = series[:5]
     heatmap = _build_nmon_heatmap(series, period)
+    host_charts = _build_nmon_host_charts(series, period)
+    os_lifecycle = _build_os_lifecycle_report(all_hosts, filters)
     return {
         "period": period,
         "period_label": {"day": "日報", "week": "週報", "month": "月報"}[period],
@@ -1417,6 +1712,9 @@ def nmon_report(period: str = "day", filters: Any = None) -> dict[str, Any]:
         "heatmap": heatmap,
         "series": series,
         "timeline": timeline,
+        "trend_chart": trend_chart,
+        "host_charts": host_charts,
+        "os_lifecycle": os_lifecycle,
         "rows": rows[-300:],
         "raw_pipeline": nmon_raw_pipeline_status(),
         "generated_at": _now(),

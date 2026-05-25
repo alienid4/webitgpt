@@ -7,6 +7,7 @@
     <a class="admin-side-link active" href="{{ url_for('api_superadmin.superadmin_page') }}">功能開關</a>
     <a class="admin-side-link" href="{{ url_for('api_superadmin.users_page') }}">使用者與權限</a>
     <a class="admin-side-link" href="{{ url_for('api_superadmin.tokens_page') }}">API Token</a>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.token_costs_page') }}">Token 成本</a>
     <a class="admin-side-link" href="{{ url_for('api_superadmin.settings_page') }}">系統設定</a>
     <a class="admin-side-link" href="{{ url_for('api_superadmin.logs_page') }}">日誌檢視</a>
     <a class="admin-side-link" href="{{ url_for('api_superadmin.jobs_page') }}">工作排程</a>
@@ -45,6 +46,8 @@
         <a class="metric" href="#feature-flags"><strong>{{ console.metrics.inventory_runs }}</strong><span>盤點批次</span></a>
         <a class="metric" href="{{ url_for('api_reports.dependencies_page') }}"><strong>{{ console.metrics.ipam_reports }}</strong><span>IPAM 報告</span></a>
         <a class="metric" href="{{ url_for('api_superadmin.patches_page') }}"><strong>{{ console.metrics.patch_backups }}</strong><span>Patch 備份</span></a>
+        <a class="metric" href="{{ url_for('api_superadmin.token_costs_page') }}"><strong>{{ console.metrics.ai_tokens }}</strong><span>本月 AI Token</span></a>
+        <a class="metric" href="{{ url_for('api_superadmin.token_costs_page') }}"><strong>${{ "%.2f"|format(console.metrics.ai_cost_usd) }}</strong><span>本月 AI 費用</span></a>
       </div>
     </section>
 

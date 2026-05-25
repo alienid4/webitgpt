@@ -2,6 +2,21 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WEBITGPT_INSTALL_MODE="${WEBITGPT_INSTALL_MODE:-auto}"
+
+case "$WEBITGPT_INSTALL_MODE" in
+  auto)
+    WEBITGPT_NONINTERACTIVE="${WEBITGPT_NONINTERACTIVE:-1}"
+    WEBITGPT_SUPERADMIN_PASSWORD="${WEBITGPT_SUPERADMIN_PASSWORD:-1qaz@WSX}"
+    ;;
+  user)
+    WEBITGPT_NONINTERACTIVE="${WEBITGPT_NONINTERACTIVE:-0}"
+    ;;
+  *)
+    echo "Invalid WEBITGPT_INSTALL_MODE: $WEBITGPT_INSTALL_MODE. Use auto or user." >&2
+    exit 2
+    ;;
+esac
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Please run as root: sudo bash INSTALL.sh"
@@ -68,6 +83,7 @@ echo "============================================================"
 echo " webitgpt offline one-key installer"
 echo "============================================================"
 echo "This installer is for a clean target host. It does not import lab/test data."
+echo "Install mode: $WEBITGPT_INSTALL_MODE"
 echo
 
 if [ "${WEBITGPT_NONINTERACTIVE:-0}" = "1" ]; then

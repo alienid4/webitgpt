@@ -258,6 +258,33 @@ def test_inventory_history_diff_and_topology_contracts_exist():
     assert "系統關聯圓圖" in dependencies_page
     assert "手動關聯管理" in dependencies_page
     assert "relation_save_page" in read("webapp/routes/api_dependencies.py")
+
+
+def test_ai_token_cost_visibility_contract_exists():
+    reports_route = read("webapp/routes/api_reports.py")
+    superadmin_route = read("webapp/routes/api_superadmin.py")
+    token_service = read("webapp/services/token_cost_service.py")
+    token_page = read("webapp/templates/token_costs.html")
+    executive = read("webapp/templates/executive.html")
+    superadmin = read("webapp/templates/superadmin.html")
+    css = read("webapp/static/css/cathay.css")
+    dependencies_page = read("webapp/templates/dependencies.html")
+    ui_tools = read("webapp/static/js/ui_tools.js")
+    dependency_service = read("webapp/services/dependency_service.py")
+
+    assert "token_cost_report" in reports_route
+    assert '"token_cost": token_cost_report()' in reports_route
+    assert '"/superadmin/token-costs"' in superadmin_route
+    assert '"/api/superadmin/token-costs"' in superadmin_route
+    assert '"/api/superadmin/token-usage"' in superadmin_route
+    assert "ai_token_usage" in token_service
+    assert "estimate_cost_usd" in token_service
+    assert "Token 成本" in token_page
+    assert "每日 Token 與費用" in token_page
+    assert "最花 Token 的動作" in token_page
+    assert "價格估算表" in token_page
+    assert "本月 AI Token" in executive
+    assert "Token 成本" in superadmin
     assert "topology-node-radial-center" in css
     assert "topology-node-focus-muted" in css
     assert "topology-edge-focus-muted" in css
@@ -458,10 +485,11 @@ def test_nmon_monthly_report_has_real_report_surfaces():
     css = read("webapp/static/css/cathay.css")
 
     for text in [
-        "架構部數據摘要",
-        "架構檢視四個數字",
+        "效能月報主管摘要",
+        "效能月報技術明細",
+        "主管只看四個數字",
         "風險追蹤清單",
-        "可選處理方式",
+        "技術檢視摘要",
         "主機效能排名",
         "採樣明細",
         "趨勢時間軸",
@@ -471,11 +499,15 @@ def test_nmon_monthly_report_has_real_report_surfaces():
         "CPU 尖峰",
         "記憶體尖峰",
         "磁碟尖峰",
+        "CPU / RAM / Disk 趨勢圖",
+        "NMON 分析常看的三條線",
+        "Disk 平均",
     ]:
         assert text in template
     assert "nmon_report_csv_page" in routes
     assert "nmon_monthly_plan_api" in routes
     assert "nmon_deploy_api" in routes
+    assert 'view in {"executive", "technical"}' in routes
     assert "/api/nmon/deploy" in template
     assert "安裝缺少 NMON" in template
     assert "IBM NMON 採樣口徑" in template
@@ -490,6 +522,14 @@ def test_nmon_monthly_report_has_real_report_surfaces():
     assert "install_nmon.yml" in read("webapp/services/inspection_service.py")
     assert "cpu_pct" in service
     assert "timeline" in service
+    assert "trend_chart" in service
+    assert "_build_nmon_trend_chart" in service
+    assert "_local_network_kbps" in service
+    assert "_read_network_bytes" in service
+    assert '"network_kbps": network_kbps' in service
+    assert "x_axis_label" in service
+    assert "y_axis_label" in service
+    assert "y_ticks" in service
     assert "heatmap" in service
     assert "_p95" in service
     assert "_build_nmon_heatmap" in service
@@ -497,7 +537,16 @@ def test_nmon_monthly_report_has_real_report_surfaces():
     assert "_build_nmon_architecture_summary" in service
     assert "_build_nmon_risk_rows" in service
     assert ".nmon-director-grid" in css
+    assert ".nmon-exec-grid" in css
+    assert ".nmon-exec-card" in css
     assert ".nmon-timeline" in css
+    assert ".nmon-line-chart" in css
+    assert ".nmon-line-cpu" in css
+    assert ".nmon-line-mem" in css
+    assert ".nmon-line-disk" in css
+    assert ".nmon-line-network" in css
+    assert ".nmon-y-axis-label" in css
+    assert ".nmon-x-axis-label" in css
     assert ".nmon-heatmap" in css
 
 
@@ -508,13 +557,16 @@ def test_nmon_raw_pipeline_contracts_are_exposed():
     raw_service = read("webapp/services/nmon_raw_service.py")
     debug_service = read("webapp/services/debug_bundle_service.py")
     dev_console = read("webapp/templates/dev_console.html")
+    assert 'section == "NET"' in raw_service
+    assert '"network_kbps": sample.get("network_kbps")' in raw_service
 
     for text in [
         "效能月報",
         "NMON raw file pipeline",
         "匯入 raw file",
         "Pipeline JSON",
-        "架構部數據摘要",
+        "主管摘要",
+        "技術明細",
         "採樣明細",
     ]:
         assert text in template

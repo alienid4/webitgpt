@@ -16,6 +16,7 @@ from webapp.services.feature_flags import DEFAULT_FLAGS
 from webapp.services.housekeeping_service import disk_status
 from webapp.services.mongo_service import get_db
 from webapp.services.nmon_raw_service import nmon_raw_pipeline_status
+from webapp.services.token_cost_service import token_cost_report
 
 
 MODULE_CATEGORY_LABELS = {
@@ -111,6 +112,16 @@ MODULE_IMPACT = {
 
 
 RECENT_PATCH_RELEASES = [
+    {
+        "version": "1.0.2.99",
+        "date": "2026-05-23 00:20 +08:00",
+        "patch_id": "offline-install-noninteractive",
+        "changes": [
+            "補強完整離線包非互動安裝模式，避免自動部署卡在密碼輸入。",
+            "支援 WEBITGPT_NONINTERACTIVE 與 WEBITGPT_SUPERADMIN_PASSWORD，讓固定安裝指令可完成部署。",
+            "保留 Phase 只讀模式，受監控主機寫入動作仍由 phase_readonly_mode 封鎖。",
+        ],
+    },
     {
         "version": "1.0.2.97",
         "date": "2026-05-22 08:35 +08:00",
@@ -374,6 +385,7 @@ def admin_console_overview() -> dict[str, Any]:
     latest_logs = operation_logs(8)
     settings_count = db_count("settings")
     timer_text = job_schedule().get("timers", "")
+    token_cost = token_cost_report()
     return {
         "health": health,
         "metrics": {
@@ -385,11 +397,14 @@ def admin_console_overview() -> dict[str, Any]:
             "inventory_runs": db_count("inventory_runs"),
             "ipam_reports": db_count("network_scan_reports"),
             "patch_backups": len(patch_inventory().get("patches", [])),
+            "ai_tokens": token_cost["summary"].get("total_tokens", 0),
+            "ai_cost_usd": token_cost["summary"].get("estimated_cost_usd", 0),
         },
         "modules": [
             {"title": "功能開關", "desc": "依大模組啟用或關閉尚未開發完成的功能。", "endpoint": "api_superadmin.superadmin_page", "status": "可操作"},
             {"title": "使用者與權限", "desc": "建立帳號、鎖定、重設密碼與角色管理。", "endpoint": "api_superadmin.users_page", "status": "可操作"},
             {"title": "API Token", "desc": "核發對外 API 與 MCP 用 token。", "endpoint": "api_superadmin.tokens_page", "status": "可操作"},
+            {"title": "Token 成本", "desc": "追蹤本月 AI/API token、估算費用與最花 token 的動作。", "endpoint": "api_superadmin.token_costs_page", "status": f"${token_cost['summary'].get('estimated_cost_usd', 0)}"},
             {"title": "設定管理", "desc": "檢視 Mongo 設定與系統執行參數。", "endpoint": "api_superadmin.settings_page", "status": f"{settings_count} 筆設定"},
             {"title": "日誌檢視", "desc": "檢視 error、access、IPAM 排程日誌。", "endpoint": "api_superadmin.logs_page", "status": "可匯出"},
             {"title": "系統日誌例外", "desc": "管理開門檢查系統日誌白名單，避免已確認無害訊息每天亮橘燈。", "endpoint": "api_superadmin.log_exceptions_page", "status": "可管理"},

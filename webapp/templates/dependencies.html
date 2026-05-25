@@ -163,7 +163,13 @@
     <form class="filter-bar" method="get" action="{{ url_for('api_dependencies.dependencies_fullscreen_page') if fullscreen else url_for('api_reports.dependencies_page') }}" data-topology-filter>
       {% if topology.view == "core_impact" %}
       <input type="hidden" name="view" value="core_impact">
-      <input name="center" value="{{ request.args.get('center', '') }}" list="topology-system-options" placeholder="搜尋系統名稱 / 核心 / 主機">
+      <select name="center" data-auto-submit>
+        <option value="">選擇核心 / 系統</option>
+        {% for system in systems or [] %}
+        <option value="{{ system.system_id }}" {% if request.args.get('center', '') in [system.system_id, system.display_name] %}selected{% endif %}>{{ system.display_name }} / {{ system.system_id }}</option>
+        {% endfor %}
+      </select>
+      <input name="failed_node" value="{{ failed_node }}" list="topology-system-options" placeholder="模擬維護：輸入系統 / 主機 / IP">
       <datalist id="topology-system-options">
         {% for system in systems or [] %}
         <option value="{{ system.system_id }}">{{ system.display_name }}</option>
@@ -175,7 +181,6 @@
         <option value="2" {% if request.args.get('depth', '2')|int == 2 %}selected{% endif %}>二跳影響</option>
         <option value="3" {% if request.args.get('depth', '2')|int == 3 %}selected{% endif %}>三跳影響</option>
       </select>
-      <input name="failed_node" value="{{ failed_node }}" placeholder="模擬維護：輸入系統 / 主機 / IP">
       <label class="toggle-label"><input type="checkbox" name="focus_impact" value="1" {% if focus_impact %}checked{% endif %} data-auto-submit>只看直接影響</label>
       <button type="submit">套用</button>
       {% if fullscreen %}
@@ -194,7 +199,12 @@
         <option value="host" {% if topology.view == "host" %}selected{% endif %}>主機視圖</option>
         <option value="ip" {% if topology.view == "ip" %}selected{% endif %}>IP 視圖</option>
       </select>
-      <input name="center" value="{{ request.args.get('center', '') }}" list="topology-system-options" placeholder="選系統 / 輸入系統名稱">
+      <select name="center" data-auto-submit>
+        <option value="">選擇系統 / 主機視角</option>
+        {% for system in systems or [] %}
+        <option value="{{ system.system_id }}" {% if request.args.get('center', '') in [system.system_id, system.display_name] %}selected{% endif %}>{{ system.display_name }} / {{ system.system_id }}</option>
+        {% endfor %}
+      </select>
       <datalist id="topology-system-options">
         {% for system in systems or [] %}
         <option value="{{ system.system_id }}">{{ system.display_name }}</option>
@@ -414,9 +424,6 @@
       {% endfor %}
     </tbody>
   </table>
-</section>
-{% endif %}
-{% if fullscreen %}
 </section>
 {% endif %}
 {% endblock %}

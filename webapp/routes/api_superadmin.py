@@ -42,6 +42,7 @@ from webapp.services.system_service import (
     save_dev_upload,
     settings_overview,
 )
+from webapp.services.token_cost_service import record_usage, token_cost_report
 
 bp = Blueprint("api_superadmin", __name__)
 
@@ -202,6 +203,37 @@ def ai_update_page():
     audit_log_service.append("ai.settings.update", current_user()["username"], {"provider": settings.get("provider"), "enabled": settings.get("enabled")})
     flash("AI provider settings saved")
     return redirect(url_for("api_superadmin.ai_page"))
+
+
+@bp.get("/superadmin/token-costs")
+@require_role("superadmin")
+def token_costs_page():
+    return render_template("token_costs.html", report=token_cost_report(request.args.get("month") or None))
+
+
+@bp.get("/api/superadmin/token-costs")
+@require_role("superadmin")
+def token_costs_api():
+    return jsonify(token_cost_report(request.args.get("month") or None))
+
+
+@bp.post("/api/superadmin/token-usage")
+@require_role("superadmin")
+def token_usage_create_api():
+    payload = request.get_json(force=True, silent=True) or {}
+    doc = record_usage(
+        action=payload.get("action", "manual_test"),
+        model=payload.get("model", "default"),
+        provider=payload.get("provider", "OpenAI"),
+        input_tokens=int(payload.get("input_tokens") or 0),
+        output_tokens=int(payload.get("output_tokens") or 0),
+        actor=current_user()["username"],
+        metadata={"source": "manual_api"},
+    )
+    audit_log_service.append("ai_token_usage.create", current_user()["username"], {"action": doc.get("action"), "total_tokens": doc.get("total_tokens")})
+    if hasattr(doc.get("occurred_at"), "isoformat"):
+        doc["occurred_at"] = doc["occurred_at"].isoformat()
+    return jsonify(doc)
 
 
 @bp.get("/superadmin/validation")

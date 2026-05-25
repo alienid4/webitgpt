@@ -71,6 +71,8 @@ def deep_diagnostic_history_api(asset_seq: str):
 @require_feature("perf")
 def nmon_page():
     period = request.args.get("period", "month")
+    view = request.args.get("view", "executive")
+    view = view if view in {"executive", "technical"} else "executive"
     filters = {
         "month": request.args.get("month", ""),
         "system": request.args.get("system", ""),
@@ -78,7 +80,7 @@ def nmon_page():
         "dc": request.args.get("dc", ""),
         "q": request.args.get("q", ""),
     }
-    return render_template("nmon.html", status=nmon_status(), report=nmon_report(period, filters))
+    return render_template("nmon.html", status=nmon_status(), report=nmon_report(period, filters), view=view)
 
 
 @bp.post("/nmon/raw-upload")

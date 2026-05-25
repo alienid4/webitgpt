@@ -12,6 +12,7 @@ from webapp.services.host_service import list_hosts
 from webapp.services.inventory_service import account_report_summary
 from webapp.services import dependency_service
 from webapp.services.dependency_service import topology
+from webapp.services.token_cost_service import token_cost_report
 
 bp = Blueprint("api_reports", __name__)
 
@@ -48,6 +49,7 @@ def _summary() -> dict:
         "by_dc": by_dc,
         "compliance": compliance,
         "accounts": account_report_summary(),
+        "token_cost": token_cost_report(),
     }
 
 
@@ -124,6 +126,8 @@ def reports_summary_csv():
     writer.writerow(["summary", "hosts_total", summary["hosts_total"]])
     writer.writerow(["summary", "open_findings", summary["compliance"].get("open_findings", 0)])
     writer.writerow(["summary", "rules_total", summary["compliance"].get("rules_total", 0)])
+    writer.writerow(["ai_token", "month_total_tokens", summary["token_cost"]["summary"].get("total_tokens", 0)])
+    writer.writerow(["ai_token", "month_estimated_cost_usd", summary["token_cost"]["summary"].get("estimated_cost_usd", 0)])
     account_summary = summary["accounts"]["summary"]
     writer.writerow(["accounts", "total", account_summary.get("total", 0)])
     writer.writerow(["accounts", "abnormal", account_summary.get("abnormal", 0)])

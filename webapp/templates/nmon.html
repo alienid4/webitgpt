@@ -1,26 +1,38 @@
 {% extends "base.html" %}
 {% block title %}效能月報 - webitgpt{% endblock %}
 {% block content %}
-<section class="panel report-hero">
+<section class="panel report-hero nmon-hero">
   <div>
     <p class="eyebrow">NMON PERFORMANCE</p>
-    <h1>效能月報</h1>
-    <p class="muted">提供 NMON raw file 匯入、既有採樣、日 / 週 / 月趨勢、主機熱區與架構檢視摘要。</p>
+    <h1>{% if view == "technical" %}效能月報技術明細{% else %}效能月報主管摘要{% endif %}</h1>
+    <p class="muted">
+      {% if view == "technical" %}
+      給維運與開發人員檢查 NMON raw file、採樣明細、主機排行、安裝覆蓋率與 API 輸出。
+      {% else %}
+      給主管快速判斷本月效能與容量風險，只保留決策需要的數字、影響與可選作法。
+      {% endif %}
+    </p>
   </div>
   <div class="actions">
-    <form method="post" action="{{ url_for('api_operations.nmon_sample_page') }}" data-submit-status data-submit-message="正在執行 nmon 採樣，請稍候。">
+    <a class="btn {% if view == 'executive' %}primary{% endif %}" href="{{ url_for('api_operations.nmon_page', view='executive', period=report.period, month=report.filters.month, system=report.filters.system, environment=report.filters.environment, dc=report.filters.dc, q=report.filters.q) }}">主管摘要</a>
+    <a class="btn {% if view == 'technical' %}primary{% endif %}" href="{{ url_for('api_operations.nmon_page', view='technical', period=report.period, month=report.filters.month, system=report.filters.system, environment=report.filters.environment, dc=report.filters.dc, q=report.filters.q) }}">技術明細</a>
+    {% if view == "technical" %}
+    <form method="post" action="{{ url_for('api_operations.nmon_sample_page') }}" data-submit-status data-submit-message="正在採集 NMON 等效樣本，請稍候。">
+      <input type="hidden" name="period" value="{{ report.period }}">
       <button class="btn primary" type="submit">立即採樣</button>
     </form>
-    <button class="btn" type="button" data-busy-text="產生中" data-submit-message="正在產生 nmon 部署計畫，請稍候。" data-api-post="/api/nmon/deploy-plan" data-payload='{"limit":20}'>部署計畫</button>
-    <button class="btn btn-fix" type="button" data-busy-text="派送中" data-submit-message="正在用 Ansible 安裝缺少的 nmon，請稍候。" data-api-post="/api/nmon/deploy" data-payload='{"limit":100}'>安裝缺少 NMON</button>
+    <button class="btn" type="button" data-busy-text="規劃中" data-submit-message="正在產生 NMON 部署計畫。" data-api-post="/api/nmon/deploy-plan" data-payload='{"limit":20}'>部署計畫</button>
+    <button class="btn btn-fix" type="button" data-busy-text="安裝中" data-submit-message="正在透過 Ansible 安裝缺少的 NMON。" data-api-post="/api/nmon/deploy" data-payload='{"limit":100}'>安裝缺少 NMON</button>
     <a class="btn" href="{{ url_for('api_operations.nmon_report_csv_page', period=report.period, month=report.filters.month, system=report.filters.system, environment=report.filters.environment, dc=report.filters.dc, q=report.filters.q) }}">CSV</a>
     <a class="btn" href="{{ url_for('api_operations.nmon_report_api', period=report.period, month=report.filters.month, system=report.filters.system, environment=report.filters.environment, dc=report.filters.dc, q=report.filters.q) }}">JSON</a>
+    {% endif %}
   </div>
   <div class="submit-status" hidden aria-live="polite"></div>
 </section>
 
 <section class="panel">
   <form class="nmon-filter-grid" method="get" action="{{ url_for('api_operations.nmon_page') }}">
+    <input type="hidden" name="view" value="{{ view }}">
     <input type="hidden" name="period" value="{{ report.period }}">
     <label>月份
       <input class="input-field" type="month" name="month" value="{{ report.filters.month or report.month }}">
@@ -54,29 +66,206 @@
     </label>
     <div class="actions">
       <button class="btn primary" type="submit">套用</button>
-      <a class="btn" href="{{ url_for('api_operations.nmon_page', period=report.period) }}">清除</a>
+      <a class="btn" href="{{ url_for('api_operations.nmon_page', view=view, period=report.period) }}">清除</a>
     </div>
   </form>
   <div class="tab-row">
-    <a class="tab-btn {% if report.period == 'day' %}active{% endif %}" href="{{ url_for('api_operations.nmon_page', period='day', month=report.filters.month, system=report.filters.system, environment=report.filters.environment, dc=report.filters.dc, q=report.filters.q) }}">日報</a>
-    <a class="tab-btn {% if report.period == 'week' %}active{% endif %}" href="{{ url_for('api_operations.nmon_page', period='week', month=report.filters.month, system=report.filters.system, environment=report.filters.environment, dc=report.filters.dc, q=report.filters.q) }}">週報</a>
-    <a class="tab-btn {% if report.period == 'month' %}active{% endif %}" href="{{ url_for('api_operations.nmon_page', period='month', month=report.filters.month, system=report.filters.system, environment=report.filters.environment, dc=report.filters.dc, q=report.filters.q) }}">月報</a>
-  </div>
-  <div class="summary-grid">
-    <a class="metric" href="#nmon-details"><strong>{{ report.summary.hosts }}</strong><span>有資料主機</span></a>
-    <a class="metric" href="#nmon-details"><strong>{{ report.count }}</strong><span>採樣筆數</span></a>
-    <a class="metric" href="#nmon-rank"><strong>{{ report.summary.warn_samples }}</strong><span>警示樣本</span></a>
-    <a class="metric" href="#nmon-risk-list"><strong>{{ report.summary.tracked_hosts }}</strong><span>需追蹤主機</span></a>
-    <a class="metric" href="#nmon-heatmap"><strong>{{ report.summary.avg_coverage }}%</strong><span>平均採樣覆蓋</span></a>
-    <a class="metric" href="#nmon-hosts"><strong>{{ status.installed_count }}/{{ status.hosts_total }}</strong><span>NMON 已安裝 / 納管</span></a>
-    <a class="metric" href="#nmon-hosts"><strong>{{ status.missing_count }}</strong><span>缺少 NMON</span></a>
+    <a class="tab-btn {% if report.period == 'day' %}active{% endif %}" href="{{ url_for('api_operations.nmon_page', view=view, period='day', month=report.filters.month, system=report.filters.system, environment=report.filters.environment, dc=report.filters.dc, q=report.filters.q) }}">日報</a>
+    <a class="tab-btn {% if report.period == 'week' %}active{% endif %}" href="{{ url_for('api_operations.nmon_page', view=view, period='week', month=report.filters.month, system=report.filters.system, environment=report.filters.environment, dc=report.filters.dc, q=report.filters.q) }}">週報</a>
+    <a class="tab-btn {% if report.period == 'month' %}active{% endif %}" href="{{ url_for('api_operations.nmon_page', view=view, period='month', month=report.filters.month, system=report.filters.system, environment=report.filters.environment, dc=report.filters.dc, q=report.filters.q) }}">月報</a>
   </div>
 </section>
 
+{% if view == "executive" %}
+<section class="panel nmon-executive-summary">
+  <div class="section-title compact-title">
+    <h2>本月結論</h2>
+    <span class="{% if report.architecture.risk_label == '正常' %}badge-ok{% else %}badge-warn{% endif %}">{{ report.architecture.state }}</span>
+  </div>
+  <div class="nmon-exec-grid">
+    <article class="nmon-exec-card main">
+      <span>主管判讀</span>
+      <strong>{{ report.architecture.observation }}</strong>
+      <p>{{ report.architecture.impact }}</p>
+    </article>
+    <a class="nmon-exec-card" href="#nmon-risk-list"><span>需決策</span><strong>{{ report.architecture.decision_count }}</strong><p>需要管理者確認的容量或效能事項。</p></a>
+    <a class="nmon-exec-card" href="#nmon-risk-list"><span>立即處理</span><strong>{{ report.architecture.immediate_count }}</strong><p>已達高水位，建議本期處理。</p></a>
+    <a class="nmon-exec-card" href="#nmon-risk-list"><span>本月追蹤</span><strong>{{ report.architecture.followup_count }}</strong><p>尚未立即處理，但下期需觀察。</p></a>
+  </div>
+</section>
+
+<section class="nmon-director-grid">
+  <article class="panel">
+    <div class="section-title compact-title">
+      <h2>主管只看四個數字</h2>
+      <span class="text-muted-sm">圖上只放決策用數字，技術參數放到技術明細。</span>
+    </div>
+    <div class="summary-grid nmon-risk-strip">
+      <a class="metric" href="#nmon-rank"><strong>{{ report.summary.hosts }}</strong><span>有資料主機</span></a>
+      <a class="metric" href="#nmon-risk-list"><strong>{{ report.summary.tracked_hosts }}</strong><span>需追蹤主機</span></a>
+      <a class="metric" href="#nmon-risk-list"><strong>{{ report.summary.peak_disk }}%</strong><span>最高磁碟</span></a>
+      <a class="metric" href="#nmon-eos-risk"><strong>{{ report.os_lifecycle.summary.risk_total }}</strong><span>一年內 EOS</span></a>
+      <a class="metric" href="#nmon-heatmap"><strong>{{ report.summary.avg_coverage }}%</strong><span>資料覆蓋率</span></a>
+    </div>
+  </article>
+  <article class="panel">
+    <div class="section-title compact-title">
+      <h2>可選作法</h2>
+      <span class="text-muted-sm">系統只提出選項，不代替主管決策。</span>
+    </div>
+    <div class="nmon-exec-actions">
+      <div><strong>本期處理：</strong>{{ report.architecture.operation }}</div>
+      <div><strong>容量策略：</strong>{{ report.architecture.capacity }}</div>
+      <div><strong>成本觀察：</strong>{{ report.architecture.cost }}</div>
+      <div><strong>下期追蹤：</strong>{{ report.architecture.followup }}</div>
+    </div>
+  </article>
+</section>
+
+<section class="panel" id="nmon-eos-risk">
+  <div class="section-title compact-title">
+    <h2>EOS / 作業系統生命週期</h2>
+    <span class="text-muted-sm">主管關心：哪些 OS 已到期或一年內到期。</span>
+  </div>
+  <div class="summary-grid nmon-risk-strip">
+    <a class="metric" href="#nmon-eos-details"><strong>{{ report.os_lifecycle.summary.expired }}</strong><span>已過 EOS</span></a>
+    <a class="metric" href="#nmon-eos-details"><strong>{{ report.os_lifecycle.summary.within_12_months }}</strong><span>一年內 EOS</span></a>
+    <a class="metric" href="#nmon-eos-details"><strong>{{ report.os_lifecycle.summary.within_24_months }}</strong><span>兩年內 EOS</span></a>
+    <a class="metric" href="#nmon-eos-details"><strong>{{ report.os_lifecycle.summary.unknown }}</strong><span>需補規則</span></a>
+    <a class="metric" href="#nmon-eos-details"><strong>{{ report.os_lifecycle.summary.nearest_label }}</strong><span>最近 EOS</span></a>
+  </div>
+  <table class="data-table nmon-exec-table">
+    <thead><tr><th>主機</th><th>系統</th><th>OS</th><th>EOS</th><th>狀態</th></tr></thead>
+    <tbody>
+      {% for row in report.os_lifecycle.top_risks %}
+      <tr>
+        <td><strong>{{ row.hostname }}</strong></td>
+        <td>{{ row.system_name }}</td>
+        <td>{{ row.os }}</td>
+        <td>{{ row.eos_date or "-" }}</td>
+        <td>
+          {% if row.status == "expired" %}<span class="badge-error">{{ row.status_label }}</span>
+          {% elif row.status in ["warning", "watch", "unknown"] %}<span class="badge-warn">{{ row.status_label }}</span>
+          {% else %}<span class="badge-ok">{{ row.status_label }}</span>{% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="no-data">目前沒有一年內 EOS 或需補規則的主機。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel" id="nmon-risk-list">
+  <div class="section-title compact-title">
+    <h2>風險追蹤清單</h2>
+    <span class="text-muted-sm">只列需要主管知道的主機，正常樣本不放第一屏。</span>
+  </div>
+  <table class="data-table nmon-exec-table">
+    <thead><tr><th>優先</th><th>項目</th><th>主機 / 系統</th><th>證據</th><th>建議方向</th></tr></thead>
+    <tbody>
+      {% for row in report.risk_rows %}
+      <tr>
+        <td><span class="{% if row.priority == 'P1' %}badge-warn{% else %}badge-ok{% endif %}">{{ row.priority }}</span></td>
+        <td>{{ row.item }}</td>
+        <td><strong>{{ row.host }}</strong></td>
+        <td>{{ row.evidence }}</td>
+        <td>{{ row.option }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="no-data">目前沒有需要追蹤的效能風險。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="executive-chart-grid">
+  <article class="panel executive-chart-card">
+    <div class="chart-card-head"><h2>{{ report.period_label }}平均</h2><strong>{{ report.summary.avg_disk }}%</strong></div>
+    <div class="chart-bars">
+      <div class="chart-bar-row"><span>CPU</span><div class="bar"><span style="width: {{ report.summary.avg_cpu }}%"></span></div><b>{{ report.summary.avg_cpu }}%</b></div>
+      <div class="chart-bar-row"><span>記憶體</span><div class="bar"><span style="width: {{ report.summary.avg_mem }}%"></span></div><b>{{ report.summary.avg_mem }}%</b></div>
+      <div class="chart-bar-row"><span>磁碟</span><div class="bar warn"><span style="width: {{ report.summary.avg_disk }}%"></span></div><b>{{ report.summary.avg_disk }}%</b></div>
+    </div>
+  </article>
+  <article class="panel executive-chart-card">
+    <div class="chart-card-head"><h2>最高壓力</h2><strong>{{ report.summary.peak_disk }}%</strong></div>
+    <div class="chart-bars">
+      <div class="chart-bar-row"><span>CPU 尖峰</span><div class="bar"><span style="width: {{ report.summary.peak_cpu }}%"></span></div><b>{{ report.summary.peak_cpu }}%</b></div>
+      <div class="chart-bar-row"><span>記憶體尖峰</span><div class="bar"><span style="width: {{ report.summary.peak_mem }}%"></span></div><b>{{ report.summary.peak_mem }}%</b></div>
+      <div class="chart-bar-row"><span>磁碟尖峰</span><div class="bar warn"><span style="width: {{ report.summary.peak_disk }}%"></span></div><b>{{ report.summary.peak_disk }}%</b></div>
+    </div>
+  </article>
+  <article class="panel executive-chart-card wide">
+    <div class="chart-card-head">
+      <h2>趨勢時間軸</h2>
+      <span class="text-muted-sm">用來看壓力是否集中在某幾天。</span>
+    </div>
+    <div class="nmon-timeline">
+      {% for item in report.timeline %}
+      <div class="nmon-tick" title="{{ item.label }} / CPU {{ item.avg_cpu }}% / MEM {{ item.avg_mem }}% / DISK {{ item.avg_disk }}%">
+        <span style="height: {{ item.avg_disk if item.avg_disk > 4 else 4 }}%"></span>
+        <b>{{ item.label }}</b>
+      </div>
+      {% else %}
+      <div class="no-data">尚無趨勢資料，請先採樣或匯入 NMON raw file。</div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="panel" id="nmon-heatmap">
+  <div class="section-title compact-title">
+    <h2>主機熱區圖</h2>
+    <span class="text-muted-sm">顏色越深代表該主機越需要觀察。</span>
+  </div>
+  <div class="nmon-heatmap">
+    {% for host in report.heatmap %}
+    <div class="nmon-heatmap-row">
+      <strong>{{ host.host }}</strong>
+      <div class="nmon-heatmap-cells">
+        {% for cell in host.cells %}
+        <span class="nmon-cell {{ cell.state }}" title="{{ cell.label }} / 壓力 {{ cell.pressure }}%"></span>
+        {% else %}
+        <span class="text-muted-sm">無樣本</span>
+        {% endfor %}
+      </div>
+      <b>{{ host.score }}</b>
+    </div>
+    {% else %}
+    <div class="no-data">尚無熱區資料。</div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel" id="nmon-rank">
+  <h2>主機效能排名</h2>
+  <table class="data-table">
+    <thead><tr><th>系統 / 主機</th><th>狀態</th><th>資料覆蓋率</th><th>CPU Max</th><th>記憶體 Max</th><th>磁碟 Max</th><th>本期變化</th></tr></thead>
+    <tbody>
+      {% for row in report.series %}
+      <tr>
+        <td><strong>{{ row.host }}</strong><br><span class="text-muted-sm">{{ row.system_name }} / {{ row.environment }} / {{ row.dc }}</span></td>
+        <td>{% if row.warn_count == 0 %}<span class="badge-ok">正常</span>{% else %}<span class="badge-warn">需追蹤</span>{% endif %}</td>
+        <td>{{ row.coverage_pct }}%</td>
+        <td>{{ row.peak_cpu }}%</td>
+        <td>{{ row.peak_mem }}%</td>
+        <td>{{ row.peak_disk }}%</td>
+        <td>{{ "%+.1f"|format(row.disk_growth) }}%</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="no-data">尚無 nmon 採樣資料。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% if view == "technical" %}
 <section class="panel" id="nmon-ibm-profile">
   <div class="section-title compact-title">
     <h2>IBM NMON 採樣口徑</h2>
-    <span class="text-muted-sm">以 IBM nmon recording mode / capacity planning profile 為主，先產生 raw file，再匯入月報。</span>
+    <span class="text-muted-sm">技術頁保留採樣口徑，方便維運確認資料來源。</span>
   </div>
   <div class="summary-grid">
     <a class="metric" href="#nmon-hosts"><strong>{{ status.ibm_profile.record_command }}</strong><span>IBM profile</span></a>
@@ -86,7 +275,7 @@
   </div>
   <p class="text-muted-sm">
     等同命令：<span class="code-inline">{{ status.ibm_profile.equivalent_command }}</span>；
-    排程：每日 00:05 執行 <span class="code-inline">{{ status.ibm_profile.collector_script }}</span>，
+    排程：每日 00:05 執行 <span class="code-inline">{{ status.ibm_profile.collector_script }}</span>；
     設定檔 <span class="code-inline">{{ status.ibm_profile.cron_file }}</span>。
   </p>
 </section>
@@ -96,7 +285,7 @@
     <h2>NMON raw file pipeline</h2>
     <span class="text-muted-sm">{{ report.raw_pipeline.message }}</span>
   </div>
-  <form class="dev-upload-bar" method="post" action="{{ url_for('api_operations.nmon_raw_upload_page') }}" enctype="multipart/form-data" data-submit-status data-submit-message="正在匯入 .nmon raw file，請稍候。">
+  <form class="dev-upload-bar" method="post" action="{{ url_for('api_operations.nmon_raw_upload_page') }}" enctype="multipart/form-data" data-submit-status data-submit-message="正在匯入 .nmon raw file。">
     <input type="hidden" name="period" value="{{ report.period }}">
     <label class="btn">
       選擇 .nmon 檔
@@ -112,7 +301,7 @@
     <a class="metric" href="#nmon-raw-files"><strong>{{ report.raw_pipeline.status }}</strong><span>pipeline 狀態</span></a>
   </div>
   <table class="data-table" id="nmon-raw-files">
-    <thead><tr><th>匯入時間</th><th>檔名</th><th>主機</th><th>樣本</th><th>狀態</th><th>警告</th></tr></thead>
+    <thead><tr><th>匯入時間</th><th>檔名</th><th>主機</th><th>筆數</th><th>狀態</th><th>警告</th></tr></thead>
     <tbody>
       {% for item in report.raw_pipeline.latest_files %}
       <tr>
@@ -130,143 +319,143 @@
   </table>
 </section>
 
-<section class="nmon-director-grid">
-  <article class="panel nmon-decision-card warn">
-    <div class="nmon-decision-head">
-      <h2>架構部數據摘要</h2>
-      <span class="{% if report.architecture.risk_label == '正常' %}badge-ok{% else %}badge-warn{% endif %}">{{ report.architecture.state }}</span>
-    </div>
-    <div class="nmon-decision-line"><span>觀察</span><strong>{{ report.architecture.observation }}</strong></div>
-    <div class="nmon-decision-line"><span>依據</span><div>{{ report.architecture.reason }}</div></div>
-    <div class="nmon-decision-line"><span>影響</span><div>{{ report.architecture.impact }}</div></div>
-    <div class="nmon-decision-line"><span>可選處理</span><div>{{ report.architecture.options }}</div></div>
-  </article>
-
-  <article class="panel nmon-decision-card">
-    <div class="nmon-decision-head">
-      <h2>本期架構判讀</h2>
-      <span class="badge-ok">數據</span>
-    </div>
-    <div class="nmon-decision-line"><span>運行</span><div>{{ report.architecture.operation }}</div></div>
-    <div class="nmon-decision-line"><span>容量</span><div>{{ report.architecture.capacity }}</div></div>
-    <div class="nmon-decision-line"><span>回收</span><div>{{ report.architecture.cost }}</div></div>
-    <div class="nmon-decision-line"><span>追蹤</span><div>{{ report.architecture.followup }}</div></div>
-  </article>
-</section>
-
 <section class="panel">
   <div class="section-title compact-title">
-    <h2>架構檢視四個數字</h2>
-    <span class="text-muted-sm">統計格可點擊到對應明細。</span>
+    <h2>技術檢視摘要</h2>
+    <span class="text-muted-sm">維運用，保留採樣筆數、警示樣本與 NMON 覆蓋率。</span>
   </div>
-  <div class="summary-grid nmon-risk-strip">
-    <a class="metric" href="#nmon-risk-list"><strong>{{ report.architecture.decision_count }}</strong><span>待確認項</span></a>
-    <a class="metric" href="#nmon-risk-list"><strong>{{ report.architecture.immediate_count }}</strong><span>立即營運風險</span></a>
-    <a class="metric" href="#nmon-risk-list"><strong>{{ report.architecture.followup_count }}</strong><span>下期追蹤</span></a>
-    <a class="metric" href="#nmon-rank"><strong>{{ report.architecture.reclaim_count }}</strong><span>可回收觀察</span></a>
+  <div class="summary-grid">
+    <a class="metric" href="#nmon-details"><strong>{{ report.summary.hosts }}</strong><span>有資料主機</span></a>
+    <a class="metric" href="#nmon-details"><strong>{{ report.count }}</strong><span>採樣筆數</span></a>
+    <a class="metric" href="#nmon-risk-list"><strong>{{ report.summary.warn_samples }}</strong><span>警示樣本</span></a>
+    <a class="metric" href="#nmon-risk-list"><strong>{{ report.summary.tracked_hosts }}</strong><span>需追蹤主機</span></a>
+    <a class="metric" href="#nmon-heatmap"><strong>{{ report.summary.avg_coverage }}%</strong><span>平均採樣覆蓋</span></a>
+    <a class="metric" href="#nmon-hosts"><strong>{{ status.installed_count }}/{{ status.hosts_total }}</strong><span>NMON 已安裝 / 納管</span></a>
+    <a class="metric" href="#nmon-hosts"><strong>{{ status.missing_count }}</strong><span>缺少 NMON</span></a>
   </div>
 </section>
 
-<section class="nmon-director-grid">
-  <article class="panel" id="nmon-risk-list">
-    <div class="section-title compact-title">
-      <h2>風險追蹤清單</h2>
-      <span class="text-muted-sm">只列出需要確認的容量、尖峰或趨勢項目。</span>
+<section class="panel" id="nmon-resource-trends">
+  <div class="section-title compact-title">
+    <h2>CPU / RAM / Disk 趨勢圖</h2>
+    <span class="text-muted-sm">技術頁顯示 NMON 分析常看的三條線；主管頁只保留摘要，不顯示這張明細圖。</span>
+  </div>
+  <div class="nmon-line-chart" role="img" aria-label="CPU RAM Disk 趨勢圖">
+    {% if report.trend_chart.cpu_path %}
+    <svg viewBox="0 0 {{ report.trend_chart.width }} {{ report.trend_chart.height }}" preserveAspectRatio="none">
+      <line class="nmon-grid-line" x1="36" y1="24" x2="684" y2="24"></line>
+      <line class="nmon-grid-line" x1="36" y1="110" x2="684" y2="110"></line>
+      <line class="nmon-grid-line" x1="36" y1="196" x2="684" y2="196"></line>
+      {% for tick in report.trend_chart.y_ticks %}
+      <text class="nmon-y-tick" x="{{ tick.x }}" y="{{ tick.y }}">{{ tick.label }}</text>
+      {% endfor %}
+      <text class="nmon-y-axis-label" x="12" y="118">{{ report.trend_chart.y_axis_label }}</text>
+      <text class="nmon-x-axis-label" x="360" y="216">{{ report.trend_chart.x_axis_label }}</text>
+      <polyline class="nmon-line nmon-line-cpu" points="{{ report.trend_chart.cpu_path }}"></polyline>
+      <polyline class="nmon-line nmon-line-mem" points="{{ report.trend_chart.mem_path }}"></polyline>
+      <polyline class="nmon-line nmon-line-disk" points="{{ report.trend_chart.disk_path }}"></polyline>
+      {% for item in report.trend_chart.labels %}
+      <text class="nmon-x-label" x="{{ item.x }}" y="216">{{ item.label }}</text>
+      {% endfor %}
+    </svg>
+    <div class="nmon-chart-legend">
+      <span><i class="legend-cpu"></i>CPU 平均</span>
+      <span><i class="legend-mem"></i>RAM 平均</span>
+      <span><i class="legend-disk"></i>Disk 平均</span>
     </div>
-    <table class="data-table">
-      <thead><tr><th>優先</th><th>項目</th><th>主機 / 系統</th><th>證據</th><th>時間</th><th>狀態</th></tr></thead>
+    <table class="data-table nmon-chart-table">
+      <thead><tr><th>時間</th><th>CPU</th><th>RAM</th><th>Disk</th><th>樣本數</th></tr></thead>
       <tbody>
-        {% for row in report.risk_rows %}
+        {% for item in report.trend_chart.points|reverse %}
         <tr>
-          <td><span class="{% if row.priority == 'P1' %}badge-warn{% else %}badge-ok{% endif %}">{{ row.priority }}</span></td>
-          <td>{{ row.item }}</td>
-          <td><strong>{{ row.host }}</strong></td>
-          <td>{{ row.evidence }}</td>
-          <td>{{ row.horizon }}</td>
-          <td>{{ row.status }}</td>
+          <td>{{ item.label }}</td>
+          <td>{{ item.cpu }}%</td>
+          <td>{{ item.mem }}%</td>
+          <td>{{ item.disk }}%</td>
+          <td>{{ item.samples }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="6" class="no-data">目前沒有達到風險門檻的效能項目。</td></tr>
+        <tr><td colspan="5" class="no-data">尚無趨勢資料。</td></tr>
         {% endfor %}
       </tbody>
     </table>
-  </article>
-
-  <article class="panel">
-    <div class="section-title compact-title">
-      <h2>可選處理方式</h2>
-      <span class="text-muted-sm">提供處理方向，不代替主管決策。</span>
-    </div>
-    <table class="data-table">
-      <thead><tr><th>主機</th><th>項目</th><th>處理方向</th></tr></thead>
-      <tbody>
-        {% for row in report.risk_rows %}
-        <tr><td><strong>{{ row.host }}</strong></td><td>{{ row.item }}</td><td>{{ row.option }}</td></tr>
-        {% else %}
-        <tr><td colspan="3" class="no-data">沒有需要立即提出的處理方向。</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </article>
+    {% else %}
+    <div class="no-data">尚無 CPU / RAM / Disk 趨勢資料，請先採樣或匯入 NMON raw file。</div>
+    {% endif %}
+  </div>
 </section>
 
-<section class="executive-chart-grid">
-  <article class="panel executive-chart-card">
-    <div class="chart-card-head"><h2>{{ report.period_label }}平均</h2><strong>{{ report.summary.avg_cpu }}%</strong></div>
-    <div class="chart-bars">
-      <div class="chart-bar-row"><span>CPU</span><div class="bar"><span style="width: {{ report.summary.avg_cpu }}%"></span></div><b>{{ report.summary.avg_cpu }}%</b></div>
-      <div class="chart-bar-row"><span>記憶體</span><div class="bar"><span style="width: {{ report.summary.avg_mem }}%"></span></div><b>{{ report.summary.avg_mem }}%</b></div>
-      <div class="chart-bar-row"><span>磁碟</span><div class="bar"><span style="width: {{ report.summary.avg_disk }}%"></span></div><b>{{ report.summary.avg_disk }}%</b></div>
+<section class="panel" id="nmon-host-trend-panels">
+  <div class="section-title compact-title">
+    <h2>NMON 主機分析圖</h2>
+    <span class="text-muted-sm">依主機分開顯示 CPU、記憶體、磁碟與網路，接近舊版 NMON 分析畫面。</span>
+  </div>
+  {% for host in report.host_charts %}
+  <div class="nmon-host-chart-group">
+    <div class="nmon-host-chart-head">
+      <strong>{{ host.host }}</strong>
+      <span>{{ host.system_name }}</span>
     </div>
-  </article>
-  <article class="panel executive-chart-card">
-    <div class="chart-card-head"><h2>最高水位</h2><strong>{{ report.summary.peak_cpu }}%</strong></div>
-    <div class="chart-bars">
-      <div class="chart-bar-row"><span>CPU 尖峰</span><div class="bar warn"><span style="width: {{ report.summary.peak_cpu }}%"></span></div><b>{{ report.summary.peak_cpu }}%</b></div>
-      <div class="chart-bar-row"><span>記憶體尖峰</span><div class="bar warn"><span style="width: {{ report.summary.peak_mem }}%"></span></div><b>{{ report.summary.peak_mem }}%</b></div>
-      <div class="chart-bar-row"><span>磁碟尖峰</span><div class="bar warn"><span style="width: {{ report.summary.peak_disk }}%"></span></div><b>{{ report.summary.peak_disk }}%</b></div>
-    </div>
-  </article>
-  <article class="panel executive-chart-card wide">
-    <div class="chart-card-head">
-      <h2>趨勢時間軸</h2>
-      <span class="text-muted-sm">{{ report.since }} 起，產生時間 {{ report.generated_at }}</span>
-    </div>
-    <div class="nmon-timeline">
-      {% for item in report.timeline %}
-      <div class="nmon-tick" title="{{ item.label }} / CPU {{ item.avg_cpu }}% / MEM {{ item.avg_mem }}% / DISK {{ item.avg_disk }}%">
-        <span style="height: {{ item.avg_cpu if item.avg_cpu > 4 else 4 }}%"></span>
-        <b>{{ item.label }}</b>
-      </div>
-      {% else %}
-      <div class="no-data">尚無趨勢資料，請先採樣或匯入 nmon raw file。</div>
+    <div class="nmon-mini-chart-grid">
+      {% for chart in host.charts %}
+      <article class="nmon-mini-chart-card">
+        <div class="nmon-mini-chart-title">
+          <strong>{{ chart.title }}</strong>
+          {% if chart.data.max is not none %}
+          <span>目前 {{ chart.data.last.value }}{{ chart.unit }} / 平均 {{ chart.data.avg }}{{ chart.unit }} / 最高 {{ chart.data.max }}{{ chart.unit }}</span>
+          {% endif %}
+        </div>
+        {% if chart.data.path %}
+        <svg viewBox="0 0 {{ chart.data.width }} {{ chart.data.height }}" preserveAspectRatio="none" aria-label="{{ chart.title }}">
+          <line class="nmon-grid-line" x1="32" y1="24" x2="608" y2="24"></line>
+          <line class="nmon-grid-line" x1="32" y1="110" x2="608" y2="110"></line>
+          <line class="nmon-grid-line" x1="32" y1="196" x2="608" y2="196"></line>
+          {% for tick in chart.data.y_ticks %}
+          <text class="nmon-y-tick" x="{{ tick.x }}" y="{{ tick.y }}">{{ tick.label }}</text>
+          {% endfor %}
+          <text class="nmon-y-axis-label" x="12" y="118">{{ chart.data.y_axis_label }}</text>
+          <text class="nmon-x-axis-label" x="320" y="216">{{ chart.data.x_axis_label }}</text>
+          <polyline class="nmon-line nmon-line-{{ chart.data.value_label|lower }}" points="{{ chart.data.path }}"></polyline>
+          {% if chart.data.last %}
+          <circle class="nmon-point nmon-point-{{ chart.data.value_label|lower }}" cx="{{ chart.data.last.x }}" cy="{{ chart.data.last.y }}" r="5"></circle>
+          {% endif %}
+        </svg>
+        <div class="nmon-mini-chart-foot">最低 {{ chart.data.min }}{{ chart.unit }} / 最高 {{ chart.data.max }}{{ chart.unit }}</div>
+        {% else %}
+        <div class="nmon-mini-chart-empty">無資料<br><small>{{ chart.title }} 尚未採到可畫圖的數值</small></div>
+        {% endif %}
+      </article>
       {% endfor %}
     </div>
-  </article>
+  </div>
+  {% else %}
+  <div class="no-data">尚無主機趨勢資料，請先採樣或匯入 NMON raw file。</div>
+  {% endfor %}
 </section>
 
-<section class="panel" id="nmon-heatmap">
+<section class="panel" id="nmon-risk-list">
   <div class="section-title compact-title">
-    <h2>主機熱區圖</h2>
-    <span class="text-muted-sm">每格代表一段時間內 CPU / 記憶體 / 磁碟的最高壓力，綠色正常、橘色需觀察、紅色需處理。</span>
+    <h2>技術風險清單</h2>
+    <span class="text-muted-sm">保留證據、期限與處置方向。</span>
   </div>
-  <div class="nmon-heatmap">
-    {% for host in report.heatmap %}
-    <div class="nmon-heatmap-row">
-      <strong>{{ host.host }}</strong>
-      <div class="nmon-heatmap-cells">
-        {% for cell in host.cells %}
-        <span class="nmon-cell {{ cell.state }}" title="{{ cell.label }} / 壓力 {{ cell.pressure }}%"></span>
-        {% else %}
-        <span class="text-muted-sm">尚無分段資料</span>
-        {% endfor %}
-      </div>
-      <b>{{ host.score }}</b>
-    </div>
-    {% else %}
-    <div class="no-data">尚無熱區資料。</div>
-    {% endfor %}
-  </div>
+  <table class="data-table">
+    <thead><tr><th>優先</th><th>項目</th><th>主機 / 系統</th><th>證據</th><th>期限</th><th>狀態</th><th>建議</th></tr></thead>
+    <tbody>
+      {% for row in report.risk_rows %}
+      <tr>
+        <td><span class="{% if row.priority == 'P1' %}badge-warn{% else %}badge-ok{% endif %}">{{ row.priority }}</span></td>
+        <td>{{ row.item }}</td>
+        <td><strong>{{ row.host }}</strong></td>
+        <td>{{ row.evidence }}</td>
+        <td>{{ row.horizon }}</td>
+        <td>{{ row.status }}</td>
+        <td>{{ row.option }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="no-data">目前沒有需要追蹤的效能風險。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </section>
 
 <section class="panel" id="nmon-rank">
@@ -318,7 +507,7 @@
 <section class="panel" id="nmon-hosts">
   <div class="section-title compact-title">
     <h2>NMON 主機狀態</h2>
-    <span class="text-muted-sm">每台 Linux 主機都應安裝 nmon；缺少時可由 Ansible 派送安裝，並套用 IBM -x 每日 raw file 採樣。</span>
+    <span class="text-muted-sm">列出 Linux 主機是否已安裝 NMON；缺少時可由 Ansible 派送安裝，並建立 IBM -x raw file 採樣。</span>
   </div>
   <table class="data-table">
     <thead><tr><th>資產編號</th><th>主機名稱</th><th>平台</th><th>連線</th><th>安裝狀態</th><th>版本 / 訊息</th><th>IBM 採樣</th></tr></thead>
@@ -345,5 +534,6 @@
   </table>
   <pre class="detail" id="apiResult"></pre>
 </section>
+{% endif %}
 {% endblock %}
 {% block scripts %}<script src="{{ url_for('static', filename='js/admin_tools.js') }}"></script>{% endblock %}

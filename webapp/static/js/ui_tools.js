@@ -223,13 +223,12 @@ function setTopologyFullscreen(panel, enabled) {
 
 document.querySelectorAll("[data-topology-fullscreen-enter]").forEach((button) => {
   button.addEventListener("click", async () => {
-    const fallback = button.dataset.fullscreenUrl;
-    if (fallback) {
-      window.location.href = fallback;
-      return;
-    }
     const panel = document.querySelector("[data-topology-panel]");
     if (!panel) {
+      const fallback = button.dataset.fullscreenUrl;
+      if (fallback) {
+        window.location.href = fallback;
+      }
       return;
     }
     setTopologyFullscreen(panel, true);

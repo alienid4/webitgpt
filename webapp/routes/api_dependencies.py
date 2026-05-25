@@ -183,6 +183,7 @@ def topology_api():
             depth=int(request.args.get("depth", 2)),
             limit=int(request.args.get("limit", 200)),
             include_external=_include_external(),
+            include_unmanaged=_include_unmanaged(),
             failed_node=request.args.get("failed_node", ""),
             focus_impact=_focus_impact(),
         )

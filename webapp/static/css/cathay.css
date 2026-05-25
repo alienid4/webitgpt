@@ -307,6 +307,10 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
 .inline-form select { width: 180px; }
 .danger-zone { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--c4); }
 .flag-grid, .metric-grid, .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 12px 0 18px; }
+.token-cost-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.token-cost-summary > div { border: 1px solid var(--c4); border-radius: var(--radius-sm); padding: 12px; background: var(--bg2); }
+.token-cost-summary span { display: block; color: var(--c3); font-size: 12px; }
+.token-cost-summary strong { display: block; margin-top: 4px; font-family: "JetBrains Mono", monospace; font-size: 20px; color: var(--c1); }
 .flag { border: 1px solid var(--c4); border-radius: var(--radius-xs); padding: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--white); }
 .metric { border: 1px solid var(--c4); border-radius: var(--radius-sm); padding: 12px; background: var(--bg2); }
 .metric strong, .metric-value { display: block; font-family: "JetBrains Mono", monospace; font-size: 28px; overflow-wrap: anywhere; }
@@ -1239,6 +1243,296 @@ button.is-busy {
   font-weight: 800;
 }
 
+.nmon-hero .actions {
+  align-items: center;
+}
+
+.nmon-executive-summary {
+  border-left: 6px solid var(--g1);
+}
+
+.nmon-exec-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 2fr) repeat(3, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.nmon-exec-card {
+  display: block;
+  min-height: 128px;
+  padding: 18px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: var(--bg2);
+  color: var(--c1);
+  text-decoration: none;
+}
+
+.nmon-exec-card.main {
+  background: var(--g-light);
+  border-color: var(--g1);
+}
+
+.nmon-exec-card span {
+  display: block;
+  color: var(--c3);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.nmon-exec-card strong {
+  display: block;
+  margin: 8px 0;
+  font-size: 26px;
+  line-height: 1.35;
+}
+
+.nmon-exec-card:not(.main) strong {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 34px;
+}
+
+.nmon-exec-card p {
+  margin: 0;
+  color: var(--c2);
+}
+
+.nmon-exec-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.nmon-exec-actions > div {
+  padding: 10px 12px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-xs);
+  background: var(--bg2);
+}
+
+.nmon-exec-table td {
+  vertical-align: top;
+}
+
+.nmon-line-chart {
+  display: grid;
+  gap: 14px;
+}
+
+.nmon-line-chart svg {
+  width: 100%;
+  height: 300px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  overflow: visible;
+}
+
+.nmon-line-chart text {
+  fill: var(--c3);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+}
+
+.nmon-grid-line {
+  stroke: var(--c4);
+  stroke-width: 1;
+  stroke-dasharray: 5 5;
+}
+
+.nmon-line {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nmon-line-cpu {
+  stroke: var(--g1);
+}
+
+.nmon-line-mem {
+  stroke: var(--orange);
+}
+
+.nmon-line-disk {
+  stroke: var(--red);
+}
+
+.nmon-x-label {
+  text-anchor: middle;
+}
+
+.nmon-y-tick {
+  text-anchor: start;
+}
+
+.nmon-y-axis-label {
+  text-anchor: middle;
+  transform: rotate(-90deg);
+  transform-origin: 12px 118px;
+  font-weight: 800;
+}
+
+.nmon-x-axis-label {
+  text-anchor: middle;
+  font-weight: 800;
+}
+
+.nmon-chart-legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-weight: 800;
+}
+
+.nmon-chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nmon-chart-legend i {
+  width: 22px;
+  height: 4px;
+  display: inline-block;
+  border-radius: var(--radius-xs);
+}
+
+.legend-cpu {
+  background: var(--g1);
+}
+
+.legend-mem {
+  background: var(--orange);
+}
+
+.legend-disk {
+  background: var(--red);
+}
+
+.nmon-chart-table {
+  max-height: 260px;
+  overflow: auto;
+}
+
+.nmon-host-chart-group {
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-top: 12px;
+  background: var(--white);
+}
+
+.nmon-host-chart-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.nmon-host-chart-head strong {
+  font-size: 18px;
+}
+
+.nmon-host-chart-head span {
+  color: var(--c3);
+}
+
+.nmon-mini-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.nmon-mini-chart-card {
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  min-width: 0;
+  background: var(--bg);
+}
+
+.nmon-mini-chart-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.nmon-mini-chart-title strong {
+  overflow-wrap: anywhere;
+}
+
+.nmon-mini-chart-title span {
+  color: var(--c3);
+  font-size: 12px;
+  text-align: right;
+}
+
+.nmon-mini-chart-card svg,
+.nmon-mini-chart-empty {
+  width: 100%;
+  height: 220px;
+  border: 1px solid var(--c4);
+  background: var(--white);
+}
+
+.nmon-mini-chart-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  color: var(--c3);
+  font-size: 18px;
+  text-align: center;
+}
+
+.nmon-mini-chart-empty small {
+  max-width: 70%;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.nmon-mini-chart-foot {
+  color: var(--c3);
+  font-size: 12px;
+  margin-top: 6px;
+  text-align: right;
+}
+
+.nmon-line-ram {
+  stroke: var(--orange);
+}
+
+.nmon-line-network {
+  stroke: var(--g-text);
+}
+
+.nmon-point {
+  fill: var(--white);
+  stroke-width: 4;
+}
+
+.nmon-point-cpu {
+  stroke: var(--g1);
+}
+
+.nmon-point-mem,
+.nmon-point-ram {
+  stroke: var(--orange);
+}
+
+.nmon-point-disk {
+  stroke: var(--red);
+}
+
+.nmon-point-network {
+  stroke: var(--g-text);
+}
+
 .executive-chart-card {
   min-width: 0;
 }
@@ -2067,7 +2361,7 @@ button.is-busy {
 }
 
 .topology-node-focus-muted {
-  opacity: .2;
+  opacity: .08;
 }
 
 .topology-node-focus-muted text {
@@ -2079,7 +2373,7 @@ button.is-busy {
 }
 
 .topology-edge-focus-muted {
-  opacity: .16;
+  opacity: .08;
 }
 
 .topology-edge-focus-active {
