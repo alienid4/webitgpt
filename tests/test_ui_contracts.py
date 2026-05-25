@@ -301,6 +301,10 @@ def test_ai_token_cost_visibility_contract_exists():
     assert 'view=request.args.get("view", "core_impact")' in read("webapp/routes/api_reports.py")
     assert "impact_panel" in dependency_service
     assert "核心影響圖" in dependency_service
+    assert "def _resolve_topology_node_id" in dependency_service
+    assert 'value.startswith("core:")' in dependency_service
+    assert 'data.get("view") != "core_impact"' in dependency_service
+    assert "document.createElement(\"option\")" in ui_tools
     assert ".topology-impact-panel" in css
     assert "centerCanvas" in ui_tools
     assert "stage.scrollWidth - canvas.clientWidth" in ui_tools

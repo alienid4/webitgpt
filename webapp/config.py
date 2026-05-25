@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.3.6"
-PATCH_ID = "nmon-chart-axis-network"
-RELEASE_NOTE = "改善 NMON 效能月報圖表：補上 X/Y 軸說明、網路吞吐採樣與 raw NET 區段解析"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-26 09:20:00 +08:00")
+VERSION = "1.0.3.7"
+PATCH_ID = "topology-impact-validation-fix"
+RELEASE_NOTE = "修正核心系統影響圖：模擬維護支援中文名稱與核心格式、節點點選可套用、直接影響保留三欄版面"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-26 10:35:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

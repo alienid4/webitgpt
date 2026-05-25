@@ -1250,10 +1250,43 @@ def topology(view: str = "system", center: str = "", depth: int = 2, limit: int 
     return data
 
 
+def _resolve_topology_node_id(nodes: list[dict[str, Any]], raw_value: str) -> str:
+    value = (raw_value or "").strip()
+    if not value:
+        return ""
+    node_ids = {str(node.get("id")) for node in nodes}
+    if value in node_ids:
+        return value
+    if value.startswith("core:"):
+        core_label = value.split(":", 1)[1].strip().lower()
+        for node in nodes:
+            if str(node.get("id", "")).startswith("core:") and str(node.get("label") or "").strip().lower() == core_label:
+                return str(node.get("id"))
+    lowered = value.lower()
+    for node in nodes:
+        candidates = [
+            node.get("label"),
+            node.get("id"),
+            node.get("system_id"),
+            node.get("hostname"),
+            node.get("ip"),
+        ]
+        for candidate in candidates:
+            if candidate and str(candidate).strip().lower() == lowered:
+                return str(node.get("id"))
+    for node in nodes:
+        label = str(node.get("label") or "").lower()
+        node_id = str(node.get("id") or "").lower()
+        if lowered and (lowered in label or lowered in node_id):
+            return str(node.get("id"))
+    return value
+
+
 def _apply_failure_simulation(data: dict[str, Any], failed_node: str = "", max_depth: int = 2) -> None:
     failed_node = (failed_node or "").strip()
     nodes = data.get("nodes") or []
     edges = data.get("edges") or []
+    failed_node = _resolve_topology_node_id(nodes, failed_node)
     node_ids = {str(node.get("id")) for node in nodes}
     if not failed_node or failed_node not in node_ids:
         data.setdefault("meta", {})["simulation"] = {"enabled": False, "failed_node": failed_node}
@@ -1354,7 +1387,8 @@ def _filter_to_failure_scope(data: dict[str, Any]) -> None:
         for edge in data.get("edges", [])
         if str(edge.get("source")) in keep and str(edge.get("target")) in keep and edge.get("simulation_status") in {"affected", "related"}
     ]
-    data.setdefault("meta", {}).update(_layout(data["nodes"], data["edges"]))
+    if data.get("view") != "core_impact":
+        data.setdefault("meta", {}).update(_layout(data["nodes"], data["edges"]))
     data.setdefault("meta", {})["focus_node_count"] = len(data["nodes"])
     data.setdefault("meta", {})["focus_edge_count"] = len(data["edges"])
 
