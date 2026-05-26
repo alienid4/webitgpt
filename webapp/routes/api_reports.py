@@ -12,6 +12,7 @@ from webapp.services.host_service import list_hosts
 from webapp.services.inventory_service import account_report_summary
 from webapp.services import dependency_service
 from webapp.services.dependency_service import topology
+from webapp.services.quality_service import operations_data_quality
 from webapp.services.token_cost_service import token_cost_report
 
 bp = Blueprint("api_reports", __name__)
@@ -160,6 +161,24 @@ def reports_summary_csv():
     for item in summary["accounts"]["by_risk"]:
         writer.writerow(["accounts_by_risk", item["name"], item["count"]])
     return Response(output.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=webitgpt_summary.csv"})
+
+
+@bp.get("/api/reports/data-quality")
+@require_feature("summary")
+def data_quality_api():
+    return jsonify(operations_data_quality())
+
+
+@bp.get("/api/reports/data-quality.csv")
+@require_feature("summary")
+def data_quality_csv():
+    report = operations_data_quality()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["domain", "status", "count", "action"])
+    for item in report["checks"]:
+        writer.writerow([item["domain"], item["status"], item["count"], item["action"]])
+    return Response(output.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=webitgpt_data_quality.csv"})
 
 
 @bp.get("/dependencies")

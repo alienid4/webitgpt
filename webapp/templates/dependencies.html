@@ -332,6 +332,12 @@
         <div><dt>通知對象</dt><dd>{{ topology.meta.impact_panel.notification_count }} 組</dd></div>
       </dl>
       <h3>待通知對象</h3>
+      <div class="topology-trust-list">
+        <span>manual {{ topology.meta.impact_panel.trust_summary.manual }}</span>
+        <span>auto {{ topology.meta.impact_panel.trust_summary.auto }}</span>
+        <span>unknown {{ topology.meta.impact_panel.trust_summary.unknown }}</span>
+      </div>
+      <p class="text-muted-sm">{{ topology.meta.impact_panel.trust_note }}</p>
       <div class="topology-contact-list">
         {% for contact in topology.meta.impact_panel.notification_contacts[:4] %}
         <div>

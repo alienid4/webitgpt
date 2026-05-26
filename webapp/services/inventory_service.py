@@ -86,6 +86,15 @@ AP_ACCOUNT_COMPARE_FIELDS = [
     "remark",
 ]
 
+AP_ACCOUNT_RISK_LABELS = {
+    "missing_owner": "缺 owner",
+    "admin_without_pam": "高權限未納 PAM",
+    "admin_without_mfa": "高權限未啟用 MFA",
+    "inactive_or_locked": "停用或鎖定",
+    "shared_or_generic": "共用或通用帳號",
+    "dormant_180d": "超過 180 天未登入",
+}
+
 
 def _item_key(item: dict[str, Any]) -> str:
     return str(item.get("name") or item.get("user") or item.get("id") or "")
@@ -1112,13 +1121,34 @@ def _ap_risk(row: dict[str, Any]) -> str:
     risks = []
     privilege = str(row.get("privilege") or "").lower()
     status = str(row.get("status") or "").lower()
+    account = str(row.get("account") or "").lower()
     if not row.get("owner"):
         risks.append("missing_owner")
     if privilege in {"admin", "administrator", "root", "high", "高權限"} and not row.get("pam_managed"):
         risks.append("admin_without_pam")
+    if privilege in {"admin", "administrator", "root", "high", "高權限"} and not row.get("mfa_enabled"):
+        risks.append("admin_without_mfa")
     if status not in {"active", "enabled"}:
         risks.append("inactive_or_locked")
+    if any(token in account for token in ("share", "shared", "common", "generic", "test", "guest", "admin")):
+        risks.append("shared_or_generic")
+    last_login = str(row.get("last_login") or "").strip()
+    if last_login:
+        try:
+            parsed = datetime.fromisoformat(last_login.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            if (_now() - parsed).days >= 180:
+                risks.append("dormant_180d")
+        except ValueError:
+            pass
     return ",".join(risks) if risks else "ok"
+
+
+def _ap_risk_labels(value: str) -> str:
+    if value == "ok":
+        return "ok"
+    return "、".join(AP_ACCOUNT_RISK_LABELS.get(item, item) for item in str(value or "").split(",") if item) or "ok"
 
 
 def _ap_account_rows_from_upload(payload: bytes, filename: str) -> list[dict[str, str]]:
@@ -1174,10 +1204,12 @@ def import_ap_account_inventory(payload: bytes, filename: str, user: str = "syst
             "valid": all(item.get(field) for field in AP_ACCOUNT_REQUIRED_FIELDS),
             "key": key,
             "risk": "",
+            "risk_label": "",
             "created_at": now,
             "created_by": user,
         }
         doc["risk"] = _ap_risk(doc)
+        doc["risk_label"] = _ap_risk_labels(doc["risk"])
         normalized.append(doc)
 
     batch = {
@@ -1283,6 +1315,11 @@ def ap_account_report() -> dict[str, Any]:
             system["review"] += 1
         owner = row.get("owner") or "未填 owner"
         owners[owner] = owners.get(owner, 0) + 1
+    by_risk: dict[str, int] = {}
+    for row in rows:
+        for risk in str(row.get("risk") or "ok").split(","):
+            label = AP_ACCOUNT_RISK_LABELS.get(risk, risk) if risk != "ok" else "ok"
+            by_risk[label] = by_risk.get(label, 0) + 1
     return {
         "latest": latest,
         "rows": rows[:500],
@@ -1296,6 +1333,7 @@ def ap_account_report() -> dict[str, Any]:
         },
         "by_system": sorted(systems.values(), key=lambda item: (-item["review"], item["system_name"])),
         "by_owner": [{"owner": owner, "count": count} for owner, count in sorted(owners.items(), key=lambda item: (-item[1], item[0]))],
+        "by_risk": [{"risk": risk, "count": count} for risk, count in sorted(by_risk.items(), key=lambda item: (-item[1], item[0]))],
         "diff": ap_account_diff_view(),
     }
 
@@ -1314,6 +1352,7 @@ def ap_account_workbench() -> dict[str, Any]:
             "summary": {"systems": 0, "total": 0, "privileged": 0, "pam_managed": 0, "no_owner": 0, "review": 0},
             "by_system": [],
             "by_owner": [],
+            "by_risk": [],
             "diff": {"latest": None, "previous": None, "summary": {"added": 0, "removed": 0, "changed": 0, "unchanged": 0}, "rows": []},
         }
     return {**report, "latest": latest, "batches": batches}
@@ -1322,7 +1361,7 @@ def ap_account_workbench() -> dict[str, Any]:
 def export_ap_accounts_csv() -> str:
     report = ap_account_report()
     output = io.StringIO()
-    fields = [*AP_ACCOUNT_HEADERS, "risk", "valid"]
+    fields = [*AP_ACCOUNT_HEADERS, "risk", "risk_label", "valid"]
     writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")
     writer.writeheader()
     for row in report["rows"]:

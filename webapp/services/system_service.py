@@ -113,6 +113,60 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.23",
+        "date": "2026-05-26 22:10 +08:00",
+        "patch_id": "operations-quality-hardening",
+        "changes": [
+            "補齊維運安全門檻文件，安全修補、停用帳號與 rollback 仍需 phase_readonly_mode 與正式 approval。",
+            "整併 AP 帳號風險、資料品質、安裝驗證、UI 文案與拓撲可信度強化為可部署版本。",
+        ],
+    },
+    {
+        "version": "1.0.3.22",
+        "date": "2026-05-26 22:00 +08:00",
+        "patch_id": "topology-trust-source",
+        "changes": [
+            "核心影響圖新增 trust_summary 與 trust_note，標示 manual、auto、unknown 關係來源。",
+            "右側影響面板顯示可信度摘要，避免只看圖形卻不知道資料來源。",
+        ],
+    },
+    {
+        "version": "1.0.3.21",
+        "date": "2026-05-26 21:50 +08:00",
+        "patch_id": "ui-text-cleanup-map",
+        "changes": [
+            "新增 UI 文案整理基準，避免後續新功能繼續帶入亂碼或不清楚的操作語意。",
+            "AP 帳號風險語意使用可讀中文標籤。",
+        ],
+    },
+    {
+        "version": "1.0.3.20",
+        "date": "2026-05-26 21:40 +08:00",
+        "patch_id": "post-install-verification",
+        "changes": [
+            "新增 post_install_verify.sh，安裝後可檢查 health、ready、accounts、AP template、核心拓撲與資料品質 API。",
+            "驗證腳本支援 EXPECTED_VERSION，方便離線移植後確認版本一致。",
+        ],
+    },
+    {
+        "version": "1.0.3.19",
+        "date": "2026-05-26 21:30 +08:00",
+        "patch_id": "operations-data-quality",
+        "changes": [
+            "新增 operations data quality API，彙整 CMDB、AP 帳號與拓撲通知 owner 缺口。",
+            "新增資料品質 CSV，讓維運可匯出待修項目。",
+        ],
+    },
+    {
+        "version": "1.0.3.18",
+        "date": "2026-05-26 21:20 +08:00",
+        "patch_id": "ap-account-risk-rules",
+        "changes": [
+            "AP 帳號新增缺 owner、高權限未納 PAM、高權限未啟用 MFA、共用帳號與 180 天未登入風險。",
+            "AP 帳號頁新增風險分類表與中文 risk label。",
+        ],
+    },
+    {
         "version": "1.0.3.17",
         "date": "2026-05-26 18:20 +08:00",
         "patch_id": "ap-account-cmdb-runner-readonly-roadmap",

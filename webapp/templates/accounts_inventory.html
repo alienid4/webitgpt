@@ -374,6 +374,19 @@
         <a class="metric account-metric-link" href="#ap-system-table"><strong>{{ account_view.ap_accounts.summary.no_owner }}</strong><span>缺 owner</span></a>
         <a class="metric account-metric-link" href="#ap-system-table"><strong>{{ account_view.ap_accounts.summary.review }}</strong><span>待複核</span></a>
       </div>
+      <div class="account-table-scroll">
+        <h3>AP 風險分類</h3>
+        <table class="data-table account-compact-table">
+          <thead><tr><th>風險</th><th>數量</th></tr></thead>
+          <tbody>
+            {% for item in account_view.ap_accounts.by_risk %}
+            <tr><td>{{ item.risk }}</td><td>{{ item.count }}</td></tr>
+            {% else %}
+            <tr><td colspan="2" class="no-data">尚無 AP 帳號風險資料</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
       <div id="ap-system-table" class="account-table-scroll">
         <h3>AP 系統彙整</h3>
         <table class="data-table account-compact-table">
@@ -399,7 +412,7 @@
               <td>{% if item.pam_managed %}<span class="badge-ok">Y</span>{% else %}-{% endif %}</td>
               <td>{% if item.mfa_enabled %}<span class="badge-ok">Y</span>{% else %}-{% endif %}</td>
               <td>{{ item.status }}</td>
-              <td>{% if item.risk == "ok" %}<span class="badge-ok">ok</span>{% else %}<span class="badge-warn">{{ item.risk }}</span>{% endif %}</td>
+              <td>{% if item.risk == "ok" %}<span class="badge-ok">ok</span>{% else %}<span class="badge-warn">{{ item.risk_label or item.risk }}</span>{% endif %}</td>
             </tr>
             {% else %}
             <tr><td colspan="11" class="no-data">尚未匯入 AP 帳號資料</td></tr>

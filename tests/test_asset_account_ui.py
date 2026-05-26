@@ -125,6 +125,32 @@ def test_cmdb_csv_validation_and_self_check_guard_contracts_exist():
     assert "except TimeoutError" in self_check
 
 
+def test_operations_hardening_to_10323_contracts_exist():
+    html = read("webapp/templates/accounts_inventory.html")
+    service = read("webapp/services/inventory_service.py")
+    reports = read("webapp/routes/api_reports.py")
+    deps = read("webapp/services/dependency_service.py")
+    deps_html = read("webapp/templates/dependencies.html")
+    css = read("webapp/static/css/cathay.css")
+    config = read("webapp/config.py")
+
+    assert 'VERSION = "1.0.3.23"' in config
+    assert "AP_ACCOUNT_RISK_LABELS" in service
+    for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
+        assert text in service
+    assert "AP 風險分類" in html
+    assert "operations_data_quality" in reports
+    assert '"status": "degraded" if warnings' in read("webapp/services/quality_service.py")
+    assert '"/api/reports/data-quality"' in reports
+    assert '"/api/reports/data-quality.csv"' in reports
+    assert "trust_summary" in deps
+    assert "trust_note" in deps
+    assert "topology-trust-list" in deps_html
+    assert ".topology-trust-list" in css
+    assert "post_install_verify.sh" in read("docs/release_notes/v1.0.3.20.md")
+    assert "phase_readonly_mode" in read("docs/operations_hardening_roadmap.md")
+
+
 def test_account_checkboxes_use_inline_left_layout():
     html = read("webapp/templates/accounts_inventory.html")
     css = read("webapp/static/css/cathay.css")

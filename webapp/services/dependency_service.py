@@ -1765,6 +1765,7 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
         for rel in list_relations()
         if rel.get("from_system") in system_map and rel.get("to_system") in system_map and rel.get("from_system") in selected_ids and rel.get("to_system") in selected_ids and (include_external or not system_map.get(rel.get("to_system"), {}).get("external"))
     ]
+    trust_summary: dict[str, int] = {"manual": 0, "auto": 0, "unknown": 0}
     edges: list[dict[str, Any]] = []
     for system in related_systems:
         edges.append(_layer_edge(selected_core_id, system["system_id"], "核心關聯", selected_core, system.get("display_name") or system["system_id"], trust="manual"))
@@ -1776,6 +1777,8 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
     for rel in relations:
         edges.append(_edge_payload(rel, system_map.get(rel.get("from_system"), {}).get("display_name", rel.get("from_system")), system_map.get(rel.get("to_system"), {}).get("display_name", rel.get("to_system"))))
     for edge in edges:
+        trust = str(edge.get("trust") or edge.get("source") or "unknown").lower()
+        trust_summary[trust if trust in trust_summary else "unknown"] += 1
         edge["focus_state"] = "active" if edge.get("source") in active_ids and edge.get("target") in active_ids else "muted"
     _position_edge_labels(nodes, edges)
     focus_system = system_map.get(center_system_id or "")
@@ -1834,6 +1837,8 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
                 "notification_count": len({(item.get("owner") or "").strip() for item in related_systems if (item.get("owner") or "").strip()}),
                 "affected_items": affected_items[:6],
                 "notification_contacts": notification_contacts,
+                "trust_summary": trust_summary,
+                "trust_note": "manual=人工/CMDB，auto=自動採集，unknown=來源不足；通知或變更前請優先確認 unknown。",
             },
         }
     )

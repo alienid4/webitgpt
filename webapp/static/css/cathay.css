@@ -2091,6 +2091,22 @@ button.is-busy {
   gap: 8px;
 }
 
+.topology-trust-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.topology-trust-list span {
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  background: var(--bg);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .topology-contact-list div {
   display: grid;
   gap: 3px;
