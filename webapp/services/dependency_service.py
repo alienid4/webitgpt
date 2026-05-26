@@ -1687,13 +1687,17 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
         selected_core = "巡檢系統" if any(_core_name_for_system(item) == "巡檢系統" for item in systems) else CORE_SYSTEM_NAMES[0]
     core_nodes = [_core_node(name) for name in CORE_SYSTEM_NAMES]
     related_systems = [item for item in systems if core_by_system.get(item["system_id"]) == selected_core]
+    scope = "core"
     if center_system_id:
         relations_all = list_relations({"system_id": center_system_id})
         linked_ids = {center_system_id}
         for rel in relations_all:
-            linked_ids.add(str(rel.get("from_system")))
-            linked_ids.add(str(rel.get("to_system")))
-        related_systems = [item for item in systems if item["system_id"] in linked_ids or core_by_system.get(item["system_id"]) == selected_core]
+            if rel.get("from_system"):
+                linked_ids.add(str(rel.get("from_system")))
+            if rel.get("to_system"):
+                linked_ids.add(str(rel.get("to_system")))
+        related_systems = [item for item in systems if item["system_id"] in linked_ids]
+        scope = "system_focus"
     related_systems = related_systems[: max(1, min(limit, 12))]
     selected_ids = {item["system_id"] for item in related_systems}
 
@@ -1790,7 +1794,7 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
         affected_items = [
             {
                 "name": related_systems[0].get("display_name") or related_systems[0].get("system_id"),
-                "note": "目前此核心底下的主要關聯系統。",
+                "note": "目前焦點系統底下的主機與通知口徑。",
             }
         ]
     host_count_by_system: dict[str, int] = {}
@@ -1816,11 +1820,13 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
     meta.update(
         {
             "width": 1220,
-            "message": "核心影響圖：第一欄是六大核心，第二欄是關聯系統，第三欄是主機 / IP。",
+            "message": "核心影響圖：選核心時顯示整個核心，選系統時只顯示焦點系統、直接關聯與主機 / IP。",
+            "scope": scope,
             "layer_lanes": lanes,
             "impact_panel": {
                 "focus_label": focus_label,
                 "core_label": selected_core,
+                "scope_label": "焦點系統" if scope == "system_focus" else "核心總覽",
                 "system_count": len(related_systems),
                 "host_count": len(host_nodes),
                 "relation_count": len(edges),

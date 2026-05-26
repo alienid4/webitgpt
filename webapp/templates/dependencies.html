@@ -316,8 +316,15 @@
     <aside class="topology-impact-panel">
       <span class="badge-warn">影響檢視</span>
       <h2>{{ topology.meta.impact_panel.focus_label }}</h2>
-      <p class="muted">從核心「{{ topology.meta.impact_panel.core_label }}」展開，顯示關聯系統與主機 / IP。</p>
+      <p class="muted">
+        {% if topology.meta.scope == "system_focus" %}
+        以焦點系統為口徑，只顯示直接關聯與主機 / IP；所屬核心為「{{ topology.meta.impact_panel.core_label }}」。
+        {% else %}
+        從核心「{{ topology.meta.impact_panel.core_label }}」展開，顯示關聯系統與主機 / IP。
+        {% endif %}
+      </p>
       <dl>
+        <div><dt>檢視口徑</dt><dd>{{ topology.meta.impact_panel.scope_label }}</dd></div>
         <div><dt>所屬核心</dt><dd>{{ topology.meta.impact_panel.core_label }}</dd></div>
         <div><dt>關聯系統</dt><dd>{{ topology.meta.impact_panel.system_count }} 套</dd></div>
         <div><dt>主機 / IP</dt><dd>{{ topology.meta.impact_panel.host_count }} 台</dd></div>

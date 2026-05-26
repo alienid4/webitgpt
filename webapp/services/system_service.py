@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.10",
+        "date": "2026-05-26 08:25 +08:00",
+        "patch_id": "core-impact-system-focus-scope",
+        "changes": [
+            "核心系統影響圖選取單一系統時，不再把同核心全部系統都畫出來。",
+            "右側影響面板新增檢視口徑，區分核心總覽與焦點系統。",
+            "補上焦點系統測試，確認選 SYS-DEBIAN 時不會帶出 SYS-ROCKY 與其主機。",
+        ],
+    },
+    {
         "version": "1.0.3.9",
         "date": "2026-05-26 08:15 +08:00",
         "patch_id": "core-impact-notification-export",

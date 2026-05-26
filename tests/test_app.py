@@ -1,6 +1,7 @@
 from webapp.app import create_app
 from webapp import config
 from webapp.routes import api_reports
+from webapp.services import dependency_service
 
 
 def test_health_route():
@@ -48,3 +49,46 @@ def test_core_impact_notifications_csv(monkeypatch):
     assert response.content_type.startswith("text/csv")
     assert "core,system_id,system_name,owner,host_count,status,reason" in body
     assert "SYS-WEBITGPT" in body
+
+
+def test_core_impact_system_center_limits_to_focused_system(monkeypatch):
+    systems = [
+        {
+            "system_id": "SYS-DEBIAN",
+            "display_name": "受監控主機-Debian",
+            "tier": "C",
+            "category": "AP",
+            "owner": "ops",
+            "host_refs": ["sec9c2"],
+            "metadata": {"core_name": "巡檢系統"},
+        },
+        {
+            "system_id": "SYS-ROCKY",
+            "display_name": "受監控主機-Rocky",
+            "tier": "C",
+            "category": "AP",
+            "owner": "ops",
+            "host_refs": ["secclient1"],
+            "metadata": {"core_name": "巡檢系統"},
+        },
+    ]
+    hosts = [
+        {"hostname": "sec9c2", "ip": "192.168.1.223"},
+        {"hostname": "secclient1", "ip": "192.168.1.222"},
+    ]
+
+    monkeypatch.setattr(dependency_service, "list_systems", lambda *_args, **_kwargs: systems)
+    monkeypatch.setattr(dependency_service, "_hosts", lambda: hosts)
+    monkeypatch.setattr(dependency_service, "list_relations", lambda *_args, **_kwargs: [])
+    monkeypatch.setattr(dependency_service, "latest_collect_run", lambda: None)
+
+    data = dependency_service.topology(view="core_impact", center="SYS-DEBIAN")
+    node_ids = {node["id"] for node in data["nodes"]}
+
+    assert data["meta"]["scope"] == "system_focus"
+    assert data["meta"]["impact_panel"]["system_count"] == 1
+    assert data["meta"]["impact_panel"]["host_count"] == 1
+    assert "SYS-DEBIAN" in node_ids
+    assert "host:sec9c2" in node_ids
+    assert "SYS-ROCKY" not in node_ids
+    assert "host:secclient1" not in node_ids
