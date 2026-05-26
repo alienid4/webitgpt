@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.30",
+        "date": "2026-05-26 23:30 +08:00",
+        "patch_id": "reports-next-action-entry",
+        "changes": [
+            "統計報表新增下一步操作區，直接引導到資料品質、帳號盤點、核心影響圖與交付匯出。",
+            "報表主按鈕改成看下一步，避免使用者停在數字摘要不知道要點哪裡。",
+            "補響應式樣式，手機與窄螢幕仍能清楚顯示操作卡。",
+        ],
+    },
+    {
         "version": "1.0.3.29",
         "date": "2026-05-26 23:10 +08:00",
         "patch_id": "ops-ux-decision-workbench",

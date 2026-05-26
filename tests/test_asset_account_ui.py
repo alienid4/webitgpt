@@ -134,7 +134,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.29"' in config
+    assert 'VERSION = "1.0.3.30"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -175,6 +175,27 @@ def test_ops_ux_to_10329_contracts_exist():
     assert ".quality-score-band" in css
     assert "1.0.3.29" in service
     assert "ops-ux-decision-workbench" in read("CHANGELOG.md")
+
+
+def test_reports_next_action_to_10330_contracts_exist():
+    reports = read("webapp/templates/reports.html")
+    css = read("webapp/static/css/cathay.css")
+    config = read("webapp/config.py")
+    service = read("webapp/services/system_service.py")
+    changelog = read("CHANGELOG.md")
+
+    assert 'VERSION = "1.0.3.30"' in config
+    assert "reports-next-action-entry" in config
+    assert "下一步要做什麼" in reports
+    assert "report-next-actions" in reports
+    assert "前往資料品質工作台" in reports
+    assert "前往帳號盤點" in reports
+    assert "前往核心影響圖" in reports
+    assert "安裝驗證" in reports
+    assert ".report-action-card" in css
+    assert "1.0.3.30" in service
+    assert "reports-next-action-entry" in changelog
+    assert "reports-next-action-entry" in read("docs/release_notes/v1.0.3.30.md")
 
 
 def test_account_checkboxes_use_inline_left_layout():
