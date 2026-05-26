@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.9",
+        "date": "2026-05-26 08:15 +08:00",
+        "patch_id": "core-impact-notification-export",
+        "changes": [
+            "核心系統影響圖新增三欄背景與更明確的欄名，讓核心、關聯系統、主機 / IP 更容易掃讀。",
+            "右側影響面板新增待通知對象摘要，顯示系統 owner、主機數與聯絡狀態。",
+            "新增核心影響通知名單 CSV 匯出，避免匯出按鈕只回傳 JSON。",
+        ],
+    },
+    {
         "version": "1.0.2.99",
         "date": "2026-05-23 00:20 +08:00",
         "patch_id": "offline-install-noninteractive",

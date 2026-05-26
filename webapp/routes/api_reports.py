@@ -29,6 +29,19 @@ def _focus_impact() -> bool:
     return request.args.get("focus_impact") in {"1", "true", "yes", "on"}
 
 
+def _topology_from_request(default_view: str = "core_impact") -> dict:
+    return topology(
+        view=request.args.get("view", default_view),
+        center=request.args.get("center", ""),
+        depth=int(request.args.get("depth", 2)),
+        limit=int(request.args.get("limit", 200)),
+        include_external=_include_external(),
+        include_unmanaged=_include_unmanaged(),
+        failed_node=request.args.get("failed_node", ""),
+        focus_impact=_focus_impact(),
+    )
+
+
 def _summary() -> dict:
     hosts = list_hosts(page=1, page_size=10000)["items"]
     by_env: dict[str, int] = {}
@@ -155,16 +168,7 @@ def dependencies_page():
     collect_runs = dependency_service.collect_runs(limit=5)
     systems = dependency_service.list_systems()
     relations = dependency_service.list_relations()
-    data = topology(
-        view=request.args.get("view", "core_impact"),
-        center=request.args.get("center", ""),
-        depth=int(request.args.get("depth", 2)),
-        limit=int(request.args.get("limit", 200)),
-        include_external=_include_external(),
-        include_unmanaged=_include_unmanaged(),
-        failed_node=request.args.get("failed_node", ""),
-        focus_impact=_focus_impact(),
-    )
+    data = _topology_from_request()
     return render_template(
         "dependencies.html",
         topology=data,
@@ -179,4 +183,31 @@ def dependencies_page():
 @bp.get("/api/dependencies")
 @require_feature("dependencies")
 def dependencies_api():
-    return jsonify(topology(view=request.args.get("view", "core_impact"), center=request.args.get("center", ""), depth=int(request.args.get("depth", 2)), limit=int(request.args.get("limit", 200)), include_external=_include_external(), include_unmanaged=_include_unmanaged(), failed_node=request.args.get("failed_node", ""), focus_impact=_focus_impact()))
+    return jsonify(_topology_from_request())
+
+
+@bp.get("/api/dependencies/notifications.csv")
+@require_feature("dependencies")
+def dependencies_notifications_csv():
+    data = _topology_from_request("core_impact")
+    contacts = ((data.get("meta") or {}).get("impact_panel") or {}).get("notification_contacts") or []
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["core", "system_id", "system_name", "owner", "host_count", "status", "reason"])
+    for item in contacts:
+        writer.writerow(
+            [
+                item.get("core") or "",
+                item.get("system_id") or "",
+                item.get("system_name") or "",
+                item.get("owner") or "",
+                item.get("host_count") or 0,
+                item.get("status") or "",
+                item.get("reason") or "",
+            ]
+        )
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=webitgpt_core_impact_notifications.csv"},
+    )

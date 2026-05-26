@@ -1711,6 +1711,8 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
                     "label": host.get("ip") or host.get("hostname") or host.get("asset_seq"),
                     "kind": "主機",
                     "system_id": system["system_id"],
+                    "hostname": host.get("hostname") or "",
+                    "ip": host.get("ip") or "",
                     "category": "host",
                     "tier": system.get("tier") or "C",
                 }
@@ -1736,10 +1738,14 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
         node["focus_state"] = "active" if node["id"] in active_ids else "muted"
 
     height = max(720, max(len(core_nodes), len(related_systems), len(host_nodes), 1) * 92 + 130)
+    lanes = [
+        {"key": "core", "label": "第一欄：六大核心", "x": 30, "y": 64, "width": 280, "height": int(height - 96)},
+        {"key": "system", "label": "第二欄：關聯系統", "x": 410, "y": 64, "width": 290, "height": int(height - 96)},
+        {"key": "host", "label": "第三欄：主機 / IP", "x": 810, "y": 64, "width": 310, "height": int(height - 96)},
+    ]
     guides = [
-        {"label": "第一圈：六大核心", "x": 130, "y": 36},
-        {"label": "第二圈：關聯系統", "x": 470, "y": 36},
-        {"label": "第三圈：主機 / IP", "x": 850, "y": 36},
+        {"label": lane["label"], "x": lane["x"] + lane["width"] / 2, "y": 36}
+        for lane in lanes
     ]
     columns = [("core", 170, core_nodes), ("system", 555, [node for node in nodes if node["id"] in selected_ids]), ("host", 965, host_nodes)]
     by_id = {node["id"]: node for node in nodes}
@@ -1787,12 +1793,31 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
                 "note": "目前此核心底下的主要關聯系統。",
             }
         ]
+    host_count_by_system: dict[str, int] = {}
+    for host_node in host_nodes:
+        system_id = str(host_node.get("system_id") or "")
+        host_count_by_system[system_id] = host_count_by_system.get(system_id, 0) + 1
+    notification_contacts = []
+    for system in related_systems:
+        owner = (system.get("owner") or "").strip()
+        notification_contacts.append(
+            {
+                "core": selected_core,
+                "system_id": system.get("system_id"),
+                "system_name": system.get("display_name") or system.get("system_id"),
+                "owner": owner or "未指定",
+                "host_count": host_count_by_system.get(str(system.get("system_id")), 0),
+                "reason": "核心系統維護 / 故障影響通知",
+                "status": "需要補聯絡人" if not owner else "可通知",
+            }
+        )
     meta = _topology_meta("core_impact")
     meta.update({"width": 1120, "height": int(height), "layout_mode": "core_impact", "systems": len(related_systems), "relations": len(edges), "center": center_system_id or selected_core, "center_label": selected_core, "include_external": include_external, "include_unmanaged": include_unmanaged, "layer_guides": guides, "message": "處理角度：先看核心，再看關聯系統，最後展開主機 / IP 與通知對象。"})
     meta.update(
         {
             "width": 1220,
             "message": "核心影響圖：第一欄是六大核心，第二欄是關聯系統，第三欄是主機 / IP。",
+            "layer_lanes": lanes,
             "impact_panel": {
                 "focus_label": focus_label,
                 "core_label": selected_core,
@@ -1802,6 +1827,7 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
                 "loop_count": sum(1 for rel in relations if rel.get("from_system") == rel.get("to_system")),
                 "notification_count": len({(item.get("owner") or "").strip() for item in related_systems if (item.get("owner") or "").strip()}),
                 "affected_items": affected_items[:6],
+                "notification_contacts": notification_contacts,
             },
         }
     )

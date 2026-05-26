@@ -293,19 +293,28 @@ def test_ai_token_cost_visibility_contract_exists():
     assert 'querySelector(\'[name="center"]\')' in ui_tools
     assert "topology-impact-node-box" in dependencies_page
     assert "topology-impact-panel" in dependencies_page
+    assert "topology-contact-list" in dependencies_page
+    assert "dependencies_notifications_csv" in dependencies_page
     assert "核心系統影響圖" in dependencies_page
     assert "topology-tabs" in dependencies_page
     assert "1. 核心影響" in dependencies_page
     assert "2. 系統關聯圓圖" in dependencies_page
     assert "3. 連線偵測 / 對帳" in dependencies_page
-    assert 'view=request.args.get("view", "core_impact")' in read("webapp/routes/api_reports.py")
+    reports_route = read("webapp/routes/api_reports.py")
+    assert 'def _topology_from_request(default_view: str = "core_impact")' in reports_route
+    assert '"/api/dependencies/notifications.csv"' in reports_route
+    assert "webitgpt_core_impact_notifications.csv" in reports_route
     assert "impact_panel" in dependency_service
     assert "核心影響圖" in dependency_service
+    assert "notification_contacts" in dependency_service
+    assert "layer_lanes" in dependency_service
     assert "def _resolve_topology_node_id" in dependency_service
     assert 'value.startswith("core:")' in dependency_service
     assert 'data.get("view") != "core_impact"' in dependency_service
     assert "document.createElement(\"option\")" in ui_tools
     assert ".topology-impact-panel" in css
+    assert ".topology-layer-lane" in css
+    assert ".topology-contact-list" in css
     assert "centerCanvas" in ui_tools
     assert "stage.scrollWidth - canvas.clientWidth" in ui_tools
     assert "min-height: calc(100vh - 150px)" in css

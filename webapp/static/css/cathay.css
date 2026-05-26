@@ -1983,7 +1983,7 @@ button.is-busy {
 }
 
 .topology-workspace-with-panel {
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr) 390px;
 }
 
 .topology-workspace .topology-canvas {
@@ -2083,6 +2083,29 @@ button.is-busy {
   margin: 0;
   font-size: 18px;
   font-weight: 900;
+}
+
+.topology-contact-list {
+  display: grid;
+  gap: 8px;
+}
+
+.topology-contact-list div {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--g1);
+  background: var(--g-light);
+}
+
+.topology-contact-list strong {
+  font-size: 15px;
+}
+
+.topology-contact-list span {
+  color: var(--c2);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .topology-impact-list {
@@ -2245,7 +2268,7 @@ button.is-busy {
 }
 
 .topology-layer-guide line {
-  stroke: var(--c4);
+  stroke: var(--g1);
   stroke-width: 1;
   stroke-dasharray: 6 8;
 }
@@ -2257,6 +2280,24 @@ button.is-busy {
   paint-order: stroke;
   stroke: var(--bg);
   stroke-width: 5px;
+}
+
+.topology-layer-lane rect {
+  fill: var(--bg2);
+  stroke: var(--c4);
+  stroke-width: 1;
+}
+
+.topology-layer-lane-core rect {
+  fill: var(--g-light);
+}
+
+.topology-layer-lane-system rect {
+  fill: #fff8ed;
+}
+
+.topology-layer-lane-host rect {
+  fill: var(--white);
 }
 
 .topology-edge line.topology-line-auto {

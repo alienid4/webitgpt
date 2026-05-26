@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.3.8"
-PATCH_ID = "nmon-eos-lifecycle-summary"
-RELEASE_NOTE = "效能月報新增主管可讀的 EOS 生命週期摘要，列出 OS 到期日、剩餘月份、來源與建議處置"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-26 11:05:00 +08:00")
+VERSION = "1.0.3.9"
+PATCH_ID = "core-impact-notification-export"
+RELEASE_NOTE = "核心系統影響圖補強三欄式閱讀性，並提供可下載的影響通知名單 CSV"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-26 08:15:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

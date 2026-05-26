@@ -26,7 +26,7 @@
     <p class="eyebrow">TOPOLOGY</p>
     {% if topology.view == "core_impact" %}
     <h1>核心系統影響圖</h1>
-    <p class="muted">第一欄是六大核心，第二欄是關聯系統，第三欄是選取系統底下的主機 / IP。</p>
+    <p class="muted">先選核心或系統，再看關聯系統、主機 / IP 與需要通知的負責人。</p>
     {% else %}
     <h1>系統拓撲</h1>
     <p class="muted">整合 CMDB、主機連線關係、ss/nmap 對帳與故障節點影響分析。</p>
@@ -36,7 +36,7 @@
     {% if not fullscreen %}
     {% if topology.view == "core_impact" %}
     <a class="btn btn-fix" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=request.args.get('center', ''), depth=request.args.get('depth', '2'), failed_node=request.args.get('center', topology.meta.center or ''), focus_impact=1) }}">模擬維護</a>
-    <a class="btn primary" href="{{ url_for('api_reports.dependencies_api', view='core_impact', center=request.args.get('center', ''), depth=request.args.get('depth', '2')) }}">匯出通知名單</a>
+    <a class="btn primary" href="{{ url_for('api_reports.dependencies_notifications_csv', view='core_impact', center=request.args.get('center', ''), depth=request.args.get('depth', '2')) }}">匯出通知名單 CSV</a>
     {% else %}
     <form method="post" action="{{ url_for('api_dependencies.collect_trigger_page') }}" data-submit-status data-submit-message="正在執行 ss -tunp 採集，請稍候。">
       <input type="hidden" name="view" value="{{ topology.view }}">
@@ -272,6 +272,12 @@
             </marker>
           </defs>
 
+          {% for lane in topology.meta.layer_lanes or [] %}
+            <g class="topology-layer-lane topology-layer-lane-{{ lane.key }}">
+              <rect x="{{ lane.x }}" y="{{ lane.y }}" width="{{ lane.width }}" height="{{ lane.height }}" rx="14"></rect>
+            </g>
+          {% endfor %}
+
           {% for guide in topology.meta.layer_guides or [] %}
             <g class="topology-layer-guide">
               <line x1="{{ guide.x }}" y1="58" x2="{{ guide.x }}" y2="{{ graph_height - 24 }}"></line>
@@ -318,6 +324,17 @@
         <div><dt>Loop</dt><dd>{{ topology.meta.impact_panel.loop_count }} 條</dd></div>
         <div><dt>通知對象</dt><dd>{{ topology.meta.impact_panel.notification_count }} 組</dd></div>
       </dl>
+      <h3>待通知對象</h3>
+      <div class="topology-contact-list">
+        {% for contact in topology.meta.impact_panel.notification_contacts[:4] %}
+        <div>
+          <strong>{{ contact.owner }}</strong>
+          <span>{{ contact.system_name }} / {{ contact.host_count }} 台 / {{ contact.status }}</span>
+        </div>
+        {% else %}
+        <div><strong>未指定</strong><span>請在 CMDB 系統 owner 欄位補上通知對象。</span></div>
+        {% endfor %}
+      </div>
       <h3>可能受影響</h3>
       <div class="topology-impact-list">
         {% for item in topology.meta.impact_panel.affected_items %}
