@@ -2048,6 +2048,7 @@ button.is-busy {
   overflow: auto;
   max-height: calc(100vh - 330px);
   padding: 18px;
+  padding-right: 22px;
   border: 1px solid var(--c4);
   border-radius: var(--radius-sm);
   background: var(--white);
@@ -2110,7 +2111,7 @@ button.is-busy {
 
 .topology-impact-list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .topology-impact-list div {

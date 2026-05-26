@@ -77,6 +77,7 @@
   <nav class="account-main-tabs panel" aria-label="帳號盤點主分頁">
     <button class="account-main-tab active" type="button" data-account-main-tab="actual">帳號清冊</button>
     <button class="account-main-tab" type="button" data-account-main-tab="excel">Excel 清冊</button>
+    <button class="account-main-tab" type="button" data-account-main-tab="ap">AP 帳號</button>
     <button class="account-main-tab" type="button" data-account-main-tab="diff">差異報告</button>
     <button class="account-main-tab" type="button" data-account-main-tab="batches">盤點批次</button>
   </nav>
@@ -339,6 +340,83 @@
             {% else %}
               <tr><td colspan="3" class="no-data">目前沒有欄位錯誤。</td></tr>
             {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="account-main-panel" data-account-main-panel="ap" id="ap">
+    <div class="panel account-panel">
+      <div class="flex-between account-list-head">
+        <div>
+          <h2>AP 帳號盤點</h2>
+          <p class="text-muted-sm">以 CSV / Excel 匯入應用程式帳號。必填 app_id、system_name、account；owner、PAM、權限、最後登入等欄位可以空白，系統會列入待複核。</p>
+        </div>
+        <div class="actions">
+          <a class="btn secondary" href="{{ url_for('api_inventory.accounts_ap_template_xlsx') }}">下載 AP 模板</a>
+          <a class="btn" href="{{ url_for('api_inventory.accounts_ap_csv') }}">匯出 AP CSV</a>
+          <a class="btn secondary" href="{{ url_for('api_inventory.accounts_ap_diff_csv') }}">匯出差異 CSV</a>
+        </div>
+      </div>
+      <form class="account-upload-bar" method="post" action="{{ url_for('api_inventory.accounts_ap_upload') }}" enctype="multipart/form-data" data-submit-status data-submit-message="正在匯入 AP 帳號清冊">
+        <label>上傳 .xlsx / .csv
+          <input type="file" name="file" accept=".xlsx,.csv" required>
+        </label>
+        <button class="btn primary" type="submit">匯入 AP 帳號</button>
+        <span class="text-muted-sm">選填欄位可留空；缺 owner 或高權限未納 PAM 會列為 review，不會阻擋匯入。</span>
+      </form>
+      <div class="summary-grid account-summary mini">
+        <a class="metric account-metric-link" href="#ap-accounts-table"><strong>{{ account_view.ap_accounts.summary.systems }}</strong><span>AP 系統</span></a>
+        <a class="metric account-metric-link" href="#ap-accounts-table"><strong>{{ account_view.ap_accounts.summary.total }}</strong><span>AP 帳號</span></a>
+        <a class="metric account-metric-link" href="#ap-system-table"><strong>{{ account_view.ap_accounts.summary.privileged }}</strong><span>高權限</span></a>
+        <a class="metric account-metric-link" href="#ap-system-table"><strong>{{ account_view.ap_accounts.summary.pam_managed }}</strong><span>PAM 納管</span></a>
+        <a class="metric account-metric-link" href="#ap-system-table"><strong>{{ account_view.ap_accounts.summary.no_owner }}</strong><span>缺 owner</span></a>
+        <a class="metric account-metric-link" href="#ap-system-table"><strong>{{ account_view.ap_accounts.summary.review }}</strong><span>待複核</span></a>
+      </div>
+      <div id="ap-system-table" class="account-table-scroll">
+        <h3>AP 系統彙整</h3>
+        <table class="data-table account-compact-table">
+          <thead><tr><th>系統</th><th>app_id</th><th>帳號</th><th>高權限</th><th>缺 owner</th><th>待複核</th></tr></thead>
+          <tbody>
+            {% for item in account_view.ap_accounts.by_system %}
+            <tr><td>{{ item.system_name }}</td><td>{{ item.app_id }}</td><td>{{ item.count }}</td><td>{{ item.privileged }}</td><td>{{ item.no_owner }}</td><td>{{ item.review }}</td></tr>
+            {% else %}
+            <tr><td colspan="6" class="no-data">尚未匯入 AP 帳號清冊</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div id="ap-accounts-table" class="account-table-scroll">
+        <h3>AP 帳號清冊</h3>
+        <table class="data-table account-compact-table">
+          <thead><tr><th>app_id</th><th>系統</th><th>環境</th><th>帳號</th><th>owner</th><th>角色</th><th>權限</th><th>PAM</th><th>MFA</th><th>狀態</th><th>風險</th></tr></thead>
+          <tbody>
+            {% for item in account_view.ap_accounts.rows %}
+            <tr>
+              <td>{{ item.app_id }}</td><td>{{ item.system_name }}</td><td>{{ item.environment or "-" }}</td>
+              <td><strong class="code-inline">{{ item.account }}</strong></td><td>{{ item.owner or "-" }}</td><td>{{ item.role or "-" }}</td><td>{{ item.privilege or "-" }}</td>
+              <td>{% if item.pam_managed %}<span class="badge-ok">Y</span>{% else %}-{% endif %}</td>
+              <td>{% if item.mfa_enabled %}<span class="badge-ok">Y</span>{% else %}-{% endif %}</td>
+              <td>{{ item.status }}</td>
+              <td>{% if item.risk == "ok" %}<span class="badge-ok">ok</span>{% else %}<span class="badge-warn">{{ item.risk }}</span>{% endif %}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="11" class="no-data">尚未匯入 AP 帳號資料</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div id="ap-diff-table" class="account-table-scroll">
+        <h3>AP 帳號差異</h3>
+        <table class="data-table account-compact-table">
+          <thead><tr><th>類型</th><th>app_id</th><th>系統</th><th>環境</th><th>帳號</th><th>異動欄位</th></tr></thead>
+          <tbody>
+            {% for item in account_view.ap_accounts.diff.rows %}
+            <tr><td>{{ item.change_type }}</td><td>{{ item.app_id }}</td><td>{{ item.system_name }}</td><td>{{ item.environment or "-" }}</td><td>{{ item.account }}</td><td>{{ item.changed_fields }}</td></tr>
+            {% else %}
+            <tr><td colspan="6" class="no-data">尚無可比對的 AP 帳號差異</td></tr>
+            {% endfor %}
           </tbody>
         </table>
       </div>

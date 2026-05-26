@@ -98,6 +98,52 @@ def import_csv(text: str, user: str) -> dict[str, Any]:
     return result
 
 
+def validate_csv(text: str) -> dict[str, Any]:
+    reader = csv.DictReader(io.StringIO(text))
+    headers = reader.fieldnames or []
+    missing_headers = [field for field in ("asset_seq", "hostname", "ip", "host_type") if field not in headers]
+    rows = []
+    errors = []
+    warnings = []
+    seen_asset_seq: set[str] = set()
+    for index, row in enumerate(reader, start=2):
+        doc = {key: str(value or "").strip() for key, value in row.items() if key}
+        if not any(doc.values()):
+            continue
+        rows.append(doc)
+        asset_seq = doc.get("asset_seq", "")
+        if asset_seq:
+            if asset_seq in seen_asset_seq:
+                errors.append({"line": index, "field": "asset_seq", "error": "duplicate asset_seq"})
+            seen_asset_seq.add(asset_seq)
+        for field in ("asset_seq", "hostname", "ip", "host_type"):
+            if not doc.get(field):
+                errors.append({"line": index, "field": field, "error": "required"})
+        if doc.get("host_type") and doc["host_type"] not in {"linux", "windows", "aix", "as400", "vmware", "network", "other"}:
+            warnings.append({"line": index, "field": "host_type", "warning": "unknown host_type; import may normalize or reject it"})
+        for field in ("quantity", "ssh_port", "integrity", "confidentiality", "availability"):
+            if doc.get(field):
+                try:
+                    int(doc[field])
+                except ValueError:
+                    errors.append({"line": index, "field": field, "error": "must be an integer"})
+    for field in missing_headers:
+        errors.insert(0, {"line": 1, "field": field, "error": "missing header"})
+    return {"status": "ok" if not errors else "needs_review", "row_count": len(rows), "error_count": len(errors), "warning_count": len(warnings), "errors": errors, "warnings": warnings}
+
+
+def validation_errors_csv(report: dict[str, Any]) -> str:
+    output = io.StringIO()
+    fields = ["severity", "line", "field", "message"]
+    writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")
+    writer.writeheader()
+    for item in report.get("errors", []):
+        writer.writerow({"severity": "error", "line": item.get("line", ""), "field": item.get("field", ""), "message": item.get("error", "")})
+    for item in report.get("warnings", []):
+        writer.writerow({"severity": "warning", "line": item.get("line", ""), "field": item.get("field", ""), "message": item.get("warning", "")})
+    return output.getvalue()
+
+
 def import_json(text: str, user: str) -> dict[str, Any]:
     payload = json.loads(text)
     rows = payload if isinstance(payload, list) else [payload]

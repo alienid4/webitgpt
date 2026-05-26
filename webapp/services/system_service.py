@@ -113,6 +113,62 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.17",
+        "date": "2026-05-26 18:20 +08:00",
+        "patch_id": "ap-account-cmdb-runner-readonly-roadmap",
+        "changes": [
+            "整併 v1.0.3.12 到 v1.0.3.17 的安全可落地項目，保留 phase_readonly_mode，不直接開放受監控主機寫入。",
+            "安全稽核、修補、停用帳號維持 dry-run / rollback plan / blocked-by-phase-readonly 語意，作為後續正式驗收入口。",
+            "RHEL 9.6 離線包可沿用 TARGET_OS_LABEL 產生 target package。",
+        ],
+    },
+    {
+        "version": "1.0.3.16",
+        "date": "2026-05-26 18:10 +08:00",
+        "patch_id": "batch-self-check-runner-guard",
+        "changes": [
+            "批次自檢支援 JSON body limit，並將單次上限收斂到 20 台，避免誤觸大量連線。",
+            "批次 runner 增加 timeout/error 結果列，單台失敗不阻斷整批結果。",
+        ],
+    },
+    {
+        "version": "1.0.3.15",
+        "date": "2026-05-26 18:00 +08:00",
+        "patch_id": "cmdb-csv-validation-governance",
+        "changes": [
+            "新增 CMDB CSV 預檢 API，檢查必要欄位、重複 asset_seq、數字欄位與 host_type warning。",
+            "新增 CSV 預檢錯誤匯出，方便匯入前先修資料。",
+        ],
+    },
+    {
+        "version": "1.0.3.14",
+        "date": "2026-05-26 17:50 +08:00",
+        "patch_id": "core-impact-readability-tune",
+        "changes": [
+            "核心系統影響圖右側面板補強內距與清單間距，提升三欄式與影響清單掃讀性。",
+            "延續 v1.0.3.10 的焦點系統範圍修正，選 SYS 時維持只看該系統直接關係。",
+        ],
+    },
+    {
+        "version": "1.0.3.13",
+        "date": "2026-05-26 17:40 +08:00",
+        "patch_id": "ap-account-report-ui",
+        "changes": [
+            "帳號盤點新增 AP 帳號頁籤，依 AP 系統、帳號數、高權限、缺 owner、PAM 與待複核彙整。",
+            "提供 AP 帳號清冊、差異清單、CSV 匯出，讓主管可直接看應用程式帳號風險。",
+        ],
+    },
+    {
+        "version": "1.0.3.12",
+        "date": "2026-05-26 17:30 +08:00",
+        "patch_id": "ap-account-import",
+        "changes": [
+            "新增 AP 帳號 CSV / Excel 模板與匯入流程，必填 app_id、system_name、account。",
+            "owner、PAM、權限、最後登入等欄位允許空白；缺 owner 或高權限未納 PAM 會列為 review 而不阻擋匯入。",
+            "新增 AP 帳號批次、明細與差異資料模型。",
+        ],
+    },
+    {
         "version": "1.0.3.11",
         "date": "2026-05-26 16:55 +08:00",
         "patch_id": "rhel96-offline-target-package",

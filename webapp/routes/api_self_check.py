@@ -43,7 +43,9 @@ def self_check(asset_seq: str):
 @require_feature("host_self_check_global")
 @require_role("admin")
 def global_self_check():
-    limit = min(max(int(request.args.get("limit", "10")), 1), 50)
+    payload = request.get_json(force=True, silent=True) or {}
+    requested_limit = payload.get("limit", request.args.get("limit", "10"))
+    limit = min(max(int(requested_limit), 1), 20)
     hosts = host_service.list_hosts(page=1, page_size=limit)["items"]
     results = []
     for host in hosts:
@@ -51,6 +53,10 @@ def global_self_check():
             result = get_runner(host).self_check()
         except NotImplementedError as exc:
             result = {"status": "warn", "error": str(exc)}
+        except TimeoutError as exc:
+            result = {"status": "timeout", "error": str(exc)}
+        except Exception as exc:
+            result = {"status": "error", "error": str(exc)}
         now = datetime.now(timezone.utc)
         target = Path(config.HOSTS_DIR) / host["asset_seq"] / "self_check" / f"{now.strftime('%Y%m%d_%H%M%S')}.json"
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -60,6 +66,6 @@ def global_self_check():
             {"asset_seq": host["asset_seq"]},
             {"$set": {"last_self_check_at": now, "last_self_check_status": result.get("status", "unknown")}},
         )
-        results.append({"asset_seq": host["asset_seq"], "status": result.get("status", "unknown")})
+        results.append({"asset_seq": host["asset_seq"], "hostname": host.get("hostname", ""), "status": result.get("status", "unknown"), "artifact_path": result.get("artifact_path", "")})
     audit_log_service.append("host.self_check.global", current_user()["username"], {"count": len(results), "limit": limit})
-    return jsonify({"status": "ok", "count": len(results), "read_only": True, "results": results})
+    return jsonify({"status": "ok", "count": len(results), "limit": limit, "read_only": True, "results": results})

@@ -90,6 +90,41 @@ def test_account_excel_inventory_tabs_and_upload_contracts_exist():
     assert ".account-upload-bar" in css
 
 
+def test_ap_account_inventory_import_and_report_contracts_exist():
+    html = read("webapp/templates/accounts_inventory.html")
+    routes = read("webapp/routes/api_inventory.py")
+    service = read("webapp/services/inventory_service.py")
+
+    assert "AP 帳號" in html
+    assert 'data-account-main-tab="ap"' in html
+    assert 'data-account-main-panel="ap"' in html
+    assert "accounts_ap_template_xlsx" in routes
+    assert "accounts_ap_upload" in routes
+    assert "accounts_ap_csv" in routes
+    assert "accounts_ap_diff_csv" in routes
+    assert "AP_ACCOUNT_HEADERS" in service
+    assert 'AP_ACCOUNT_REQUIRED_FIELDS = ["app_id", "system_name", "account"]' in service
+    assert "import_ap_account_inventory" in service
+    assert "ap_account_report" in service
+    assert "ap_account_diff_view" in service
+    assert "owner、PAM、權限、最後登入等欄位可以空白" in html
+
+
+def test_cmdb_csv_validation_and_self_check_guard_contracts_exist():
+    csv_service = read("webapp/services/csv_service.py")
+    host_routes = read("webapp/routes/api_hosts.py")
+    self_check = read("webapp/routes/api_self_check.py")
+
+    assert "def validate_csv(" in csv_service
+    assert "def validation_errors_csv(" in csv_service
+    assert '"/api/hosts/csv/validate"' in host_routes
+    assert '"/api/hosts/csv/validate.csv"' in host_routes
+    assert "duplicate asset_seq" in csv_service
+    assert "payload.get(\"limit\", request.args.get(\"limit\", \"10\"))" in self_check
+    assert "min(max(int(requested_limit), 1), 20)" in self_check
+    assert "except TimeoutError" in self_check
+
+
 def test_account_checkboxes_use_inline_left_layout():
     html = read("webapp/templates/accounts_inventory.html")
     css = read("webapp/static/css/cathay.css")

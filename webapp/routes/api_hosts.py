@@ -7,7 +7,7 @@ from flask import Blueprint, Response, abort, jsonify, redirect, render_template
 from webapp.decorators import current_user, market_hours_protected, require_feature, require_role
 from webapp.services import audit_log_service, cmdb_service, host_service, ipam_schedule_service
 from webapp.services.csv_service import csv_template as build_csv_template
-from webapp.services.csv_service import export_hosts_csv, import_csv, import_json
+from webapp.services.csv_service import export_hosts_csv, import_csv, import_json, validate_csv, validation_errors_csv
 from webapp.services.host_schema import ASSET_FIELDS, REQUIRED_FIELDS, ValidationError
 from webapp.services.saved_view_service import delete_view, list_views, save_view
 
@@ -1106,6 +1106,23 @@ def csv_import():
     result = import_csv(text, user=current_user()["username"])
     audit_log_service.append("host.csv_import", current_user()["username"], result)
     return jsonify(result), 200 if result["failed"] == 0 else 400
+
+
+@bp.post("/api/hosts/csv/validate")
+@require_feature("cmdb_csv_import")
+def csv_validate():
+    text = request.get_data(as_text=True)
+    report = validate_csv(text)
+    audit_log_service.append("host.csv_validate", current_user()["username"], {"status": report["status"], "row_count": report["row_count"], "error_count": report["error_count"]})
+    return jsonify(report), 200 if report["error_count"] == 0 else 400
+
+
+@bp.post("/api/hosts/csv/validate.csv")
+@require_feature("cmdb_csv_import")
+def csv_validate_errors():
+    text = request.get_data(as_text=True)
+    report = validate_csv(text)
+    return Response(validation_errors_csv(report), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=host_csv_validation_errors.csv"})
 
 
 @bp.post("/api/hosts/json/import")

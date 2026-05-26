@@ -54,6 +54,38 @@ ACCOUNT_EXCEL_FIELD_KEYS = {
     "備註": "remark",
 }
 
+AP_ACCOUNT_HEADERS = [
+    "app_id",
+    "system_name",
+    "environment",
+    "account",
+    "display_name",
+    "owner",
+    "department",
+    "role",
+    "privilege",
+    "pam_managed",
+    "mfa_enabled",
+    "status",
+    "last_login",
+    "source",
+    "remark",
+]
+
+AP_ACCOUNT_REQUIRED_FIELDS = ["app_id", "system_name", "account"]
+AP_ACCOUNT_COMPARE_FIELDS = [
+    "display_name",
+    "owner",
+    "department",
+    "role",
+    "privilege",
+    "pam_managed",
+    "mfa_enabled",
+    "status",
+    "last_login",
+    "remark",
+]
+
 
 def _item_key(item: dict[str, Any]) -> str:
     return str(item.get("name") or item.get("user") or item.get("id") or "")
@@ -763,6 +795,7 @@ def account_inventory_view(filters: Optional[dict[str, str]] = None) -> dict[str
         "department_hosts": department_hosts,
         "history": inventory_history("accounts", limit=10),
         "excel": account_excel_workbench(),
+        "ap_accounts": ap_account_workbench(),
     }
 
 
@@ -1004,6 +1037,307 @@ def export_account_excel_diff_csv() -> str:
     writer.writeheader()
     for row in diff["cross_rows"]:
         writer.writerow({"status": row["status"], "hostname": row["hostname"], "name": row["name"], "source": "excel_vs_host"})
+    return output.getvalue()
+
+
+def ap_account_template_xlsx() -> bytes:
+    rows = [
+        [
+            "SYS-DEBIAN",
+            "受監控主機-Debian",
+            "DEV",
+            "ap_admin",
+            "AP Admin",
+            "Alienlee",
+            "IT",
+            "administrator",
+            "admin",
+            "Y",
+            "Y",
+            "active",
+            "",
+            "CSV/Excel",
+            "AP account inventory sample; optional fields may be blank.",
+        ],
+        [
+            "SYS-DEBIAN",
+            "受監控主機-Debian",
+            "DEV",
+            "batch_user",
+            "",
+            "",
+            "IT",
+            "batch",
+            "operator",
+            "",
+            "",
+            "active",
+            "",
+            "CSV/Excel",
+            "Owner is intentionally blank to show review handling.",
+        ],
+    ]
+    return _simple_xlsx_bytes(AP_ACCOUNT_HEADERS, rows)
+
+
+def _csv_rows_from_bytes(payload: bytes) -> list[dict[str, str]]:
+    text = payload.decode("utf-8-sig", errors="replace")
+    rows: list[dict[str, str]] = []
+    for idx, row in enumerate(csv.DictReader(io.StringIO(text)), start=2):
+        item = {str(key or "").strip(): str(value or "").strip() for key, value in row.items() if key}
+        if any(item.values()):
+            item["_row_no"] = str(idx)
+            rows.append(item)
+    return rows
+
+
+def _ap_account_key(app_id: str, environment: str, account: str) -> str:
+    return "::".join([str(app_id or "").strip().lower(), str(environment or "").strip().lower(), str(account or "").strip().lower()])
+
+
+def _ap_bool(value: Any) -> bool:
+    return str(value or "").strip().lower() in {"1", "y", "yes", "true", "on", "v", "是", "已納管"}
+
+
+def _ap_status(value: str) -> str:
+    status = str(value or "").strip().lower()
+    if status in {"", "active", "enabled", "啟用"}:
+        return "active"
+    if status in {"disabled", "locked", "inactive", "停用", "鎖定"}:
+        return status
+    return status
+
+
+def _ap_risk(row: dict[str, Any]) -> str:
+    risks = []
+    privilege = str(row.get("privilege") or "").lower()
+    status = str(row.get("status") or "").lower()
+    if not row.get("owner"):
+        risks.append("missing_owner")
+    if privilege in {"admin", "administrator", "root", "high", "高權限"} and not row.get("pam_managed"):
+        risks.append("admin_without_pam")
+    if status not in {"active", "enabled"}:
+        risks.append("inactive_or_locked")
+    return ",".join(risks) if risks else "ok"
+
+
+def _ap_account_rows_from_upload(payload: bytes, filename: str) -> list[dict[str, str]]:
+    lower = filename.lower()
+    if lower.endswith(".xlsx"):
+        return _xlsx_rows_from_bytes(payload)
+    if lower.endswith(".csv"):
+        return _csv_rows_from_bytes(payload)
+    raise ValueError("AP account inventory only accepts .xlsx or .csv")
+
+
+def import_ap_account_inventory(payload: bytes, filename: str, user: str = "system") -> dict[str, Any]:
+    now = _now()
+    run_id = f"ap-account-{now.strftime('%Y%m%d%H%M%S%f')}"
+    try:
+        rows = _ap_account_rows_from_upload(payload, filename)
+    except Exception as exc:
+        doc = {
+            "run_id": run_id,
+            "kind": "ap_account",
+            "status": "failed",
+            "filename": filename,
+            "created_by": user,
+            "created_at": now,
+            "row_count": 0,
+            "valid_count": 0,
+            "error_count": 1,
+            "errors": [{"row": "-", "field": "file", "message": str(exc)}],
+        }
+        get_collection("ap_account_batches").insert_one(doc)
+        return doc
+
+    normalized = []
+    errors = []
+    seen: set[str] = set()
+    for idx, row in enumerate(rows, start=1):
+        row_no = row.get("_row_no") or str(idx + 1)
+        item = {header: str(row.get(header, "") or "").strip() for header in AP_ACCOUNT_HEADERS}
+        for field in AP_ACCOUNT_REQUIRED_FIELDS:
+            if not item.get(field):
+                errors.append({"row": row_no, "field": field, "message": "required"})
+        key = _ap_account_key(item.get("app_id", ""), item.get("environment", ""), item.get("account", ""))
+        if item.get("app_id") and item.get("account") and key in seen:
+            errors.append({"row": row_no, "field": "account", "message": "duplicate app/environment/account"})
+        seen.add(key)
+        doc = {
+            **item,
+            "run_id": run_id,
+            "row_no": row_no,
+            "pam_managed": _ap_bool(item.get("pam_managed")),
+            "mfa_enabled": _ap_bool(item.get("mfa_enabled")),
+            "status": _ap_status(item.get("status", "")),
+            "valid": all(item.get(field) for field in AP_ACCOUNT_REQUIRED_FIELDS),
+            "key": key,
+            "risk": "",
+            "created_at": now,
+            "created_by": user,
+        }
+        doc["risk"] = _ap_risk(doc)
+        normalized.append(doc)
+
+    batch = {
+        "run_id": run_id,
+        "kind": "ap_account",
+        "status": "ok" if not errors else "needs_review",
+        "filename": filename,
+        "created_by": user,
+        "created_at": now,
+        "row_count": len(normalized),
+        "valid_count": sum(1 for item in normalized if item["valid"]),
+        "error_count": len(errors),
+        "errors": errors[:200],
+    }
+    get_collection("ap_account_batches").insert_one(batch)
+    if normalized:
+        get_collection("ap_account_rows").insert_many(normalized)
+    return batch
+
+
+def _latest_ap_account_batch() -> Optional[dict[str, Any]]:
+    return get_collection("ap_account_batches").find_one({}, {"_id": 0}, sort=[("created_at", -1)])
+
+
+def _previous_ap_account_batch(run_id: str) -> Optional[dict[str, Any]]:
+    return get_collection("ap_account_batches").find_one({"run_id": {"$ne": run_id}}, {"_id": 0}, sort=[("created_at", -1)])
+
+
+def _ap_account_rows(run_id: str, limit: int = 5000) -> list[dict[str, Any]]:
+    return list(get_collection("ap_account_rows").find({"run_id": run_id}, {"_id": 0}).sort([("app_id", 1), ("account", 1)]).limit(limit))
+
+
+def ap_account_diff_view() -> dict[str, Any]:
+    latest = _latest_ap_account_batch()
+    empty_summary = {"added": 0, "removed": 0, "changed": 0, "unchanged": 0}
+    if not latest:
+        return {"latest": None, "previous": None, "summary": empty_summary, "rows": []}
+    previous = _previous_ap_account_batch(latest["run_id"])
+    current_rows = _ap_account_rows(latest["run_id"])
+    previous_rows = _ap_account_rows(previous["run_id"]) if previous else []
+    current_by_key = {row["key"]: row for row in current_rows if row.get("key")}
+    previous_by_key = {row["key"]: row for row in previous_rows if row.get("key")}
+    summary = dict(empty_summary)
+    diff_rows = []
+    for key in sorted(set(current_by_key) | set(previous_by_key)):
+        current = current_by_key.get(key)
+        before = previous_by_key.get(key)
+        if current and not before:
+            change_type = "added"
+            changed_fields = []
+            summary["added"] += 1
+        elif before and not current:
+            change_type = "removed"
+            changed_fields = []
+            summary["removed"] += 1
+        else:
+            changed_fields = [field for field in AP_ACCOUNT_COMPARE_FIELDS if (current or {}).get(field) != (before or {}).get(field)]
+            if changed_fields:
+                change_type = "changed"
+                summary["changed"] += 1
+            else:
+                change_type = "unchanged"
+                summary["unchanged"] += 1
+        row = current or before or {}
+        diff_rows.append(
+            {
+                "change_type": change_type,
+                "app_id": row.get("app_id", ""),
+                "system_name": row.get("system_name", ""),
+                "environment": row.get("environment", ""),
+                "account": row.get("account", ""),
+                "changed_fields": ", ".join(changed_fields) if changed_fields else "-",
+                "before": before or {},
+                "after": current or {},
+            }
+        )
+    return {"latest": latest, "previous": previous, "summary": summary, "rows": diff_rows[:500]}
+
+
+def ap_account_report() -> dict[str, Any]:
+    latest = _latest_ap_account_batch()
+    rows = _ap_account_rows(latest["run_id"], limit=10000) if latest else []
+    systems: dict[str, dict[str, Any]] = {}
+    owners: dict[str, int] = {}
+    privileged = 0
+    pam_managed = 0
+    no_owner = 0
+    review = 0
+    for row in rows:
+        system_key = row.get("system_name") or row.get("app_id") or "-"
+        system = systems.setdefault(system_key, {"system_name": system_key, "app_id": row.get("app_id", ""), "count": 0, "privileged": 0, "no_owner": 0, "review": 0})
+        system["count"] += 1
+        if str(row.get("privilege") or "").lower() in {"admin", "administrator", "root", "high", "高權限"}:
+            privileged += 1
+            system["privileged"] += 1
+        if row.get("pam_managed"):
+            pam_managed += 1
+        if not row.get("owner"):
+            no_owner += 1
+            system["no_owner"] += 1
+        if row.get("risk") != "ok":
+            review += 1
+            system["review"] += 1
+        owner = row.get("owner") or "未填 owner"
+        owners[owner] = owners.get(owner, 0) + 1
+    return {
+        "latest": latest,
+        "rows": rows[:500],
+        "summary": {
+            "systems": len(systems),
+            "total": len(rows),
+            "privileged": privileged,
+            "pam_managed": pam_managed,
+            "no_owner": no_owner,
+            "review": review,
+        },
+        "by_system": sorted(systems.values(), key=lambda item: (-item["review"], item["system_name"])),
+        "by_owner": [{"owner": owner, "count": count} for owner, count in sorted(owners.items(), key=lambda item: (-item[1], item[0]))],
+        "diff": ap_account_diff_view(),
+    }
+
+
+def ap_account_workbench() -> dict[str, Any]:
+    try:
+        latest = _latest_ap_account_batch()
+        batches = list(get_collection("ap_account_batches").find({}, {"_id": 0}).sort("created_at", -1).limit(20))
+        report = ap_account_report()
+    except Exception:
+        latest = None
+        batches = []
+        report = {
+            "latest": None,
+            "rows": [],
+            "summary": {"systems": 0, "total": 0, "privileged": 0, "pam_managed": 0, "no_owner": 0, "review": 0},
+            "by_system": [],
+            "by_owner": [],
+            "diff": {"latest": None, "previous": None, "summary": {"added": 0, "removed": 0, "changed": 0, "unchanged": 0}, "rows": []},
+        }
+    return {**report, "latest": latest, "batches": batches}
+
+
+def export_ap_accounts_csv() -> str:
+    report = ap_account_report()
+    output = io.StringIO()
+    fields = [*AP_ACCOUNT_HEADERS, "risk", "valid"]
+    writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")
+    writer.writeheader()
+    for row in report["rows"]:
+        writer.writerow(row)
+    return output.getvalue()
+
+
+def export_ap_account_diff_csv() -> str:
+    diff = ap_account_diff_view()
+    output = io.StringIO()
+    fields = ["change_type", "app_id", "system_name", "environment", "account", "changed_fields"]
+    writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")
+    writer.writeheader()
+    for row in diff["rows"]:
+        writer.writerow(row)
     return output.getvalue()
 
 
