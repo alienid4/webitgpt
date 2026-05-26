@@ -273,7 +273,8 @@ def test_ai_token_cost_visibility_contract_exists():
     dependency_service = read("webapp/services/dependency_service.py")
 
     assert "token_cost_report" in reports_route
-    assert '"token_cost": token_cost_report()' in reports_route
+    assert "token_cost = token_cost_report()" in reports_route
+    assert '"token_cost": token_cost' in reports_route
     assert '"/superadmin/token-costs"' in superadmin_route
     assert '"/api/superadmin/token-costs"' in superadmin_route
     assert '"/api/superadmin/token-usage"' in superadmin_route

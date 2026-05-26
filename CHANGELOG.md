@@ -1,5 +1,36 @@
 # webitgpt Changelog
 
+## v1.0.3.29 - 2026-05-26 23:10 +08:00 - ops-ux-decision-workbench
+
+- 維運總覽改成先看風險與資料品質分數，再進入帳號、拓撲與安裝驗證。
+- 新增資料品質工作台頁面與安裝後驗證頁，讓 API/腳本結果有可讀 UI 入口。
+- 統計報表改為決策摘要優先，降低亂碼頁面的第一眼壓力。
+
+## v1.0.3.28 - 2026-05-26 23:00 +08:00 - post-install-report-ui
+
+- 新增安裝後驗證 UI，列出 health、ready、帳號頁、AP 模板、核心影響圖與資料品質檢查。
+- 頁面提供可直接執行的 post_install_verify.sh 指令。
+
+## v1.0.3.27 - 2026-05-26 22:50 +08:00 - core-impact-decision-language
+
+- 核心影響圖延續可信度摘要，將來源語意收斂成維運可判斷的 manual、auto、unknown。
+- 右側面板定位為事故/維護決策面板。
+
+## v1.0.3.26 - 2026-05-26 22:40 +08:00 - ap-account-risk-first-ux
+
+- AP 帳號頁維持風險分類在清冊前方，讓使用者先看缺 owner、PAM、MFA 與待複核。
+- 風險標籤與匯出語意保持一致。
+
+## v1.0.3.25 - 2026-05-26 22:30 +08:00 - data-quality-workbench-ui
+
+- 新增資料品質工作台頁面，顯示品質分數、CMDB 待修、AP 待複核與每項修正建議。
+- 維運總覽新增資料品質入口。
+
+## v1.0.3.24 - 2026-05-26 22:20 +08:00 - ops-dashboard-readable-copy
+
+- 維運總覽與統計報表改用可讀中文主標、摘要與空狀態文案。
+- 新增決策式版面，避免第一眼被明細表格淹沒。
+
 ## v1.0.3.23 - 2026-05-26 22:10 +08:00 - operations-quality-hardening
 
 - 補齊維運安全門檻文件，安全修補、停用帳號與 rollback 仍需 phase_readonly_mode 與正式 approval。

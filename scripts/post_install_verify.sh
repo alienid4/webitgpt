@@ -8,14 +8,17 @@ TIMEOUT="${TIMEOUT:-8}"
 check() {
   local name="$1"
   local url="$2"
-  local body
-  if ! body="$(curl -fsS --max-time "$TIMEOUT" "$url")"; then
+  local body_file
+  body_file="$(mktemp)"
+  if ! curl -fsS --max-time "$TIMEOUT" -o "$body_file" "$url"; then
     echo "FAIL $name $url"
+    rm -f "$body_file"
     return 1
   fi
   echo "OK $name"
-  printf '%s\n' "$body" | head -c 500
+  LC_ALL=C tr -cd '\11\12\15\40-\176' < "$body_file" | head -c 500 || true
   printf '\n'
+  rm -f "$body_file"
 }
 
 health="$(curl -fsS --max-time "$TIMEOUT" "$BASE_URL/health")"

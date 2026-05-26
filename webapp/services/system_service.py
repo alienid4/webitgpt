@@ -113,6 +113,61 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.29",
+        "date": "2026-05-26 23:10 +08:00",
+        "patch_id": "ops-ux-decision-workbench",
+        "changes": [
+            "維運總覽改成先看風險與資料品質分數，再進入帳號、拓撲與安裝驗證。",
+            "新增資料品質工作台頁面與安裝後驗證頁，讓 API/腳本結果有可讀 UI 入口。",
+            "統計報表改為決策摘要優先，降低亂碼頁面的第一眼壓力。",
+        ],
+    },
+    {
+        "version": "1.0.3.28",
+        "date": "2026-05-26 23:00 +08:00",
+        "patch_id": "post-install-report-ui",
+        "changes": [
+            "新增安裝後驗證 UI，列出 health、ready、帳號頁、AP 模板、核心影響圖與資料品質檢查。",
+            "頁面提供可直接執行的 post_install_verify.sh 指令。",
+        ],
+    },
+    {
+        "version": "1.0.3.27",
+        "date": "2026-05-26 22:50 +08:00",
+        "patch_id": "core-impact-decision-language",
+        "changes": [
+            "核心影響圖延續可信度摘要，將來源語意收斂成維運可判斷的 manual、auto、unknown。",
+            "右側面板定位為事故/維護決策面板。",
+        ],
+    },
+    {
+        "version": "1.0.3.26",
+        "date": "2026-05-26 22:40 +08:00",
+        "patch_id": "ap-account-risk-first-ux",
+        "changes": [
+            "AP 帳號頁維持風險分類在清冊前方，讓使用者先看缺 owner、PAM、MFA 與待複核。",
+            "風險標籤與匯出語意保持一致。",
+        ],
+    },
+    {
+        "version": "1.0.3.25",
+        "date": "2026-05-26 22:30 +08:00",
+        "patch_id": "data-quality-workbench-ui",
+        "changes": [
+            "新增資料品質工作台頁面，顯示品質分數、CMDB 待修、AP 待複核與每項修正建議。",
+            "維運總覽新增資料品質入口。",
+        ],
+    },
+    {
+        "version": "1.0.3.24",
+        "date": "2026-05-26 22:20 +08:00",
+        "patch_id": "ops-dashboard-readable-copy",
+        "changes": [
+            "維運總覽與統計報表改用可讀中文主標、摘要與空狀態文案。",
+            "新增決策式版面，避免第一眼被明細表格淹沒。",
+        ],
+    },
+    {
         "version": "1.0.3.23",
         "date": "2026-05-26 22:10 +08:00",
         "patch_id": "operations-quality-hardening",

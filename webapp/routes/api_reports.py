@@ -43,8 +43,57 @@ def _topology_from_request(default_view: str = "core_impact") -> dict:
     )
 
 
+def _empty_account_summary() -> dict:
+    return {
+        "summary": {
+            "total": 0,
+            "abnormal": 0,
+            "privileged": 0,
+            "service_login": 0,
+            "never_login": 0,
+            "password_old": 0,
+            "system_default_hidden": 0,
+            "pam_managed": 0,
+        },
+        "count": 0,
+        "last_collected": "-",
+        "hide_system_defaults": True,
+        "by_department": [],
+        "by_host": [],
+        "by_risk": [],
+        "abnormal_items": [],
+        "abnormal_count": 0,
+    }
+
+
+def _empty_quality_report(message: str) -> dict:
+    return {
+        "score": 0,
+        "status": "degraded",
+        "warnings": [message],
+        "summary": {
+            "hosts": 0,
+            "accounts": 0,
+            "ap_accounts": 0,
+            "cmdb_issues": 0,
+            "ap_review": 0,
+            "ap_owner_missing": 0,
+            "topology_notification_missing": 0,
+            "relations": 0,
+            "notifications": 0,
+            "patches": 0,
+        },
+        "checks": [],
+    }
+
+
 def _summary() -> dict:
-    hosts = list_hosts(page=1, page_size=10000)["items"]
+    warnings: list[str] = []
+    try:
+        hosts = list_hosts(page=1, page_size=10000)["items"]
+    except Exception as exc:
+        hosts = []
+        warnings.append(f"CMDB 資產摘要暫時不可用：{exc.__class__.__name__}")
     by_env: dict[str, int] = {}
     by_status: dict[str, int] = {}
     by_type: dict[str, int] = {}
@@ -54,7 +103,26 @@ def _summary() -> dict:
         by_status[host.get("status", "")] = by_status.get(host.get("status", ""), 0) + 1
         by_type[host.get("host_type") or host.get("os_group") or "-"] = by_type.get(host.get("host_type") or host.get("os_group") or "-", 0) + 1
         by_dc[host.get("dc") or host.get("location") or "-"] = by_dc.get(host.get("dc") or host.get("location") or "-", 0) + 1
-    compliance = compliance_dashboard() if is_enabled("module_compliance_security", default=False) else {"open_findings": 0, "rules_total": 0}
+    try:
+        compliance = compliance_dashboard() if is_enabled("module_compliance_security", default=False) else {"open_findings": 0, "rules_total": 0}
+    except Exception as exc:
+        compliance = {"open_findings": 0, "rules_total": 0}
+        warnings.append(f"合規摘要暫時不可用：{exc.__class__.__name__}")
+    try:
+        accounts = account_report_summary()
+    except Exception as exc:
+        accounts = _empty_account_summary()
+        warnings.append(f"帳號摘要暫時不可用：{exc.__class__.__name__}")
+    try:
+        quality = operations_data_quality()
+    except Exception as exc:
+        quality = _empty_quality_report(f"資料品質摘要暫時不可用：{exc.__class__.__name__}")
+        warnings.append(f"資料品質摘要暫時不可用：{exc.__class__.__name__}")
+    try:
+        token_cost = token_cost_report()
+    except Exception as exc:
+        token_cost = {"summary": {"total_tokens": 0, "estimated_cost_usd": 0}}
+        warnings.append(f"AI Token 摘要暫時不可用：{exc.__class__.__name__}")
     return {
         "hosts_total": len(hosts),
         "by_env": by_env,
@@ -62,8 +130,10 @@ def _summary() -> dict:
         "by_type": by_type,
         "by_dc": by_dc,
         "compliance": compliance,
-        "accounts": account_report_summary(),
-        "token_cost": token_cost_report(),
+        "accounts": accounts,
+        "quality": quality,
+        "token_cost": token_cost,
+        "warnings": warnings,
     }
 
 
@@ -114,6 +184,26 @@ def reports_page():
 @require_feature("summary")
 def dashboard_page():
     return render_template("dashboard.html", summary=_summary())
+
+
+@bp.get("/reports/data-quality")
+@require_feature("summary")
+def data_quality_page():
+    return render_template("data_quality.html", report=operations_data_quality())
+
+
+@bp.get("/reports/post-install")
+@require_feature("summary")
+def post_install_report_page():
+    checks = [
+        {"name": "Health", "target": "/health", "purpose": "確認服務版本與狀態。"},
+        {"name": "Ready", "target": "/ready", "purpose": "確認 MongoDB 與核心依賴可用。"},
+        {"name": "帳號盤點", "target": "/accounts", "purpose": "確認 OS / AP 帳號工作台可載入。"},
+        {"name": "AP 模板", "target": "/accounts/ap-template.xlsx", "purpose": "確認 AP 帳號匯入模板可下載。"},
+        {"name": "核心影響圖", "target": "/dependencies?view=core_impact", "purpose": "確認拓撲決策圖可載入。"},
+        {"name": "資料品質", "target": "/api/reports/data-quality", "purpose": "確認維運資料品質 API 可回應。"},
+    ]
+    return render_template("post_install_report.html", checks=checks)
 
 
 @bp.get("/executive")

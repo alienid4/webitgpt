@@ -1123,6 +1123,76 @@ a.metric:hover {
 }
 .report-summary { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
 
+.ops-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--c4);
+  padding-bottom: 14px;
+}
+
+.ops-hero h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+}
+
+.ops-status-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 12px 0 18px;
+}
+
+.ops-decision-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+  gap: 16px;
+}
+
+.ops-decision-card {
+  border-left: 5px solid var(--g1);
+}
+
+.ops-decision-card.warn,
+.quality-score-band.warn,
+.quality-check-card.warn {
+  border-left-color: var(--orange);
+}
+
+.quality-score-band {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 12px 0 18px;
+  border: 1px solid var(--c4);
+  border-left: 5px solid var(--g1);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  background: var(--white);
+}
+
+.quality-score-band span,
+.quality-check-card .text-muted-sm {
+  color: var(--c3);
+}
+
+.quality-score-band strong,
+.quality-count {
+  display: block;
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.code-block {
+  overflow-x: auto;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  background: var(--bg2);
+}
+
 .skeleton { background: linear-gradient(90deg, var(--bg2), var(--white), var(--bg2)); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 .spinner, .spinner-sm { border: 2px solid var(--c4); border-top-color: var(--g1); border-radius: 50%; animation: spin .8s linear infinite; }
@@ -2553,6 +2623,8 @@ button.is-busy {
   .account-dashboard { grid-template-columns: 1fr; }
   .report-hero { align-items: flex-start; flex-direction: column; }
   .report-grid { grid-template-columns: 1fr; }
+  .ops-hero { flex-direction: column; }
+  .ops-decision-grid { grid-template-columns: 1fr; }
   .asset-edit-hero { flex-direction: column; }
   .asset-edit-grid { grid-template-columns: 1fr; }
   .asset-edit-grid .span-2 { grid-column: auto; }

@@ -134,7 +134,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.23"' in config
+    assert 'VERSION = "1.0.3.29"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -149,6 +149,32 @@ def test_operations_hardening_to_10323_contracts_exist():
     assert ".topology-trust-list" in css
     assert "post_install_verify.sh" in read("docs/release_notes/v1.0.3.20.md")
     assert "phase_readonly_mode" in read("docs/operations_hardening_roadmap.md")
+
+
+def test_ops_ux_to_10329_contracts_exist():
+    dashboard = read("webapp/templates/dashboard.html")
+    reports = read("webapp/templates/reports.html")
+    routes = read("webapp/routes/api_reports.py")
+    quality = read("webapp/templates/data_quality.html")
+    post_install = read("webapp/templates/post_install_report.html")
+    css = read("webapp/static/css/cathay.css")
+    service = read("webapp/services/system_service.py")
+
+    assert "維運總覽" in dashboard
+    assert "資料品質分數" in dashboard
+    assert "ops-decision-grid" in dashboard
+    assert "資料品質工作台" in quality
+    assert "quality-score-band" in quality
+    assert "安裝後驗證" in post_install
+    assert "post_install_verify.sh" in post_install
+    assert "統計報表" in reports
+    assert "資料品質缺口" in reports
+    assert "data_quality_page" in routes
+    assert "post_install_report_page" in routes
+    assert ".ops-hero" in css
+    assert ".quality-score-band" in css
+    assert "1.0.3.29" in service
+    assert "ops-ux-decision-workbench" in read("CHANGELOG.md")
 
 
 def test_account_checkboxes_use_inline_left_layout():

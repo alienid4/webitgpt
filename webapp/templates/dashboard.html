@@ -1,51 +1,61 @@
 {% extends "base.html" %}
-{% block title %}儀表板 - webitgpt{% endblock %}
+{% block title %}維運總覽 - webitgpt{% endblock %}
 {% block content %}
-<section class="panel report-hero">
+<section class="ops-hero">
   <div>
-    <p class="eyebrow">DASHBOARD</p>
-    <h1>系統總覽儀表板</h1>
-    <p class="text-muted-sm">整合資產、帳號盤點與合規狀態。資料以目前 MongoDB / CMDB 實際資料為準。</p>
+    <p class="eyebrow">OPERATIONS DASHBOARD</p>
+    <h1>維運總覽</h1>
+    <p class="text-muted-sm">先看結論，再看原因與明細。這裡只放維運需要立即判斷的風險、資料品質與入口。</p>
   </div>
   <div class="actions">
-    <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">資產管理</a>
-    <a class="btn secondary" href="{{ url_for('api_inventory.accounts_page') }}">帳號盤點</a>
+    <a class="btn primary" href="{{ url_for('api_reports.data_quality_page') }}">資料品質</a>
+    <a class="btn secondary" href="{{ url_for('api_reports.post_install_report_page') }}">安裝驗證</a>
+    <a class="btn secondary" href="{{ url_for('api_reports.dependencies_page') }}">核心影響圖</a>
   </div>
 </section>
 
-<section class="summary-grid">
-  <a class="metric" href="{{ url_for('api_hosts.hosts_page') }}"><strong>{{ summary.hosts_total }}</strong><span>資產總數</span></a>
-  <a class="metric" href="{{ url_for('api_inventory.accounts_page') }}#list"><strong>{{ summary.accounts.summary.total }}</strong><span>帳號總數</span></a>
-  <a class="metric" href="{{ url_for('api_inventory.accounts_page', metric='abnormal') }}"><strong>{{ summary.accounts.summary.abnormal }}</strong><span>異常帳號</span></a>
-  <a class="metric" href="{{ url_for('api_compliance.security_audit_page') }}#security-hosts"><strong>{{ summary.compliance.open_findings }}</strong><span>合規未結異常</span></a>
+<section class="ops-status-strip">
+  <a class="metric" href="{{ url_for('api_hosts.hosts_page') }}"><strong>{{ summary.hosts_total }}</strong><span>納管資產</span></a>
+  <a class="metric" href="{{ url_for('api_reports.data_quality_page') }}"><strong>{{ summary.quality.score }}</strong><span>資料品質分數</span></a>
+  <a class="metric" href="{{ url_for('api_inventory.accounts_page') }}#list"><strong>{{ summary.accounts.summary.total }}</strong><span>OS 帳號</span></a>
+  <a class="metric" href="{{ url_for('api_inventory.accounts_page') }}#ap"><strong>{{ summary.quality.summary.ap_accounts }}</strong><span>AP 帳號</span></a>
+  <a class="metric" href="{{ url_for('api_inventory.accounts_page', metric='abnormal') }}"><strong>{{ summary.accounts.summary.abnormal }}</strong><span>待處理帳號</span></a>
+  <a class="metric" href="{{ url_for('api_compliance.security_audit_page') }}#security-hosts"><strong>{{ summary.compliance.open_findings }}</strong><span>安全待確認</span></a>
 </section>
 
-<section class="report-grid">
-  <div class="panel">
-    <h2>資產狀態</h2>
-    <table class="data-table">
-      <thead><tr><th>狀態</th><th>數量</th></tr></thead>
+<section class="ops-decision-grid">
+  <article class="panel ops-decision-card {% if summary.quality.status != 'ok' %}warn{% endif %}">
+    <div class="compact-title">
+      <h2>資料品質</h2>
+      <span class="{% if summary.quality.status == 'ok' %}badge-ok{% elif summary.quality.status == 'degraded' %}badge-error{% else %}badge-warn{% endif %}">{{ summary.quality.status }}</span>
+    </div>
+    <p class="text-muted-sm">品質分數 {{ summary.quality.score }}。CMDB、AP 帳號、通知 owner 任一項不穩，拓撲與報表就只能當參考。</p>
+    <table class="data-table compact-table">
+      <thead><tr><th>項目</th><th>狀態</th><th>數量</th></tr></thead>
       <tbody>
-        {% for key, value in summary.by_status.items() %}
-        <tr><td>{{ key or "-" }}</td><td>{{ value }}</td></tr>
-        {% else %}
-        <tr><td colspan="2" class="no-data">尚無資產資料。</td></tr>
+        {% for item in summary.quality.checks %}
+        <tr><td>{{ item.domain }}</td><td>{{ item.status }}</td><td>{{ item.count }}</td></tr>
         {% endfor %}
       </tbody>
     </table>
-  </div>
-  <div class="panel">
-    <h2>帳號風險</h2>
-    <table class="data-table">
+  </article>
+
+  <article class="panel ops-decision-card">
+    <div class="compact-title">
+      <h2>帳號風險</h2>
+      <a class="btn-sm" href="{{ url_for('api_inventory.accounts_page') }}">查看</a>
+    </div>
+    <p class="text-muted-sm">OS 與 AP 帳號分開治理；優先看缺 owner、高權限未納 PAM、服務帳號可登入。</p>
+    <table class="data-table compact-table">
       <thead><tr><th>風險</th><th>數量</th></tr></thead>
       <tbody>
-        {% for item in summary.accounts.by_risk %}
+        {% for item in summary.accounts.by_risk[:6] %}
         <tr><td>{{ item.name }}</td><td>{{ item.count }}</td></tr>
         {% else %}
-        <tr><td colspan="2" class="no-data">尚無帳號盤點資料。</td></tr>
+        <tr><td colspan="2" class="no-data">目前沒有帳號風險資料</td></tr>
         {% endfor %}
       </tbody>
     </table>
-  </div>
+  </article>
 </section>
 {% endblock %}

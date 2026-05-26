@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}安裝後驗證 - webitgpt{% endblock %}
+{% block content %}
+<section class="ops-hero">
+  <div>
+    <p class="eyebrow">POST INSTALL</p>
+    <h1>安裝後驗證</h1>
+    <p class="text-muted-sm">離線移植後不要只看服務有沒有啟動；要確認版本、資料庫、帳號頁、AP 模板、拓撲與資料品質都可用。</p>
+  </div>
+  <div class="actions">
+    <a class="btn primary" href="{{ url_for('api_superadmin.system_health_page') }}">健康檢查</a>
+    <a class="btn secondary" href="{{ url_for('api_reports.data_quality_page') }}">資料品質</a>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>建議驗證指令</h2>
+  <pre class="code-block">EXPECTED_VERSION={{ app_version }} BASE_URL=http://127.0.0.1:8002 bash scripts/post_install_verify.sh</pre>
+</section>
+
+<section class="panel">
+  <h2>驗證項目</h2>
+  <table class="data-table">
+    <thead><tr><th>項目</th><th>目標</th><th>目的</th></tr></thead>
+    <tbody>
+      {% for item in checks %}
+      <tr><td><strong>{{ item.name }}</strong></td><td><span class="code-inline">{{ item.target }}</span></td><td>{{ item.purpose }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
