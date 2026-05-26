@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.11",
+        "date": "2026-05-26 16:55 +08:00",
+        "patch_id": "rhel96-offline-target-package",
+        "changes": [
+            "完整離線包支援 TARGET_OS_LABEL，包名、README 與 prerequisite manifest 會標示目標 OS。",
+            "RHEL 9.6 新機移植可產生清楚標記的 target package，避免與 Rocky/RHEL 9.7 包混淆。",
+            "release note 明確記錄 build OS 與 target OS；若正式要求完全同版 RPM，請在 RHEL 9.6 build host 重建。",
+        ],
+    },
+    {
         "version": "1.0.3.10",
         "date": "2026-05-26 08:25 +08:00",
         "patch_id": "core-impact-system-focus-scope",

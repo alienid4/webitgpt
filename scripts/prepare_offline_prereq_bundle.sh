@@ -16,6 +16,8 @@ INCLUDE_MONGO_IMAGE="${INCLUDE_MONGO_IMAGE:-1}"
 INCLUDE_NMON="${INCLUDE_NMON:-1}"
 DNF_REPO_FLAGS="${DNF_REPO_FLAGS:---disablerepo=tailscale-stable --disablerepo=cloudflared-stable}"
 PODMAN_BIN="${PODMAN_BIN:-podman}"
+BUILD_OS_LABEL="$(cat /etc/redhat-release 2>/dev/null || uname -a)"
+TARGET_OS_LABEL="${TARGET_OS_LABEL:-$BUILD_OS_LABEL}"
 
 PACKAGES=(
   python3
@@ -77,7 +79,8 @@ cat >"$STAGE/manifest.txt" <<EOF
 Bundle: $BUNDLE_NAME
 Generated at: $(date -Is)
 Build host: $(hostname -f 2>/dev/null || hostname)
-OS: $(cat /etc/redhat-release 2>/dev/null || uname -a)
+Build OS: $BUILD_OS_LABEL
+Target OS: $TARGET_OS_LABEL
 Mongo image requested: $MONGO_IMAGE
 Mongo image included: $INCLUDE_MONGO_IMAGE
 NMON package requested: $INCLUDE_NMON

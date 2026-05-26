@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.3.10"
-PATCH_ID = "core-impact-system-focus-scope"
-RELEASE_NOTE = "核心系統影響圖選取單一系統時，只顯示焦點系統、直接關聯與主機 IP"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-26 08:25:00 +08:00")
+VERSION = "1.0.3.11"
+PATCH_ID = "rhel96-offline-target-package"
+RELEASE_NOTE = "完整離線包支援標記 RHEL 9.6 目標環境，manifest 顯示 build OS 與 target OS"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-26 16:55:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

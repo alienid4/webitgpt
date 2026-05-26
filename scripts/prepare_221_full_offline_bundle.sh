@@ -24,8 +24,11 @@ from webapp import config
 print(f"{config.VERSION}-{config.PATCH_ID}")
 PY
 )"
+BUILD_OS_LABEL="$(cat /etc/redhat-release 2>/dev/null || uname -a)"
+TARGET_OS_LABEL="${TARGET_OS_LABEL:-$BUILD_OS_LABEL}"
+TARGET_OS_SLUG="${TARGET_OS_SLUG:-$(printf '%s' "$TARGET_OS_LABEL" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')}"
 
-FULL_NAME="${FULL_NAME:-webitgpt_full_offline_${VERSION_TEXT}_${STAMP}}"
+FULL_NAME="${FULL_NAME:-webitgpt_full_offline_${VERSION_TEXT}_${TARGET_OS_SLUG}_${STAMP}}"
 STAGE="$OUT_DIR/$FULL_NAME"
 PACKAGE_DIR="$STAGE/packages"
 
@@ -44,6 +47,7 @@ PREREQ_ARCHIVE="$(
   MONGO_IMAGE="${MONGO_IMAGE:-docker.io/library/mongo:7.0}" \
   INCLUDE_MONGO_IMAGE="${INCLUDE_MONGO_IMAGE:-1}" \
   INCLUDE_NMON="${INCLUDE_NMON:-1}" \
+  TARGET_OS_LABEL="$TARGET_OS_LABEL" \
   bash "$ROOT/scripts/prepare_offline_prereq_bundle.sh" | tail -n 1
 )"
 
@@ -128,6 +132,8 @@ webitgpt full offline package
 Generated at: $(date -Is)
 Build host: $(hostname -f 2>/dev/null || hostname)
 Version: $VERSION_TEXT
+Build OS: $BUILD_OS_LABEL
+Target OS: $TARGET_OS_LABEL
 
 Use on target host:
 
