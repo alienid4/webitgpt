@@ -1201,6 +1201,95 @@ a.metric:hover {
   gap: 8px;
 }
 
+.verify-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 12px 0 18px;
+}
+
+.verify-mode-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--c4);
+  border-left: 6px solid var(--c3);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.verify-mode-card.api-key {
+  border-left-color: var(--g1);
+}
+
+.verify-mode-card.script-only {
+  border-left-color: var(--c3);
+}
+
+.verify-mode-card h2 {
+  margin: 8px 0 6px;
+  font-size: 20px;
+}
+
+.verify-mode-card p {
+  margin: 0;
+  color: var(--c2);
+}
+
+.verify-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.verify-badge.api {
+  border: 1px solid var(--g1);
+  background: var(--g-light);
+  color: var(--g-text);
+}
+
+.verify-badge.script {
+  border: 1px solid var(--c4);
+  background: var(--bg2);
+  color: var(--c2);
+}
+
+.verify-facts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.verify-facts div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 8px;
+  border-top: 1px solid var(--bg2);
+  padding-top: 8px;
+}
+
+.verify-facts dt {
+  color: var(--c3);
+  font-weight: 800;
+}
+
+.verify-facts dd {
+  margin: 0;
+}
+
+.verify-command-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0 6px;
+}
+
 .ops-decision-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
@@ -2681,6 +2770,7 @@ button.is-busy {
   .report-grid { grid-template-columns: 1fr; }
   .ops-hero { flex-direction: column; }
   .report-next-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .verify-mode-grid { grid-template-columns: 1fr; }
   .ops-decision-grid { grid-template-columns: 1fr; }
   .asset-edit-hero { flex-direction: column; }
   .asset-edit-grid { grid-template-columns: 1fr; }
@@ -2700,6 +2790,7 @@ button.is-busy {
   .page { padding: 12px; }
   .metric-grid, .summary-grid { grid-template-columns: 1fr; }
   .report-next-actions { grid-template-columns: 1fr; }
+  .verify-facts div { grid-template-columns: 1fr; }
 }
 
 @media print {

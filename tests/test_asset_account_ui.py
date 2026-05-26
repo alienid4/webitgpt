@@ -134,7 +134,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.31"' in config
+    assert 'VERSION = "1.0.3.32"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -205,8 +205,7 @@ def test_api_key_post_install_to_10331_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.31"' in config
-    assert "api-key-post-install-verify" in config
+    assert "api-key-post-install-verify" in changelog
     assert '"/api/v1/post-install/verify"' in api_v1
     assert '@require_api_scope("system:read")' in api_v1
     assert "API_TOKEN" in script
@@ -216,6 +215,32 @@ def test_api_key_post_install_to_10331_contracts_exist():
     assert "1.0.3.31" in service
     assert "api-key-post-install-verify" in changelog
     assert "api-key-post-install-verify" in read("docs/release_notes/v1.0.3.31.md")
+
+
+def test_api_key_verify_visibility_to_10332_contracts_exist():
+    config = read("webapp/config.py")
+    api_v1 = read("webapp/routes/api_v1.py")
+    post_install = read("webapp/templates/post_install_report.html")
+    css = read("webapp/static/css/cathay.css")
+    service = read("webapp/services/system_service.py")
+    changelog = read("CHANGELOG.md")
+
+    assert 'VERSION = "1.0.3.32"' in config
+    assert "api-key-verify-visibility" in config
+    assert "verification_source" in api_v1
+    assert "verification_label" in api_v1
+    assert "required_scope" in api_v1
+    assert "API Key 驗證" in post_install
+    assert "Script 檢查" in post_install
+    assert "verification_source=api_key" in post_install
+    assert "/api/v1/post-install/verify" in post_install
+    assert "verify-mode-grid" in post_install
+    assert ".verify-mode-card" in css
+    assert ".verify-badge.api" in css
+    assert ".verify-badge.script" in css
+    assert "1.0.3.32" in service
+    assert "api-key-verify-visibility" in changelog
+    assert "api-key-verify-visibility" in read("docs/release_notes/v1.0.3.32.md")
 
 
 def test_account_checkboxes_use_inline_left_layout():

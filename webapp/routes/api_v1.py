@@ -39,6 +39,8 @@ def post_install_verify_v1():
             "ok": True,
             "status": "ok",
             "detail": "Bearer token accepted with system:read scope.",
+            "source": "api_key",
+            "scope": "system:read",
         }
     ]
 
@@ -79,6 +81,9 @@ def post_install_verify_v1():
         {
             "ok": required_ok,
             "status": "ok" if required_ok else "degraded",
+            "verification_source": "api_key",
+            "verification_label": "API Key 驗證",
+            "required_scope": "system:read",
             "app": config.APP_NAME,
             "version": config.VERSION,
             "patch_id": config.PATCH_ID,

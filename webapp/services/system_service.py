@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.32",
+        "date": "2026-05-27 00:15 +08:00",
+        "patch_id": "api-key-verify-visibility",
+        "changes": [
+            "安裝後驗證頁新增 API Key 驗證與 Script 檢查兩種模式卡，使用者可一眼辨識判斷來源。",
+            "API Key 模式明列 system:read scope、verification_source=api_key 回應標記與 curl 範例。",
+            "/api/v1/post-install/verify 回應新增 verification_source、verification_label 與 required_scope。",
+        ],
+    },
+    {
         "version": "1.0.3.31",
         "date": "2026-05-26 23:45 +08:00",
         "patch_id": "api-key-post-install-verify",

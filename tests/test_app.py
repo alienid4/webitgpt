@@ -47,6 +47,9 @@ def test_api_key_post_install_verify_returns_checks(monkeypatch):
     assert data["ok"] is True
     assert data["version"] == config.VERSION
     assert data["patch_id"] == config.PATCH_ID
+    assert data["verification_source"] == "api_key"
+    assert data["verification_label"] == "API Key 驗證"
+    assert data["required_scope"] == "system:read"
     assert {item["name"] for item in data["checks"]} >= {"api_key", "version", "mongo", "data_quality_api"}
 
 

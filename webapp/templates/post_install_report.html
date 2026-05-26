@@ -5,7 +5,7 @@
   <div>
     <p class="eyebrow">POST INSTALL</p>
     <h1>安裝後驗證</h1>
-    <p class="text-muted-sm">離線移植後不要只看服務有沒有啟動；要確認版本、資料庫、帳號頁、AP 模板、拓撲與資料品質都可用。</p>
+    <p class="text-muted-sm">離線移植後不要只看服務有沒有啟動；這裡把「API Key 驗證」與「Script 檢查」分開，讓使用者一眼看出判斷來源。</p>
   </div>
   <div class="actions">
     <a class="btn primary" href="{{ url_for('api_superadmin.system_health_page') }}">健康檢查</a>
@@ -13,11 +13,46 @@
   </div>
 </section>
 
+<section class="verify-mode-grid" aria-label="驗證模式">
+  <article class="verify-mode-card api-key">
+    <div>
+      <span class="verify-badge api">API Key 驗證</span>
+      <h2>正式 API 權限判斷</h2>
+      <p>使用 Bearer token 呼叫 <span class="code-inline">/api/v1/post-install/verify</span>，由 API 回傳版本、Mongo 與資料品質 API 狀態。</p>
+    </div>
+    <dl class="verify-facts">
+      <div><dt>必要 scope</dt><dd><span class="code-inline">system:read</span></dd></div>
+      <div><dt>回應標記</dt><dd><span class="code-inline">verification_source=api_key</span></dd></div>
+      <div><dt>適用情境</dt><dd>外部監控、船上移植驗收、系統對系統檢查</dd></div>
+    </dl>
+  </article>
+  <article class="verify-mode-card script-only">
+    <div>
+      <span class="verify-badge script">Script 檢查</span>
+      <h2>本機 curl 腳本檢查</h2>
+      <p>不帶 API_TOKEN 時只檢查公開 health、ready、頁面與資料品質 API 是否可連線。</p>
+    </div>
+    <dl class="verify-facts">
+      <div><dt>必要條件</dt><dd>能在主機上執行 script</dd></div>
+      <div><dt>回應標記</dt><dd>沒有 API Key 身分證明</dd></div>
+      <div><dt>適用情境</dt><dd>初裝後快速自檢、服務啟動確認</dd></div>
+    </dl>
+  </article>
+</section>
+
 <section class="panel">
   <h2>建議驗證指令</h2>
+  <div class="verify-command-head">
+    <span class="verify-badge script">Script 檢查</span>
+    <span class="text-muted-sm">沒有 API Key，適合先確認服務能不能打開。</span>
+  </div>
   <pre class="code-block">EXPECTED_VERSION={{ app_version }} BASE_URL=http://127.0.0.1:8002 bash scripts/post_install_verify.sh</pre>
-  <p class="text-muted-sm">若要改用 API Key 判斷，請先在「系統管理 / API Token」核發含 <span class="code-inline">system:read</span> scope 的 token，再執行：</p>
+  <div class="verify-command-head">
+    <span class="verify-badge api">API Key 驗證</span>
+    <span class="text-muted-sm">請先在「系統管理 / API Token」核發含 <span class="code-inline">system:read</span> scope 的 token。</span>
+  </div>
   <pre class="code-block">EXPECTED_VERSION={{ app_version }} API_TOKEN=wgpt_xxx BASE_URL=http://127.0.0.1:8002 bash scripts/post_install_verify.sh</pre>
+  <pre class="code-block">curl -H "Authorization: Bearer wgpt_xxx" "http://127.0.0.1:8002/api/v1/post-install/verify?expected_version={{ app_version }}"</pre>
 </section>
 
 <section class="panel">
