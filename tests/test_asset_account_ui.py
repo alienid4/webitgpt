@@ -134,7 +134,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.30"' in config
+    assert 'VERSION = "1.0.3.31"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -180,12 +180,10 @@ def test_ops_ux_to_10329_contracts_exist():
 def test_reports_next_action_to_10330_contracts_exist():
     reports = read("webapp/templates/reports.html")
     css = read("webapp/static/css/cathay.css")
-    config = read("webapp/config.py")
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.30"' in config
-    assert "reports-next-action-entry" in config
+    assert "reports-next-action-entry" in changelog
     assert "下一步要做什麼" in reports
     assert "report-next-actions" in reports
     assert "前往資料品質工作台" in reports
@@ -196,6 +194,28 @@ def test_reports_next_action_to_10330_contracts_exist():
     assert "1.0.3.30" in service
     assert "reports-next-action-entry" in changelog
     assert "reports-next-action-entry" in read("docs/release_notes/v1.0.3.30.md")
+
+
+def test_api_key_post_install_to_10331_contracts_exist():
+    config = read("webapp/config.py")
+    api_v1 = read("webapp/routes/api_v1.py")
+    script = read("scripts/post_install_verify.sh")
+    post_install = read("webapp/templates/post_install_report.html")
+    tokens = read("webapp/templates/tokens.html")
+    service = read("webapp/services/system_service.py")
+    changelog = read("CHANGELOG.md")
+
+    assert 'VERSION = "1.0.3.31"' in config
+    assert "api-key-post-install-verify" in config
+    assert '"/api/v1/post-install/verify"' in api_v1
+    assert '@require_api_scope("system:read")' in api_v1
+    assert "API_TOKEN" in script
+    assert "api_key_verify" in script
+    assert "system:read" in post_install
+    assert "system:read" in tokens
+    assert "1.0.3.31" in service
+    assert "api-key-post-install-verify" in changelog
+    assert "api-key-post-install-verify" in read("docs/release_notes/v1.0.3.31.md")
 
 
 def test_account_checkboxes_use_inline_left_layout():

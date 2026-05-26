@@ -1,5 +1,6 @@
 from webapp.app import create_app
 from webapp import config
+from webapp.routes import api_v1
 from webapp.routes import api_reports
 from webapp.services import dependency_service
 
@@ -17,6 +18,36 @@ def test_version_segments_are_capped_at_99():
 
     assert parts[0] == 1
     assert all(0 <= part <= 99 for part in parts[1:])
+
+
+def test_api_key_post_install_verify_requires_token():
+    app = create_app()
+    client = app.test_client()
+
+    response = client.get("/api/v1/post-install/verify")
+
+    assert response.status_code == 401
+    assert response.get_json()["error"] == "missing bearer token"
+
+
+def test_api_key_post_install_verify_returns_checks(monkeypatch):
+    monkeypatch.setattr("webapp.decorators.verify_token", lambda token, scope: token == "ok-token" and scope == "system:read")
+    monkeypatch.setattr(api_v1.mongo_service, "ping", lambda: {"mongo": "ok", "db": "webitgpt"})
+    monkeypatch.setattr(api_v1, "operations_data_quality", lambda: {"status": "ok", "score": 99, "warnings": []})
+    app = create_app()
+    client = app.test_client()
+
+    response = client.get(
+        f"/api/v1/post-install/verify?expected_version={config.VERSION}",
+        headers={"Authorization": "Bearer ok-token"},
+    )
+    data = response.get_json()
+
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["version"] == config.VERSION
+    assert data["patch_id"] == config.PATCH_ID
+    assert {item["name"] for item in data["checks"]} >= {"api_key", "version", "mongo", "data_quality_api"}
 
 
 def test_core_impact_notifications_csv(monkeypatch):

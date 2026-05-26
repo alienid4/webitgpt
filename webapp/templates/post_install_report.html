@@ -16,6 +16,8 @@
 <section class="panel">
   <h2>建議驗證指令</h2>
   <pre class="code-block">EXPECTED_VERSION={{ app_version }} BASE_URL=http://127.0.0.1:8002 bash scripts/post_install_verify.sh</pre>
+  <p class="text-muted-sm">若要改用 API Key 判斷，請先在「系統管理 / API Token」核發含 <span class="code-inline">system:read</span> scope 的 token，再執行：</p>
+  <pre class="code-block">EXPECTED_VERSION={{ app_version }} API_TOKEN=wgpt_xxx BASE_URL=http://127.0.0.1:8002 bash scripts/post_install_verify.sh</pre>
 </section>
 
 <section class="panel">

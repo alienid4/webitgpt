@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.31 - 2026-05-26 23:45 +08:00 - api-key-post-install-verify
+
+- 新增 `/api/v1/post-install/verify`，需使用 Bearer API Token 且具備 `system:read` scope。
+- `post_install_verify.sh` 支援 `API_TOKEN=wgpt_xxx` 模式，可用 API Key 判斷版本、Mongo 與資料品質 API。
+- 安裝後驗證頁補 API Key 模式指令，API Token 表單預設 scope 加入 `system:read`。
+
 ## v1.0.3.30 - 2026-05-26 23:30 +08:00 - reports-next-action-entry
 
 - 統計報表新增「下一步要做什麼」操作區，直接引導到資料品質、帳號盤點、核心影響圖與交付匯出。
