@@ -31,6 +31,14 @@
   </div>
 
   {% if errors %}<div class="notice danger">{{ errors|join(' / ') }}</div>{% endif %}
+  <section class="judgement-source-legend" aria-label="CMDB 匯入判斷來源">
+    <strong>CMDB 匯入判斷來源</strong>
+    <span class="source-badge cmdb">CSV / Excel 原始資料</span>
+    <span class="source-badge rule">欄位規則</span>
+    <span class="source-badge api">匯入 API</span>
+    <span class="source-badge ai">AI-ready 錯誤解讀</span>
+    <span class="source-badge fallback">無 API Key 時顯示人可讀規則原因</span>
+  </section>
   {% if import_result %}
   <div class="notice">
     CSV / Excel 匯入結果：讀到 {{ import_result.total_rows or 0 }} 筆，新增 {{ import_result.created }}，更新 {{ import_result.updated }}，草稿 {{ import_result.draft or 0 }}，失敗 {{ import_result.failed }}。
@@ -42,6 +50,11 @@
       <div>
         <h2>CMDB 匯入結果摘要</h2>
         <p class="text-muted-sm">讓人先看總數、成功、草稿與失敗原因，再決定要補資料、轉正式或下載錯誤列。</p>
+        <div class="judgement-source-row">
+          <span class="source-badge cmdb">CMDB 資料</span>
+          <span class="source-badge rule">Rule 驗證</span>
+          <span class="source-badge insufficient">失敗列需補證據</span>
+        </div>
       </div>
     </div>
     {% set summary = import_result.summary or {} %}

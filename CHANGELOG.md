@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.38 - 2026-05-27 23:45 +08:00 - global-judgement-source-visibility
+
+- 維運總覽、統計報表、資料品質、CMDB 匯入、NMON、核心影響圖與帳號盤點加入判斷來源圖例。
+- 統一顯示 CMDB、Script、Rule、API、NMON、AI-ready、AI + Script 與 fallback badge。
+- API Key 尚未設定時，UI 明確表示仍由既有 Script / Rule / NMON / CMDB 判斷保底，不阻斷維運流程。
+
 ## v1.0.3.37 - 2026-05-27 23:20 +08:00 - ai-judgement-gold-frame-ui
 
 - 安裝後驗證頁新增金框 AI 判斷卡，讓使用者一眼看出 AI 判讀與 Script/API Key 檢查不同。

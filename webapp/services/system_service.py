@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.38",
+        "date": "2026-05-27 23:45 +08:00",
+        "patch_id": "global-judgement-source-visibility",
+        "changes": [
+            "Dashboard、統計報表、資料品質、CMDB 匯入、NMON、核心影響圖與帳號盤點加入判斷來源標示。",
+            "新增全域 judgement source legend，統一 Script、Rule、API Key、AI、AI + Script、NMON 與 CMDB 來源語意。",
+            "AI 功能未提供 API Key 時仍可顯示 AI-ready 與 Script/Rule 保底，不阻斷既有維運流程。",
+        ],
+    },
+    {
         "version": "1.0.3.37",
         "date": "2026-05-27 23:20 +08:00",
         "patch_id": "ai-judgement-gold-frame-ui",

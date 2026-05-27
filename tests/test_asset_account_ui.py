@@ -167,7 +167,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.37"' in config
+    assert 'VERSION = "1.0.3.38"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -258,8 +258,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.37"' in config
-    assert "ai-judgement-gold-frame-ui" in config
+    assert 'VERSION = "1.0.3.38"' in config
+    assert "global-judgement-source-visibility" in config
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -271,7 +271,7 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     assert ".verify-mode-card" in css
     assert ".verify-badge.api" in css
     assert ".verify-badge.script" in css
-    assert "1.0.3.37" in service
+    assert "1.0.3.38" in service
     assert "ai-judgement-gold-frame-ui" in changelog
     assert "ai-judgement-gold-frame-ui" in read("docs/release_notes/v1.0.3.37.md")
     assert "Shell 負責採證" in read("docs/20260527/v1.0.3.36_ai-judgement-source-ux-design.md")
@@ -280,6 +280,33 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     assert "AI 判斷金框" in read("webapp/templates/inspections.html")
     assert ".verify-badge.ai" in css
     assert ".l3-panel.l3-ai-ready" in css
+
+
+def test_global_judgement_source_visibility_contracts_exist():
+    css = read("webapp/static/css/cathay.css")
+    config = read("webapp/config.py")
+    changelog = read("CHANGELOG.md")
+
+    assert "global-judgement-source-visibility" in config
+    assert "v1.0.3.38" in changelog
+    assert "判斷來源圖例" in read("webapp/templates/dashboard.html")
+    assert "報表判斷來源" in read("webapp/templates/reports.html")
+    assert "資料品質判斷來源" in read("webapp/templates/data_quality.html")
+    assert "帳號判斷來源" in read("webapp/templates/accounts_inventory.html")
+    assert "CMDB 匯入判斷來源" in read("webapp/templates/host_new.html")
+    assert "效能判斷來源" in read("webapp/templates/nmon.html")
+    assert "拓撲判斷來源" in read("webapp/templates/dependencies.html")
+    for token in [
+        ".judgement-source-legend",
+        ".source-badge.ai",
+        ".source-badge.hybrid",
+        ".source-badge.nmon",
+        ".source-badge.cmdb",
+        ".source-badge.fallback",
+        ".source-badge.insufficient",
+    ]:
+        assert token in css
+    assert "AI 不可用時 Script 接手" in read("webapp/templates/dashboard.html")
 
 
 def test_rhel96_offline_prereq_installer_guards_core_packages():

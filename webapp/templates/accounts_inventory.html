@@ -48,6 +48,14 @@
       <button class="btn secondary" type="button" data-api-post="/api/inventory/accounts/collect" data-payload='{"limit":50,"force":true}' data-reload-on-success="true" data-busy-text="盤點中" data-submit-message="正在強制重新盤點帳號，請稍候。">強制重新盤點</button>
     </form>
     <div class="submit-status" hidden aria-live="polite"></div>
+    <section class="judgement-source-legend" aria-label="帳號盤點判斷來源">
+      <strong>帳號判斷來源</strong>
+      <span class="source-badge script">OS Script 採證</span>
+      <span class="source-badge cmdb">AP CSV / Excel 匯入</span>
+      <span class="source-badge rule">PAM / owner 規則</span>
+      <span class="source-badge hybrid">L3 可交給 AI 判讀</span>
+      <span class="source-badge fallback">AI 不可用時規則接手</span>
+    </section>
     <nav class="account-tabs" aria-label="帳號盤點分頁">
       <button class="account-tab active" type="button" data-account-tab="overview">總覽</button>
       <button class="account-tab" type="button" data-account-tab="departments">部門設備</button>

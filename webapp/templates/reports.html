@@ -13,10 +13,20 @@
   </div>
 </section>
 
+<section class="judgement-source-legend" aria-label="統計報表判斷來源">
+  <strong>報表判斷來源</strong>
+  <span class="source-badge cmdb">CMDB / AP 匯入</span>
+  <span class="source-badge rule">Rule 統計</span>
+  <span class="source-badge nmon">NMON 指標</span>
+  <span class="source-badge hybrid">AI + Script</span>
+  <span class="source-badge fallback">API Key 未設定時仍用 Script/Rule</span>
+</section>
+
 <section id="report-next-actions" class="report-next-actions" aria-label="統計報表下一步">
   <article class="report-action-card primary">
     <div>
       <span class="step-label">先做這個</span>
+      <div class="judgement-source-row"><span class="source-badge cmdb">CMDB</span><span class="source-badge rule">Rule</span></div>
       <h2>資料品質不夠時，先修資料</h2>
       <p>CMDB、AP owner/PAM、拓撲通知名單有缺口時，報表結論只能當參考。</p>
     </div>
@@ -25,6 +35,7 @@
   <article class="report-action-card">
     <div>
       <span class="step-label">查帳號</span>
+      <div class="judgement-source-row"><span class="source-badge script">Script</span><span class="source-badge cmdb">AP 匯入</span></div>
       <h2>看 OS / AP 帳號風險</h2>
       <p>處理待處理帳號、高權限、服務帳號可登入、缺 owner 與 PAM 狀態。</p>
     </div>
@@ -33,6 +44,7 @@
   <article class="report-action-card">
     <div>
       <span class="step-label">查影響</span>
+      <div class="judgement-source-row"><span class="source-badge cmdb">CMDB</span><span class="source-badge hybrid">AI-ready</span></div>
       <h2>看核心系統影響圖</h2>
       <p>維護或事故前，先確認核心、關聯系統、主機/IP 與通知對象。</p>
     </div>
@@ -41,6 +53,7 @@
   <article class="report-action-card">
     <div>
       <span class="step-label">交付</span>
+      <div class="judgement-source-row"><span class="source-badge api">API / CSV</span><span class="source-badge rule">Rule</span></div>
       <h2>匯出或驗證</h2>
       <p>要給主管就匯出摘要；剛移植完就跑安裝後驗證。</p>
     </div>

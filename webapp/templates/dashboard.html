@@ -14,6 +14,15 @@
   </div>
 </section>
 
+<section class="judgement-source-legend" aria-label="判斷來源圖例">
+  <strong>判斷來源</strong>
+  <span class="source-badge cmdb">CMDB 資料</span>
+  <span class="source-badge rule">Rule 彙整</span>
+  <span class="source-badge script">Script 採證</span>
+  <span class="source-badge hybrid">AI + Script</span>
+  <span class="source-badge fallback">AI 不可用時 Script 接手</span>
+</section>
+
 <section class="ops-status-strip">
   <a class="metric" href="{{ url_for('api_hosts.hosts_page') }}"><strong>{{ summary.hosts_total }}</strong><span>納管資產</span></a>
   <a class="metric" href="{{ url_for('api_reports.data_quality_page') }}"><strong>{{ summary.quality.score }}</strong><span>資料品質分數</span></a>
@@ -28,6 +37,11 @@
     <div class="compact-title">
       <h2>資料品質</h2>
       <span class="{% if summary.quality.status == 'ok' %}badge-ok{% elif summary.quality.status == 'degraded' %}badge-error{% else %}badge-warn{% endif %}">{{ summary.quality.status }}</span>
+    </div>
+    <div class="judgement-source-row">
+      <span class="source-badge cmdb">CMDB</span>
+      <span class="source-badge rule">Rule</span>
+      <span class="source-badge ai">AI-ready</span>
     </div>
     <p class="text-muted-sm">品質分數 {{ summary.quality.score }}。CMDB、AP 帳號、通知 owner 任一項不穩，拓撲與報表就只能當參考。</p>
     <table class="data-table compact-table">
@@ -44,6 +58,11 @@
     <div class="compact-title">
       <h2>帳號風險</h2>
       <a class="btn-sm" href="{{ url_for('api_inventory.accounts_page') }}">查看</a>
+    </div>
+    <div class="judgement-source-row">
+      <span class="source-badge script">OS Script</span>
+      <span class="source-badge cmdb">AP 匯入</span>
+      <span class="source-badge rule">風險規則</span>
     </div>
     <p class="text-muted-sm">OS 與 AP 帳號分開治理；優先看缺 owner、高權限未納 PAM、服務帳號可登入。</p>
     <table class="data-table compact-table">

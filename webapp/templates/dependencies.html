@@ -56,6 +56,17 @@
 </section>
 
 {% if not fullscreen %}
+<section class="judgement-source-legend" aria-label="拓撲判斷來源">
+  <strong>拓撲判斷來源</strong>
+  <span class="source-badge cmdb">CMDB 關係</span>
+  <span class="source-badge script">ss -tunp 採證</span>
+  <span class="source-badge rule">nmap 對帳</span>
+  <span class="source-badge hybrid">AI-ready 影響判讀</span>
+  <span class="source-badge fallback">AI 不可用時仍用既有拓撲規則</span>
+</section>
+{% endif %}
+
+{% if not fullscreen %}
 <nav class="topology-tabs" aria-label="拓撲圖視角">
   <a class="topology-tab {% if topology.view == 'core_impact' %}active{% endif %}" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=request.args.get('center', ''), depth=request.args.get('depth', '2')) }}">
     <strong>1. 核心影響</strong>
