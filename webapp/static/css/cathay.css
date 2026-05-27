@@ -1208,6 +1208,10 @@ a.metric:hover {
   margin: 12px 0 18px;
 }
 
+.verify-mode-grid-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .verify-mode-card {
   display: grid;
   gap: 12px;
@@ -1225,6 +1229,14 @@ a.metric:hover {
 
 .verify-mode-card.script-only {
   border-left-color: var(--c3);
+}
+
+.verify-mode-card.ai-judgement,
+.l3-panel.l3-ai-ready {
+  border-color: #c79b2d;
+  border-left-color: #c79b2d;
+  box-shadow: 0 12px 28px rgba(145, 104, 13, 0.16), inset 0 0 0 3px rgba(199, 155, 45, 0.14);
+  background: linear-gradient(180deg, #fffaf0 0%, var(--white) 46%);
 }
 
 .verify-mode-card h2 {
@@ -1259,6 +1271,33 @@ a.metric:hover {
   color: var(--c2);
 }
 
+.verify-badge.ai,
+.verify-badge.hybrid {
+  border: 1px solid #c79b2d;
+  background: #fff3c4;
+  color: #7a5608;
+}
+
+.verify-badge.ai::before {
+  content: "AI";
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #c79b2d;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.verify-badge.fallback {
+  border: 1px solid #bd8b35;
+  background: #fff0d9;
+  color: #8d5f16;
+}
+
 .verify-facts {
   display: grid;
   gap: 8px;
@@ -1276,6 +1315,14 @@ a.metric:hover {
 .verify-facts dt {
   color: var(--c3);
   font-weight: 800;
+}
+
+.l3-source-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .verify-facts dd {

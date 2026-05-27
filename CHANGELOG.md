@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.37 - 2026-05-27 23:20 +08:00 - ai-judgement-gold-frame-ui
+
+- 安裝後驗證頁新增金框 AI 判斷卡，讓使用者一眼看出 AI 判讀與 Script/API Key 檢查不同。
+- L3 深度檢查區塊套用金框 AI-ready 樣式，標示 Shell 採證 + AI 判讀與 Script 保底接手。
+- 新增 AI、AI + Script、Script 接手 badge，可重用在後續報表、深度檢查與 API 分析結果。
+
 ## v1.0.3.36 - 2026-05-27 22:50 +08:00 - ai-judgement-source-ux
 
 - 新增 AI 判斷來源視覺規格：Script、API Key、AI、AI + Script、Script 接手與證據不足。

@@ -13,7 +13,19 @@
   </div>
 </section>
 
-<section class="verify-mode-grid" aria-label="驗證模式">
+<section class="verify-mode-grid verify-mode-grid-three" aria-label="驗證模式">
+  <article class="verify-mode-card ai-judgement" data-judgement-source="ai">
+    <div>
+      <span class="verify-badge ai">AI 判斷</span>
+      <h2>L3 深度檢查判讀</h2>
+      <p>金框代表由 AI 進行跨資料判讀；Shell / Script 仍負責採證，AI 負責判讀風險、可能原因、影響範圍與下一步。</p>
+    </div>
+    <dl class="verify-facts">
+      <div><dt>判斷來源</dt><dd><span class="code-inline">judgement_source=ai</span></dd></div>
+      <div><dt>保底策略</dt><dd><span class="verify-badge fallback">Script 接手</span></dd></div>
+      <div><dt>適用情境</dt><dd>L3 深度檢查、跨 CMDB / NMON / 帳號 / log / 拓撲的綜合判讀</dd></div>
+    </dl>
+  </article>
   <article class="verify-mode-card api-key">
     <div>
       <span class="verify-badge api">API Key 驗證</span>

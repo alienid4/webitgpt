@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.37",
+        "date": "2026-05-27 23:20 +08:00",
+        "patch_id": "ai-judgement-gold-frame-ui",
+        "changes": [
+            "安裝後驗證頁新增金框 AI 判斷卡，讓使用者一眼看出 AI 判讀與 Script 檢查不同。",
+            "L3 深度檢查區塊套用金框 AI-ready 樣式，標示 Shell 採證 + AI 判讀與 Script 保底接手。",
+            "新增 AI、AI + Script、Script 接手 badge 樣式，後續可重用在報表、深度檢查與 API 分析結果。",
+        ],
+    },
+    {
         "version": "1.0.3.36",
         "date": "2026-05-27 22:50 +08:00",
         "patch_id": "ai-judgement-source-ux",

@@ -111,10 +111,16 @@
     </div>
 
     {% set l3 = host.latest_deep_check %}
-    <section class="l3-panel">
+    <section class="l3-panel l3-ai-ready" data-judgement-source="hybrid">
       <div class="l3-head">
         <div>
           <strong>L3 深度檢查</strong>
+          <div class="l3-source-line">
+            <span class="verify-badge hybrid">AI + Script</span>
+            <span class="verify-badge ai">AI 判斷金框</span>
+            <span class="verify-badge fallback">Script 接手</span>
+            <span class="text-muted-sm">Shell 負責採證，AI 負責判讀；AI 不可用時 Script 保底接手。</span>
+          </div>
           {% if l3 %}
           <span class="text-muted-sm">最近：{{ l3.parsed.display_timestamp or l3.parsed.timestamp }} / {{ l3.parsed.status }}</span>
           {% else %}
