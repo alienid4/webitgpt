@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.33",
+        "date": "2026-05-27 10:45 +08:00",
+        "patch_id": "cmdb-real-fields-scan-visibility",
+        "changes": [
+            "CMDB CSV 匯入支援真實中文欄位，如總點單位、資產序號、APID、主機名稱、IP、備份頻率、CIA 與申請單編號。",
+            "網段掃描報告明確顯示實際發現、CMDB 已納管、未納管待建檔與畫面列出筆數。",
+            "TCP 掃描 port 範圍補齊 FTP、AD、LDAP、RDP、webitgpt 8002 與 50000 系列服務，避免現場以為只掃到一台。",
+        ],
+    },
+    {
         "version": "1.0.3.32",
         "date": "2026-05-27 00:15 +08:00",
         "patch_id": "api-key-verify-visibility",

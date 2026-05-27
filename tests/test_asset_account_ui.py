@@ -134,7 +134,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.32"' in config
+    assert 'VERSION = "1.0.3.33"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -225,8 +225,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.32"' in config
-    assert "api-key-verify-visibility" in config
+    assert 'VERSION = "1.0.3.33"' in config
+    assert "cmdb-real-fields-scan-visibility" in config
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -238,9 +238,9 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     assert ".verify-mode-card" in css
     assert ".verify-badge.api" in css
     assert ".verify-badge.script" in css
-    assert "1.0.3.32" in service
-    assert "api-key-verify-visibility" in changelog
-    assert "api-key-verify-visibility" in read("docs/release_notes/v1.0.3.32.md")
+    assert "1.0.3.33" in service
+    assert "cmdb-real-fields-scan-visibility" in changelog
+    assert "cmdb-real-fields-scan-visibility" in read("docs/release_notes/v1.0.3.33.md")
 
 
 def test_rhel96_offline_prereq_installer_guards_core_packages():

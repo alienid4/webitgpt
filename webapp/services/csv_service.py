@@ -57,9 +57,113 @@ SAMPLE_ROW = {
     "os_group": "debian",
 }
 
+CMDB_HEADER_ALIASES = {
+    "總點單位-級別": "division",
+    "總點單位-部門": "department",
+    "資產序號": "asset_seq",
+    "資產狀態": "status",
+    "群組名稱": "group_name",
+    "資料類別": "asset_usage",
+    "APID": "apid",
+    "資產名稱": "asset_name",
+    "整體基礎架構": "device_type",
+    "雲端服務類型": "device_model",
+    "專案名稱": "system_name",
+    "地區/可用區域": "dc",
+    "擁有者": "owner",
+    "保管者": "custodian",
+    "主機名稱": "hostname",
+    "IP": "ip",
+    "使用單位": "user_unit",
+    "附加說明": "note",
+    "完整性(I)": "integrity",
+    "機密性(C)": "confidentiality",
+    "可用性(A)": "availability",
+}
+
+CMDB_EXTENSION_ALIASES = {
+    "Cloud Service Pow": "cloud_service_power",
+    "資料保留年限": "data_retention_period",
+    "資料備份方式": "backup_method",
+    "備份頻率": "backup_frequency",
+    "個資群組名稱": "personal_data_group_name",
+    "個人資料": "personal_data",
+    "申請單編號": "request_no",
+}
+
+CMDB_STATUS_ALIASES = {
+    "使用中": "active",
+    "停用": "disabled",
+    "已停用": "disabled",
+    "退役": "retired",
+    "已退役": "retired",
+}
+
+CMDB_DC_ALIASES = {
+    "敦南": "dunan",
+    "內湖": "neihu",
+    "板橋": "banciao",
+}
+
+
+def _normalize_header(header: str) -> str:
+    text = str(header or "").strip().replace("\ufeff", "")
+    return CMDB_HEADER_ALIASES.get(text, text)
+
+
+def _normalize_value(field: str, value: Any) -> Any:
+    text = str(value or "").strip()
+    if field == "status":
+        return CMDB_STATUS_ALIASES.get(text, text)
+    if field == "dc":
+        return CMDB_DC_ALIASES.get(text, text)
+    return text
+
+
+def _normalize_row(row: dict[str, str]) -> dict[str, Any]:
+    doc: dict[str, Any] = {}
+    extensions: dict[str, Any] = {}
+    for raw_key, raw_value in row.items():
+        if not raw_key or raw_value is None:
+            continue
+        raw_header = str(raw_key).strip().replace("\ufeff", "")
+        value = str(raw_value).strip()
+        if value == "":
+            continue
+        if raw_header in CMDB_EXTENSION_ALIASES:
+            extensions[CMDB_EXTENSION_ALIASES[raw_header]] = value
+            continue
+        field = _normalize_header(raw_header)
+        doc[field] = _normalize_value(field, value)
+    if extensions:
+        doc["extensions"] = extensions
+    return doc
+
+
+def _apply_cmdb_defaults(doc: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(doc)
+    normalized.setdefault("division", normalized.get("owner") or "未填")
+    normalized.setdefault("department", normalized.get("user_unit") or normalized.get("owner") or "未填")
+    normalized.setdefault("status", "active")
+    normalized.setdefault("group_name", "H4")
+    normalized.setdefault("asset_name", normalized.get("hostname") or normalized.get("asset_seq") or normalized.get("ip") or "未命名資產")
+    normalized.setdefault("device_type", normalized.get("asset_usage") or "CMDB")
+    normalized.setdefault("quantity", 1)
+    normalized.setdefault("owner", normalized.get("custodian") or "未填")
+    normalized.setdefault("environment", "PROD")
+    normalized.setdefault("hostname", normalized.get("ip") or normalized.get("asset_seq") or "")
+    normalized.setdefault("custodian", normalized.get("owner") or "未填")
+    normalized.setdefault("company", normalized.get("division") or "未填")
+    normalized.setdefault("host_type", "end_device")
+    normalized.setdefault("dc", "dunan")
+    normalized.setdefault("integrity", 0)
+    normalized.setdefault("confidentiality", 0)
+    normalized.setdefault("availability", 0)
+    return normalized
+
 
 def _coerce(row: dict[str, str]) -> dict[str, Any]:
-    out: dict[str, Any] = {key: value.strip() for key, value in row.items() if key and value is not None}
+    out = _apply_cmdb_defaults(_normalize_row(row))
     for key in ("quantity", "ssh_port", "integrity", "confidentiality", "availability"):
         if out.get(key) not in (None, ""):
             out[key] = int(out[key])
@@ -100,14 +204,14 @@ def import_csv(text: str, user: str) -> dict[str, Any]:
 
 def validate_csv(text: str) -> dict[str, Any]:
     reader = csv.DictReader(io.StringIO(text))
-    headers = reader.fieldnames or []
-    missing_headers = [field for field in ("asset_seq", "hostname", "ip", "host_type") if field not in headers]
+    headers = [_normalize_header(field) for field in (reader.fieldnames or [])]
+    missing_headers = [field for field in ("hostname", "ip") if field not in headers]
     rows = []
     errors = []
     warnings = []
     seen_asset_seq: set[str] = set()
     for index, row in enumerate(reader, start=2):
-        doc = {key: str(value or "").strip() for key, value in row.items() if key}
+        doc = _apply_cmdb_defaults(_normalize_row(row))
         if not any(doc.values()):
             continue
         rows.append(doc)
@@ -116,10 +220,10 @@ def validate_csv(text: str) -> dict[str, Any]:
             if asset_seq in seen_asset_seq:
                 errors.append({"line": index, "field": "asset_seq", "error": "duplicate asset_seq"})
             seen_asset_seq.add(asset_seq)
-        for field in ("asset_seq", "hostname", "ip", "host_type"):
+        for field in ("hostname", "ip"):
             if not doc.get(field):
                 errors.append({"line": index, "field": field, "error": "required"})
-        if doc.get("host_type") and doc["host_type"] not in {"linux", "windows", "aix", "as400", "vmware", "network", "other"}:
+        if doc.get("host_type") and doc["host_type"] not in {"linux", "windows", "aix", "as400", "vmware_host", "vmware_vm", "vmware_vcenter", "network_device", "end_device"}:
             warnings.append({"line": index, "field": "host_type", "warning": "unknown host_type; import may normalize or reject it"})
         for field in ("quantity", "ssh_port", "integrity", "confidentiality", "availability"):
             if doc.get(field):

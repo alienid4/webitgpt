@@ -123,8 +123,17 @@
     {% if scan_report.status_refreshed %}<br>狀態已依目前資產清冊重新校正。{% endif %}
   </div>
   <form method="post" action="{{ url_for('api_hosts.host_new_discovery_create_drafts_page') }}" data-submit-status data-submit-message="正在將勾選 IP 建立為資產草稿，請稍候。">
+    {% if scan_report.summary %}
+    <div class="metric-grid">
+      <a class="metric" href="#network-scan-table"><strong>{{ scan_report.summary.discovered }}</strong><span>掃描實際發現</span></a>
+      <a class="metric" href="#network-scan-table"><strong>{{ scan_report.summary.already_in_cmdb }}</strong><span>CMDB 已納管</span></a>
+      <a class="metric" href="#network-scan-table"><strong>{{ scan_report.summary.scan_not_in_cmdb }}</strong><span>未納管待建檔</span></a>
+      <a class="metric" href="#network-scan-table"><strong>{{ scan_report.summary.shown_rows }}</strong><span>畫面列出筆數</span></a>
+    </div>
+    <div class="notice">掃描命令：{{ scan_report.scan_command_hint or scan_report.mode }}。{{ scan_report.summary.note }}</div>
+    {% endif %}
     <input type="hidden" name="cidr" value="{{ scan_report.cidr }}">
-    <table class="data-table">
+    <table class="data-table" id="network-scan-table">
       <thead>
         <tr>
           <th>勾選</th>

@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.33 - 2026-05-27 10:45 +08:00 - cmdb-real-fields-scan-visibility
+
+- CMDB 匯入支援真實中文欄位：總點單位、資產序號、APID、主機名稱、IP、備份頻率、資料保存、備份方式、CIA 與申請單編號。
+- 網段掃描報告新增「掃描實際發現、CMDB 已納管、未納管待建檔、畫面列出筆數」，避免現場以為只掃到一台。
+- TCP 掃描 port 範圍補齊 FTP、AD、LDAP、RDP、webitgpt 8002、app 5000 與 50000 系列服務。
+
 ## v1.0.3.32 - 2026-05-27 00:15 +08:00 - api-key-verify-visibility
 
 - 安裝後驗證頁新增「API Key 驗證」與「Script 檢查」兩種模式卡，使用者可一眼辨識判斷來源。
