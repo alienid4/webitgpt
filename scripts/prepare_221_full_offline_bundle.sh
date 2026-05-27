@@ -95,15 +95,19 @@ echo " webitgpt full offline installer"
 echo "============================================================"
 echo "Step 1/2: install OS prerequisites, nmap/nmon/podman, and MongoDB container."
 
-prereq_archive="$(find "$SCRIPT_DIR/packages" -maxdepth 1 -type f -name 'webitgpt_prereqs_*.tar.gz' | head -n 1 || true)"
-if [ -z "$prereq_archive" ]; then
-  echo "Missing prerequisite archive in packages/." >&2
-  exit 1
+if [ "${SKIP_PREREQS:-0}" = "1" ]; then
+  echo "SKIP_PREREQS=1; skipping prerequisite archive install."
+else
+  prereq_archive="$(find "$SCRIPT_DIR/packages" -maxdepth 1 -type f -name 'webitgpt_prereqs_*.tar.gz' | head -n 1 || true)"
+  if [ -z "$prereq_archive" ]; then
+    echo "Missing prerequisite archive in packages/." >&2
+    exit 1
+  fi
+  tar -xzf "$prereq_archive" -C "$WORK_DIR"
+  prereq_dir="$(find "$WORK_DIR" -maxdepth 1 -type d -name 'webitgpt_prereqs_*' | head -n 1)"
+  normalize_shell_scripts "$prereq_dir"
+  bash "$prereq_dir/install_prereqs_offline.sh"
 fi
-tar -xzf "$prereq_archive" -C "$WORK_DIR"
-prereq_dir="$(find "$WORK_DIR" -maxdepth 1 -type d -name 'webitgpt_prereqs_*' | head -n 1)"
-normalize_shell_scripts "$prereq_dir"
-bash "$prereq_dir/install_prereqs_offline.sh"
 
 echo
 echo "Step 2/2: install webitgpt app."
