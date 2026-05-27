@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.36 - 2026-05-27 22:50 +08:00 - ai-judgement-source-ux
+
+- 新增 AI 判斷來源視覺規格：Script、API Key、AI、AI + Script、Script 接手與證據不足。
+- 定義核心原則：Shell 負責採證，AI 負責判讀；AI 不可用時，Script 保底接手。
+- 架構簡報加入 AI 判斷來源與 fallback 設計，作為後續 L1/L2/L3 深度檢查與 Debug 模式的 UI/UX 基準。
+
 ## v1.0.3.35 - 2026-05-27 13:45 +08:00 - cmdb-import-fast-feedback
 
 - CMDB 匯入結果不再把完整錯誤陣列直接渲染到頁面，避免大量錯誤列讓瀏覽器看起來卡住。

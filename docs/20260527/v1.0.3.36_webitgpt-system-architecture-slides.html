@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>webitgpt 系統架構與設計規格 v1.0.3.36</title>
+  <style>
+    :root {
+      --ink: #152238;
+      --muted: #5f6b7a;
+      --green: #1f8a4c;
+      --green-soft: #eaf5ee;
+      --line: #cfd7df;
+      --table-head: #1f5f93;
+      --row: #f3f6f8;
+      --card: #ffffff;
+      --paper: #fbfcfd;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #e9edf1;
+      font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif;
+      line-height: 1.55;
+    }
+
+    .deck {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 24px auto;
+    }
+
+    .slide {
+      min-height: 720px;
+      margin: 0 0 28px;
+      padding: 54px 64px 46px;
+      background: var(--paper);
+      border: 1px solid #d9e0e6;
+      box-shadow: 0 16px 36px rgba(22, 34, 51, 0.12);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide::after {
+      content: "";
+      position: absolute;
+      left: 64px;
+      right: 64px;
+      bottom: 34px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--green), #8ebc77, transparent);
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 36px;
+      letter-spacing: 0;
+      color: var(--ink);
+    }
+
+    h2 {
+      margin: 0 0 18px;
+      font-size: 29px;
+      color: var(--ink);
+    }
+
+    .rule {
+      width: 100%;
+      height: 5px;
+      margin: 0 0 30px;
+      background: linear-gradient(90deg, #7bb37a, var(--green));
+      border-radius: 99px;
+    }
+
+    .subtitle {
+      margin: 0 0 22px;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .footer {
+      position: absolute;
+      left: 64px;
+      bottom: 44px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .page {
+      position: absolute;
+      right: 64px;
+      bottom: 44px;
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15px;
+      background: #fff;
+      box-shadow: 0 1px 0 rgba(22, 34, 51, 0.08);
+    }
+
+    th {
+      padding: 10px 12px;
+      color: #fff;
+      background: var(--table-head);
+      text-align: left;
+      font-weight: 700;
+    }
+
+    td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #dfe5ea;
+      vertical-align: top;
+    }
+
+    tbody tr:nth-child(even) td {
+      background: var(--row);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 30px;
+      margin-top: 30px;
+    }
+
+    .card {
+      min-height: 176px;
+      padding: 22px 24px;
+      background: var(--card);
+      border: 2px solid #8aaa68;
+      border-radius: 28px;
+    }
+
+    .card.gray {
+      border-color: #aab3bc;
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 25px;
+      color: var(--ink);
+    }
+
+    .card ul {
+      margin: 8px 0 0 20px;
+      padding: 0;
+      color: #26384d;
+      font-size: 15px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 58% 36%;
+      gap: 6%;
+      align-items: start;
+    }
+
+    .arch {
+      padding-top: 18px;
+    }
+
+    .node {
+      width: 230px;
+      margin: 0 auto 14px;
+      padding: 10px 12px;
+      background: #fff;
+      border: 1.8px solid #65707d;
+      text-align: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .node small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .down {
+      width: 2px;
+      height: 28px;
+      margin: -10px auto 6px;
+      background: #65707d;
+      position: relative;
+    }
+
+    .down::after {
+      content: "";
+      position: absolute;
+      left: -5px;
+      bottom: -1px;
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 8px solid #65707d;
+    }
+
+    .fan {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin: 4px 0 16px;
+    }
+
+    .mini {
+      padding: 9px 8px;
+      background: #fff;
+      border: 1.6px solid #65707d;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .module-row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .module {
+      min-height: 62px;
+      padding: 9px 8px;
+      background: #fff;
+      border: 1.6px solid #65707d;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .notes h3 {
+      margin: 0 0 8px;
+      font-size: 20px;
+    }
+
+    .notes p {
+      margin: 0 0 22px;
+      color: #2a3442;
+      font-size: 15px;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .pill {
+      min-height: 116px;
+      padding: 18px;
+      background: var(--green-soft);
+      border-left: 6px solid var(--green);
+    }
+
+    .pill strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 18px;
+    }
+
+    .source-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .source-card {
+      min-height: 132px;
+      padding: 18px;
+      background: #fff;
+      border: 2px solid #aeb7c0;
+      border-radius: 12px;
+    }
+
+    .source-card.ai {
+      border-color: #c79b2d;
+      box-shadow: inset 0 0 0 3px rgba(199, 155, 45, 0.16);
+    }
+
+    .source-card.api {
+      border-color: var(--green);
+    }
+
+    .source-card.fallback {
+      border-color: #bd8b35;
+      background: #fff9ed;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-bottom: 8px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid currentColor;
+    }
+
+    .badge.ai {
+      color: #91680d;
+      background: #fff4cc;
+    }
+
+    .badge.api {
+      color: var(--green);
+      background: var(--green-soft);
+    }
+
+    .badge.script {
+      color: #5d6670;
+      background: #f2f4f6;
+    }
+
+    .badge.fallback {
+      color: #8d5f16;
+      background: #fff0d9;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .deck {
+        width: 100%;
+        margin: 0;
+      }
+
+      .slide {
+        page-break-after: always;
+        margin: 0;
+        box-shadow: none;
+        border: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck">
+    <section class="slide">
+      <h1>專案所使用之開發套件及相關設計規格</h1>
+      <div class="rule"></div>
+      <p class="subtitle">webitgpt 為 Flask 核心的內部維運與資產治理平台，支援資產管理、巡檢、帳號盤點、效能月報、核心系統影響圖與離線部署。</p>
+      <table>
+        <thead>
+          <tr><th>類別</th><th>技術 / 套件</th><th>說明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>後端框架</td><td>Flask / Python</td><td>Web API 與後台管理系統核心。</td></tr>
+          <tr><td>Web Server</td><td>Gunicorn + systemd</td><td>正式部署以 systemd 管理服務，Gunicorn 提供 WSGI runtime。</td></tr>
+          <tr><td>資料庫</td><td>MongoDB</td><td>儲存資產、掃描、帳號盤點、報表與半結構化資料。</td></tr>
+          <tr><td>ORM / DB Driver</td><td>PyMongo</td><td>Python 與 MongoDB 整合。</td></tr>
+          <tr><td>前端框架</td><td>Jinja Templates / HTML / CSS</td><td>伺服器端渲染管理頁面，保留低複雜度。</td></tr>
+          <tr><td>前端互動</td><td>Vanilla JavaScript</td><td>處理局部互動、表單提示、匯入回饋與視覺化控制。</td></tr>
+          <tr><td>圖表元件</td><td>Chart.js / HTML SVG</td><td>Dashboard、NMON 月報、拓撲與影響圖視覺化。</td></tr>
+          <tr><td>驗證機制</td><td>LDAP / Active Directory、Session</td><td>整合企業帳號登入與管理 session。</td></tr>
+          <tr><td>PDF / 匯出</td><td>ReportLab、CSV、Excel</td><td>產出 Hardening、效能月報、CMDB 匯出與差異報告。</td></tr>
+          <tr><td>API 文件</td><td>flask-smorest / OpenAPI 規劃中</td><td>目前尚未全 API 覆蓋，建議從 CMDB、hosts、API Key verify 補強。</td></tr>
+          <tr><td>部署樣式</td><td>Offline installer / Podman MongoDB</td><td>支援 RHEL/Rocky 離線移植；MongoDB 可由 Podman container 提供。</td></tr>
+        </tbody>
+      </table>
+      <div class="footer">webitgpt v1.0.3.36</div>
+      <div class="page">1</div>
+    </section>
+
+    <section class="slide">
+      <h1>模組化架構設計</h1>
+      <div class="rule"></div>
+      <p class="subtitle">系統以 Flask Blueprint / routes / services 分層，將資產治理、巡檢、帳號盤點、報表與系統管理拆成可維護模組。</p>
+      <div class="cards">
+        <article class="card">
+          <h3>資產管理</h3>
+          <ul>
+            <li>CMDB CSV / Excel 匯入</li>
+            <li>草稿區與正式資產</li>
+            <li>IPAM / nmap 對帳</li>
+            <li>欄位治理與錯誤列回報</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>巡檢與 Hardening</h3>
+          <ul>
+            <li>OS baseline 檢查</li>
+            <li>Linux / Windows 遠端採集</li>
+            <li>合規差異與 PDF 報表</li>
+            <li>只讀模式與風險控管</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>帳號盤點</h3>
+          <ul>
+            <li>OS 帳號盤點</li>
+            <li>AP 帳號 CSV / Excel 匯入</li>
+            <li>owner / PAM / 權限欄位</li>
+            <li>異常彙整與主管檢視</li>
+          </ul>
+        </article>
+        <article class="card gray">
+          <h3>效能與報表</h3>
+          <ul>
+            <li>NMON 圖表</li>
+            <li>EOS 摘要</li>
+            <li>月報 PDF / CSV</li>
+            <li>Dashboard 統計</li>
+          </ul>
+        </article>
+        <article class="card gray">
+          <h3>核心系統影響圖</h3>
+          <ul>
+            <li>核心 / 關聯系統 / 主機 IP</li>
+            <li>三欄式影響分析</li>
+            <li>通知名單與維護評估</li>
+            <li>手動與自動採集關係</li>
+          </ul>
+        </article>
+        <article class="card gray">
+          <h3>系統管理 / API</h3>
+          <ul>
+            <li>功能旗標與健康檢查</li>
+            <li>API Key 分析可視化</li>
+            <li>debug bundle 去敏化</li>
+            <li>離線安裝與版本發布</li>
+          </ul>
+        </article>
+      </div>
+      <div class="footer">webitgpt v1.0.3.36</div>
+      <div class="page">2</div>
+    </section>
+
+    <section class="slide">
+      <h1>簡易系統架構圖</h1>
+      <div class="rule"></div>
+      <div class="two-col">
+        <div class="arch">
+          <div class="node">使用者 Browser<small>Dashboard / 管理頁面</small></div>
+          <div class="down"></div>
+          <div class="node">Flask Web Server<small>webapp/app.py / Blueprints</small></div>
+          <div class="fan">
+            <div class="mini">LDAP / AD<br>登入驗證</div>
+            <div class="mini">MongoDB<br>webitgpt</div>
+            <div class="mini">匯入 / 掃描資料源<br>CMDB / nmap / NMON</div>
+          </div>
+          <div class="down"></div>
+          <div class="node">核心功能模組群<small>routes + services</small></div>
+          <div class="module-row">
+            <div class="module">資產管理<br>CMDB / IPAM</div>
+            <div class="module">Hardening<br>Baseline</div>
+            <div class="module">帳號盤點<br>OS / AP</div>
+            <div class="module">效能月報<br>NMON / EOS</div>
+            <div class="module">核心影響圖<br>Topology</div>
+            <div class="module">報表輸出<br>PDF / CSV / Excel</div>
+          </div>
+        </div>
+        <div class="notes">
+          <h2>Flask 為核心的資產盤點與治理平台架構說明</h2>
+          <h3>系統架構與安全</h3>
+          <p>使用者透過瀏覽器存取系統；正式環境應由 HTTPS、反向代理與內部帳號驗證保護。</p>
+          <h3>模組化 Blueprint 架構</h3>
+          <p>Flask routes 將功能拆分成資產、巡檢、帳號、報表、系統管理與 API 模組，降低耦合。</p>
+          <h3>後端整合與資料管理</h3>
+          <p>透過 services 管理 MongoDB、CMDB 匯入、nmap 掃描、NMON 與外部資料來源。</p>
+          <h3>核心功能與報表輸出</h3>
+          <p>支援維運盤點、風險治理、月報與匯出，供主管與維運人員決策。</p>
+        </div>
+      </div>
+      <div class="footer">webitgpt v1.0.3.36</div>
+      <div class="page">3</div>
+    </section>
+
+    <section class="slide">
+      <h1>未來系統串接及整合方式說明</h1>
+      <div class="rule"></div>
+      <p class="subtitle">webitgpt 後續可逐步從匯入式治理，擴充為 API / DB / 目錄服務整合平台。正式整合前應先完成 OpenAPI、資料分級、權限與 audit log 設計。</p>
+      <table>
+        <thead>
+          <tr><th>來源系統</th><th>資料內容</th><th>整合方式</th><th>狀態</th><th>注意事項</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>CMDB</td><td>資產主檔、主機、IP、owner、CIA、備份資訊</td><td>CSV / Excel 匯入，未來可 API 或 MSSQL view</td><td>已支援匯入</td><td>需欄位治理與錯誤列回報。</td></tr>
+          <tr><td>IPAM / nmap</td><td>網段、保留 IP、未納管 IP、開放 port</td><td>nmap 掃描與系統對帳</td><td>已支援</td><td>掃描範圍需授權，避免誤掃。</td></tr>
+          <tr><td>AD / LDAP</td><td>使用者登入、群組、部門資訊</td><td>後端驗證與角色映射</td><td>可整合</td><td>正式環境需 session timeout 與權限稽核。</td></tr>
+          <tr><td>PAM</td><td>特權帳號、保管狀態、權限歸屬</td><td>CSV / Excel 或 API</td><td>規劃中</td><td>不可在前端保存密碼或 token。</td></tr>
+          <tr><td>MSSQL</td><td>正式主檔、審核、稽核與治理資料</td><td>Repository / service layer</td><td>設計中</td><td>不建議直接取代 MongoDB，需 migration design。</td></tr>
+          <tr><td>OpenAPI</td><td>API 文件、外部系統串接契約</td><td>flask-smorest / `/api-docs`</td><td>待補強</td><td>先從 CMDB、hosts、API Key verify API 補。</td></tr>
+          <tr><td>監控工具</td><td>NMON、EOS、主機健康、效能趨勢</td><td>匯入、排程採集、報表產出</td><td>部分支援</td><td>採集需 timeout、限流與執行紀錄。</td></tr>
+        </tbody>
+      </table>
+      <div class="footer">webitgpt v1.0.3.36</div>
+      <div class="page">4</div>
+    </section>
+
+    <section class="slide">
+      <h1>資料治理與安全設計</h1>
+      <div class="rule"></div>
+      <div class="summary">
+        <div class="pill"><strong>資料分層</strong>正式主檔與稽核資料可規劃 MSSQL；掃描原始資料、NMON、debug bundle 與半結構化暫存保留 MongoDB。</div>
+        <div class="pill"><strong>匯入治理</strong>CMDB 與 AP 帳號匯入需提供欄位檢核、錯誤列回報、草稿區與正式資料更新流程。</div>
+        <div class="pill"><strong>API Key 安全</strong>API Key 不放前端，由後端代理判斷，UI 應明確標示「API 分析」來源。</div>
+      </div>
+      <table style="margin-top: 28px;">
+        <thead>
+          <tr><th>治理項目</th><th>目前做法</th><th>後續強化</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>機敏資訊</td><td>debug 與交接文件要求遮蔽 IP、hostname、帳號、token。</td><td>匯出與 log 預設增加 masking 規則。</td></tr>
+          <tr><td>錯誤回報</td><td>CMDB 匯入已改為摘要、前 10 筆錯誤與耗時顯示。</td><td>提供錯誤列下載與欄位修正建議。</td></tr>
+          <tr><td>權限與稽核</td><td>已有管理模組與 session 機制。</td><td>寫入型功能前補 audit log、角色、rollback。</td></tr>
+          <tr><td>離線部署</td><td>支援 RHEL/Rocky 離線安裝與 patch package。</td><td>強化一鍵安裝、MongoDB/Podman 檢查、MSSQL 選項。</td></tr>
+          <tr><td>測試與發布</td><td>先在 221 測試，確認後推 GitHub Release。</td><td>重大 UI 加瀏覽器截圖驗證，API 加 OpenAPI regression。</td></tr>
+        </tbody>
+      </table>
+      <h2 style="margin-top: 30px;">給主管看的結論</h2>
+      <ul>
+        <li>webitgpt 已具備資產、巡檢、帳號、報表與影響分析的核心雛形。</li>
+        <li>短期最有價值是補 OpenAPI、MSSQL migration design、匯入治理與 audit log。</li>
+        <li>不建議為了形式合規立刻重寫 Node.js 或把 MongoDB 全面改成 MSSQL。</li>
+        <li>後續採「新功能先合規，舊功能漸進補強」最安全。</li>
+      </ul>
+      <div class="footer">webitgpt v1.0.3.36</div>
+      <div class="page">5</div>
+    </section>
+
+    <section class="slide">
+      <h1>AI 判斷來源與 Fallback 設計</h1>
+      <div class="rule"></div>
+      <p class="subtitle">亮點原則：Shell 負責採證，AI 負責判讀；AI 不可用時，Script 保底接手。使用者必須一眼看出每個結果是 AI、Script、API Key 或 fallback 產生。</p>
+      <div class="source-grid">
+        <article class="source-card">
+          <span class="badge script">Script 判斷</span>
+          <h3>L1 基礎檢查</h3>
+          <p>服務是否啟動、port 是否開、版本是否一致、磁碟或 CPU 門檻等固定規則，由 shell/script 採證與判斷。</p>
+        </article>
+        <article class="source-card api">
+          <span class="badge api">API Key 驗證</span>
+          <h3>正式 API 權限判斷</h3>
+          <p>使用 Bearer token 呼叫後端 API，確認版本、Mongo、資料品質與 API 狀態，UI 以綠色 accent 標示。</p>
+        </article>
+        <article class="source-card ai">
+          <span class="badge ai">AI 判斷</span>
+          <h3>L3 深度檢查</h3>
+          <p>AI 綜合 CMDB、nmap、NMON、帳號盤點、log 與拓撲資料，判斷風險、可能原因、影響範圍與下一步。</p>
+        </article>
+        <article class="source-card ai">
+          <span class="badge ai">AI + Script</span>
+          <h3>採證與判讀分離</h3>
+          <p>Script 提供可追溯證據，AI 只負責語意判讀；報表保留證據來源、信心等級、模型標籤與耗時。</p>
+        </article>
+        <article class="source-card fallback">
+          <span class="badge fallback">Script 接手</span>
+          <h3>AI 不可用時保底</h3>
+          <p>當 API key invalid、timeout、quota、provider error 時，自動降級為 script rule，並清楚顯示 fallback reason。</p>
+        </article>
+        <article class="source-card">
+          <span class="badge script">Debug 模式</span>
+          <h3>可追蹤但要去敏</h3>
+          <p>admin 可查看 provider、model、request id、耗時、prompt 摘要與遮蔽證據；不顯示完整 key 或未遮蔽內部資料。</p>
+        </article>
+      </div>
+      <table style="margin-top: 26px;">
+        <thead>
+          <tr><th>等級</th><th>預設策略</th><th>AI 可用時</th><th>AI 不可用時</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>L1</td><td>Script only</td><td>通常不需要 AI</td><td>Script 照常執行</td></tr>
+          <tr><td>L2</td><td>Script + 輕量 AI 可選</td><td>摘要、分類、簡單異常解釋</td><td>Script rule 接手</td></tr>
+          <tr><td>L3</td><td>Script 採證 + AI 深度判讀</td><td>跨資料根因與風險判斷</td><td>Script 保底接手並標示限制</td></tr>
+        </tbody>
+      </table>
+      <div class="footer">webitgpt v1.0.3.36</div>
+      <div class="page">6</div>
+    </section>
+  </main>
+</body>
+</html>

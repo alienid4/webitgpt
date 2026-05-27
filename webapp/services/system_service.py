@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.36",
+        "date": "2026-05-27 22:50 +08:00",
+        "patch_id": "ai-judgement-source-ux",
+        "changes": [
+            "建立 AI 判斷來源視覺規格：Script、API Key、AI、AI + Script、Script 接手與證據不足。",
+            "明確定義 L1/L2/L3 分流：L1 Script only，L2 輕量 AI 可選，L3 AI 深度判讀優先。",
+            "架構簡報加入核心亮點：Shell 負責採證，AI 負責判讀；AI 不可用時，Script 保底接手。",
+        ],
+    },
+    {
         "version": "1.0.3.35",
         "date": "2026-05-27 13:45 +08:00",
         "patch_id": "cmdb-import-fast-feedback",

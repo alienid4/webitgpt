@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.3.35"
-PATCH_ID = "cmdb-import-fast-feedback"
-RELEASE_NOTE = "CMDB 匯入結果避免大量錯誤撐爆畫面，新增耗時顯示與單次匯入筆數保護"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-27 13:45:00 +08:00")
+VERSION = "1.0.3.36"
+PATCH_ID = "ai-judgement-source-ux"
+RELEASE_NOTE = "新增 AI 判斷來源視覺規格，定義 Shell 採證、AI 判讀與 Script 保底接手"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-27 22:50:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")
