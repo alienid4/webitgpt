@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.39",
+        "date": "2026-05-27 23:55 +08:00",
+        "patch_id": "ai-key-budget-tier-routing",
+        "changes": [
+            "AI 供應商設定加入 L1/L2/L3 KEY 階級、模型與月預算上限。",
+            "Token 成本頁新增預算路由狀態與 KEY 階級清單，只顯示遮罩資訊，不顯示完整 API Key。",
+            "新增 KEY 路由預覽 API，超額時可降級或 Script fallback，避免 AI 不可用時阻斷維運。",
+        ],
+    },
+    {
         "version": "1.0.3.38",
         "date": "2026-05-27 23:45 +08:00",
         "patch_id": "global-judgement-source-visibility",

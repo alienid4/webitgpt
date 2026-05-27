@@ -148,6 +148,8 @@ def _group_by(month: str, field: str, limit: int = 20) -> list[dict[str, Any]]:
 
 
 def token_cost_report(month: Optional[str] = None) -> dict[str, Any]:
+    from webapp.services.llm_provider import get_settings
+
     month = month or _month_key()
     summary = _aggregate_sum({"month": month})
     by_day = _group_by(month, "day", limit=31)
@@ -163,6 +165,8 @@ def token_cost_report(month: Optional[str] = None) -> dict[str, Any]:
         if hasattr(item.get("occurred_at"), "isoformat"):
             item["occurred_at"] = item["occurred_at"].isoformat()
     top_action = by_action[0] if by_action else {"name": "-", "total_tokens": 0, "estimated_cost_usd": 0, "calls": 0}
+    ai_settings = get_settings(masked=True)
+    monthly_budget = float(ai_settings.get("monthly_budget_usd") or 0)
     return {
         "month": month,
         "summary": summary,
@@ -172,5 +176,12 @@ def token_cost_report(month: Optional[str] = None) -> dict[str, Any]:
         "by_model": by_model,
         "recent": recent,
         "price_table": DEFAULT_PRICE_TABLE,
+        "budget_policy": {
+            "enabled": bool(ai_settings.get("budget_policy_enabled")),
+            "monthly_budget_usd": monthly_budget,
+            "over_budget": bool(monthly_budget and summary.get("estimated_cost_usd", 0) > monthly_budget),
+            "fallback_strategy": ai_settings.get("fallback_strategy", "script_fallback"),
+            "key_tiers": ai_settings.get("key_tiers", []),
+        },
         "note": "費用為預估值；正式接上 API 後，請依模型供應商實際價格更新。",
     }

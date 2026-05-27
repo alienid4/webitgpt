@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.39 - 2026-05-27 23:55 +08:00 - ai-key-budget-tier-routing
+
+- AI 供應商設定加入 L1/L2/L3 KEY 階級，可分別設定模型、月預算與可支援檢查層級。
+- Token 成本頁新增預算路由狀態，讓管理者看到目前費用、月預算、超額策略與 KEY 階級。
+- 新增 KEY 路由預覽 API；超額時可降級、停用 AI 或 Script fallback，不影響既有 Script / Rule 判斷。
+
 ## v1.0.3.38 - 2026-05-27 23:45 +08:00 - global-judgement-source-visibility
 
 - 維運總覽、統計報表、資料品質、CMDB 匯入、NMON、核心影響圖與帳號盤點加入判斷來源圖例。

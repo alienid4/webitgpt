@@ -284,6 +284,18 @@ def test_ai_token_cost_visibility_contract_exists():
     assert "每日 Token 與費用" in token_page
     assert "最花 Token 的動作" in token_page
     assert "價格估算表" in token_page
+    assert "預算路由" in token_page
+    assert "KEY 階級與預算上限" in token_page
+    assert "budget_policy" in token_service
+    assert "get_settings(masked=True)" in token_service
+    assert "choose_key_tier" in superadmin_route
+    assert '"/api/superadmin/ai/key-routing-preview"' in superadmin_route
+    assert "L1 低成本" in read("webapp/services/llm_provider.py")
+    assert "L2 一般分析" in read("webapp/services/llm_provider.py")
+    assert "L3 深度判讀" in read("webapp/services/llm_provider.py")
+    assert "budget_policy_enabled" in read("webapp/templates/ai_settings.html")
+    assert "超額策略" in read("webapp/templates/ai_settings.html")
+    assert "Script fallback" in read("webapp/templates/ai_settings.html")
     assert "本月 AI Token" in executive
     assert "Token 成本" in superadmin
     assert "topology-node-radial-center" in css

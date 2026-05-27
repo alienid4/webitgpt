@@ -44,12 +44,40 @@
           <p class="text-muted-sm">{{ report.note }}</p>
         </div>
       </div>
+      <div class="judgement-source-legend" aria-label="AI 預算路由狀態">
+        <strong>預算路由</strong>
+        <span class="source-badge {{ 'api' if report.budget_policy.enabled else 'fallback' }}">{{ "已啟用" if report.budget_policy.enabled else "未啟用" }}</span>
+        <span class="source-badge rule">月預算 ${{ "%.2f"|format(report.budget_policy.monthly_budget_usd) }}</span>
+        <span class="source-badge {{ 'insufficient' if report.budget_policy.over_budget else 'cmdb' }}">目前 ${{ "%.4f"|format(report.summary.estimated_cost_usd) }}</span>
+        <span class="source-badge fallback">超額：{{ report.budget_policy.fallback_strategy }}</span>
+      </div>
       <div class="token-cost-summary">
         <div><span>Input token</span><strong>{{ report.summary.input_tokens }}</strong></div>
         <div><span>Output token</span><strong>{{ report.summary.output_tokens }}</strong></div>
         <div><span>最耗用動作</span><strong>{{ report.top_action.name }}</strong></div>
         <div><span>該動作估算費用</span><strong>${{ "%.4f"|format(report.top_action.estimated_cost_usd) }}</strong></div>
       </div>
+    </section>
+
+    <section class="panel">
+      <h2>KEY 階級與預算上限</h2>
+      <p class="text-muted-sm">這裡只顯示階級、模型、上限與遮罩狀態；不顯示完整 API Key。</p>
+      <table class="data-table">
+        <thead><tr><th>階級</th><th>狀態</th><th>模型</th><th>月上限</th><th>支援檢查</th></tr></thead>
+        <tbody>
+          {% for tier in report.budget_policy.key_tiers %}
+          <tr>
+            <td><strong>{{ tier.tier }}</strong> {{ tier.label }}</td>
+            <td><span class="{{ 'badge-ok' if tier.enabled else 'badge-warn' }}">{{ "啟用" if tier.enabled else "停用" }}</span></td>
+            <td><code>{{ tier.model or "-" }}</code></td>
+            <td>${{ "%.2f"|format(tier.monthly_limit_usd) }}</td>
+            <td>{{ tier.max_check_level }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="no-data">尚未設定 KEY 階級。</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </section>
 
     <section class="panel" id="token-daily">

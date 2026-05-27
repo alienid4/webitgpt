@@ -20,7 +20,7 @@ from webapp.services.important_service_service import delete_rule as delete_serv
 from webapp.services.important_service_service import list_rules as list_service_rules
 from webapp.services.important_service_service import save_rule as save_service_rule
 from webapp.services.important_service_service import set_rule_enabled as set_service_rule_enabled
-from webapp.services.llm_provider import get_settings, save_settings
+from webapp.services.llm_provider import choose_key_tier, get_settings, save_settings
 from webapp.services.log_exception_service import delete_rule, list_rules, save_rule, set_rule_enabled
 from webapp.services.mongo_service import get_collection
 from webapp.services.system_service import (
@@ -190,6 +190,19 @@ def ai_page():
 @bp.post("/superadmin/ai")
 @require_role("superadmin")
 def ai_update_page():
+    key_tiers = []
+    for tier in ["L1", "L2", "L3"]:
+        key_tiers.append(
+            {
+                "tier": tier,
+                "label": request.form.get(f"{tier}_label", ""),
+                "model": request.form.get(f"{tier}_model", ""),
+                "api_key": request.form.get(f"{tier}_api_key", ""),
+                "monthly_limit_usd": request.form.get(f"{tier}_monthly_limit_usd", "0"),
+                "max_check_level": request.form.get(f"{tier}_max_check_level", tier),
+                "enabled": request.form.get(f"{tier}_enabled") == "on",
+            }
+        )
     settings = save_settings(
         {
             "provider": request.form.get("provider", "disabled"),
@@ -197,12 +210,36 @@ def ai_update_page():
             "model": request.form.get("model", ""),
             "api_key": request.form.get("api_key", ""),
             "enabled": request.form.get("enabled") == "on",
+            "budget_policy_enabled": request.form.get("budget_policy_enabled") == "on",
+            "monthly_budget_usd": request.form.get("monthly_budget_usd", "0"),
+            "fallback_strategy": request.form.get("fallback_strategy", "script_fallback"),
+            "key_tiers": key_tiers,
         },
         current_user()["username"],
     )
-    audit_log_service.append("ai.settings.update", current_user()["username"], {"provider": settings.get("provider"), "enabled": settings.get("enabled")})
+    audit_log_service.append(
+        "ai.settings.update",
+        current_user()["username"],
+        {
+            "provider": settings.get("provider"),
+            "enabled": settings.get("enabled"),
+            "budget_policy_enabled": settings.get("budget_policy_enabled"),
+            "key_tiers": [tier.get("tier") for tier in settings.get("key_tiers", []) if tier.get("enabled")],
+        },
+    )
     flash("AI provider settings saved")
     return redirect(url_for("api_superadmin.ai_page"))
+
+
+@bp.get("/api/superadmin/ai/key-routing-preview")
+@require_role("superadmin")
+def ai_key_routing_preview_api():
+    decision = choose_key_tier(
+        check_level=request.args.get("level", "L1"),
+        month_cost_usd=float(request.args.get("month_cost_usd") or 0),
+        estimated_cost_usd=float(request.args.get("estimated_cost_usd") or 0),
+    )
+    return jsonify(decision)
 
 
 @bp.get("/superadmin/token-costs")
