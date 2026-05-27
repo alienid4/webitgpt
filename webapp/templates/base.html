@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}webitgpt{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/cathay.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/cathay.css', v=asset_version) }}">
 </head>
 <body>
   {% set role = current_user.role %}
@@ -64,9 +64,9 @@
   </main>
   {% if show_app_shell and feature_enabled("ai_chat_panel", default=false) %}{% include "_partials/ai_chat.html" %}{% endif %}
   <footer class="app-footer no-print">IT 巡檢系統 / {{ app_name }} v{{ app_version }} / {{ patch_id }} / {{ release_note }} / build {{ build_time }} / port 8002 /opt/webitgpt</footer>
-  {% if show_app_shell and feature_enabled("ai_chat_panel", default=false) %}<script src="{{ url_for('static', filename='js/ai_chat.js') }}"></script>{% endif %}
-  {% if show_app_shell %}<script src="{{ url_for('static', filename='js/ui_tools.js') }}"></script>{% endif %}
-  {% if show_app_shell %}<script src="{{ url_for('static', filename='js/table_sort.js') }}"></script>{% endif %}
+  {% if show_app_shell and feature_enabled("ai_chat_panel", default=false) %}<script src="{{ url_for('static', filename='js/ai_chat.js', v=asset_version) }}"></script>{% endif %}
+  {% if show_app_shell %}<script src="{{ url_for('static', filename='js/ui_tools.js', v=asset_version) }}"></script>{% endif %}
+  {% if show_app_shell %}<script src="{{ url_for('static', filename='js/table_sort.js', v=asset_version) }}"></script>{% endif %}
   {% block scripts %}{% endblock %}
 </body>
 </html>

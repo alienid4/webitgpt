@@ -335,5 +335,5 @@
     {% endif %}
   </div>
 </section>
-<script src="{{ url_for('static', filename='js/hosts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/hosts.js', v=asset_version) }}"></script>
 {% endblock %}

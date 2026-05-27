@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.3.40"
-PATCH_ID = "ai-judgement-visual-contrast"
-RELEASE_NOTE = "AI 判斷來源改為三段式視覺卡，金框 AI、灰框 Script、綠框資料規則與琥珀 fallback 更明顯"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-28 00:05:00 +08:00")
+VERSION = "1.0.3.41"
+PATCH_ID = "static-asset-cache-busting"
+RELEASE_NOTE = "CSS/JS 靜態檔加入版本參數，避免瀏覽器快取造成 UI patch 看起來沒變"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-28 00:15:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

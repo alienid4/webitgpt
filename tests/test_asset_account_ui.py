@@ -167,7 +167,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.40"' in config
+    assert 'VERSION = "1.0.3.41"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -258,8 +258,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.40"' in config
-    assert "ai-judgement-visual-contrast" in config
+    assert 'VERSION = "1.0.3.41"' in config
+    assert "static-asset-cache-busting" in config
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -271,7 +271,7 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     assert ".verify-mode-card" in css
     assert ".verify-badge.api" in css
     assert ".verify-badge.script" in css
-    assert "1.0.3.40" in service
+    assert "1.0.3.41" in service
     assert "ai-judgement-gold-frame-ui" in changelog
     assert "ai-judgement-gold-frame-ui" in read("docs/release_notes/v1.0.3.37.md")
     assert "Shell 負責採證" in read("docs/20260527/v1.0.3.36_ai-judgement-source-ux-design.md")
@@ -287,7 +287,8 @@ def test_global_judgement_source_visibility_contracts_exist():
     config = read("webapp/config.py")
     changelog = read("CHANGELOG.md")
 
-    assert "ai-judgement-visual-contrast" in config
+    assert "static-asset-cache-busting" in config
+    assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog
     assert "v1.0.3.38" in changelog
     assert "判斷來源圖例" in read("webapp/templates/dashboard.html")
@@ -317,7 +318,7 @@ def test_ai_judgement_visual_contrast_cards_exist():
     css = read("webapp/static/css/cathay.css")
     changelog = read("CHANGELOG.md")
 
-    assert "ai-judgement-visual-contrast" in read("webapp/config.py")
+    assert "ai-judgement-visual-contrast" in changelog
     assert "judgement-source-panel" in accounts
     assert "judgement-source-card script" in accounts
     assert "judgement-source-card data" in accounts
@@ -338,6 +339,19 @@ def test_ai_judgement_visual_contrast_cards_exist():
     ]:
         assert token in css
     assert "不再只是一排 badge" in changelog
+
+
+def test_static_assets_use_version_cache_busting():
+    base = read("webapp/templates/base.html")
+    app = read("webapp/app.py")
+    accounts = read("webapp/templates/accounts_inventory.html")
+
+    assert "asset_version" in app
+    assert "css/cathay.css', v=asset_version" in base
+    assert "js/ui_tools.js', v=asset_version" in base
+    assert "js/table_sort.js', v=asset_version" in base
+    assert "js/account_inventory.js', v=asset_version" in accounts
+    assert "static-asset-cache-busting" in read("CHANGELOG.md")
 
 
 def test_rhel96_offline_prereq_installer_guards_core_packages():

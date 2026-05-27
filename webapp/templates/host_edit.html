@@ -172,6 +172,6 @@
   <form id="verifyIdentityForm" method="post" action="{{ url_for('api_hosts.host_verify_identity_submit', asset_seq=host.hostname or host.asset_seq) }}" data-submit-status data-submit-message="正在連線採集真實 Hostname / OS，請稍候。"></form>
   {% endif %}
 </section>
-<script src="{{ url_for('static', filename='js/hosts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/hosts.js', v=asset_version) }}"></script>
 {% endif %}
 {% endblock %}

@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.41",
+        "date": "2026-05-28 00:15 +08:00",
+        "patch_id": "static-asset-cache-busting",
+        "changes": [
+            "CSS 與主要 JavaScript 載入加入版本參數，避免瀏覽器沿用舊快取造成 UI patch 看起來沒變。",
+            "模板注入 asset_version，值由 VERSION 與 PATCH_ID 組成，每次 patch 自動刷新靜態資產。",
+            "帳號盤點、資產、效能、巡檢與系統管理相關頁面的頁面腳本同步加入版本參數。",
+        ],
+    },
+    {
         "version": "1.0.3.40",
         "date": "2026-05-28 00:05 +08:00",
         "patch_id": "ai-judgement-visual-contrast",

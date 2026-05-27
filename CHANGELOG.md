@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.41 - 2026-05-28 00:15 +08:00 - static-asset-cache-busting
+
+- CSS 與主要 JavaScript 靜態檔加入 `?v={{ asset_version }}`，避免瀏覽器快取舊樣式造成 UI patch 看起來沒變。
+- `asset_version` 由目前 `VERSION` 與 `PATCH_ID` 組成，每次版號變更會自動刷新樣式與腳本。
+- 帳號盤點、資產管理、效能月報、巡檢、備份、housekeeping 等頁面腳本同步加入版本參數。
+
 ## v1.0.3.40 - 2026-05-28 00:05 +08:00 - ai-judgement-visual-contrast
 
 - 帳號盤點、AI 供應商與 Token 成本頁改用三段式判斷來源卡，不再只是一排 badge。

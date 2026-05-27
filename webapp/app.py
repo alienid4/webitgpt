@@ -72,6 +72,7 @@ def create_app() -> Flask:
             "patch_id": config.PATCH_ID,
             "release_note": config.RELEASE_NOTE,
             "build_time": config.BUILD_TIME,
+            "asset_version": f"{config.VERSION}-{config.PATCH_ID}",
             "feature_enabled": is_enabled,
         }
 
