@@ -36,7 +36,7 @@ bash scripts/prepare_offline_prereq_bundle.sh
 會產生：
 
 ```text
-dist/webitgpt_prereqs_rocky9_<時間>.tar.gz
+dist/webitgpt_prereqs_<target-os>_<時間>.tar.gz
 ```
 
 這包包含：
@@ -52,8 +52,8 @@ dist/webitgpt_prereqs_rocky9_<時間>.tar.gz
 在新主機先執行：
 
 ```bash
-tar -xzf webitgpt_prereqs_rocky9_*.tar.gz
-cd webitgpt_prereqs_rocky9_*
+tar -xzf webitgpt_prereqs_*.tar.gz
+cd webitgpt_prereqs_*
 sudo bash install_prereqs_offline.sh
 ```
 

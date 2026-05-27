@@ -7,7 +7,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STAMP="$(date +%Y%m%d%H%M%S)"
 OUT_DIR="${OUT_DIR:-$ROOT/dist}"
-BUNDLE_NAME="${BUNDLE_NAME:-webitgpt_prereqs_rocky9_${STAMP}}"
+BUILD_OS_LABEL="$(cat /etc/redhat-release 2>/dev/null || uname -a)"
+TARGET_OS_LABEL="${TARGET_OS_LABEL:-$BUILD_OS_LABEL}"
+TARGET_OS_SLUG="${TARGET_OS_SLUG:-$(printf '%s' "$TARGET_OS_LABEL" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')}"
+BUNDLE_NAME="${BUNDLE_NAME:-webitgpt_prereqs_${TARGET_OS_SLUG}_${STAMP}}"
 STAGE="$OUT_DIR/$BUNDLE_NAME"
 RPM_DIR="$STAGE/rpms"
 IMAGE_DIR="$STAGE/images"
@@ -16,9 +19,6 @@ INCLUDE_MONGO_IMAGE="${INCLUDE_MONGO_IMAGE:-1}"
 INCLUDE_NMON="${INCLUDE_NMON:-1}"
 DNF_REPO_FLAGS="${DNF_REPO_FLAGS:---disablerepo=tailscale-stable --disablerepo=cloudflared-stable}"
 PODMAN_BIN="${PODMAN_BIN:-podman}"
-BUILD_OS_LABEL="$(cat /etc/redhat-release 2>/dev/null || uname -a)"
-TARGET_OS_LABEL="${TARGET_OS_LABEL:-$BUILD_OS_LABEL}"
-
 PACKAGES=(
   python3
   python3-pip

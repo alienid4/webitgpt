@@ -26,7 +26,7 @@ bash scripts/prepare_offline_prereq_bundle.sh
 輸出：
 
 ```text
-dist/webitgpt_prereqs_rocky9_<時間>.tar.gz
+dist/webitgpt_prereqs_<target-os>_<時間>.tar.gz
 ```
 
 可調參數：
@@ -41,8 +41,8 @@ bash scripts/prepare_offline_prereq_bundle.sh
 ## 在新主機安裝
 
 ```bash
-tar -xzf webitgpt_prereqs_rocky9_*.tar.gz
-cd webitgpt_prereqs_rocky9_*
+tar -xzf webitgpt_prereqs_*.tar.gz
+cd webitgpt_prereqs_*
 sudo bash install_prereqs_offline.sh
 ```
 

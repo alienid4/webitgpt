@@ -7,6 +7,9 @@ IMAGE_DIR="${IMAGE_DIR:-$SCRIPT_DIR/images}"
 MONGO_CONTAINER="${MONGO_CONTAINER:-webitgpt-mongo}"
 MONGO_PORT="${MONGO_PORT:-27017}"
 MONGO_VOLUME="${MONGO_VOLUME:-webitgpt_mongo_data}"
+RPM_INSTALL_MODE="${RPM_INSTALL_MODE:-missing}"
+DNF_LOCAL_FLAGS="${DNF_LOCAL_FLAGS:---disablerepo=* --setopt=install_weak_deps=False --skip-broken}"
+PROTECTED_RPM_RE="${PROTECTED_RPM_RE:-^(systemd|systemd-libs|systemd-pam|systemd-rpm-macros|kernel|kernel-core|kernel-modules|glibc|glibc-common|filesystem|setup|basesystem)$}"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "install_prereqs_offline.sh must run as root. Use sudo." >&2
@@ -20,12 +23,38 @@ install_rpms() {
   fi
 
   echo "Installing local RPM prerequisites from $RPM_DIR"
+  mapfile -t rpm_files < <(find "$RPM_DIR" -maxdepth 1 -type f -name '*.rpm' | sort)
+  install_files=()
+
+  for rpm_file in "${rpm_files[@]}"; do
+    pkg_name="$(rpm -qp --qf '%{NAME}' "$rpm_file" 2>/dev/null || true)"
+    if [ -z "$pkg_name" ]; then
+      echo "WARN cannot read RPM name: $rpm_file"
+      continue
+    fi
+    if [[ "$pkg_name" =~ $PROTECTED_RPM_RE ]]; then
+      echo "SKIP protected package from offline bundle: $pkg_name"
+      continue
+    fi
+    if [ "$RPM_INSTALL_MODE" = "missing" ] && rpm -q "$pkg_name" >/dev/null 2>&1; then
+      echo "SKIP already installed package: $pkg_name"
+      continue
+    fi
+    install_files+=("$rpm_file")
+  done
+
+  if [ "${#install_files[@]}" -eq 0 ]; then
+    echo "No missing RPM prerequisites to install."
+    return
+  fi
+
+  echo "Installing ${#install_files[@]} missing RPM prerequisites."
   if command -v dnf >/dev/null 2>&1; then
-    dnf install -y "$RPM_DIR"/*.rpm
+    dnf install -y $DNF_LOCAL_FLAGS "${install_files[@]}"
   elif command -v yum >/dev/null 2>&1; then
-    yum localinstall -y "$RPM_DIR"/*.rpm
+    yum localinstall -y "${install_files[@]}"
   else
-    rpm -Uvh --replacepkgs "$RPM_DIR"/*.rpm
+    rpm -Uvh --replacepkgs "${install_files[@]}"
   fi
 }
 

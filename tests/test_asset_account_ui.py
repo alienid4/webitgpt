@@ -243,6 +243,26 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     assert "api-key-verify-visibility" in read("docs/release_notes/v1.0.3.32.md")
 
 
+def test_rhel96_offline_prereq_installer_guards_core_packages():
+    install_prereqs = read("scripts/install_prereqs_offline.sh")
+    prereq_builder = read("scripts/prepare_offline_prereq_bundle.sh")
+    full_builder = read("scripts/prepare_221_full_offline_bundle.sh")
+    one_key = read("docs/one_key_install.md")
+    prereq_doc = read("docs/offline_prereq_bundle.md")
+
+    assert 'RPM_INSTALL_MODE="${RPM_INSTALL_MODE:-missing}"' in install_prereqs
+    assert "PROTECTED_RPM_RE" in install_prereqs
+    assert "systemd|systemd-libs" in install_prereqs
+    assert "SKIP protected package from offline bundle" in install_prereqs
+    assert "SKIP already installed package" in install_prereqs
+    assert "--disablerepo=*" in install_prereqs
+    assert "webitgpt_prereqs_${TARGET_OS_SLUG}_${STAMP}" in prereq_builder
+    assert "TARGET_OS_SLUG" in prereq_builder
+    assert "webitgpt_prereqs_*.tar.gz" in full_builder
+    assert "webitgpt_prereqs_<target-os>_<時間>.tar.gz" in one_key
+    assert "webitgpt_prereqs_<target-os>_<時間>.tar.gz" in prereq_doc
+
+
 def test_account_checkboxes_use_inline_left_layout():
     html = read("webapp/templates/accounts_inventory.html")
     css = read("webapp/static/css/cathay.css")
