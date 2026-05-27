@@ -36,6 +36,48 @@
     CSV 匯入結果：新增 {{ import_result.created }}，更新 {{ import_result.updated }}，失敗 {{ import_result.failed }}。
     {% if import_result.errors %}<br>錯誤：{{ import_result.errors }}{% endif %}
   </div>
+  <section class="panel compact" id="cmdb-import-result">
+    <div class="page-header">
+      <div>
+        <h2>CMDB 匯入結果摘要</h2>
+        <p class="text-muted-sm">讓人先看總數、成功、草稿與失敗原因，再決定要補資料、轉正式或下載錯誤列。</p>
+      </div>
+    </div>
+    {% set summary = import_result.summary or {} %}
+    <div class="metric-grid">
+      <a class="metric" href="#cmdb-import-result"><strong>{{ summary.total_rows or import_result.total_rows or 0 }}</strong><span>讀到筆數</span></a>
+      <a class="metric" href="#cmdb-import-result"><strong>{{ summary.success or 0 }}</strong><span>成功入庫</span></a>
+      <a class="metric" href="#cmdb-import-result"><strong>{{ summary.created or import_result.created or 0 }}</strong><span>新增</span></a>
+      <a class="metric" href="#cmdb-import-result"><strong>{{ summary.updated or import_result.updated or 0 }}</strong><span>更新</span></a>
+      <a class="metric" href="#cmdb-import-result"><strong>{{ summary.draft or import_result.draft or 0 }}</strong><span>草稿</span></a>
+      <a class="metric" href="#cmdb-import-result"><strong>{{ summary.failed or import_result.failed or 0 }}</strong><span>失敗</span></a>
+    </div>
+    {% if summary.categories %}
+    <table class="data-table">
+      <thead><tr><th>錯誤類型</th><th>筆數</th></tr></thead>
+      <tbody>
+        {% for item in summary.categories %}
+        <tr><td>{{ item.category }}</td><td>{{ item.count }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+    {% if import_result.errors %}
+    <table class="data-table">
+      <thead><tr><th>列</th><th>欄位</th><th>人可讀原因</th><th>建議</th></tr></thead>
+      <tbody>
+        {% for item in import_result.errors[:10] %}
+        <tr>
+          <td>{{ item.line or item.item or "-" }}</td>
+          <td>{{ item.field or "-" }}</td>
+          <td>{{ item.human_message or item.error }}</td>
+          <td>{{ item.suggestion or "修正後重新匯入" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </section>
   {% endif %}
   {% if scan_created is not none %}
   <div class="notice">
@@ -57,18 +99,19 @@
 <section class="panel" id="csv-import">
   <div class="page-header">
     <div>
-      <h2>2. CSV 大量匯入</h2>
-      <p class="text-muted-sm">適合一次匯入大量主機。建議先下載範本，填完後再匯入。</p>
+      <h2>2. CSV / Excel 大量匯入</h2>
+      <p class="text-muted-sm">適合一次匯入大量主機。可用 CSV 或 .xlsx；匯入後會顯示成功、失敗與草稿筆數。</p>
     </div>
     <div class="asset-actions">
       <a class="btn secondary" href="{{ url_for('api_hosts.csv_template') }}">下載 CSV 範本</a>
       <a class="btn secondary" href="{{ url_for('api_hosts.csv_export') }}">匯出現有資產</a>
+      <a class="btn secondary" href="{{ url_for('api_hosts.xlsx_export') }}">匯出 Excel</a>
     </div>
   </div>
-  <form class="form" method="post" action="{{ url_for('api_hosts.host_import_csv_page') }}" enctype="multipart/form-data" data-submit-status data-submit-message="正在匯入 CSV，請稍候。">
-    <label>CSV 檔案<input type="file" name="csv_file" accept=".csv,text/csv"></label>
+  <form class="form" method="post" action="{{ url_for('api_hosts.host_import_csv_page') }}" enctype="multipart/form-data" data-submit-status data-submit-message="正在匯入 CSV / Excel，請稍候。">
+    <label>CSV / Excel 檔案<input type="file" name="csv_file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
     <label>或貼上 CSV 內容<textarea name="csv_text" rows="8" placeholder="asset_seq,hostname,ip,host_type,os,..."></textarea></label>
-    <button class="btn primary" type="submit">匯入 CSV</button>
+    <button class="btn primary" type="submit">匯入 CSV / Excel</button>
   </form>
   <div class="submit-status" hidden aria-live="polite"></div>
 </section>

@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.34",
+        "date": "2026-05-27 11:45 +08:00",
+        "patch_id": "cmdb-import-report-excel-drafts",
+        "changes": [
+            "CMDB 匯入結果新增總筆數、成功、新增、更新、草稿與失敗摘要，錯誤列會顯示人可讀原因與修正建議。",
+            "資產匯入支援 .xlsx，並新增 Excel 匯出；CSV 範本、匯出與錯誤下載補 UTF-8 BOM，降低 Excel 開啟亂碼。",
+            "草稿區新增批次轉正式與批次補欄位，適合 nmap/IPAM 建立草稿後做大量整理。",
+        ],
+    },
+    {
         "version": "1.0.3.33",
         "date": "2026-05-27 10:45 +08:00",
         "patch_id": "cmdb-real-fields-scan-visibility",

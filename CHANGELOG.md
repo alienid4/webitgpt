@@ -1,5 +1,12 @@
 # webitgpt Changelog
 
+## v1.0.3.34 - 2026-05-27 11:45 +08:00 - cmdb-import-report-excel-drafts
+
+- CMDB 匯入結果新增總筆數、成功、新增、更新、草稿與失敗摘要，讓大量匯入失敗可一眼看出主因。
+- 資產匯入支援 `.xlsx`，並新增 Excel 匯出；CSV 範本、匯出與錯誤下載補 UTF-8 BOM，降低 Excel 開啟亂碼。
+- 草稿區新增批次轉正式與批次補欄位，適合 nmap/IPAM 建立草稿後集中處理。
+- API 補 `/api/hosts/xlsx/import`、`/api/hosts/xlsx/export`、`/api/hosts/xlsx/validate` 與 `.xlsx` 錯誤下載。
+
 ## v1.0.3.33 - 2026-05-27 10:45 +08:00 - cmdb-real-fields-scan-visibility
 
 - CMDB 匯入支援真實中文欄位：總點單位、資產序號、APID、主機名稱、IP、備份頻率、資料保存、備份方式、CIA 與申請單編號。

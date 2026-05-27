@@ -117,12 +117,43 @@ def test_cmdb_csv_validation_and_self_check_guard_contracts_exist():
 
     assert "def validate_csv(" in csv_service
     assert "def validation_errors_csv(" in csv_service
+    assert "def validate_xlsx(" in csv_service
+    assert "def validation_errors_xlsx(" in csv_service
+    assert "def export_hosts_xlsx(" in csv_service
+    assert 'return "\\ufeff" + output.getvalue()' in csv_service
     assert '"/api/hosts/csv/validate"' in host_routes
     assert '"/api/hosts/csv/validate.csv"' in host_routes
+    assert '"/api/hosts/xlsx/import"' in host_routes
+    assert '"/api/hosts/xlsx/export"' in host_routes
+    assert '"/api/hosts/xlsx/validate"' in host_routes
+    assert '"/api/hosts/xlsx/validate.xlsx"' in host_routes
     assert "duplicate asset_seq" in csv_service
     assert "payload.get(\"limit\", request.args.get(\"limit\", \"10\"))" in self_check
     assert "min(max(int(requested_limit), 1), 20)" in self_check
     assert "except TimeoutError" in self_check
+
+
+def test_cmdb_import_report_excel_and_draft_bulk_contracts_exist():
+    csv_service = read("webapp/services/csv_service.py")
+    host_new = read("webapp/templates/host_new.html")
+    hosts = read("webapp/templates/hosts.html")
+    host_routes = read("webapp/routes/api_hosts.py")
+    host_service = read("webapp/services/host_service.py")
+    hosts_js = read("webapp/static/js/hosts.js")
+    changelog = read("CHANGELOG.md")
+
+    for text in ["CMDB 匯入結果摘要", "讀到筆數", "成功入庫", "人可讀原因", "匯入 CSV / Excel"]:
+        assert text in host_new
+    for text in ["批次轉正式", "批次補欄位", "bulkDraftPromoteForm", "bulkDraftUpdateForm", "匯出 Excel"]:
+        assert text in hosts
+    for text in ["host_bulk_promote_drafts_submit", "host_bulk_update_drafts_submit", "xlsx_export", "xlsx_import"]:
+        assert text in host_routes
+    for text in ["bulk_promote_draft_hosts", "bulk_update_draft_hosts", "bulk_promote_draft", "bulk_update_draft"]:
+        assert text in host_service
+    assert "data-draft-bulk-form" in hosts
+    assert "data-draft-bulk-copy" in hosts_js
+    assert "xlsx_rows_from_bytes" in csv_service
+    assert "cmdb-import-report-excel-drafts" in changelog
 
 
 def test_operations_hardening_to_10323_contracts_exist():
@@ -134,7 +165,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.33"' in config
+    assert 'VERSION = "1.0.3.34"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -225,8 +256,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.33"' in config
-    assert "cmdb-real-fields-scan-visibility" in config
+    assert 'VERSION = "1.0.3.34"' in config
+    assert "cmdb-import-report-excel-drafts" in config
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -238,9 +269,9 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     assert ".verify-mode-card" in css
     assert ".verify-badge.api" in css
     assert ".verify-badge.script" in css
-    assert "1.0.3.33" in service
-    assert "cmdb-real-fields-scan-visibility" in changelog
-    assert "cmdb-real-fields-scan-visibility" in read("docs/release_notes/v1.0.3.33.md")
+    assert "1.0.3.34" in service
+    assert "cmdb-import-report-excel-drafts" in changelog
+    assert "cmdb-import-report-excel-drafts" in read("docs/release_notes/v1.0.3.34.md")
 
 
 def test_rhel96_offline_prereq_installer_guards_core_packages():

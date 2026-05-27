@@ -7,7 +7,7 @@ from flask import Blueprint, Response, abort, jsonify, redirect, render_template
 from webapp.decorators import current_user, market_hours_protected, require_feature, require_role
 from webapp.services import audit_log_service, cmdb_service, host_service, ipam_schedule_service
 from webapp.services.csv_service import csv_template as build_csv_template
-from webapp.services.csv_service import export_hosts_csv, import_csv, import_json, validate_csv, validation_errors_csv
+from webapp.services.csv_service import export_hosts_csv, export_hosts_xlsx, import_csv, import_json, import_xlsx, validate_csv, validate_xlsx, validation_errors_csv, validation_errors_xlsx
 from webapp.services.host_schema import ASSET_FIELDS, REQUIRED_FIELDS, ValidationError
 from webapp.services.saved_view_service import delete_view, list_views, save_view
 
@@ -466,9 +466,13 @@ def host_new_submit():
 @market_hours_protected
 def host_import_csv_page():
     text = request.form.get("csv_text", "")
-    if not text and request.files.get("csv_file"):
-        text = request.files["csv_file"].read().decode("utf-8-sig", errors="replace")
-    result = import_csv(text, user=current_user()["username"])
+    upload = request.files.get("csv_file")
+    if upload and upload.filename.lower().endswith(".xlsx"):
+        result = import_xlsx(upload.read(), user=current_user()["username"])
+    else:
+        if not text and upload:
+            text = upload.read().decode("utf-8-sig", errors="replace")
+        result = import_csv(text, user=current_user()["username"])
     audit_log_service.append("host.csv_import", current_user()["username"], result)
     return render_template("host_new.html", **_host_new_context(import_result=result)), 200 if result["failed"] == 0 else 400
 
@@ -870,6 +874,62 @@ def host_bulk_delete_drafts_submit():
         return redirect(url_for("api_hosts.hosts_page", status=request.form.get("return_status", ""), bulk_error=str(exc)))
 
 
+@bp.post("/hosts/bulk-promote-drafts")
+@require_feature("cmdb_manual_input")
+@require_role("admin")
+def host_bulk_promote_drafts_submit():
+    try:
+        result = host_service.bulk_promote_draft_hosts(
+            request.form.getlist("asset_seq"),
+            request.form.get("reason", ""),
+            user=current_user()["username"],
+        )
+        audit_log_service.append("host.draft.bulk_promote", current_user()["username"], result)
+        return redirect(
+            url_for(
+                "api_hosts.hosts_page",
+                status=request.form.get("return_status", ""),
+                bulk_promoted=result["promoted_count"],
+                bulk_skipped=result["skipped_count"],
+            )
+        )
+    except Exception as exc:
+        return redirect(url_for("api_hosts.hosts_page", status=request.form.get("return_status", ""), bulk_error=str(exc)))
+
+
+@bp.post("/hosts/bulk-update-drafts")
+@require_feature("cmdb_manual_input")
+@require_role("admin")
+def host_bulk_update_drafts_submit():
+    try:
+        result = host_service.bulk_update_draft_hosts(
+            request.form.getlist("asset_seq"),
+            {
+                "environment": request.form.get("environment", ""),
+                "dc": request.form.get("dc", ""),
+                "host_type": request.form.get("host_type", ""),
+                "owner": request.form.get("owner", ""),
+                "custodian": request.form.get("custodian", ""),
+                "user_unit": request.form.get("user_unit", ""),
+                "system_name": request.form.get("system_name", ""),
+                "note": request.form.get("note", ""),
+            },
+            request.form.get("reason", ""),
+            user=current_user()["username"],
+        )
+        audit_log_service.append("host.draft.bulk_update", current_user()["username"], result)
+        return redirect(
+            url_for(
+                "api_hosts.hosts_page",
+                status=request.form.get("return_status", ""),
+                bulk_updated=result["updated_count"],
+                bulk_skipped=result["skipped_count"],
+            )
+        )
+    except Exception as exc:
+        return redirect(url_for("api_hosts.hosts_page", status=request.form.get("return_status", ""), bulk_error=str(exc)))
+
+
 @bp.get("/cmdb/ipam")
 @require_feature("cmdb_manual_input")
 def ipam_page():
@@ -1097,6 +1157,17 @@ def csv_export():
     return Response(export_hosts_csv(data["items"]), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=hosts_export.csv"})
 
 
+@bp.get("/api/hosts/xlsx/export")
+@require_feature("cmdb_csv_import")
+def xlsx_export():
+    data = host_service.list_hosts(page=1, page_size=10000)
+    return Response(
+        export_hosts_xlsx(data["items"]),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=hosts_export.xlsx"},
+    )
+
+
 @bp.post("/api/hosts/csv/import")
 @require_feature("cmdb_csv_import")
 @require_role("admin")
@@ -1105,6 +1176,16 @@ def csv_import():
     text = request.get_data(as_text=True)
     result = import_csv(text, user=current_user()["username"])
     audit_log_service.append("host.csv_import", current_user()["username"], result)
+    return jsonify(result), 200 if result["failed"] == 0 else 400
+
+
+@bp.post("/api/hosts/xlsx/import")
+@require_feature("cmdb_csv_import")
+@require_role("admin")
+@market_hours_protected
+def xlsx_import():
+    result = import_xlsx(request.get_data(), user=current_user()["username"])
+    audit_log_service.append("host.xlsx_import", current_user()["username"], result)
     return jsonify(result), 200 if result["failed"] == 0 else 400
 
 
@@ -1123,6 +1204,25 @@ def csv_validate_errors():
     text = request.get_data(as_text=True)
     report = validate_csv(text)
     return Response(validation_errors_csv(report), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=host_csv_validation_errors.csv"})
+
+
+@bp.post("/api/hosts/xlsx/validate")
+@require_feature("cmdb_csv_import")
+def xlsx_validate():
+    report = validate_xlsx(request.get_data())
+    audit_log_service.append("host.xlsx_validate", current_user()["username"], {"status": report["status"], "row_count": report["row_count"], "error_count": report["error_count"]})
+    return jsonify(report), 200 if report["error_count"] == 0 else 400
+
+
+@bp.post("/api/hosts/xlsx/validate.xlsx")
+@require_feature("cmdb_csv_import")
+def xlsx_validate_errors():
+    report = validate_xlsx(request.get_data())
+    return Response(
+        validation_errors_xlsx(report),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=host_xlsx_validation_errors.xlsx"},
+    )
 
 
 @bp.post("/api/hosts/json/import")
