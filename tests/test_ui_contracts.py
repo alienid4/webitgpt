@@ -296,6 +296,8 @@ def test_ai_token_cost_visibility_contract_exists():
     assert "budget_policy_enabled" in read("webapp/templates/ai_settings.html")
     assert "超額策略" in read("webapp/templates/ai_settings.html")
     assert "Script fallback" in read("webapp/templates/ai_settings.html")
+    assert "judgement-source-card ai" in read("webapp/templates/ai_settings.html")
+    assert "judgement-source-card ai" in token_page
     assert "本月 AI Token" in executive
     assert "Token 成本" in superadmin
     assert "topology-node-radial-center" in css

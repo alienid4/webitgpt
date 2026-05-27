@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.40 - 2026-05-28 00:05 +08:00 - ai-judgement-visual-contrast
+
+- 帳號盤點、AI 供應商與 Token 成本頁改用三段式判斷來源卡，不再只是一排 badge。
+- AI 判讀使用金框與 AI 圓標，Script 使用灰框，資料/規則使用綠框，fallback 使用琥珀框。
+- 帳號盤點新增來源流程：Shell / Script 採證 → CSV / Excel 匯入 → PAM / owner 規則 → L3 AI 判讀 → 規則接手。
+
 ## v1.0.3.39 - 2026-05-27 23:55 +08:00 - ai-key-budget-tier-routing
 
 - AI 供應商設定加入 L1/L2/L3 KEY 階級，可分別設定模型、月預算與可支援檢查層級。

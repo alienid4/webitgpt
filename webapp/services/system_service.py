@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.40",
+        "date": "2026-05-28 00:05 +08:00",
+        "patch_id": "ai-judgement-visual-contrast",
+        "changes": [
+            "帳號盤點、AI 供應商與 Token 成本頁改用三段式判斷來源卡，讓 AI、Script、資料規則與 fallback 一眼分辨。",
+            "AI 判讀卡改為金框與 AI 圓標，Script 維持灰框，資料規則使用綠框，fallback 使用琥珀框。",
+            "保留原 badge 語意，但改成流程卡與來源路徑，避免使用者只看到一排標籤看不出差異。",
+        ],
+    },
+    {
         "version": "1.0.3.39",
         "date": "2026-05-27 23:55 +08:00",
         "patch_id": "ai-key-budget-tier-routing",

@@ -31,12 +31,19 @@
           {% endfor %}
         </select>
       </label>
-      <div class="judgement-source-legend" aria-label="AI KEY 階級說明">
-        <strong>路由原則</strong>
-        <span class="source-badge script">L1 Script 優先</span>
-        <span class="source-badge api">L2 低成本 KEY</span>
-        <span class="source-badge ai">L3 深度 KEY</span>
-        <span class="source-badge fallback">超額 fallback</span>
+      <div class="judgement-source-panel" aria-label="AI KEY 階級說明">
+        <article class="judgement-source-card script">
+          <strong><span class="source-badge script">L1</span>Script 優先</strong>
+          <p>服務存活、版本、連線、門檻這類明確檢查先用 Script，不浪費 KEY。</p>
+        </article>
+        <article class="judgement-source-card data">
+          <strong><span class="source-badge api">L2</span>低成本 KEY</strong>
+          <p>摘要、分類、簡單異常說明走一般 KEY，預算較低、可大量使用。</p>
+        </article>
+        <article class="judgement-source-card ai">
+          <strong><span class="source-badge ai">L3</span>深度 KEY</strong>
+          <p>跨 CMDB、NMON、帳號、log 與拓撲判讀才用高階 KEY，超額就降級。</p>
+        </article>
       </div>
       <table class="data-table">
         <thead><tr><th>階級</th><th>啟用</th><th>名稱</th><th>模型</th><th>月上限 USD</th><th>可支援檢查</th><th>API Key</th></tr></thead>

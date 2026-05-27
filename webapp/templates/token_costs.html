@@ -44,12 +44,19 @@
           <p class="text-muted-sm">{{ report.note }}</p>
         </div>
       </div>
-      <div class="judgement-source-legend" aria-label="AI 預算路由狀態">
-        <strong>預算路由</strong>
-        <span class="source-badge {{ 'api' if report.budget_policy.enabled else 'fallback' }}">{{ "已啟用" if report.budget_policy.enabled else "未啟用" }}</span>
-        <span class="source-badge rule">月預算 ${{ "%.2f"|format(report.budget_policy.monthly_budget_usd) }}</span>
-        <span class="source-badge {{ 'insufficient' if report.budget_policy.over_budget else 'cmdb' }}">目前 ${{ "%.4f"|format(report.summary.estimated_cost_usd) }}</span>
-        <span class="source-badge fallback">超額：{{ report.budget_policy.fallback_strategy }}</span>
+      <div class="judgement-source-panel" aria-label="AI 預算路由狀態">
+        <article class="judgement-source-card data">
+          <strong><span class="source-badge {{ 'api' if report.budget_policy.enabled else 'fallback' }}">{{ "已啟用" if report.budget_policy.enabled else "未啟用" }}</span>預算路由</strong>
+          <p>月預算 ${{ "%.2f"|format(report.budget_policy.monthly_budget_usd) }}；目前估算 ${{ "%.4f"|format(report.summary.estimated_cost_usd) }}。</p>
+        </article>
+        <article class="judgement-source-card {{ 'fallback' if report.budget_policy.over_budget else 'script' }}">
+          <strong><span class="source-badge {{ 'insufficient' if report.budget_policy.over_budget else 'cmdb' }}">{{ "已超額" if report.budget_policy.over_budget else "預算內" }}</span>成本狀態</strong>
+          <p>超額策略：{{ report.budget_policy.fallback_strategy }}。超額時不會假裝仍是高階 AI。</p>
+        </article>
+        <article class="judgement-source-card ai">
+          <strong><span class="source-badge ai">AI KEY</span>階級決策</strong>
+          <p>L3 金框代表高成本深度判讀；L1/L2 先消化簡單任務，保留預算。</p>
+        </article>
       </div>
       <div class="token-cost-summary">
         <div><span>Input token</span><strong>{{ report.summary.input_tokens }}</strong></div>

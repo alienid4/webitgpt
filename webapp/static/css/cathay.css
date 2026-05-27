@@ -1410,6 +1410,107 @@ a.metric:hover {
   box-shadow: 0 10px 24px rgba(145, 104, 13, 0.14), inset 0 0 0 2px rgba(199, 155, 45, 0.12);
 }
 
+.judgement-source-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.judgement-source-card {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  min-height: 116px;
+  border: 1px solid var(--c4);
+  border-left: 6px solid var(--c3);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+
+.judgement-source-card strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.judgement-source-card p {
+  margin: 0;
+  color: var(--c2);
+  line-height: 1.55;
+}
+
+.judgement-source-card.script {
+  border-left-color: var(--c3);
+  background: linear-gradient(180deg, var(--white) 0%, #f7f8f7 100%);
+}
+
+.judgement-source-card.data {
+  border-left-color: var(--g1);
+  background: linear-gradient(180deg, #f3fbf7 0%, var(--white) 72%);
+}
+
+.judgement-source-card.ai {
+  border-color: #c79b2d;
+  border-left-color: #c79b2d;
+  background: linear-gradient(180deg, #fff6d7 0%, #fffdf7 58%, var(--white) 100%);
+  box-shadow: 0 12px 28px rgba(145, 104, 13, 0.18), inset 0 0 0 3px rgba(199, 155, 45, 0.16);
+}
+
+.judgement-source-card.fallback {
+  border-color: #bd8b35;
+  border-left-color: #bd8b35;
+  background: linear-gradient(180deg, #fff2df 0%, var(--white) 70%);
+}
+
+.judgement-source-card.ai::after {
+  content: "AI";
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #c79b2d;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.judgement-source-card.fallback::after {
+  content: "FALLBACK";
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  border: 1px solid #bd8b35;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: #fff0d9;
+  color: #8d5f16;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.judgement-source-path {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.judgement-source-path .source-badge {
+  min-height: 34px;
+  border-radius: 6px;
+  padding: 6px 12px;
+}
+
 .verify-facts dd {
   margin: 0;
 }

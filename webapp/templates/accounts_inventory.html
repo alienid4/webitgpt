@@ -48,13 +48,26 @@
       <button class="btn secondary" type="button" data-api-post="/api/inventory/accounts/collect" data-payload='{"limit":50,"force":true}' data-reload-on-success="true" data-busy-text="盤點中" data-submit-message="正在強制重新盤點帳號，請稍候。">強制重新盤點</button>
     </form>
     <div class="submit-status" hidden aria-live="polite"></div>
-    <section class="judgement-source-legend" aria-label="帳號盤點判斷來源">
-      <strong>帳號判斷來源</strong>
-      <span class="source-badge script">OS Script 採證</span>
-      <span class="source-badge cmdb">AP CSV / Excel 匯入</span>
-      <span class="source-badge rule">PAM / owner 規則</span>
-      <span class="source-badge hybrid">L3 可交給 AI 判讀</span>
-      <span class="source-badge fallback">AI 不可用時規則接手</span>
+    <section class="judgement-source-panel" aria-label="帳號盤點判斷來源">
+      <article class="judgement-source-card script">
+        <strong><span class="source-badge script">Script 採證</span>OS 帳號</strong>
+        <p>由主機 Script 讀取帳號、群組與登入資訊。這是證據來源，不是 AI 結論。</p>
+      </article>
+      <article class="judgement-source-card data">
+        <strong><span class="source-badge cmdb">資料規則</span>AP / PAM</strong>
+        <p>AP CSV / Excel、owner、PAM 與權限欄位用規則判斷缺漏與待複核。</p>
+      </article>
+      <article class="judgement-source-card ai">
+        <strong><span class="source-badge hybrid">L3 AI 判讀</span>深度風險</strong>
+        <p>AI 只負責跨 OS、AP、PAM 與 CMDB 的綜合判讀；不可用時由規則接手。</p>
+      </article>
+    </section>
+    <section class="judgement-source-path" aria-label="帳號判斷流程">
+      <span class="source-badge script">1. Shell / Script 採證</span>
+      <span class="source-badge cmdb">2. CSV / Excel 匯入資料</span>
+      <span class="source-badge rule">3. PAM / owner 規則</span>
+      <span class="source-badge ai">4. L3 AI 深度判讀</span>
+      <span class="source-badge fallback">5. AI 不可用時規則接手</span>
     </section>
     <nav class="account-tabs" aria-label="帳號盤點分頁">
       <button class="account-tab active" type="button" data-account-tab="overview">總覽</button>
