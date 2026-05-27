@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.42 - 2026-05-28 00:25 +08:00 - ai-ready-pale-gold-contrast
+
+- AI-ready / 可交給 AI 判讀的區塊改用淡金框，與真正 AI 判斷的深金框分離。
+- 帳號盤點、AI 供應商、Token 成本、Dashboard、報表、資料品質、NMON、拓撲與 CMDB 匯入統一使用 `AI-ready` 淡金標示。
+- L3 深度檢查與安裝後驗證的 AI 判斷卡保留深金框，代表實際 AI 判斷。
+
 ## v1.0.3.41 - 2026-05-28 00:15 +08:00 - static-asset-cache-busting
 
 - CSS 與主要 JavaScript 靜態檔加入 `?v={{ asset_version }}`，避免瀏覽器快取舊樣式造成 UI patch 看起來沒變。

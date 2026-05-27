@@ -167,7 +167,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.41"' in config
+    assert 'VERSION = "1.0.3.42"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -258,8 +258,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.41"' in config
-    assert "static-asset-cache-busting" in config
+    assert 'VERSION = "1.0.3.42"' in config
+    assert "ai-ready-pale-gold-contrast" in config
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -271,7 +271,7 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     assert ".verify-mode-card" in css
     assert ".verify-badge.api" in css
     assert ".verify-badge.script" in css
-    assert "1.0.3.41" in service
+    assert "1.0.3.42" in service
     assert "ai-judgement-gold-frame-ui" in changelog
     assert "ai-judgement-gold-frame-ui" in read("docs/release_notes/v1.0.3.37.md")
     assert "Shell 負責採證" in read("docs/20260527/v1.0.3.36_ai-judgement-source-ux-design.md")
@@ -287,7 +287,8 @@ def test_global_judgement_source_visibility_contracts_exist():
     config = read("webapp/config.py")
     changelog = read("CHANGELOG.md")
 
-    assert "static-asset-cache-busting" in config
+    assert "ai-ready-pale-gold-contrast" in config
+    assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog
     assert "v1.0.3.38" in changelog
@@ -322,23 +323,39 @@ def test_ai_judgement_visual_contrast_cards_exist():
     assert "judgement-source-panel" in accounts
     assert "judgement-source-card script" in accounts
     assert "judgement-source-card data" in accounts
-    assert "judgement-source-card ai" in accounts
+    assert "judgement-source-card ai-ready" in accounts
     assert "Shell / Script 採證" in accounts
-    assert "L3 AI 深度判讀" in accounts
+    assert "L3 可交給 AI 深度判讀" in accounts
     assert "judgement-source-panel" in ai_settings
-    assert "judgement-source-card ai" in ai_settings
+    assert "judgement-source-card ai-ready" in ai_settings
     assert "judgement-source-panel" in token_costs
     assert "AI KEY" in token_costs
     for token in [
         ".judgement-source-panel",
         ".judgement-source-card.ai",
+        ".judgement-source-card.ai-ready",
         ".judgement-source-card.script",
         ".judgement-source-card.data",
         ".judgement-source-card.fallback",
         ".judgement-source-path",
+        ".source-badge.ai-ready",
     ]:
         assert token in css
     assert "不再只是一排 badge" in changelog
+
+
+def test_ai_ready_uses_pale_gold_not_deep_ai_style():
+    css = read("webapp/static/css/cathay.css")
+    accounts = read("webapp/templates/accounts_inventory.html")
+    post_install = read("webapp/templates/post_install_report.html")
+    inspections = read("webapp/templates/inspections.html")
+
+    assert ".source-badge.ai-ready" in css
+    assert ".judgement-source-card.ai-ready" in css
+    assert "AI-ready" in accounts
+    assert "judgement-source-card ai-ready" in accounts
+    assert "verify-mode-card ai-judgement" in post_install
+    assert "l3-panel l3-ai-ready" in inspections
 
 
 def test_static_assets_use_version_cache_busting():

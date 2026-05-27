@@ -1380,6 +1380,12 @@ a.metric:hover {
   color: #7a5608;
 }
 
+.source-badge.ai-ready {
+  border-color: #d9b95f;
+  background: #fff9e8;
+  color: #84620d;
+}
+
 .source-badge.nmon {
   border-color: #5b78b5;
   background: #eef3ff;
@@ -1460,6 +1466,13 @@ a.metric:hover {
   box-shadow: 0 12px 28px rgba(145, 104, 13, 0.18), inset 0 0 0 3px rgba(199, 155, 45, 0.16);
 }
 
+.judgement-source-card.ai-ready {
+  border-color: #ead7a0;
+  border-left-color: #d9b95f;
+  background: linear-gradient(180deg, #fffdf5 0%, var(--white) 70%);
+  box-shadow: 0 8px 18px rgba(145, 104, 13, 0.08), inset 0 0 0 2px rgba(217, 185, 95, 0.08);
+}
+
 .judgement-source-card.fallback {
   border-color: #bd8b35;
   border-left-color: #bd8b35;
@@ -1481,6 +1494,20 @@ a.metric:hover {
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0;
+}
+
+.judgement-source-card.ai-ready::after {
+  content: "AI-ready";
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  border: 1px solid #d9b95f;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: #fff9e8;
+  color: #84620d;
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .judgement-source-card.fallback::after {

@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.42",
+        "date": "2026-05-28 00:25 +08:00",
+        "patch_id": "ai-ready-pale-gold-contrast",
+        "changes": [
+            "AI-ready 與可交給 AI 判讀的區塊改用淡金框，與真正 AI 判斷的深金框分離。",
+            "帳號盤點、AI 供應商、Token 成本、Dashboard、報表、資料品質、NMON、拓撲與 CMDB 匯入統一使用 AI-ready badge。",
+            "保留 L3 深度檢查與安裝後驗證 AI 卡的深金框，表示實際 AI 判斷。",
+        ],
+    },
+    {
         "version": "1.0.3.41",
         "date": "2026-05-28 00:15 +08:00",
         "patch_id": "static-asset-cache-busting",

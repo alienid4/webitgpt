@@ -53,8 +53,8 @@
           <strong><span class="source-badge {{ 'insufficient' if report.budget_policy.over_budget else 'cmdb' }}">{{ "已超額" if report.budget_policy.over_budget else "預算內" }}</span>成本狀態</strong>
           <p>超額策略：{{ report.budget_policy.fallback_strategy }}。超額時不會假裝仍是高階 AI。</p>
         </article>
-        <article class="judgement-source-card ai">
-          <strong><span class="source-badge ai">AI KEY</span>階級決策</strong>
+        <article class="judgement-source-card ai-ready">
+          <strong><span class="source-badge ai-ready">AI KEY</span>階級決策</strong>
           <p>L3 金框代表高成本深度判讀；L1/L2 先消化簡單任務，保留預算。</p>
         </article>
       </div>
