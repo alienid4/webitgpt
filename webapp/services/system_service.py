@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.35",
+        "date": "2026-05-27 13:45 +08:00",
+        "patch_id": "cmdb-import-fast-feedback",
+        "changes": [
+            "CMDB 匯入結果不再把完整錯誤陣列直接渲染到頁面，避免 74 筆以上錯誤讓瀏覽器看起來卡住。",
+            "匯入結果新增耗時顯示，讓現場能判斷是仍在處理還是已完成。",
+            "單次 UI 匯入上限保護為 2000 筆，超過時回報人可讀原因並要求拆批。",
+        ],
+    },
+    {
         "version": "1.0.3.34",
         "date": "2026-05-27 11:45 +08:00",
         "patch_id": "cmdb-import-report-excel-drafts",

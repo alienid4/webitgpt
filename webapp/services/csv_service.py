@@ -4,6 +4,7 @@ import csv
 import html
 import io
 import json
+import time
 import zipfile
 import xml.etree.ElementTree as ET
 from typing import Any
@@ -13,6 +14,7 @@ from webapp.services.host_schema import ASSET_FIELDS, ValidationError
 
 
 XLSX_NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+MAX_UI_IMPORT_ROWS = 2000
 
 CSV_HEADERS = [
     *ASSET_FIELDS,
@@ -222,6 +224,29 @@ def _summarize_result(result: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def _too_many_rows_result(row_count: int) -> dict[str, Any]:
+    return _summarize_result(
+        {
+            "created": 0,
+            "updated": 0,
+            "failed": 1,
+            "draft": 0,
+            "total_rows": row_count,
+            "elapsed_seconds": 0,
+            "errors": [
+                {
+                    "line": "",
+                    "field": "file",
+                    "error": f"too many rows: {row_count}",
+                    "category": "匯入筆數過大",
+                    "human_message": f"單次匯入最多 {MAX_UI_IMPORT_ROWS} 筆，目前檔案有 {row_count} 筆。",
+                    "suggestion": "請先拆成多個 CSV/Excel 檔分批匯入，避免瀏覽器長時間等待。",
+                }
+            ],
+        }
+    )
+
+
 def _xlsx_col_index(cell_ref: str) -> int:
     letters = "".join(ch for ch in cell_ref if ch.isalpha()).upper()
     value = 0
@@ -343,6 +368,9 @@ def export_hosts_xlsx(hosts: list[dict[str, Any]]) -> bytes:
 
 
 def import_rows(rows: list[dict[str, str]], user: str) -> dict[str, Any]:
+    started = time.monotonic()
+    if len(rows) > MAX_UI_IMPORT_ROWS:
+        return _too_many_rows_result(len(rows))
     result = {"created": 0, "updated": 0, "failed": 0, "draft": 0, "total_rows": len(rows), "errors": []}
     for index, row in enumerate(rows, start=2):
         line = int(row.get("_row_no") or index)
@@ -369,6 +397,7 @@ def import_rows(rows: list[dict[str, str]], user: str) -> dict[str, Any]:
                     "suggestion": "請修正此列後重新匯入；若是重複資料，請確認 asset_seq/hostname 是否應更新既有資料。",
                 }
             )
+    result["elapsed_seconds"] = round(time.monotonic() - started, 2)
     return _summarize_result(result)
 
 

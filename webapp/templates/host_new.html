@@ -33,8 +33,9 @@
   {% if errors %}<div class="notice danger">{{ errors|join(' / ') }}</div>{% endif %}
   {% if import_result %}
   <div class="notice">
-    CSV 匯入結果：新增 {{ import_result.created }}，更新 {{ import_result.updated }}，失敗 {{ import_result.failed }}。
-    {% if import_result.errors %}<br>錯誤：{{ import_result.errors }}{% endif %}
+    CSV / Excel 匯入結果：讀到 {{ import_result.total_rows or 0 }} 筆，新增 {{ import_result.created }}，更新 {{ import_result.updated }}，草稿 {{ import_result.draft or 0 }}，失敗 {{ import_result.failed }}。
+    {% if import_result.elapsed_seconds is not none %}<br>耗時：{{ import_result.elapsed_seconds }} 秒。{% endif %}
+    {% if import_result.errors %}<br>錯誤明細只顯示前 10 筆，請依下方「人可讀原因」處理。{% endif %}
   </div>
   <section class="panel compact" id="cmdb-import-result">
     <div class="page-header">
@@ -76,6 +77,9 @@
         {% endfor %}
       </tbody>
     </table>
+    {% if import_result.errors|length > 10 %}
+    <div class="notice">其餘 {{ import_result.errors|length - 10 }} 筆錯誤已省略，避免畫面過長；請修正主要錯誤類型後重新匯入。</div>
+    {% endif %}
     {% endif %}
   </section>
   {% endif %}

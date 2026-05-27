@@ -144,6 +144,8 @@ def test_cmdb_import_report_excel_and_draft_bulk_contracts_exist():
 
     for text in ["CMDB 匯入結果摘要", "讀到筆數", "成功入庫", "人可讀原因", "匯入 CSV / Excel"]:
         assert text in host_new
+    assert "錯誤明細只顯示前 10 筆" in host_new
+    assert "{{ import_result.errors }}" not in host_new
     for text in ["批次轉正式", "批次補欄位", "bulkDraftPromoteForm", "bulkDraftUpdateForm", "匯出 Excel"]:
         assert text in hosts
     for text in ["host_bulk_promote_drafts_submit", "host_bulk_update_drafts_submit", "xlsx_export", "xlsx_import"]:
@@ -165,7 +167,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.34"' in config
+    assert 'VERSION = "1.0.3.35"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -256,8 +258,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.34"' in config
-    assert "cmdb-import-report-excel-drafts" in config
+    assert 'VERSION = "1.0.3.35"' in config
+    assert "cmdb-import-fast-feedback" in config
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -269,9 +271,9 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     assert ".verify-mode-card" in css
     assert ".verify-badge.api" in css
     assert ".verify-badge.script" in css
-    assert "1.0.3.34" in service
-    assert "cmdb-import-report-excel-drafts" in changelog
-    assert "cmdb-import-report-excel-drafts" in read("docs/release_notes/v1.0.3.34.md")
+    assert "1.0.3.35" in service
+    assert "cmdb-import-fast-feedback" in changelog
+    assert "cmdb-import-fast-feedback" in read("docs/release_notes/v1.0.3.35.md")
 
 
 def test_rhel96_offline_prereq_installer_guards_core_packages():

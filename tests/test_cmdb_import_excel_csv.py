@@ -30,3 +30,20 @@ def test_import_rows_summarizes_human_readable_failures(monkeypatch):
     assert result["summary"]["failed"] == 1
     assert result["summary"]["categories"][0]["category"] == "IP 格式錯誤"
     assert result["errors"][0]["human_message"]
+    assert result["elapsed_seconds"] >= 0
+
+
+def test_import_rows_rejects_too_many_rows_before_writes(monkeypatch):
+    called = {"value": False}
+
+    def fail_if_called(doc, user="system"):
+        called["value"] = True
+
+    monkeypatch.setattr(csv_service.host_service, "upsert_host", fail_if_called)
+    rows = [{"hostname": f"h{i}", "ip": f"10.1.1.{i % 250}"} for i in range(csv_service.MAX_UI_IMPORT_ROWS + 1)]
+
+    result = csv_service.import_rows(rows, user="tester")
+
+    assert result["failed"] == 1
+    assert result["summary"]["categories"][0]["category"] == "匯入筆數過大"
+    assert called["value"] is False
