@@ -4,6 +4,10 @@ This document is the copy source for field operators. Any command that Codex
 asks the operator to run on a server should be added here first, then copied
 from GitHub.
 
+For one-pass issue reporting and masking rules, use:
+
+- `docs/field_issue_intake_and_masking.md`
+
 ## Current Install Path
 
 Use this after applying the `v1.0.3.32_rhel96-installer-hotfix-patch` to the
