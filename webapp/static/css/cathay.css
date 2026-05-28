@@ -2582,6 +2582,33 @@ button.is-busy {
   font-weight: 800;
 }
 
+.topology-cmdb-quality {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0 8px;
+}
+
+.topology-cmdb-quality-item {
+  border: 1px solid #E1B95B;
+  border-radius: var(--radius-sm);
+  background: #FFF8E6;
+  padding: 8px 10px;
+}
+
+.topology-cmdb-quality-item strong {
+  display: block;
+  color: #8A5A00;
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.topology-cmdb-quality-item span {
+  color: var(--c3);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .topology-contact-list div {
   display: grid;
   gap: 3px;
@@ -4243,6 +4270,10 @@ textarea,
 
 .cmdb-selected-summary strong {
   color: var(--g-text);
+}
+
+.cmdb-selected-summary .btn {
+  margin-left: auto;
 }
 
 .cmdb-gap-list {

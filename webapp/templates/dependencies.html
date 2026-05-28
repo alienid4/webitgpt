@@ -37,6 +37,7 @@
     {% if topology.view == "core_impact" %}
     <a class="btn btn-fix" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=request.args.get('center', ''), depth=request.args.get('depth', '2'), failed_node=request.args.get('center', topology.meta.center or ''), focus_impact=1) }}">模擬維護</a>
     <a class="btn primary" href="{{ url_for('api_reports.dependencies_notifications_csv', view='core_impact', center=request.args.get('center', ''), depth=request.args.get('depth', '2')) }}">匯出通知名單 CSV</a>
+    <a class="btn" href="{{ url_for('api_hosts.cmdb_relationships_page', system=request.args.get('center', topology.meta.center or '')) }}">回 CMDB 總覽</a>
     {% else %}
     <form method="post" action="{{ url_for('api_dependencies.collect_trigger_page') }}" data-submit-status data-submit-message="正在執行 ss -tunp 採集，請稍候。">
       <input type="hidden" name="view" value="{{ topology.view }}">
@@ -349,6 +350,24 @@
         <span>unknown {{ topology.meta.impact_panel.trust_summary.unknown }}</span>
       </div>
       <p class="text-muted-sm">{{ topology.meta.impact_panel.trust_note }}</p>
+      {% if cmdb_overview %}
+      <h3>CMDB 資料品質</h3>
+      <div class="topology-cmdb-quality">
+        {% for key in ["system", "owner", "notification", "service_port"] %}
+        {% set item = cmdb_overview.coverage[key] %}
+        <div class="topology-cmdb-quality-item">
+          <strong>{{ item.pct }}%</strong>
+          <span>{{ item.label }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <p class="text-muted-sm">
+        目前選取：{{ cmdb_overview.selected_system.display_name }}，
+        缺 owner {{ cmdb_overview.selected_system.missing_owner }}、
+        缺 Port {{ cmdb_overview.selected_system.missing_ports }}。
+        <a href="{{ url_for('api_hosts.cmdb_relationships_page', system=request.args.get('center', topology.meta.center or '')) }}">看 CMDB 關聯總覽</a>
+      </p>
+      {% endif %}
       <div class="topology-contact-list">
         {% for contact in topology.meta.impact_panel.notification_contacts[:4] %}
         <div>

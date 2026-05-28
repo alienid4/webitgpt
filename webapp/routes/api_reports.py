@@ -11,6 +11,7 @@ from webapp.services.feature_flags import is_enabled
 from webapp.services.host_service import list_hosts
 from webapp.services.inventory_service import account_report_summary
 from webapp.services import dependency_service
+from webapp.services import cmdb_relationship_service
 from webapp.services.dependency_service import topology
 from webapp.services.quality_service import operations_data_quality
 from webapp.services.token_cost_service import token_cost_report
@@ -278,9 +279,11 @@ def dependencies_page():
     systems = dependency_service.list_systems()
     relations = dependency_service.list_relations()
     data = _topology_from_request()
+    cmdb_overview = cmdb_relationship_service.cmdb_relationship_overview(request.args.get("center", ""))
     return render_template(
         "dependencies.html",
         topology=data,
+        cmdb_overview=cmdb_overview,
         reconcile_report=dependency_service.filtered_reconcile_report(include_external=_include_external(), include_unmanaged=_include_unmanaged()),
         network_scan_report=dependency_service.latest_network_scan_report(),
         collect_runs=collect_runs,

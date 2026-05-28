@@ -4,6 +4,7 @@ from flask import Blueprint, jsonify, redirect, render_template, request, url_fo
 
 from webapp.decorators import current_user, require_feature, require_role
 from webapp.services import audit_log_service
+from webapp.services import cmdb_relationship_service
 from webapp.services import dependency_service
 
 
@@ -38,10 +39,12 @@ def dependencies_fullscreen_page():
         failed_node=request.args.get("failed_node", ""),
         focus_impact=_focus_impact(),
     )
+    cmdb_overview = cmdb_relationship_service.cmdb_relationship_overview(request.args.get("center", ""))
     return render_template(
         "dependencies.html",
         topology=data,
         fullscreen=True,
+        cmdb_overview=cmdb_overview,
         reconcile_report=dependency_service.filtered_reconcile_report(include_external=_include_external(), include_unmanaged=_include_unmanaged()),
         network_scan_report=dependency_service.latest_network_scan_report(),
         collect_runs=collect_runs,
