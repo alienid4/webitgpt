@@ -42,12 +42,14 @@ def test_asset_actions_are_consistent_and_superadmin_only_for_sensitive_buttons(
 
 def test_asset_add_host_entry_is_clear_from_asset_page():
     hosts = read("webapp/templates/hosts.html")
-    css = read("webapp/static/css/cathay.css")
 
-    for text in ["新增 / 匯入主機", "單筆新增主機", "Excel / CSV 大量匯入", "掃描網段建立草稿"]:
-        assert text in hosts
-    assert "asset-intake-panel" in hosts
-    assert "asset-intake-card" in css
+    assert "新增 / 匯入主機" in hosts
+    assert "host_new_page" in hosts
+    assert "asset-intake-panel" not in hosts
+    assert "要新增主機，先選你手上的資料型態" not in hosts
+    assert "單筆新增主機" not in hosts
+    assert "Excel / CSV 大量匯入" not in hosts
+    assert "掃描網段建立草稿" not in hosts
 
 
 def test_asset_secondary_actions_are_grouped_and_scan_rows_are_expandable():

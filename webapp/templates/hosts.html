@@ -97,31 +97,6 @@
     </form>
   </div>
 
-  <section class="asset-intake-panel panel" aria-label="新增或匯入主機">
-    <div class="asset-intake-head">
-      <div>
-        <p class="eyebrow">ADD HOST</p>
-        <h2>要新增主機，先選你手上的資料型態</h2>
-        <p class="text-muted-sm">不用先判斷要走哪支 API；單筆、清冊匯入、網段掃描都從這裡進入。</p>
-      </div>
-      <a class="btn secondary" href="{{ url_for('api_hosts.host_new_page') }}">開新增主機工作台</a>
-    </div>
-    <div class="asset-intake-options">
-      <a class="asset-intake-card primary-path" href="{{ url_for('api_hosts.host_new_full_page') }}">
-        <strong>單筆新增主機</strong>
-        <span>已知道主機名稱、IP、OS、負責人時使用。</span>
-      </a>
-      <a class="asset-intake-card" href="{{ url_for('api_hosts.host_new_page') }}#csv-import">
-        <strong>Excel / CSV 大量匯入</strong>
-        <span>手上有 CMDB 清冊、Excel 表格或批次名單時使用。</span>
-      </a>
-      <a class="asset-intake-card" href="{{ url_for('api_hosts.host_new_page') }}#network-scan">
-        <strong>掃描網段建立草稿</strong>
-        <span>只知道網段，想找出未納管主機時使用。</span>
-      </a>
-    </div>
-  </section>
-
   <section class="summary-grid asset-summary">
     <a class="metric" href="#asset-details"><strong>{{ data.get("total", 0) }}</strong><span>資產總數</span></a>
     <a class="metric" href="{{ url_for('api_hosts.hosts_page', status='draft') }}"><strong>{{ status_counts.get("draft", 0) }}</strong><span>草稿</span></a>
