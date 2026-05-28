@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>webitgpt 維運平台導入時程表</title>
+  <style>
+    :root {
+      --green: #006b4a;
+      --green-2: #14856b;
+      --green-3: #dff1eb;
+      --ink: #183047;
+      --muted: #5b6b7d;
+      --line: #6aa18f;
+      --pale: #f4fbf8;
+      --border: #c8d7d1;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #eef3f1;
+      font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif;
+      color: var(--ink);
+    }
+
+    .slide {
+      width: 1280px;
+      height: 720px;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
+      border: 1px solid #d6e0dc;
+      box-shadow: 0 18px 50px rgba(20, 48, 71, 0.16);
+      padding: 42px 58px 38px 72px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      left: 28px;
+      top: 42px;
+      width: 0;
+      height: 0;
+      border-top: 26px solid transparent;
+      border-bottom: 26px solid transparent;
+      border-left: 34px solid #37b48f;
+      opacity: 0.9;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      border-bottom: 3px solid #243b4f;
+      padding-bottom: 13px;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--green);
+      font-size: 36px;
+      line-height: 1.1;
+      letter-spacing: 0;
+      font-weight: 800;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 2px solid #394b59;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-weight: 800;
+      color: #1b2d3c;
+      background: #f9fbfa;
+      white-space: nowrap;
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
+    }
+
+    .status-dot {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #008f46;
+      box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.24);
+    }
+
+    .updated {
+      position: absolute;
+      right: 86px;
+      top: 122px;
+      color: #566575;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .timeline {
+      position: relative;
+      margin-top: 94px;
+      margin-left: 78px;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0;
+      border-bottom: 2px solid var(--line);
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 50px;
+      right: 24px;
+      top: 55px;
+      height: 5px;
+      background: var(--green);
+      border-radius: 99px;
+      z-index: 0;
+    }
+
+    .lane-title {
+      position: absolute;
+      left: 42px;
+      width: 34px;
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      font-weight: 800;
+      color: #284653;
+      background: linear-gradient(180deg, #cdebe0, #7ebca8);
+      border: 2px solid #5f8f80;
+      display: grid;
+      place-items: center;
+      border-radius: 2px;
+    }
+
+    .lane-time {
+      top: 218px;
+      height: 122px;
+    }
+
+    .lane-work {
+      top: 341px;
+      height: 238px;
+    }
+
+    .lane-output {
+      top: 580px;
+      height: 92px;
+    }
+
+    .stage {
+      min-height: 430px;
+      position: relative;
+      padding: 0 14px 14px;
+      border-left: 1px solid var(--border);
+    }
+
+    .stage:first-child {
+      border-left: 0;
+    }
+
+    .date {
+      text-align: center;
+      height: 44px;
+      font-size: 18px;
+      color: #26384b;
+      font-weight: 700;
+    }
+
+    .node-wrap {
+      height: 80px;
+      position: relative;
+      display: grid;
+      place-items: start center;
+      z-index: 1;
+    }
+
+    .node {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #f0f7f4;
+      border: 3px solid #365c50;
+      color: #2d4b43;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      margin-top: 37px;
+      box-shadow: 0 0 0 5px #ffffff;
+    }
+
+    .node.primary {
+      width: 38px;
+      height: 38px;
+      margin-top: 35px;
+      background: var(--green);
+      border-color: var(--green);
+      color: #ffffff;
+    }
+
+    .label {
+      text-align: center;
+      color: #2a433a;
+      font-weight: 800;
+      font-size: 15px;
+      min-height: 32px;
+      margin-bottom: 9px;
+    }
+
+    .work {
+      min-height: 168px;
+      border-top: 1px solid #d8e5df;
+      padding-top: 12px;
+    }
+
+    .work ul,
+    .output ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .work li {
+      font-size: 12px;
+      line-height: 1.48;
+      margin-bottom: 4px;
+      color: #283c4b;
+    }
+
+    .output {
+      border-top: 2px solid #94bbae;
+      padding-top: 10px;
+      min-height: 78px;
+      background: linear-gradient(180deg, #ffffff 0%, var(--pale) 100%);
+    }
+
+    .output li {
+      font-size: 12px;
+      line-height: 1.45;
+      margin-bottom: 2px;
+      color: #172f24;
+      font-weight: 700;
+    }
+
+    .footer {
+      position: absolute;
+      left: 72px;
+      right: 58px;
+      bottom: 20px;
+      height: 2px;
+      background: var(--green);
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .slide {
+        box-shadow: none;
+        border: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="slide" aria-label="webitgpt 維運平台導入時程表">
+    <section class="title-row">
+      <h1>webitgpt 維運平台導入時程表</h1>
+      <div class="status">
+        <span>全案狀態 執行中</span>
+        <span class="status-dot" aria-hidden="true"></span>
+      </div>
+    </section>
+
+    <div class="updated">更新日期：2026/5/28</div>
+
+    <div class="lane-title lane-time">時程</div>
+    <div class="lane-title lane-work">作業內容</div>
+    <div class="lane-title lane-output">產出功能</div>
+
+    <section class="timeline">
+      <article class="stage">
+        <div class="date">2026/4/15</div>
+        <div class="node-wrap"><div class="node primary">1</div></div>
+        <div class="label">啟動與資料基線</div>
+        <div class="work">
+          <ul>
+            <li>確認管理範圍與核心系統。</li>
+            <li>盤點 CMDB 欄位與主機 / IP。</li>
+            <li>建立匯入模板與版本規則。</li>
+          </ul>
+        </div>
+        <div class="output">
+          <ul>
+            <li>資產管理</li>
+            <li>CSV / Excel 匯入</li>
+            <li>草稿區與欄位檢核</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="stage">
+        <div class="date">2026/5/1</div>
+        <div class="node-wrap"><div class="node">2</div></div>
+        <div class="label">CMDB 匯入與盤點</div>
+        <div class="work">
+          <ul>
+            <li>整理正式資產與草稿資料。</li>
+            <li>建立錯誤列回報與匯出。</li>
+            <li>補齊 owner、PAM、備註欄位。</li>
+          </ul>
+        </div>
+        <div class="output">
+          <ul>
+            <li>錯誤摘要</li>
+            <li>Excel / CSV 匯出</li>
+            <li>資料品質檢查</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="stage">
+        <div class="date">2026/5/15</div>
+        <div class="node-wrap"><div class="node">3</div></div>
+        <div class="label">帳號與巡檢採證</div>
+        <div class="work">
+          <ul>
+            <li>OS 帳號盤點。</li>
+            <li>AP 帳號 CSV / Excel 匯入。</li>
+            <li>巡檢 L1 / L2 / L3 採證。</li>
+          </ul>
+        </div>
+        <div class="output">
+          <ul>
+            <li>帳號盤點</li>
+            <li>AP 帳號匯入</li>
+            <li>L3 深度檢查</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="stage">
+        <div class="date">2026/6/1</div>
+        <div class="node-wrap"><div class="node">4</div></div>
+        <div class="label">效能月報與 EOS</div>
+        <div class="work">
+          <ul>
+            <li>NMON raw 匯入與圖表化。</li>
+            <li>EOS 摘要整理。</li>
+            <li>產出效能月報與主管摘要。</li>
+          </ul>
+        </div>
+        <div class="output">
+          <ul>
+            <li>NMON 圖表</li>
+            <li>EOS 摘要</li>
+            <li>效能月報</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="stage">
+        <div class="date">2026/6/15</div>
+        <div class="node-wrap"><div class="node">5</div></div>
+        <div class="label">核心影響與 AI 判讀</div>
+        <div class="work">
+          <ul>
+            <li>三欄式核心系統影響圖。</li>
+            <li>通知對象與影響清單。</li>
+            <li>L1 / L2 / L3 判讀與成本控管。</li>
+          </ul>
+        </div>
+        <div class="output">
+          <ul>
+            <li>核心影響圖</li>
+            <li>通知名單</li>
+            <li>AI-ready / AI 判讀標示</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="stage">
+        <div class="date">2026/7/15</div>
+        <div class="node-wrap"><div class="node">6</div></div>
+        <div class="label">驗收與主線整合</div>
+        <div class="work">
+          <ul>
+            <li>main 主線整理。</li>
+            <li>離線安裝與 patch 文件化。</li>
+            <li>測試、部署、回滾與交接。</li>
+          </ul>
+        </div>
+        <div class="output">
+          <ul>
+            <li>GitHub 文件入口</li>
+            <li>離線安裝 SOP</li>
+            <li>patch / package 交付</li>
+          </ul>
+        </div>
+      </article>
+    </section>
+
+    <div class="footer"></div>
+  </main>
+</body>
+</html>
