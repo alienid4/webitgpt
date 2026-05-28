@@ -9,40 +9,45 @@
       <p class="text-muted-sm">以主機名稱作為唯一索引；資產編號保留為資產流水與對外識別。支援一台主機多 IP、多網段與完整資產明細。</p>
     </div>
     <div class="asset-actions">
-      {% if current_user.role in ["admin", "super", "superadmin"] %}
-      <form method="post" action="{{ url_for('api_hosts.hosts_refresh_identity_submit') }}" data-submit-status data-submit-message="正在重整本頁資產 Hostname / OS，請稍候。">
-        <input type="hidden" name="scope" value="page">
-        <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
-        <input type="hidden" name="status" value="{{ request.args.get('status','') }}">
-        <input type="hidden" name="group_name" value="{{ request.args.get('group_name','') }}">
-        <input type="hidden" name="environment" value="{{ request.args.get('environment','') }}">
-        <input type="hidden" name="host_type" value="{{ request.args.get('host_type','') }}">
-        <input type="hidden" name="dc" value="{{ request.args.get('dc','') }}">
-        <input type="hidden" name="page" value="{{ data.get('page', 1) }}">
-        <input type="hidden" name="page_size" value="{{ data.get('page_size', 25) }}">
-        <button class="btn secondary" type="submit">重整本頁資產</button>
-      </form>
-      <form method="post" action="{{ url_for('api_hosts.hosts_refresh_identity_submit') }}" data-submit-status data-submit-message="正在重整全部納管資產 Hostname / OS，請稍候。">
-        <input type="hidden" name="scope" value="all">
-        <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
-        <input type="hidden" name="status" value="{{ request.args.get('status','') }}">
-        <input type="hidden" name="group_name" value="{{ request.args.get('group_name','') }}">
-        <input type="hidden" name="environment" value="{{ request.args.get('environment','') }}">
-        <input type="hidden" name="host_type" value="{{ request.args.get('host_type','') }}">
-        <input type="hidden" name="dc" value="{{ request.args.get('dc','') }}">
-        <input type="hidden" name="page" value="{{ data.get('page', 1) }}">
-        <input type="hidden" name="page_size" value="{{ data.get('page_size', 25) }}">
-        <button class="btn secondary" type="submit">重整全部納管資產</button>
-      </form>
-      {% endif %}
-      <a class="btn secondary" href="{{ url_for('api_hosts.csv_export') }}">匯出 CSV</a>
-      <a class="btn secondary" href="{{ url_for('api_hosts.xlsx_export') }}">匯出 Excel</a>
-      <a class="btn secondary" href="{{ url_for('api_hosts.csv_template') }}">下載範本</a>
-      <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM</a>
-      <a class="btn secondary" href="{{ url_for('api_hosts.asset_quality_page') }}">異常清單</a>
-      <a class="btn secondary cmdb-relationship-entry" href="{{ url_for('api_hosts.cmdb_relationships_page') }}">CMDB 關聯總覽</a>
-      <a class="btn secondary" href="{{ url_for('api_hosts.extension_fields_page') }}">擴充欄位</a>
       <a class="btn primary asset-add-main" href="{{ url_for('api_hosts.host_new_page') }}">新增 / 匯入主機</a>
+      <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM</a>
+      <a class="btn secondary cmdb-relationship-entry" href="{{ url_for('api_hosts.cmdb_relationships_page') }}">CMDB 關聯總覽</a>
+      <details class="asset-action-menu">
+        <summary class="btn secondary">更多操作</summary>
+        <div class="asset-action-menu-panel">
+          {% if current_user.role in ["admin", "super", "superadmin"] %}
+          <form method="post" action="{{ url_for('api_hosts.hosts_refresh_identity_submit') }}" data-submit-status data-submit-message="正在重整本頁資產 Hostname / OS，請稍候。">
+            <input type="hidden" name="scope" value="page">
+            <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
+            <input type="hidden" name="status" value="{{ request.args.get('status','') }}">
+            <input type="hidden" name="group_name" value="{{ request.args.get('group_name','') }}">
+            <input type="hidden" name="environment" value="{{ request.args.get('environment','') }}">
+            <input type="hidden" name="host_type" value="{{ request.args.get('host_type','') }}">
+            <input type="hidden" name="dc" value="{{ request.args.get('dc','') }}">
+            <input type="hidden" name="page" value="{{ data.get('page', 1) }}">
+            <input type="hidden" name="page_size" value="{{ data.get('page_size', 25) }}">
+            <button type="submit">重整本頁資產</button>
+          </form>
+          <form method="post" action="{{ url_for('api_hosts.hosts_refresh_identity_submit') }}" data-submit-status data-submit-message="正在重整全部納管資產 Hostname / OS，請稍候。">
+            <input type="hidden" name="scope" value="all">
+            <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
+            <input type="hidden" name="status" value="{{ request.args.get('status','') }}">
+            <input type="hidden" name="group_name" value="{{ request.args.get('group_name','') }}">
+            <input type="hidden" name="environment" value="{{ request.args.get('environment','') }}">
+            <input type="hidden" name="host_type" value="{{ request.args.get('host_type','') }}">
+            <input type="hidden" name="dc" value="{{ request.args.get('dc','') }}">
+            <input type="hidden" name="page" value="{{ data.get('page', 1) }}">
+            <input type="hidden" name="page_size" value="{{ data.get('page_size', 25) }}">
+            <button type="submit">重整全部納管資產</button>
+          </form>
+          {% endif %}
+          <a href="{{ url_for('api_hosts.csv_export') }}">匯出 CSV</a>
+          <a href="{{ url_for('api_hosts.xlsx_export') }}">匯出 Excel</a>
+          <a href="{{ url_for('api_hosts.csv_template') }}">下載範本</a>
+          <a href="{{ url_for('api_hosts.asset_quality_page') }}">異常清單</a>
+          <a href="{{ url_for('api_hosts.extension_fields_page') }}">擴充欄位</a>
+        </div>
+      </details>
     </div>
     <form class="asset-filter-compact" method="get">
       <label class="asset-search-field">搜尋

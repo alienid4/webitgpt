@@ -97,8 +97,10 @@
   </section>
   {% endif %}
   {% if scan_created is not none %}
-  <div class="notice">
-    掃描建檔結果：建立 {{ scan_created|length }} 筆草稿，略過 {{ scan_skipped|length if scan_skipped else 0 }} 筆。
+  <div class="notice draft-next-step">
+    掃描建檔結果：建立 {{ scan_created|length }} 筆待補草稿，略過 {{ scan_skipped|length if scan_skipped else 0 }} 筆。
+    草稿還不是正式納管；請到草稿區補齊系統、owner、環境與用途後再轉正式。
+    <a class="btn-sm" href="{{ url_for('api_hosts.hosts_page', status='draft') }}">去草稿區補資料</a>
   </div>
   {% endif %}
 </section>
@@ -193,18 +195,14 @@
     <div class="notice">掃描命令：{{ scan_report.scan_command_hint or scan_report.mode }}。{{ scan_report.summary.note }}</div>
     {% endif %}
     <input type="hidden" name="cidr" value="{{ scan_report.cidr }}">
-    <table class="data-table" id="network-scan-table">
+    <table class="data-table scan-result-table" id="network-scan-table">
       <thead>
         <tr>
           <th>勾選</th>
           <th>狀態</th>
           <th>IP</th>
-          <th>Hostname</th>
-          <th>OS 判斷</th>
-          <th>類型判斷</th>
-          <th>開放服務</th>
-          <th>發現方式</th>
-          <th>建議動作</th>
+          <th>主機摘要</th>
+          <th>下一步</th>
         </tr>
       </thead>
       <tbody>
@@ -219,31 +217,37 @@
           </td>
           <td>{{ row.type_label }}</td>
           <td><span class="code-inline">{{ row.ip }}</span></td>
-          <td>{{ row.hostname or "-" }}</td>
-          <td>{{ row.os or "未知" }}</td>
-          <td>{{ host_type_labels.get(row.host_type, row.host_type or "-") }}</td>
           <td>
-            {% for port in row.open_ports or [] %}
-            <span class="code-inline">{{ port.service or port.protocol }}:{{ port.port }}</span>
-            {% else %}-{% endfor %}
+            <strong>{{ row.hostname or "尚未取得 hostname" }}</strong>
+            <span>{{ row.os or "未知 OS" }} / {{ host_type_labels.get(row.host_type, row.host_type or "未判斷") }}</span>
+            <details class="scan-row-detail">
+              <summary>展開技術明細</summary>
+              <div><b>開放服務</b>
+                {% for port in row.open_ports or [] %}
+                <span class="code-inline">{{ port.service or port.protocol }}:{{ port.port }}</span>
+                {% else %}<span>-</span>{% endfor %}
+              </div>
+              <div><b>發現方式</b><span>{{ (row.scan_sources or [])|join('、') or '-' }}</span></div>
+              <div><b>建議動作</b><span>{{ row.suggestion }}</span></div>
+            </details>
           </td>
-          <td>{{ (row.scan_sources or [])|join('、') or '-' }}</td>
           <td>{{ row.suggestion }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="9" class="no-data">尚無掃描結果。請確認 nmap 是否已安裝、221 是否能連到該網段，必要時改用 TCP 探測。</td></tr>
+        <tr><td colspan="5" class="no-data">尚無掃描結果。請確認 nmap 是否已安裝、主機是否能連到該網段，必要時改用 TCP 探測。</td></tr>
         {% endfor %}
       </tbody>
     </table>
     <div class="asset-edit-actions">
-      <button class="btn primary" type="submit">將勾選 IP 建立草稿</button>
-      <span class="text-muted-sm">建立後狀態為草稿，需再進入資產編輯頁補齊欄位才算正式納管。</span>
+      <button class="btn primary" type="submit">將勾選 IP 建立待補草稿</button>
+      <span class="text-muted-sm">建立後會進入草稿區；補齊欄位並轉正式後，才算完成主機新增。</span>
     </div>
   </form>
   {% endif %}
 
   {% if scan_created %}
-  <h3>已建立草稿</h3>
+  <h3>已建立待補草稿</h3>
+  <p class="text-muted-sm">下一步：進入草稿區補齊欄位，確認無誤後再批次轉正式。</p>
   <table class="data-table">
     <thead><tr><th>IP</th><th>Hostname</th><th>資產編號</th></tr></thead>
     <tbody>

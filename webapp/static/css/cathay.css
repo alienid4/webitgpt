@@ -730,6 +730,54 @@ a.metric:hover {
   flex-wrap: wrap;
 }
 
+.asset-action-menu {
+  position: relative;
+}
+
+.asset-action-menu summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.asset-action-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.asset-action-menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 12;
+  display: grid;
+  gap: 4px;
+  min-width: 210px;
+  padding: 8px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  box-shadow: var(--shadow);
+}
+
+.asset-action-menu-panel a,
+.asset-action-menu-panel button {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--c1);
+  padding: 8px 10px;
+  text-align: left;
+  text-decoration: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.asset-action-menu-panel a:hover,
+.asset-action-menu-panel button:hover {
+  background: var(--g-light);
+}
+
 .asset-add-main {
   box-shadow: 0 8px 18px rgba(18, 150, 126, .18);
 }
@@ -826,6 +874,53 @@ a.metric:hover {
 .asset-create-card span {
   color: var(--c2);
   font-size: 13px;
+}
+
+.draft-next-step {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.scan-result-table {
+  table-layout: fixed;
+}
+
+.scan-result-table th:nth-child(1) { width: 58px; }
+.scan-result-table th:nth-child(2) { width: 120px; }
+.scan-result-table th:nth-child(3) { width: 150px; }
+.scan-result-table th:nth-child(5) { width: 340px; }
+
+.scan-result-table td {
+  vertical-align: top;
+}
+
+.scan-result-table td:nth-child(4) strong,
+.scan-result-table td:nth-child(4) span {
+  display: block;
+}
+
+.scan-row-detail {
+  margin-top: 6px;
+}
+
+.scan-row-detail summary {
+  color: var(--g-text);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.scan-row-detail div {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.scan-row-detail b {
+  color: var(--c3);
 }
 .asset-filter-compact {
   grid-column: 1 / -1;

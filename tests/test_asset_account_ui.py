@@ -50,6 +50,22 @@ def test_asset_add_host_entry_is_clear_from_asset_page():
     assert "asset-intake-card" in css
 
 
+def test_asset_secondary_actions_are_grouped_and_scan_rows_are_expandable():
+    hosts = read("webapp/templates/hosts.html")
+    host_new = read("webapp/templates/host_new.html")
+    css = read("webapp/static/css/cathay.css")
+
+    assert "asset-action-menu" in hosts
+    assert "更多操作" in hosts
+    assert "scan-row-detail" in host_new
+    assert "展開技術明細" in host_new
+    assert "將勾選 IP 建立待補草稿" in host_new
+    assert "去草稿區補資料" in host_new
+    assert "草稿還不是正式納管" in host_new
+    assert "asset-action-menu-panel" in css
+    assert "scan-result-table" in css
+
+
 def test_account_metrics_link_to_detail_views():
     html = read("webapp/templates/accounts_inventory.html")
     js = read("webapp/static/js/account_inventory.js")
