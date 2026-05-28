@@ -246,13 +246,34 @@
   {% endif %}
 
   {% if scan_created %}
-  <h3>已建立待補草稿</h3>
-  <p class="text-muted-sm">下一步：進入草稿區補齊欄位，確認無誤後再批次轉正式。</p>
-  <table class="data-table">
-    <thead><tr><th>IP</th><th>Hostname</th><th>資產編號</th></tr></thead>
+  <div class="draft-next-panel">
+    <div>
+      <h3>已建立待補草稿</h3>
+      <p class="text-muted-sm">下一步不是結束，而是把草稿補成可正式納管的主機資料。</p>
+    </div>
+    <div class="draft-next-actions">
+      <a class="btn primary" href="{{ url_for('api_hosts.hosts_page', status='draft') }}">去草稿區批次補欄位</a>
+      {% if scan_created|length == 1 %}
+      {% set first_draft = scan_created[0] %}
+      <a class="btn secondary" href="{{ url_for('api_hosts.host_edit_page', asset_seq=first_draft.hostname or first_draft.asset_seq) }}">立即補這台資料</a>
+      {% endif %}
+    </div>
+  </div>
+  <ol class="draft-next-steps">
+    <li>補齊系統名稱、owner、環境、用途與必要 CMDB 欄位。</li>
+    <li>確認 IP / Hostname / OS 判斷沒有誤建或重複。</li>
+    <li>回草稿區勾選，批次轉正式，才算完成主機新增。</li>
+  </ol>
+  <table class="data-table draft-created-table">
+    <thead><tr><th>IP</th><th>Hostname</th><th>資產編號</th><th>下一步</th></tr></thead>
     <tbody>
       {% for row in scan_created %}
-      <tr><td>{{ row.ip }}</td><td>{{ row.hostname }}</td><td>{{ row.asset_seq }}</td></tr>
+      <tr>
+        <td>{{ row.ip }}</td>
+        <td>{{ row.hostname }}</td>
+        <td>{{ row.asset_seq }}</td>
+        <td><a class="btn-sm" href="{{ url_for('api_hosts.host_edit_page', asset_seq=row.hostname or row.asset_seq) }}">補資料</a></td>
+      </tr>
       {% endfor %}
     </tbody>
   </table>
