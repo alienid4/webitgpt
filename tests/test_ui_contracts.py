@@ -173,6 +173,7 @@ def test_superadmin_full_system_surfaces_exist():
         "audit_logs_api",
         "remote_tools_page",
         "dev_console_page",
+        "credentials_page",
     ]:
         assert name in routes
     for name in [
@@ -187,6 +188,11 @@ def test_superadmin_full_system_surfaces_exist():
         assert f"def {name}(" in service
     assert "Hash chain：" in superadmin
     assert "effective_enabled" in superadmin
+    assert "admin-sidebar-grouped" in superadmin
+    assert "credentials_page" in superadmin
+    assert "API Token" in superadmin
+    assert "important_services_page" in superadmin
+    assert "backup_dr_page" in superadmin
     assert "重設密碼" in users
     assert "備援碼" in users
     assert "健康檢查" in health
@@ -258,6 +264,24 @@ def test_inventory_history_diff_and_topology_contracts_exist():
     assert "系統關聯圓圖" in dependencies_page
     assert "手動關聯管理" in dependencies_page
     assert "relation_save_page" in read("webapp/routes/api_dependencies.py")
+
+
+def test_collection_credentials_page_contract_exists():
+    routes = read("webapp/routes/api_superadmin.py")
+    template = read("webapp/templates/credentials.html")
+    search_registry = read("webapp/routes/api_hosts.py")
+    css = read("webapp/static/css/cathay.css")
+
+    assert '"/superadmin/credentials"' in routes
+    assert "COLLECTION CREDENTIALS" in template
+    assert "L1" in template
+    assert "tier-{{ item.tier|lower }}" in template
+    assert "L2" in template
+    assert "credential-tier-card" in template
+    assert "L3" in template
+    assert "source-badge" in template
+    assert "credentials_page" in search_registry
+    assert ".credential-tier-grid" in css
 
 
 def test_ai_token_cost_visibility_contract_exists():
@@ -641,4 +665,3 @@ def test_housekeeping_retention_mechanism_exists():
     assert "run_housekeeping.py\" --mode post-install" in install
     assert "sys.path.insert" in runner
     assert "--mode" in runner
-

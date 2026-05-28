@@ -37,6 +37,7 @@ GLOBAL_SEARCH_TARGETS = [
     {"endpoint": "api_platforms.vmware_page", "keywords": ["VMware", "vCenter", "虛擬化"], "role": "viewer"},
     {"endpoint": "api_superadmin.superadmin_page", "keywords": ["SA.A", "SA-A", "系統A", "系統管理", "後台", "后台", "superadmin", "超級管理員", "功能開關", "模組管理"], "role": "superadmin"},
     {"endpoint": "api_superadmin.users_page", "keywords": ["SA.B", "SA-B", "系統B", "使用者", "權限", "使用者與權限", "帳號權限", "角色"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.credentials_page", "keywords": ["採集帳號", "憑證", "L1", "L2", "L3", "SSH key", "WinRM", "PAM", "探測帳號", "盤點帳號", "深度檢查帳號"], "role": "superadmin"},
     {"endpoint": "api_superadmin.tokens_page", "keywords": ["SA.C", "SA-C", "系統C", "API Token", "token", "MCP token", "對外 API"], "role": "superadmin"},
     {"endpoint": "api_superadmin.ai_page", "keywords": ["SA.D", "SA-D", "系統D", "AI 供應商", "AI設定", "LLM", "Ollama", "OpenAI"], "role": "superadmin"},
     {"endpoint": "api_superadmin.system_health_page", "keywords": ["SA.E", "SA-E", "系統E", "健康檢查", "health", "ready", "metrics", "系統健康"], "role": "superadmin"},

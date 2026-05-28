@@ -364,7 +364,49 @@ a.metric:hover {
   color: var(--g-text);
   font-weight: 800;
 }
+.admin-sidebar-grouped {
+  display: grid;
+  gap: 10px;
+}
+.admin-nav-section {
+  display: grid;
+  gap: 3px;
+}
+.admin-nav-heading {
+  margin: 8px 0 2px;
+  padding: 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
 .admin-content { min-width: 0; display: grid; gap: 16px; }
+.credential-tier-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.credential-tier-card {
+  border: 1px solid var(--c4);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: var(--white);
+}
+.credential-tier-card h3 {
+  margin: 10px 0 8px;
+}
+.credential-tier-card dl {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+.credential-tier-card dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.credential-tier-card dd {
+  margin: 0;
+}
 .admin-hero,
 .admin-section {
   background: var(--white);
@@ -3525,6 +3567,7 @@ button.is-busy {
   .asset-edit-grid { grid-template-columns: 1fr; }
   .asset-edit-grid .span-2 { grid-column: auto; }
   .asset-inline-tool { grid-template-columns: 1fr; }
+  .credential-tier-grid { grid-template-columns: 1fr; }
   .admin-sidebar { position: static; }
   .admin-hero, .admin-section-head { align-items: flex-start; flex-direction: column; }
   .topology-workspace-with-panel { grid-template-columns: 1fr; }

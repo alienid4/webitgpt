@@ -187,6 +187,35 @@ def ai_page():
     return render_template("ai_settings.html", settings=get_settings(masked=True))
 
 
+@bp.get("/superadmin/credentials")
+@require_role("superadmin")
+def credentials_page():
+    tiers = [
+        {
+            "tier": "L1",
+            "name": "探測帳號",
+            "purpose": "確認連通、主機名稱、OS 線索與常見服務，不讀敏感資料。",
+            "permission": "低權限，不允許 sudo 或寫入。",
+            "examples": "ping、port、hostname、banner、基本 health check",
+        },
+        {
+            "tier": "L2",
+            "name": "盤點帳號",
+            "purpose": "讀取資產盤點需要的 OS、套件、服務、帳號與效能資訊。",
+            "permission": "read-only sudo 或受限指令白名單。",
+            "examples": "os-release、systemctl、套件清單、帳號清單、NMON/效能資料",
+        },
+        {
+            "tier": "L3",
+            "name": "深度檢查帳號",
+            "purpose": "事件排查時讀取 log、程序、網路與核心狀態，用於深度診斷。",
+            "permission": "高權限，需 PAM、審核、時間限制與稽核紀錄。",
+            "examples": "journal、kernel、process、socket、AP 服務狀態",
+        },
+    ]
+    return render_template("credentials.html", tiers=tiers)
+
+
 @bp.post("/superadmin/ai")
 @require_role("superadmin")
 def ai_update_page():
