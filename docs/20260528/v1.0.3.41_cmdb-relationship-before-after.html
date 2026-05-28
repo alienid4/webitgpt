@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CMDB + 關聯圖 Before / After</title>
+  <style>
+    :root {
+      --ink: #102033;
+      --muted: #64748b;
+      --green: #007a5a;
+      --green-2: #20a27d;
+      --green-soft: #e8f7f1;
+      --line: #d7e1de;
+      --paper: #fbfcfd;
+      --old: #f4f6f8;
+      --gold: #c88712;
+      --gold-soft: #fff7df;
+      --orange: #e87912;
+      --orange-soft: #fff3e6;
+      --red: #dc2626;
+      --red-soft: #fff1f1;
+      --blue: #2563eb;
+      --blue-soft: #eff6ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #eef3f1;
+      color: var(--ink);
+      font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif;
+    }
+
+    .page {
+      width: 1440px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .hero {
+      background:
+        radial-gradient(circle at 92% 0%, rgba(32, 162, 125, 0.14), transparent 30%),
+        #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 28px 32px;
+      box-shadow: 0 16px 42px rgba(16, 32, 51, 0.08);
+    }
+
+    .eyebrow {
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+    }
+
+    h1 {
+      margin: 8px 0 10px;
+      font-size: 40px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      margin: 0;
+      width: 1060px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.62;
+    }
+
+    .hero-points {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .point {
+      border: 1px solid #b8ddd0;
+      border-radius: 10px;
+      background: var(--green-soft);
+      padding: 13px;
+      color: #0b4737;
+      font-weight: 900;
+      min-height: 64px;
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 180px 1fr;
+      gap: 18px;
+      margin-top: 24px;
+      align-items: stretch;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 14px 34px rgba(16, 32, 51, 0.08);
+      overflow: hidden;
+    }
+
+    .before {
+      background: var(--old);
+    }
+
+    .after {
+      border-color: #9ed6c2;
+      background: #fbfffd;
+    }
+
+    .panel-head {
+      padding: 20px 22px;
+      border-bottom: 1px solid var(--line);
+      background: #ffffff;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.25;
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 8px 11px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+      border: 1px solid var(--line);
+      background: #ffffff;
+      color: #475569;
+    }
+
+    .badge.green {
+      background: var(--green-soft);
+      color: var(--green);
+      border-color: #a8d8c7;
+    }
+
+    .badge.warn {
+      background: var(--orange-soft);
+      color: #9a3412;
+      border-color: #fdba74;
+    }
+
+    .panel-body {
+      padding: 20px 22px;
+    }
+
+    .arrow {
+      display: grid;
+      place-items: center;
+      min-height: 760px;
+    }
+
+    .arrow-box {
+      border: 2px solid var(--green);
+      background: var(--green-soft);
+      color: #073f32;
+      border-radius: 14px;
+      padding: 16px;
+      font-weight: 900;
+      line-height: 1.5;
+      text-align: center;
+      box-shadow: 0 10px 26px rgba(16, 32, 51, 0.08);
+    }
+
+    .arrow-box span {
+      display: block;
+      margin: 14px 0;
+      font-size: 38px;
+      color: var(--green);
+    }
+
+    .screen {
+      border: 1px solid #cbd8d4;
+      border-radius: 12px;
+      background: var(--paper);
+      overflow: hidden;
+      min-height: 660px;
+    }
+
+    .topbar {
+      height: 50px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 14px;
+      background: #ffffff;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+      font-weight: 900;
+      color: #0c362d;
+    }
+
+    .topbar .tabs {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    .tab {
+      padding: 7px 9px;
+      border-radius: 7px;
+      color: #65758a;
+      background: #f3f6f6;
+      font-size: 12px;
+    }
+
+    .tab.active {
+      color: var(--green);
+      background: var(--green-soft);
+    }
+
+    .screen-body {
+      padding: 16px;
+    }
+
+    .old-toolbar {
+      display: grid;
+      grid-template-columns: 1fr 120px 120px;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .input {
+      border: 1px solid #cbd8d4;
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .table th,
+    .table td {
+      border-bottom: 1px solid var(--line);
+      padding: 9px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .table th {
+      background: #edf4f2;
+      color: #0b4737;
+      font-size: 11px;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .old-warning {
+      margin-top: 14px;
+      border: 1px dashed #b9c1ca;
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      font-weight: 700;
+    }
+
+    .quality-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .quality-card {
+      border: 1px solid #b8ddd0;
+      border-radius: 10px;
+      background: #ffffff;
+      padding: 12px;
+      min-height: 82px;
+    }
+
+    .quality-card b {
+      display: block;
+      font-size: 26px;
+      line-height: 1;
+      color: var(--green);
+      margin-bottom: 7px;
+    }
+
+    .quality-card.warn b {
+      color: var(--orange);
+    }
+
+    .quality-card span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 800;
+    }
+
+    .relationship {
+      display: grid;
+      grid-template-columns: 1fr 210px;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .map {
+      height: 320px;
+      border: 1px solid #b8ddd0;
+      border-radius: 10px;
+      background: #ffffff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .lane {
+      position: absolute;
+      top: 20px;
+      bottom: 20px;
+      width: 110px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfdfc;
+      text-align: center;
+      padding-top: 10px;
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .lane.sys { left: 18px; }
+    .lane.app { left: 152px; }
+    .lane.host { left: 286px; }
+    .lane.owner { left: 420px; }
+
+    .node {
+      width: 82px;
+      min-height: 36px;
+      margin: 16px auto 0;
+      display: grid;
+      place-items: center;
+      border: 2px solid #acdccc;
+      border-radius: 7px;
+      background: #ffffff;
+      color: #173a31;
+      font-size: 10.5px;
+      line-height: 1.2;
+      padding: 4px;
+    }
+
+    .node.core {
+      border-color: var(--red);
+      background: var(--red-soft);
+    }
+
+    .node.app-node {
+      border-color: #fdba74;
+      background: var(--orange-soft);
+    }
+
+    .line {
+      position: absolute;
+      height: 2px;
+      background: var(--green);
+      transform-origin: left center;
+    }
+
+    .line.a { left: 98px; top: 154px; width: 82px; transform: rotate(-19deg); }
+    .line.b { left: 232px; top: 122px; width: 82px; transform: rotate(17deg); }
+    .line.c { left: 232px; top: 184px; width: 82px; transform: rotate(-14deg); }
+    .line.d { left: 366px; top: 122px; width: 82px; transform: rotate(16deg); }
+    .line.e { left: 366px; top: 184px; width: 82px; transform: rotate(-18deg); }
+
+    .side {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #ffffff;
+      padding: 12px;
+    }
+
+    .side h3 {
+      margin: 0 0 10px;
+      font-size: 17px;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 6px;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .kv span:first-child {
+      color: var(--muted);
+    }
+
+    .kv b {
+      color: var(--ink);
+    }
+
+    .status {
+      display: inline-flex;
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .status.ok {
+      background: #dff7ea;
+      color: #065f46;
+    }
+
+    .status.warn {
+      background: #ffedd5;
+      color: #9a3412;
+    }
+
+    .status.bad {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .fix-list {
+      margin-top: 14px;
+      border: 1px solid #e2c06d;
+      background: var(--gold-soft);
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .fix-list h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+    }
+
+    .fix-list ul {
+      margin: 0;
+      padding-left: 18px;
+      color: #60410d;
+      font-size: 13px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .bottom {
+      margin-top: 24px;
+      border: 1px solid var(--line);
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 14px 34px rgba(16, 32, 51, 0.07);
+    }
+
+    .bottom h2 {
+      margin: 0 0 14px;
+      font-size: 26px;
+    }
+
+    .upgrade-list {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .upgrade {
+      border: 1px solid #b8ddd0;
+      background: var(--green-soft);
+      border-radius: 12px;
+      padding: 14px;
+      min-height: 118px;
+    }
+
+    .upgrade b {
+      display: block;
+      color: var(--green);
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .upgrade span {
+      color: #2f4051;
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    @media (max-width: 1460px) {
+      .page { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="eyebrow">CMDB + RELATIONSHIP MAP</div>
+      <h1>老闆最想看的升級：CMDB 從資產表變成關聯影響圖</h1>
+      <p>
+        這份 before / after 只聚焦 CMDB 與關聯圖。升級重點不是多做一張表，
+        而是讓主管能立刻知道資料準不準、缺什麼、哪個系統關聯哪些主機、誰負責、出事要通知誰。
+      </p>
+      <div class="hero-points">
+        <div class="point">資料品質：正式 / 草稿 / 缺 owner / 錯誤</div>
+        <div class="point">關聯覆蓋：系統 / 主機 / 服務 / 通知</div>
+        <div class="point">影響判斷：選系統就看受影響範圍</div>
+        <div class="point">治理閉環：匯入、修正、正式化、回饋</div>
+      </div>
+    </section>
+
+    <section class="compare">
+      <article class="panel before">
+        <div class="panel-head">
+          <h2>Before：CMDB 比較像資產清單</h2>
+          <span class="badge">現況痛點</span>
+        </div>
+        <div class="panel-body">
+          <div class="screen">
+            <div class="topbar">
+              資產管理系統
+              <div class="tabs">
+                <span class="tab active">資產表</span>
+                <span class="tab">草稿</span>
+                <span class="tab">匯入</span>
+              </div>
+            </div>
+            <div class="screen-body">
+              <div class="old-toolbar">
+                <div class="input">搜尋資產編號 / 主機名稱 / IP</div>
+                <div class="input">狀態</div>
+                <div class="input">匯出 CSV</div>
+              </div>
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>資產名稱</th>
+                    <th>Hostname</th>
+                    <th>IP</th>
+                    <th>使用單位</th>
+                    <th>保管者</th>
+                    <th>狀態</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>巡檢系統主機</td>
+                    <td>secapp198-14</td>
+                    <td>10.92.198.14</td>
+                    <td>資訊架構部</td>
+                    <td>李○○</td>
+                    <td><span class="status ok">正式</span></td>
+                  </tr>
+                  <tr>
+                    <td>補登主機</td>
+                    <td>scan-10-92-198-13</td>
+                    <td>10.92.198.13</td>
+                    <td class="muted">待補</td>
+                    <td class="muted">待補</td>
+                    <td><span class="status warn">草稿</span></td>
+                  </tr>
+                  <tr>
+                    <td>DB 主機</td>
+                    <td>secdb198-11</td>
+                    <td>10.92.198.11</td>
+                    <td>資訊架構部</td>
+                    <td class="muted">待補</td>
+                    <td><span class="status ok">正式</span></td>
+                  </tr>
+                  <tr>
+                    <td>未知主機</td>
+                    <td class="muted">空白</td>
+                    <td>10.92.198.16</td>
+                    <td class="muted">待補</td>
+                    <td class="muted">待補</td>
+                    <td><span class="status bad">錯誤</span></td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="old-warning">
+                主管看得到資產資料，但還要追問：這些資料能不能信？缺哪些欄位？
+                這台主機屬於哪個系統？誰負責？出事要通知誰？目前畫面無法一次回答。
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <div class="arrow">
+        <div class="arrow-box">
+          改什麼
+          <span>→</span>
+          把 CMDB 從「清單」升級為「可判斷影響的關聯資料庫」
+        </div>
+      </div>
+
+      <article class="panel after">
+        <div class="panel-head">
+          <h2>After：CMDB 關聯影響總覽</h2>
+          <span class="badge green">主管版畫面</span>
+        </div>
+        <div class="panel-body">
+          <div class="screen">
+            <div class="topbar">
+              CMDB 關聯總覽
+              <div class="tabs">
+                <span class="tab active">資料品質</span>
+                <span class="tab">關聯圖</span>
+                <span class="tab">待補清單</span>
+                <span class="tab">匯入批次</span>
+              </div>
+            </div>
+            <div class="screen-body">
+              <div class="quality-grid">
+                <div class="quality-card">
+                  <b>167</b>
+                  <span>正式資產，可進入影響判斷。</span>
+                </div>
+                <div class="quality-card warn">
+                  <b>4</b>
+                  <span>草稿資產，先不混入正式判斷。</span>
+                </div>
+                <div class="quality-card warn">
+                  <b>2</b>
+                  <span>缺 owner / 保管者，需補資料。</span>
+                </div>
+                <div class="quality-card">
+                  <b>82%</b>
+                  <span>已有核心系統關聯。</span>
+                </div>
+                <div class="quality-card">
+                  <b>74%</b>
+                  <span>已有通知對象。</span>
+                </div>
+                <div class="quality-card warn">
+                  <b>58%</b>
+                  <span>服務 / Port 關聯仍需補強。</span>
+                </div>
+              </div>
+
+              <div class="relationship">
+                <div class="map">
+                  <div class="lane sys">核心系統<div class="node core">巡檢系統</div></div>
+                  <div class="lane app">應用 / 服務<div class="node app-node">webitgpt app</div><div class="node app-node">MongoDB</div></div>
+                  <div class="lane host">主機 / IP<div class="node">10.92.198.14</div><div class="node">10.92.198.11</div></div>
+                  <div class="lane owner">負責 / 通知<div class="node">資訊架構部</div><div class="node">值班群組</div></div>
+                  <div class="line a"></div>
+                  <div class="line b"></div>
+                  <div class="line c"></div>
+                  <div class="line d"></div>
+                  <div class="line e"></div>
+                </div>
+
+                <aside class="side">
+                  <h3>選取：巡檢系統</h3>
+                  <div class="kv"><span>正式資產</span><b>3 台</b></div>
+                  <div class="kv"><span>關聯服務</span><b>2 套</b></div>
+                  <div class="kv"><span>Port</span><b>8002 / 27017</b></div>
+                  <div class="kv"><span>負責單位</span><b>資訊架構部</b></div>
+                  <div class="kv"><span>通知對象</span><b>值班群組</b></div>
+                  <div class="kv"><span>資料狀態</span><b><span class="status warn">待補 Port</span></b></div>
+                </aside>
+              </div>
+
+              <div class="fix-list">
+                <h3>待補清單</h3>
+                <ul>
+                  <li>補齊 2 筆 owner / 保管者。</li>
+                  <li>確認 4 筆草稿資產是否轉正式。</li>
+                  <li>補齊服務 / Port 關聯，讓影響圖可用於事件判斷。</li>
+                  <li>匯出錯誤摘要，回饋原資料維護窗口修正。</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="bottom">
+      <h2>這個升級實際要做的功能</h2>
+      <div class="upgrade-list">
+        <div class="upgrade">
+          <b>CMDB 資料品質儀表板</b>
+          <span>正式、草稿、錯誤、缺 owner、缺通知、缺 Port 一頁看清楚。</span>
+        </div>
+        <div class="upgrade">
+          <b>關聯覆蓋率</b>
+          <span>統計資產是否已關聯系統、主機、服務、owner、PAM 與通知對象。</span>
+        </div>
+        <div class="upgrade">
+          <b>核心系統關聯圖</b>
+          <span>選一個核心系統，直接看到服務、主機、IP、負責人與通知群組。</span>
+        </div>
+        <div class="upgrade">
+          <b>待補與回饋流程</b>
+          <span>把缺欄位、匯入錯誤、草稿資料整理成可匯出的修正清單。</span>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
