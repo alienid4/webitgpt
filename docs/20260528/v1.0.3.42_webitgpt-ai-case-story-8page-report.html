@@ -596,40 +596,40 @@
     </section>
 
     <section class="slide">
-      <div class="kicker">Maintenance Warning</div>
-      <h2>醜話先說：平台會放大治理能力，也會放大資料問題。</h2>
+      <div class="kicker">Operating Model</div>
+      <h2>導入治理建議：把平台當成共同維運流程來經營。</h2>
       <p class="lead">
-        webitgpt 不是裝了就會自己變聰明。若資料品質、Script、權限、成本與版本流程沒有一起維護，
-        平台只會把混亂整理得比較漂亮，不一定比較正確。
+        webitgpt 的價值來自跨單位資料與維運流程的整合。導入時建議先把資料來源、
+        採證方式、權限、成本與版本流程定義清楚，讓平台成為共同協作的工作台。
       </p>
       <table>
         <thead>
           <tr>
-            <th>要擔心什麼</th>
-            <th>為什麼重要</th>
+            <th>治理面向</th>
+            <th>目的</th>
             <th>建議做法</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>CMDB 資料品質</td>
-            <td>資產、拓撲、帳號與 AI 判讀都依賴欄位準確度。</td>
-            <td>指定資料 owner，定義必填/選填/允許空值與錯誤列處理。</td>
+            <td>讓資產、拓撲、帳號與 AI 判讀能建立在一致欄位上。</td>
+            <td>建立資料負責窗口，定義必填/選填/允許空值與錯誤列處理。</td>
           </tr>
           <tr>
             <td>Script 採證維護</td>
-            <td>AI 不負責取代採證；採證錯，判讀就會錯。</td>
-            <td>nmap、NMON、SSH、WinRM、帳號查詢要有測試與版本紀錄。</td>
+            <td>保留可追溯的事實來源，讓 AI 判讀有可靠依據。</td>
+            <td>nmap、NMON、SSH、WinRM、帳號查詢納入測試與版本紀錄。</td>
           </tr>
           <tr>
-            <td>AI 不能當唯一依據</td>
-            <td>停機、停帳、修補、異動都屬高風險操作。</td>
-            <td>保留人工覆核、來源證據、操作紀錄與回滾流程。</td>
+            <td>AI 判讀治理</td>
+            <td>讓 AI 協助摘要與分級，同時保留高風險操作的控管。</td>
+            <td>停機、停帳、修補與異動保留人工覆核、來源證據與回滾流程。</td>
           </tr>
           <tr>
             <td>API Key 與成本</td>
-            <td>沒有分級與預算，成本與可用性都可能失控。</td>
-            <td>L1/L2/L3 分級，超額降級或停用，保留 debug log。</td>
+            <td>讓 AI 使用可預期、可追蹤，也能控制成本。</td>
+            <td>L1/L2/L3 分級，超額時自動降級或停用，保留 debug log。</td>
           </tr>
         </tbody>
       </table>
@@ -638,40 +638,40 @@
     </section>
 
     <section class="slide">
-      <div class="kicker">Promotion Requirements</div>
-      <h2>如果要推廣，先要求制度，不要只要求功能。</h2>
+      <div class="kicker">Promotion Readiness</div>
+      <h2>推廣建議：先建立共同成功條件，再擴大使用範圍。</h2>
       <p class="lead">
-        推廣 webitgpt 的前提，是各單位願意把資料、流程、權限與責任一起整理好。
-        AI 是放大器，不是補洞工具。
+        推廣時建議把平台定位成共同維運治理工具，由各單位一起定義資料、流程、
+        權限與驗收方式，讓既有經驗可以被系統化累積。
       </p>
       <div class="grid-3">
         <article class="card green">
-          <h3>要求資料 owner</h3>
-          <p>每個系統、主機、AP 帳號、備份與個資欄位都要有人負責。</p>
+          <h3>建立資料窗口</h3>
+          <p>每個系統、主機、AP 帳號、備份與個資欄位建議有對應維護窗口。</p>
         </article>
         <article class="card green">
-          <h3>要求標準欄位</h3>
-          <p>先定義 CMDB 與帳號盤點必要欄位、選填欄位與空值規則。</p>
+          <h3>對齊標準欄位</h3>
+          <p>共同定義 CMDB 與帳號盤點必要欄位、選填欄位與空值規則。</p>
         </article>
         <article class="card green">
-          <h3>要求使用流程</h3>
-          <p>誰匯入、誰審核草稿、誰確認異常、誰關閉追蹤項目，要有流程。</p>
+          <h3>對齊使用流程</h3>
+          <p>匯入、草稿審核、異常確認與追蹤關閉，建議有共同操作流程。</p>
         </article>
         <article class="card">
-          <h3>要求最小權限</h3>
+          <h3>落實最小權限</h3>
           <p>讀取、匯出、巡檢、管理、API Key 設定必須分角色。</p>
         </article>
         <article class="card">
-          <h3>要求 AI 使用規則</h3>
-          <p>哪些可 AI 判讀、哪些只是 AI-ready、哪些一定要人工覆核。</p>
+          <h3>定義 AI 使用規則</h3>
+          <p>明確區分 AI 判讀、AI-ready 與需要人工覆核的情境。</p>
         </article>
         <article class="card">
-          <h3>要求驗收指標</h3>
+          <h3>建立驗收指標</h3>
           <p>匯入成功率、巡檢覆蓋率、NMON 覆蓋率、拓撲正確率、異常追蹤率。</p>
         </article>
       </div>
-      <div class="quote">要推廣 webitgpt，不是要求大家相信 AI，而是要求大家把資料、流程、權限與責任一起整理好。</div>
-      <div class="footer">promotion requirements</div>
+      <div class="quote">推廣重點是讓既有維運經驗、資料與流程能被更穩定地串起來，形成可持續累積的共同工作方式。</div>
+      <div class="footer">promotion readiness</div>
       <div class="page">8 / 8</div>
     </section>
   </main>
