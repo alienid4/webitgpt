@@ -4061,3 +4061,241 @@ textarea,
   content: " \2193";
   color: var(--g1);
 }
+
+.cmdb-rel-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cmdb-rel-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cmdb-rel-summary {
+  margin: 14px 0;
+}
+
+.cmdb-rel-panel {
+  margin-top: 14px;
+}
+
+.cmdb-rel-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.cmdb-rel-section-head h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.cmdb-coverage-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cmdb-coverage-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+  min-height: 104px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  padding: 12px;
+}
+
+.cmdb-coverage-card strong {
+  display: block;
+  color: var(--g-text);
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.cmdb-coverage-card p {
+  margin: 0;
+  color: var(--c2);
+  font-size: 13px;
+}
+
+.cmdb-coverage-ring {
+  inline-size: 72px;
+  block-size: 72px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--g1) calc(var(--pct) * 1%), var(--c4) 0);
+}
+
+.cmdb-coverage-ring span {
+  inline-size: 50px;
+  block-size: 50px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--g-text);
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.cmdb-rel-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.55fr);
+  gap: 14px;
+}
+
+.cmdb-system-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cmdb-system-picker select {
+  min-width: 220px;
+}
+
+.cmdb-relation-map {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  min-height: 250px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: var(--bg2);
+  padding: 12px;
+}
+
+.cmdb-map-lane {
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  padding: 12px;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cmdb-map-lane strong {
+  color: var(--g-text);
+  text-align: center;
+}
+
+.cmdb-map-node {
+  display: grid;
+  min-height: 38px;
+  place-items: center;
+  border: 2px solid var(--g1);
+  border-radius: var(--radius-xs);
+  background: var(--white);
+  color: var(--c1);
+  font-weight: 700;
+  font-size: 13px;
+  text-align: center;
+  padding: 6px;
+  overflow-wrap: anywhere;
+}
+
+.cmdb-map-node-core {
+  border-color: var(--red);
+  background: #FFF0F0;
+}
+
+.cmdb-map-node-service {
+  border-color: var(--orange);
+  background: #FFF4E8;
+}
+
+.cmdb-map-node-missing {
+  border-style: dashed;
+  color: var(--c2);
+  background: var(--bg2);
+}
+
+.cmdb-selected-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.cmdb-selected-summary span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  border: 1px solid var(--c4);
+  border-radius: 999px;
+  background: var(--white);
+  padding: 7px 10px;
+  color: var(--c2);
+  font-size: 13px;
+}
+
+.cmdb-selected-summary strong {
+  color: var(--g-text);
+}
+
+.cmdb-gap-list {
+  display: grid;
+  gap: 10px;
+}
+
+.cmdb-gap-item {
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  padding: 12px;
+}
+
+.cmdb-gap-item.needs-work {
+  border-color: var(--orange);
+  background: #FFF4E8;
+}
+
+.cmdb-gap-item strong {
+  display: block;
+  color: var(--c1);
+  margin-bottom: 4px;
+}
+
+.cmdb-gap-item span {
+  display: inline-flex;
+  color: var(--g-text);
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.cmdb-gap-item p {
+  margin: 0;
+  color: var(--c2);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.cmdb-system-table td:first-child {
+  min-width: 180px;
+}
+
+@media (max-width: 1100px) {
+  .cmdb-rel-hero,
+  .cmdb-rel-section-head {
+    display: grid;
+  }
+
+  .cmdb-rel-grid,
+  .cmdb-coverage-grid,
+  .cmdb-rel-layout,
+  .cmdb-relation-map {
+    grid-template-columns: 1fr;
+  }
+}

@@ -5,7 +5,7 @@ import ipaddress
 from flask import Blueprint, Response, abort, jsonify, redirect, render_template, request, url_for
 
 from webapp.decorators import current_user, market_hours_protected, require_feature, require_role
-from webapp.services import audit_log_service, cmdb_service, host_service, ipam_schedule_service
+from webapp.services import audit_log_service, cmdb_relationship_service, cmdb_service, host_service, ipam_schedule_service
 from webapp.services.csv_service import csv_template as build_csv_template
 from webapp.services.csv_service import export_hosts_csv, export_hosts_xlsx, import_csv, import_json, import_xlsx, validate_csv, validate_xlsx, validation_errors_csv, validation_errors_xlsx
 from webapp.services.host_schema import ASSET_FIELDS, REQUIRED_FIELDS, ValidationError
@@ -408,6 +408,17 @@ def asset_quality_page():
         report=report,
         status_labels=ASSET_STATUS_LABELS,
         host_type_labels=HOST_TYPE_LABELS,
+    )
+
+
+@bp.get("/hosts/cmdb-relationships")
+@require_feature("cmdb_manual_input")
+def cmdb_relationships_page():
+    overview = cmdb_relationship_service.cmdb_relationship_overview(request.args.get("system", ""))
+    return render_template(
+        "cmdb_relationships.html",
+        overview=overview,
+        selected_system=overview["selected_system"],
     )
 
 

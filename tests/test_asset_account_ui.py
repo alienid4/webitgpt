@@ -158,6 +158,150 @@ def test_cmdb_import_report_excel_and_draft_bulk_contracts_exist():
     assert "cmdb-import-report-excel-drafts" in changelog
 
 
+def test_cmdb_relationship_dashboard_contracts_exist():
+    hosts = read("webapp/templates/hosts.html")
+    relationships = read("webapp/templates/cmdb_relationships.html")
+    host_routes = read("webapp/routes/api_hosts.py")
+    service = read("webapp/services/cmdb_relationship_service.py")
+    css = read("webapp/static/css/cathay.css")
+
+    assert "cmdb_relationships_page" in host_routes
+    assert "cmdb_relationship_service.cmdb_relationship_overview" in host_routes
+    assert "cmdb_relationship_entry" not in hosts
+    assert "cmdb-relationship-entry" in hosts
+    for text in ["CMDB 關聯總覽", "關聯覆蓋率", "核心系統關聯檢視", "待補清單", "系統關聯覆蓋明細"]:
+        assert text in relationships
+    for token in ["cmdb_relationship_overview", "DRAFT_STATUSES", "missing_owner", "service_port"]:
+        assert token in service
+    for token in [".cmdb-coverage-grid", ".cmdb-relation-map", ".cmdb-gap-item", ".cmdb-system-table"]:
+        assert token in css
+
+
+def test_cmdb_relationship_overview_summarizes_quality_and_relationships(monkeypatch):
+    from webapp.services import cmdb_relationship_service
+
+    hosts = [
+        {
+            "hostname": "app1",
+            "asset_name": "巡檢系統主機",
+            "ip": "10.0.0.1",
+            "status": "active",
+            "system_name": "巡檢系統",
+            "owner": "ops",
+            "open_ports": [{"port": "8002"}],
+        },
+        {
+            "hostname": "app2",
+            "asset_name": "巡檢系統資料庫",
+            "ip": "10.0.0.2",
+            "status": "draft",
+            "system_name": "巡檢系統",
+        },
+        {
+            "hostname": "misc1",
+            "asset_name": "未分類主機",
+            "status": "active",
+            "custodian": "infra",
+        },
+    ]
+
+    class FakeCursor(list):
+        def limit(self, _limit):
+            return self
+
+    class FakeCollection:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def find(self, *_args, **_kwargs):
+            return FakeCursor(self.rows)
+
+    def fake_get_collection(name):
+        rows = {
+            "dependency_systems": [{"system_id": "SYS-INSPECTION", "display_name": "巡檢系統"}],
+            "dependency_relations": [{"from_system": "SYS-INSPECTION", "to_system": "SYS-MONGO"}],
+        }
+        return FakeCollection(rows.get(name, []))
+
+    monkeypatch.setattr(cmdb_relationship_service.host_service, "list_hosts", lambda **_kwargs: {"items": hosts})
+    monkeypatch.setattr(cmdb_relationship_service, "get_collection", fake_get_collection)
+
+    overview = cmdb_relationship_service.cmdb_relationship_overview("巡檢")
+
+    assert overview["summary"]["total"] == 3
+    assert overview["summary"]["formal_count"] == 2
+    assert overview["summary"]["draft_count"] == 1
+    assert overview["summary"]["dependency_relation_count"] == 1
+    assert overview["coverage"]["system"]["pct"] == 67
+    assert overview["coverage"]["owner"]["pct"] == 67
+    assert overview["coverage"]["service_port"]["pct"] == 33
+    assert overview["selected_system"]["display_name"] == "巡檢系統"
+    assert overview["selected_system"]["host_count"] == 2
+    assert overview["selected_system"]["missing_owner"] == 1
+
+
+def test_cmdb_relationship_page_renders_with_overview(monkeypatch):
+    from webapp.app import create_app
+    from webapp.routes import api_hosts
+
+    fake_overview = {
+        "summary": {
+            "total": 3,
+            "formal_count": 2,
+            "draft_count": 1,
+            "dependency_relation_count": 1,
+        },
+        "coverage": {
+            "system": {"label": "系統關聯率", "count": 2, "total": 3, "pct": 67},
+            "owner": {"label": "owner 完整率", "count": 2, "total": 3, "pct": 67},
+            "notification": {"label": "通知依據完整率", "count": 2, "total": 3, "pct": 67},
+            "service_port": {"label": "服務 / Port 完整率", "count": 1, "total": 3, "pct": 33},
+        },
+        "gaps": [
+            {"key": "missing_owner", "label": "缺 owner / 保管者", "count": 1, "action": "補 owner"},
+        ],
+        "systems": [
+            {
+                "key": "巡檢系統",
+                "display_name": "巡檢系統",
+                "is_classified": True,
+                "host_count": 2,
+                "formal_count": 1,
+                "draft_count": 1,
+                "owners": ["ops"],
+                "missing_owner": 1,
+                "missing_notification": 0,
+                "missing_ports": 1,
+            }
+        ],
+        "selected_system": {
+            "key": "巡檢系統",
+            "display_name": "巡檢系統",
+            "host_count": 2,
+            "formal_count": 1,
+            "draft_count": 1,
+            "missing_owner": 1,
+            "missing_notification": 0,
+            "missing_ports": 1,
+            "owners": ["ops"],
+            "ports": ["8002"],
+            "hosts": [{"hostname": "app1", "ip": "10.0.0.1"}],
+        },
+    }
+
+    monkeypatch.setattr(api_hosts.cmdb_relationship_service, "cmdb_relationship_overview", lambda _selected="": fake_overview)
+    app = create_app()
+    client = app.test_client()
+
+    response = client.get("/hosts/cmdb-relationships")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "CMDB 關聯總覽" in body
+    assert "關聯覆蓋率" in body
+    assert "巡檢系統" in body
+
+
 def test_operations_hardening_to_10323_contracts_exist():
     html = read("webapp/templates/accounts_inventory.html")
     service = read("webapp/services/inventory_service.py")
