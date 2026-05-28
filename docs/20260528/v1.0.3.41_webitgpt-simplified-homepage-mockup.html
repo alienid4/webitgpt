@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>webitgpt 簡化版首頁 Mockup</title>
+  <style>
+    :root {
+      --ink: #102033;
+      --muted: #65758a;
+      --green: #007a5a;
+      --green-2: #21a37d;
+      --green-soft: #e8f7f1;
+      --line: #d7e1de;
+      --paper: #fbfcfd;
+      --gold: #c88712;
+      --gold-soft: #fff7df;
+      --orange: #e87912;
+      --orange-soft: #fff3e6;
+      --red: #dc2626;
+      --red-soft: #fff1f1;
+      --blue: #2563eb;
+      --blue-soft: #eff6ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #eef3f1;
+      color: var(--ink);
+      font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif;
+    }
+
+    .app {
+      width: 1440px;
+      min-height: 100vh;
+      margin: 0 auto;
+      background: var(--paper);
+      border-left: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+    }
+
+    .topbar {
+      height: 68px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 0 28px;
+      background: #ffffff;
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 220px;
+      font-weight: 900;
+      color: #0c362d;
+      font-size: 20px;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--green);
+    }
+
+    .nav {
+      display: flex;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .nav a {
+      text-decoration: none;
+      color: #526174;
+      font-size: 14px;
+      font-weight: 800;
+      padding: 10px 12px;
+      border-radius: 9px;
+    }
+
+    .nav a.active {
+      color: var(--green);
+      background: var(--green-soft);
+    }
+
+    .search {
+      width: 300px;
+      border: 1px solid #ccd6d3;
+      background: #f8fbfa;
+      border-radius: 999px;
+      padding: 10px 14px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .user {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .main {
+      padding: 26px 30px 42px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 22px;
+      align-items: stretch;
+      margin-bottom: 22px;
+    }
+
+    .today {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at 92% 0%, rgba(33, 163, 125, 0.14), transparent 28%),
+        #ffffff;
+      padding: 28px;
+      box-shadow: 0 16px 38px rgba(16, 32, 51, 0.08);
+    }
+
+    .eyebrow {
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+    }
+
+    h1 {
+      margin: 8px 0 12px;
+      font-size: 38px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .today p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.6;
+      max-width: 820px;
+    }
+
+    .quick-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #ffffff;
+      padding: 16px;
+      min-height: 102px;
+    }
+
+    .stat b {
+      display: block;
+      font-size: 34px;
+      line-height: 1;
+      margin-bottom: 9px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .stat.warn b { color: var(--orange); }
+    .stat.ok b { color: var(--green); }
+    .stat.ai b { color: var(--gold); }
+
+    .brief {
+      border: 1px solid #e2c06d;
+      border-radius: 16px;
+      background: var(--gold-soft);
+      padding: 22px;
+      box-shadow: 0 16px 38px rgba(16, 32, 51, 0.06);
+    }
+
+    .brief h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+    }
+
+    .brief ul {
+      margin: 0;
+      padding-left: 20px;
+      color: #60410d;
+      font-size: 14px;
+      line-height: 1.65;
+      font-weight: 700;
+    }
+
+    .gateways {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .gateway {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #ffffff;
+      padding: 20px;
+      min-height: 318px;
+      box-shadow: 0 12px 30px rgba(16, 32, 51, 0.07);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .gateway.primary {
+      border-color: #9ed6c2;
+    }
+
+    .gateway h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.25;
+    }
+
+    .gateway .question {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+      min-height: 45px;
+    }
+
+    .gateway-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 9px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfcfd;
+      padding: 11px;
+      min-height: 72px;
+    }
+
+    .metric b {
+      display: block;
+      font-size: 25px;
+      line-height: 1;
+      color: var(--green);
+      margin-bottom: 6px;
+    }
+
+    .metric.warn b { color: var(--orange); }
+    .metric.ai b { color: var(--gold); }
+
+    .metric span {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .gateway-next {
+      margin-top: auto;
+      border-radius: 10px;
+      padding: 12px;
+      background: var(--green-soft);
+      color: #0b4737;
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 800;
+    }
+
+    .gateway-next.gold {
+      background: var(--gold-soft);
+      color: #60410d;
+      border: 1px solid #e2c06d;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 1px solid #b8ddd0;
+      background: #ffffff;
+      color: var(--green);
+      border-radius: 999px;
+      padding: 8px 11px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .btn.main {
+      background: var(--green);
+      color: #ffffff;
+      border-color: var(--green);
+    }
+
+    .workbench {
+      display: grid;
+      grid-template-columns: 1.25fr 0.75fr;
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 12px 30px rgba(16, 32, 51, 0.07);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .panel-body {
+      padding: 18px 20px;
+    }
+
+    .task {
+      display: grid;
+      grid-template-columns: 92px 1fr 130px;
+      gap: 14px;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .task:last-child {
+      border-bottom: 0;
+    }
+
+    .time {
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--green);
+    }
+
+    .task h3 {
+      margin: 0 0 5px;
+      font-size: 17px;
+    }
+
+    .task p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .tag {
+      justify-self: end;
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .tag.ok {
+      color: #065f46;
+      background: #dff7ea;
+    }
+
+    .tag.warn {
+      color: #9a3412;
+      background: #ffedd5;
+    }
+
+    .tag.ai {
+      color: #8a5a00;
+      background: var(--gold-soft);
+      border: 1px solid #dfb756;
+    }
+
+    .simple-flow {
+      display: grid;
+      gap: 10px;
+    }
+
+    .flow-step {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      background: #fbfcfd;
+    }
+
+    .flow-step b {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--green);
+      font-size: 15px;
+    }
+
+    .flow-step span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 700;
+    }
+
+    @media (max-width: 1460px) {
+      .app { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark"></span>webitgpt</div>
+      <nav class="nav" aria-label="main navigation">
+        <a class="active" href="#">首頁</a>
+        <a href="#">今日狀態</a>
+        <a href="#">資產與帳號</a>
+        <a href="#">影響與通知</a>
+        <a href="#">報表與交接</a>
+        <a href="#">進階工具</a>
+      </nav>
+      <div class="search">搜尋 主機 / IP / 系統 / owner</div>
+      <div class="user">最高管理員</div>
+    </header>
+
+    <main class="main">
+      <section class="hero">
+        <div class="today">
+          <div class="eyebrow">TODAY OPERATIONS</div>
+          <h1>今天先看這裡：異常、影響、下一步</h1>
+          <p>
+            首頁只回答三件事：現在狀態是什麼、證據在哪、下一步要做什麼。
+            其他細節放進四個入口，讓使用者不用先理解所有功能名稱。
+          </p>
+          <div class="quick-stats">
+            <div class="stat warn"><b>3</b><span>主機需要確認</span></div>
+            <div class="stat ai"><b>1</b><span>L3 可交給 AI 判讀</span></div>
+            <div class="stat ok"><b>0</b><span>高風險服務中斷</span></div>
+            <div class="stat ok"><b>4</b><span>今日可交付摘要</span></div>
+          </div>
+        </div>
+
+        <aside class="brief">
+          <h2>今日摘要</h2>
+          <ul>
+            <li>盤前基準正常，盤中有 3 筆需確認訊號。</li>
+            <li>目前沒有明確服務中斷證據。</li>
+            <li>1 筆 L3 資料已整理為 AI-ready。</li>
+            <li>建議先確認 AP_PORT 與 health endpoint。</li>
+          </ul>
+        </aside>
+      </section>
+
+      <section class="gateways" aria-label="four main gateways">
+        <article class="gateway primary">
+          <h2>今日狀態</h2>
+          <div class="question">我今天要先處理什麼？哪些異常可能影響服務？</div>
+          <div class="gateway-metrics">
+            <div class="metric warn"><b>3</b><span>待確認主機</span></div>
+            <div class="metric"><b>7</b><span>採證完成</span></div>
+            <div class="metric ai"><b>1</b><span>AI-ready</span></div>
+            <div class="metric"><b>0</b><span>高風險</span></div>
+          </div>
+          <div class="gateway-next">下一步：先看主機健康卡，再確認 AP 連線與 L3 結果。</div>
+          <div class="button-row">
+            <button class="btn main">開啟今日狀態</button>
+            <button class="btn">L3 檢查</button>
+          </div>
+        </article>
+
+        <article class="gateway">
+          <h2>資產與帳號</h2>
+          <div class="question">我管了哪些東西？誰負責？帳號與 PAM 對得起來嗎？</div>
+          <div class="gateway-metrics">
+            <div class="metric"><b>167</b><span>正式資產</span></div>
+            <div class="metric warn"><b>4</b><span>草稿資料</span></div>
+            <div class="metric"><b>25</b><span>帳號項目</span></div>
+            <div class="metric warn"><b>2</b><span>owner 待補</span></div>
+          </div>
+          <div class="gateway-next">下一步：整理草稿區，補 owner / PAM / AP 帳號欄位。</div>
+          <div class="button-row">
+            <button class="btn main">開啟資產與帳號</button>
+            <button class="btn">匯入 Excel</button>
+          </div>
+        </article>
+
+        <article class="gateway">
+          <h2>影響與通知</h2>
+          <div class="question">如果出事，影響哪些系統、主機、服務？要通知誰？</div>
+          <div class="gateway-metrics">
+            <div class="metric"><b>6</b><span>核心系統</span></div>
+            <div class="metric"><b>4</b><span>關聯服務</span></div>
+            <div class="metric"><b>3</b><span>通知群組</span></div>
+            <div class="metric warn"><b>1</b><span>影響待確認</span></div>
+          </div>
+          <div class="gateway-next">下一步：用核心影響圖確認 SYS、主機、通知名單。</div>
+          <div class="button-row">
+            <button class="btn main">開啟影響圖</button>
+            <button class="btn">匯出通知名單</button>
+          </div>
+        </article>
+
+        <article class="gateway">
+          <h2>報表與交接</h2>
+          <div class="question">我要交出去什麼？主管看得懂嗎？後續誰接？</div>
+          <div class="gateway-metrics">
+            <div class="metric"><b>1</b><span>效能月報</span></div>
+            <div class="metric"><b>1</b><span>EOS 摘要</span></div>
+            <div class="metric ai"><b>2</b><span>可產出摘要</span></div>
+            <div class="metric"><b>4</b><span>交接文件</span></div>
+          </div>
+          <div class="gateway-next gold">下一步：產出今日摘要、效能月報與待確認清單。</div>
+          <div class="button-row">
+            <button class="btn main">開啟報表</button>
+            <button class="btn">主管摘要</button>
+          </div>
+        </article>
+      </section>
+
+      <section class="workbench">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>今天的處理順序</h2>
+            <span class="tag ai">AI 未啟用：目前使用 Script / Rule</span>
+          </div>
+          <div class="panel-body">
+            <div class="task">
+              <div class="time">08:40</div>
+              <div>
+                <h3>確認盤前基準</h3>
+                <p>主機存活、Web health、Mongo 連線、採證通道先確認。</p>
+              </div>
+              <span class="tag ok">完成</span>
+            </div>
+            <div class="task">
+              <div class="time">10:30</div>
+              <div>
+                <h3>盤中訊號收斂</h3>
+                <p>把 AP 連線、Port、L3 結果整理成待確認項目。</p>
+              </div>
+              <span class="tag warn">需確認</span>
+            </div>
+            <div class="task">
+              <div class="time">11:00</div>
+              <div>
+                <h3>確認影響與通知對象</h3>
+                <p>用核心影響圖確認系統、主機、owner、PAM 與通知群組。</p>
+              </div>
+              <span class="tag warn">待處理</span>
+            </div>
+            <div class="task">
+              <div class="time">11:30</div>
+              <div>
+                <h3>形成主管摘要</h3>
+                <p>輸出目前狀態、證據、下一步與待確認清單。</p>
+              </div>
+              <span class="tag ai">AI-ready</span>
+            </div>
+          </div>
+        </article>
+
+        <aside class="panel">
+          <div class="panel-head">
+            <h2>操作原則</h2>
+          </div>
+          <div class="panel-body">
+            <div class="simple-flow">
+              <div class="flow-step">
+                <b>1. 先看狀態</b>
+                <span>不要先進功能頁，首頁直接告訴你今天有哪些需要看。</span>
+              </div>
+              <div class="flow-step">
+                <b>2. 再看證據</b>
+                <span>每個警示都能回到採證來源：script、CMDB、NMON、帳號資料。</span>
+              </div>
+              <div class="flow-step">
+                <b>3. 最後看下一步</b>
+                <span>畫面直接提示要確認 port、owner、health、通知或報表。</span>
+              </div>
+              <div class="flow-step">
+                <b>4. AI 是可選能力</b>
+                <span>沒有 API Key 時照常使用 Script / Rule；資料先整理為 AI-ready。</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
