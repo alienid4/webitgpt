@@ -1,0 +1,1107 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>webitgpt 升級後 UI Mockup</title>
+  <style>
+    :root {
+      --ink: #102033;
+      --muted: #66758a;
+      --green: #007a5a;
+      --green-2: #20a27d;
+      --green-soft: #e8f7f1;
+      --line: #d6e0dc;
+      --paper: #fbfcfd;
+      --gold: #c88712;
+      --gold-dark: #9d6500;
+      --gold-soft: #fff7df;
+      --orange: #e87912;
+      --orange-soft: #fff4e8;
+      --red: #dc2626;
+      --red-soft: #fff0f0;
+      --blue: #2563eb;
+      --blue-soft: #eff6ff;
+      --gray-soft: #f3f5f7;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #eaf1ef;
+      color: var(--ink);
+      font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif;
+    }
+
+    .canvas {
+      width: 1440px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .hero {
+      min-height: 180px;
+      padding: 30px 34px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at 92% 0%, rgba(32, 162, 125, 0.16), transparent 30%),
+        linear-gradient(135deg, #ffffff 0%, #fbfdfc 100%);
+      box-shadow: 0 18px 46px rgba(16, 32, 51, 0.09);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -80px;
+      top: -80px;
+      width: 260px;
+      height: 260px;
+      border: 28px solid rgba(0, 122, 90, 0.08);
+      border-radius: 50%;
+    }
+
+    .eyebrow {
+      color: var(--green);
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      font-size: 13px;
+    }
+
+    h1 {
+      margin: 10px 0 8px;
+      font-size: 42px;
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      width: 940px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.65;
+    }
+
+    .legend {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 900;
+      border: 1px solid var(--line);
+      background: #ffffff;
+      color: #2f4051;
+      white-space: nowrap;
+    }
+
+    .badge::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green-2);
+    }
+
+    .badge.gold {
+      border-color: #e0b75d;
+      background: var(--gold-soft);
+      color: var(--gold-dark);
+    }
+
+    .badge.gold::before {
+      background: var(--gold);
+    }
+
+    .badge.orange {
+      border-color: #fed7aa;
+      background: var(--orange-soft);
+      color: #9a3412;
+    }
+
+    .badge.orange::before {
+      background: var(--orange);
+    }
+
+    .section {
+      margin-top: 24px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 14px 34px rgba(16, 32, 51, 0.08);
+      overflow: hidden;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 22px 26px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.25;
+    }
+
+    .section-head p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .mock-frame {
+      padding: 20px;
+      background: #f6faf8;
+    }
+
+    .app {
+      border: 1px solid #c8d6d1;
+      border-radius: 12px;
+      background: var(--paper);
+      min-height: 540px;
+      overflow: hidden;
+    }
+
+    .topbar {
+      height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--line);
+      background: #ffffff;
+    }
+
+    .brand {
+      font-weight: 900;
+      color: #0c362d;
+      min-width: 160px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .tab {
+      padding: 9px 11px;
+      border-radius: 8px;
+      color: #526174;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .tab.active {
+      color: var(--green);
+      background: var(--green-soft);
+    }
+
+    .search {
+      width: 250px;
+      border: 1px solid #ccd6d3;
+      background: #f8fbfa;
+      border-radius: 999px;
+      padding: 9px 13px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .body-grid {
+      display: grid;
+      grid-template-columns: 360px 1fr 350px;
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #ffffff;
+      padding: 16px;
+    }
+
+    .card.gold-soft {
+      border-color: #e5c26d;
+      background: var(--gold-soft);
+    }
+
+    .card.deep-gold {
+      border: 2px solid var(--gold);
+      background: #fffaf0;
+    }
+
+    .card h3 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      line-height: 1.25;
+    }
+
+    .host-title {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .host-title small {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .score {
+      width: 82px;
+      height: 82px;
+      border-radius: 50%;
+      background:
+        conic-gradient(var(--orange) 0deg 238deg, #e4e9ed 238deg 360deg);
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .score span {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: #ffffff;
+      display: grid;
+      place-items: center;
+      font-size: 23px;
+      font-weight: 900;
+    }
+
+    .mini-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 9px;
+      margin-top: 14px;
+    }
+
+    .mini {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      min-height: 62px;
+      background: #fbfcfd;
+    }
+
+    .mini b {
+      display: block;
+      font-size: 21px;
+      margin-bottom: 2px;
+    }
+
+    .mini span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .check-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .check {
+      min-height: 70px;
+      border: 1px solid #b8ddd0;
+      border-radius: 8px;
+      padding: 10px;
+      background: #ffffff;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .check.warn {
+      border-color: #fdba74;
+      background: var(--orange-soft);
+    }
+
+    .check.gold {
+      border: 2px solid var(--gold);
+      background: var(--gold-soft);
+    }
+
+    .check small {
+      display: block;
+      color: var(--muted);
+      font-weight: 700;
+      margin-top: 6px;
+      line-height: 1.45;
+    }
+
+    .map {
+      position: relative;
+      height: 405px;
+      border: 1px solid #b8ddd0;
+      border-radius: 10px;
+      background: #fbfdfc;
+      overflow: hidden;
+    }
+
+    .column {
+      position: absolute;
+      top: 36px;
+      bottom: 36px;
+      width: 180px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.85);
+      padding-top: 18px;
+      text-align: center;
+    }
+
+    .column.sys { left: 28px; }
+    .column.svc { left: 260px; }
+    .column.host { left: 492px; }
+
+    .column-title {
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 900;
+      margin-bottom: 18px;
+    }
+
+    .node {
+      width: 138px;
+      min-height: 44px;
+      margin: 0 auto 22px;
+      border: 2px solid #acdccc;
+      border-radius: 8px;
+      background: #ffffff;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 900;
+      color: #173a31;
+      padding: 5px;
+    }
+
+    .node.core {
+      border-color: var(--red);
+      background: #fff7f7;
+    }
+
+    .node.service {
+      border-color: #fdba74;
+      background: #fff9f1;
+    }
+
+    .line {
+      position: absolute;
+      height: 2px;
+      background: var(--green);
+      transform-origin: left center;
+    }
+
+    .line.l1 { left: 165px; top: 246px; width: 154px; transform: rotate(-27deg); }
+    .line.l2 { left: 397px; top: 166px; width: 159px; transform: rotate(16deg); }
+    .line.l3 { left: 397px; top: 246px; width: 159px; transform: rotate(-9deg); }
+    .line.l4 { left: 397px; top: 326px; width: 159px; transform: rotate(-31deg); }
+
+    .map-side {
+      position: absolute;
+      right: 16px;
+      top: 22px;
+      width: 250px;
+      bottom: 22px;
+      border-left: 1px solid var(--line);
+      padding-left: 16px;
+    }
+
+    .map-side h4 {
+      margin: 0 0 12px;
+      font-size: 20px;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 6px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .kv span:first-child {
+      color: var(--muted);
+    }
+
+    .kv b {
+      font-size: 16px;
+    }
+
+    .owner-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 12px;
+    }
+
+    .owner {
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid #b8ddd0;
+      background: var(--green-soft);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .ai-box {
+      border: 2px solid var(--gold);
+      background: var(--gold-soft);
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 14px;
+    }
+
+    .ai-box h4 {
+      margin: 0 0 8px;
+      font-size: 17px;
+    }
+
+    .ai-box p {
+      margin: 0;
+      color: #62420c;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      background: #ffffff;
+      overflow: hidden;
+      border-radius: 10px;
+    }
+
+    .table th,
+    .table td {
+      border-bottom: 1px solid var(--line);
+      padding: 11px 10px;
+      text-align: left;
+    }
+
+    .table th {
+      color: #173a31;
+      background: #e8f7f1;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .status {
+      display: inline-flex;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-weight: 900;
+      font-size: 12px;
+    }
+
+    .status.ok {
+      color: #065f46;
+      background: #dff7ea;
+    }
+
+    .status.warn {
+      color: #9a3412;
+      background: #ffedd5;
+    }
+
+    .status.na {
+      color: #475569;
+      background: #e5e7eb;
+    }
+
+    .ru-layout {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 16px;
+    }
+
+    .chart {
+      height: 260px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(#eef4f2 1px, transparent 1px) 0 0 / 100% 52px,
+        linear-gradient(90deg, #eef4f2 1px, transparent 1px) 0 0 / 78px 100%,
+        #ffffff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .spark {
+      position: absolute;
+      left: 34px;
+      right: 34px;
+      height: 4px;
+      border-radius: 999px;
+      background: var(--green-2);
+    }
+
+    .spark.cpu {
+      top: 76px;
+      transform: skewX(-18deg);
+      box-shadow: 80px 18px 0 var(--green-2), 180px -8px 0 var(--green-2), 300px 28px 0 var(--orange), 420px 8px 0 var(--green-2);
+    }
+
+    .spark.mem {
+      top: 144px;
+      background: var(--blue);
+      box-shadow: 120px 2px 0 var(--blue), 240px 4px 0 var(--blue), 360px 5px 0 var(--blue);
+    }
+
+    .spark.io {
+      top: 204px;
+      background: var(--gold);
+      box-shadow: 90px -14px 0 var(--gold), 210px 16px 0 var(--gold), 330px -4px 0 var(--gold);
+    }
+
+    .chart-label {
+      position: absolute;
+      left: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .chart-label.cpu { top: 58px; }
+    .chart-label.mem { top: 126px; }
+    .chart-label.io { top: 186px; }
+
+    .recommend {
+      border: 2px solid var(--gold);
+      border-radius: 10px;
+      background: var(--gold-soft);
+      padding: 16px;
+      min-height: 260px;
+    }
+
+    .recommend h3 {
+      margin: 0 0 12px;
+      font-size: 20px;
+    }
+
+    .recommend p {
+      margin: 0 0 12px;
+      color: #62420c;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .screen-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .callout {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #ffffff;
+      padding: 16px;
+      min-height: 140px;
+    }
+
+    .callout h3 {
+      margin: 0 0 10px;
+      font-size: 20px;
+    }
+
+    .callout p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .flow-step {
+      border: 1px solid #b8ddd0;
+      border-radius: 10px;
+      background: var(--green-soft);
+      padding: 14px;
+      min-height: 110px;
+      position: relative;
+    }
+
+    .flow-step::after {
+      content: ">";
+      position: absolute;
+      right: -12px;
+      top: 42px;
+      color: var(--green);
+      font-weight: 900;
+    }
+
+    .flow-step:last-child::after {
+      content: "";
+    }
+
+    .flow-step b {
+      display: block;
+      color: var(--green);
+      margin-bottom: 8px;
+    }
+
+    .flow-step span {
+      color: #2f4051;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 1460px) {
+      .canvas {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="canvas">
+    <section class="hero">
+      <div class="eyebrow">FUTURE UI MOCKUP</div>
+      <h1>升級後的 webitgpt：維運影響判斷工作台</h1>
+      <p>
+        這份畫面稿展示升級後的產品樣貌：同一個畫面收斂主機健康、核心影響、Port 需求、效能建議與 AI 判讀。
+        使用者不需要在多個分頁間自己串資料，而是從事件或核心系統出發，直接看到證據、影響與下一步。
+      </p>
+      <div class="legend">
+        <span class="badge">Script / Rule 已判斷</span>
+        <span class="badge gold">AI-ready / AI 判讀區</span>
+        <span class="badge orange">需人工確認</span>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>1. 主機頁升級：從資料列變成主機健康卡</h2>
+          <p>點進任一主機後，直接看到採證完整度、L1/L2/L3、帳號、效能與所屬核心系統。</p>
+        </div>
+        <span class="badge gold">升級功能：Host Health Console</span>
+      </div>
+
+      <div class="mock-frame">
+        <div class="app">
+          <div class="topbar">
+            <div class="brand">webitgpt</div>
+            <div class="tabs">
+              <div class="tab active">主機總覽</div>
+              <div class="tab">核心影響圖</div>
+              <div class="tab">帳號盤點</div>
+              <div class="tab">效能月報</div>
+              <div class="tab">採證通訊</div>
+              <div class="tab">AI 判讀</div>
+            </div>
+            <div class="search">搜尋 主機 / IP / 系統</div>
+          </div>
+
+          <div class="body-grid">
+            <aside class="card">
+              <div class="host-title">
+                <div>
+                  <h3>巡檢系統主機</h3>
+                  <small>secapp198-14 / 10.92.198.14 / RHEL 9.6</small>
+                </div>
+                <div class="score"><span>82</span></div>
+              </div>
+
+              <div class="mini-stats">
+                <div class="mini"><b>7</b><span>採證項目</span></div>
+                <div class="mini"><b>2</b><span>需確認</span></div>
+                <div class="mini"><b>1</b><span>AI 判讀</span></div>
+              </div>
+
+              <div class="check-grid">
+                <div class="check">連線狀態<small>SSH 可連，API health 正常。</small></div>
+                <div class="check warn">Port / Service<small>WinRM 未啟用，需確認是否 Windows 需求。</small></div>
+                <div class="check">帳號盤點<small>OS 帳號完成，AP 帳號已匯入。</small></div>
+                <div class="check">CMDB<small>owner、PAM、使用單位完整。</small></div>
+                <div class="check gold">L3 深度檢查<small>Shell 採證完成，可交給 AI 進一步判讀。</small></div>
+                <div class="check">效能摘要<small>NMON 已匯入，無持續性尖峰。</small></div>
+              </div>
+            </aside>
+
+            <section class="card">
+              <h3>採證與異常摘要</h3>
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>項目</th>
+                    <th>來源</th>
+                    <th>狀態</th>
+                    <th>畫面語意</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>主機存活</td>
+                    <td>nmap / ping</td>
+                    <td><span class="status ok">正常</span></td>
+                    <td>Script 採證，規則判斷</td>
+                  </tr>
+                  <tr>
+                    <td>AP 連線</td>
+                    <td>health endpoint</td>
+                    <td><span class="status warn">需確認</span></td>
+                    <td>Port 或 health 無明確回應</td>
+                  </tr>
+                  <tr>
+                    <td>帳號權限</td>
+                    <td>OS + AP 匯入</td>
+                    <td><span class="status ok">已整理</span></td>
+                    <td>owner / PAM / 權限彙整</td>
+                  </tr>
+                  <tr>
+                    <td>L3 深度檢查</td>
+                    <td>Shell + AI</td>
+                    <td><span class="status warn">AI-ready</span></td>
+                    <td>淡金框：可交給 AI 判讀</td>
+                  </tr>
+                  <tr>
+                    <td>效能趨勢</td>
+                    <td>NMON</td>
+                    <td><span class="status ok">穩定</span></td>
+                    <td>RU 容量建議可產出</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="ai-box">
+                <h4>AI 判讀預覽</h4>
+                <p>
+                  目前 AP 連線檢查未取得明確 health 回應，但主機本身可連、服務埠存在。
+                  建議先確認 AP_PORT、服務啟動狀態與本機防火牆，再判定是否影響使用者服務。
+                </p>
+              </div>
+            </section>
+
+            <aside class="card">
+              <h3>下一步建議</h3>
+              <table class="table">
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>確認 AP_PORT 設定是否正確</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>檢查 health endpoint 回應</td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>確認通知 owner 是否需加入</td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td>若 API 不可用，保留 script fallback</td>
+                  </tr>
+                </tbody>
+              </table>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>2. 核心影響圖升級：從拓撲圖變成 ADM 影響依賴圖</h2>
+          <p>選一個核心系統後，只顯示該系統相關的服務、Port、主機、帳號 owner 與通知對象。</p>
+        </div>
+        <span class="badge gold">升級功能：Dependency Impact Map</span>
+      </div>
+
+      <div class="mock-frame">
+        <div class="app">
+          <div class="topbar">
+            <div class="brand">核心影響圖</div>
+            <div class="search">選擇核心系統：巡檢系統</div>
+            <div class="tabs">
+              <div class="tab active">二跳影響</div>
+              <div class="tab">只看直接影響</div>
+              <div class="tab">通知名單</div>
+            </div>
+          </div>
+
+          <div class="body-grid">
+            <section class="card" style="grid-column: span 2;">
+              <h3>巡檢系統 ADM 影響依賴圖</h3>
+              <div class="map">
+                <div class="column sys">
+                  <div class="column-title">第一欄：核心系統</div>
+                  <div class="node core">巡檢系統</div>
+                  <div class="node">好球服務</div>
+                  <div class="node">交易核心</div>
+                  <div class="node">報表中心</div>
+                </div>
+                <div class="column svc">
+                  <div class="column-title">第二欄：服務 / Port</div>
+                  <div class="node service">webitgpt app<br>8002</div>
+                  <div class="node service">MongoDB<br>27017</div>
+                  <div class="node service">SSH 採證<br>22</div>
+                  <div class="node service">health API</div>
+                </div>
+                <div class="column host">
+                  <div class="column-title">第三欄：主機 / IP</div>
+                  <div class="node">10.92.198.14<br>RHEL 9.6</div>
+                  <div class="node">192.168.1.221<br>Debian</div>
+                  <div class="node">192.168.1.223<br>Debian</div>
+                  <div class="node">192.168.1.222<br>Rocky</div>
+                </div>
+                <div class="line l1"></div>
+                <div class="line l2"></div>
+                <div class="line l3"></div>
+                <div class="line l4"></div>
+
+                <aside class="map-side">
+                  <h4>影響檢視</h4>
+                  <div class="kv"><span>核心系統</span><b>巡檢系統</b></div>
+                  <div class="kv"><span>關聯服務</span><b>4 套</b></div>
+                  <div class="kv"><span>主機 / IP</span><b>4 台</b></div>
+                  <div class="kv"><span>Port</span><b>5 組</b></div>
+                  <div class="kv"><span>L3 狀態</span><b>1 筆可判讀</b></div>
+                  <div class="kv"><span>通知對象</span><b>3 組</b></div>
+                  <div class="owner-list">
+                    <span class="owner">owner: 維運</span>
+                    <span class="owner">PAM: 已對應</span>
+                    <span class="owner">通知: 值班</span>
+                  </div>
+                  <div class="ai-box">
+                    <h4>AI-ready 摘要</h4>
+                    <p>此核心系統已有服務、主機與通知對象，可交給 AI 產生事件影響摘要。</p>
+                  </div>
+                </aside>
+              </div>
+            </section>
+
+            <aside class="card deep-gold">
+              <h3>升級後右側面板</h3>
+              <table class="table">
+                <tbody>
+                  <tr>
+                    <td>資料來源</td>
+                    <td>CMDB + nmap + 帳號匯入</td>
+                  </tr>
+                  <tr>
+                    <td>通知名單</td>
+                    <td>依 owner / PAM / 系統群組產生</td>
+                  </tr>
+                  <tr>
+                    <td>匯出語意</td>
+                    <td>受影響服務、主機、待確認項目</td>
+                  </tr>
+                  <tr>
+                    <td>AI 標示</td>
+                    <td>淡金框可判讀，深金框已判讀</td>
+                  </tr>
+                </tbody>
+              </table>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>3. 新增採證通訊需求：把 Port / Protocol / 用途講清楚</h2>
+          <p>類似產品簡報中的 Port 需求表，但轉成 webitgpt 自己的維運與安裝溝通畫面。</p>
+        </div>
+        <span class="badge">升級功能：Service & Port Mapping</span>
+      </div>
+      <div class="mock-frame">
+        <div class="app" style="min-height: 360px;">
+          <div class="topbar">
+            <div class="brand">採證通訊需求</div>
+            <div class="tabs">
+              <div class="tab active">Linux</div>
+              <div class="tab">Windows</div>
+              <div class="tab">Database</div>
+              <div class="tab">API 驗證</div>
+              <div class="tab">離線安裝</div>
+            </div>
+          </div>
+          <div style="padding: 16px;">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>來源</th>
+                  <th>Port</th>
+                  <th>Protocol</th>
+                  <th>用途</th>
+                  <th>狀態</th>
+                  <th>備註</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>webitgpt</td>
+                  <td>22</td>
+                  <td>SSH</td>
+                  <td>Linux OS、帳號、程序採證</td>
+                  <td><span class="status ok">可用</span></td>
+                  <td>不安裝 agent，使用既有帳號權限</td>
+                </tr>
+                <tr>
+                  <td>webitgpt</td>
+                  <td>5985 / 5986</td>
+                  <td>WinRM</td>
+                  <td>Windows 主機巡檢</td>
+                  <td><span class="status warn">需確認</span></td>
+                  <td>若未啟用，使用匯入資料或人工確認</td>
+                </tr>
+                <tr>
+                  <td>webitgpt</td>
+                  <td>8002</td>
+                  <td>HTTP</td>
+                  <td>Web UI、health、ready</td>
+                  <td><span class="status ok">正常</span></td>
+                  <td>安裝後驗證與監控使用</td>
+                </tr>
+                <tr>
+                  <td>webitgpt</td>
+                  <td>27017</td>
+                  <td>TCP</td>
+                  <td>MongoDB 連線</td>
+                  <td><span class="status ok">正常</span></td>
+                  <td>未來可規劃 MSSQL 替代路徑</td>
+                </tr>
+                <tr>
+                  <td>API Key</td>
+                  <td>/api/v1</td>
+                  <td>HTTPS / Token</td>
+                  <td>L1/L2/L3 API 驗證與 AI 判讀</td>
+                  <td><span class="status warn">依設定</span></td>
+                  <td>超過預算或 API 不可用時切回 script fallback</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>4. 效能月報升級：從圖表變成 RU 容量觀察與建議</h2>
+          <p>NMON 不只產圖，還能和主機健康、核心系統、AI-ready 摘要連動。</p>
+        </div>
+        <span class="badge gold">升級功能：Performance & Lifecycle</span>
+      </div>
+      <div class="mock-frame">
+        <div class="app" style="min-height: 390px;">
+          <div class="topbar">
+            <div class="brand">效能與生命週期</div>
+            <div class="tabs">
+              <div class="tab active">NMON 趨勢</div>
+              <div class="tab">EOS 摘要</div>
+              <div class="tab">容量建議</div>
+              <div class="tab">主管摘要</div>
+            </div>
+          </div>
+          <div style="padding: 16px;">
+            <div class="ru-layout">
+              <div class="card">
+                <h3>10.92.198.14 最近一週效能趨勢</h3>
+                <div class="chart">
+                  <div class="chart-label cpu">CPU</div>
+                  <div class="chart-label mem">Memory</div>
+                  <div class="chart-label io">Disk I/O</div>
+                  <div class="spark cpu"></div>
+                  <div class="spark mem"></div>
+                  <div class="spark io"></div>
+                </div>
+              </div>
+              <aside class="recommend">
+                <h3>RU 建議摘要</h3>
+                <p>CPU 偶發尖峰，但未形成持續壓力；Memory 走勢穩定，Disk I/O 需觀察尖峰時段。</p>
+                <p>若該主機屬核心巡檢鏈路，建議保留一週同時段觀察，並於月報中標記為「持續追蹤」。</p>
+                <span class="badge gold">AI-ready 摘要可產出</span>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>5. AI 判讀升級：全系統共通的金框語言</h2>
+          <p>不只 L3，主機、帳號、效能、影響圖、匯入錯誤摘要都能清楚標示「可判讀」或「已判讀」。</p>
+        </div>
+        <span class="badge gold">升級功能：AI Judgement Layer</span>
+      </div>
+      <div class="mock-frame">
+        <div class="screen-grid">
+          <div class="callout">
+            <h3>淡金框：AI-ready</h3>
+            <p>資料已足夠，可交給 AI 產生摘要、風險描述或下一步建議，但尚未產出正式判讀。</p>
+          </div>
+          <div class="callout deep-gold">
+            <h3>深金框：AI 已判讀</h3>
+            <p>AI 已根據 script 採證、CMDB、帳號與效能資料產出判讀，畫面會保留來源與 fallback 狀態。</p>
+          </div>
+        </div>
+
+        <div class="flow">
+          <div class="flow-step">
+            <b>1. Shell 採證</b>
+            <span>nmap、SSH、WinRM、NMON、health endpoint。</span>
+          </div>
+          <div class="flow-step">
+            <b>2. Rule 判斷</b>
+            <span>先用 script / rule 判斷明確正常或異常。</span>
+          </div>
+          <div class="flow-step">
+            <b>3. AI-ready</b>
+            <span>資料足夠但需要語意整理時，標成淡金框。</span>
+          </div>
+          <div class="flow-step">
+            <b>4. AI 判讀</b>
+            <span>依 API Key、預算階級、L1/L2/L3 決定是否送判讀。</span>
+          </div>
+          <div class="flow-step">
+            <b>5. Script fallback</b>
+            <span>API 不可用或超預算時，保留現有 script 結果接手。</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
