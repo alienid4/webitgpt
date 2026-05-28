@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>webitgpt Before / After UI Change Map</title>
+  <style>
+    :root {
+      --ink: #102033;
+      --muted: #65758a;
+      --green: #007a5a;
+      --green-soft: #e8f7f1;
+      --line: #d7e1de;
+      --old: #f4f6f8;
+      --gold: #c88712;
+      --gold-soft: #fff7df;
+      --orange: #e87912;
+      --orange-soft: #fff3e6;
+      --red: #dc2626;
+      --red-soft: #fff1f1;
+      --blue: #2563eb;
+      --blue-soft: #eff6ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #eef3f1;
+      color: var(--ink);
+      font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif;
+    }
+
+    .page {
+      width: 1440px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .hero {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 28px 32px;
+      box-shadow: 0 16px 42px rgba(16, 32, 51, 0.08);
+    }
+
+    .eyebrow {
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+    }
+
+    h1 {
+      margin: 8px 0 10px;
+      font-size: 40px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      margin: 0;
+      width: 1030px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .summary div {
+      border: 1px solid #b8ddd0;
+      background: var(--green-soft);
+      border-radius: 10px;
+      padding: 13px;
+      font-weight: 900;
+      color: #0c4738;
+      min-height: 64px;
+    }
+
+    .change-row {
+      margin-top: 22px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 14px 34px rgba(16, 32, 51, 0.07);
+      overflow: hidden;
+    }
+
+    .change-title {
+      display: grid;
+      grid-template-columns: 1fr 210px 1fr;
+      gap: 16px;
+      align-items: center;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
+    }
+
+    .change-title h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.25;
+    }
+
+    .change-title .mid {
+      text-align: center;
+      color: var(--green);
+      font-weight: 900;
+      font-size: 16px;
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 210px 1fr;
+      gap: 16px;
+      padding: 20px 22px 24px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      min-height: 310px;
+      background: #ffffff;
+      overflow: hidden;
+    }
+
+    .panel.before {
+      background: var(--old);
+    }
+
+    .panel.after {
+      border-color: #9ed6c2;
+      background: #fbfffd;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #ffffff;
+      font-weight: 900;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      border: 1px solid var(--line);
+      background: #ffffff;
+      color: #425066;
+    }
+
+    .pill.green {
+      color: var(--green);
+      background: var(--green-soft);
+      border-color: #a8d8c7;
+    }
+
+    .pill.gold {
+      color: #8a5a00;
+      background: var(--gold-soft);
+      border-color: #dfb756;
+    }
+
+    .pill.orange {
+      color: #9a3412;
+      background: var(--orange-soft);
+      border-color: #fdba74;
+    }
+
+    .content {
+      padding: 14px;
+    }
+
+    .arrow {
+      display: grid;
+      place-items: center;
+      min-height: 310px;
+      text-align: center;
+    }
+
+    .arrow .box {
+      border: 2px solid var(--green);
+      background: var(--green-soft);
+      color: #073f32;
+      border-radius: 12px;
+      padding: 14px;
+      font-weight: 900;
+      line-height: 1.45;
+    }
+
+    .arrow .symbol {
+      display: block;
+      font-size: 34px;
+      color: var(--green);
+      margin: 12px 0;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .table th,
+    .table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .table th {
+      background: #f0f7f4;
+      color: #0b4737;
+      font-size: 12px;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 9px;
+    }
+
+    .mini {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      min-height: 74px;
+      background: #ffffff;
+      font-size: 13px;
+    }
+
+    .mini b {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 15px;
+    }
+
+    .mini.gold {
+      border: 2px solid var(--gold);
+      background: var(--gold-soft);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .small-card {
+      border: 1px solid var(--line);
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 10px;
+      min-height: 85px;
+      font-size: 12px;
+    }
+
+    .small-card b {
+      display: block;
+      color: var(--green);
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+
+    .map {
+      height: 250px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #ffffff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .lane {
+      position: absolute;
+      top: 18px;
+      bottom: 18px;
+      width: 118px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfdfc;
+      text-align: center;
+      padding-top: 10px;
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .lane.a { left: 18px; }
+    .lane.b { left: 164px; }
+    .lane.c { left: 310px; }
+    .lane.d { left: 456px; }
+
+    .node {
+      width: 88px;
+      min-height: 34px;
+      margin: 16px auto 0;
+      display: grid;
+      place-items: center;
+      border: 2px solid #abd8c8;
+      border-radius: 7px;
+      background: #ffffff;
+      color: #173a31;
+      font-size: 11px;
+      line-height: 1.2;
+      padding: 4px;
+    }
+
+    .node.red {
+      border-color: var(--red);
+      background: var(--red-soft);
+    }
+
+    .node.orange {
+      border-color: #fdba74;
+      background: var(--orange-soft);
+    }
+
+    .line {
+      position: absolute;
+      height: 2px;
+      background: var(--green);
+      transform-origin: left center;
+    }
+
+    .line.x1 { left: 104px; top: 135px; width: 96px; transform: rotate(-18deg); }
+    .line.x2 { left: 250px; top: 108px; width: 96px; transform: rotate(18deg); }
+    .line.x3 { left: 250px; top: 156px; width: 96px; transform: rotate(-12deg); }
+    .line.x4 { left: 396px; top: 108px; width: 96px; transform: rotate(12deg); }
+
+    .bad-map {
+      height: 250px;
+      border: 1px dashed #b9c1ca;
+      border-radius: 10px;
+      background: #ffffff;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      text-align: center;
+      padding: 28px;
+      line-height: 1.7;
+    }
+
+    .chart {
+      height: 210px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(#eef4f2 1px, transparent 1px) 0 0 / 100% 42px,
+        linear-gradient(90deg, #eef4f2 1px, transparent 1px) 0 0 / 64px 100%,
+        #ffffff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .spark {
+      position: absolute;
+      left: 28px;
+      right: 28px;
+      height: 4px;
+      border-radius: 99px;
+      background: var(--green);
+    }
+
+    .spark.cpu { top: 60px; box-shadow: 82px 20px 0 var(--orange), 160px -6px 0 var(--green), 250px 28px 0 var(--orange); }
+    .spark.mem { top: 118px; background: var(--blue); box-shadow: 100px 2px 0 var(--blue), 220px 6px 0 var(--blue); }
+    .spark.io { top: 170px; background: var(--gold); box-shadow: 120px -12px 0 var(--gold), 240px 12px 0 var(--gold); }
+
+    .note {
+      border: 2px solid var(--gold);
+      background: var(--gold-soft);
+      border-radius: 10px;
+      padding: 12px;
+      color: #60410d;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 1460px) {
+      .page { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="eyebrow">BEFORE / AFTER UI CHANGE MAP</div>
+      <h1>webitgpt 要改什麼：左邊現況，右邊升級後畫面</h1>
+      <p>
+        這份不是功能清單，而是把每個升級項目畫成「現在長怎樣、升級後長怎樣」。
+        中間綠框直接寫改動重點，方便討論哪些要做、先做哪幾個。
+      </p>
+      <div class="summary">
+        <div>1. 主機清單 → 主機健康卡</div>
+        <div>2. 拓撲圖 → ADM 影響圖</div>
+        <div>3. script 結果 → AI-ready 判讀框</div>
+        <div>4. NMON 圖表 → RU 容量建議</div>
+        <div>5. 沒有通訊表 → Port 需求表</div>
+      </div>
+    </section>
+
+    <section class="change-row">
+      <div class="change-title">
+        <h2>改動一：主機頁</h2>
+        <div class="mid">從「找資料」改成「看健康與下一步」</div>
+        <h2>升級到：Host Health Console</h2>
+      </div>
+      <div class="compare">
+        <div class="panel before">
+          <div class="panel-head">
+            <span>Before：主機資料表</span>
+            <span class="pill">目前感覺</span>
+          </div>
+          <div class="content">
+            <table class="table">
+              <thead>
+                <tr><th>Hostname</th><th>IP</th><th>OS</th><th>狀態</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>secapp198-14</td><td>10.92.198.14</td><td>RHEL</td><td>正常</td></tr>
+                <tr><td>secdb198-01</td><td>10.92.198.11</td><td>Linux</td><td>警示</td></tr>
+                <tr><td>secwin198-16</td><td>10.92.198.16</td><td>Windows</td><td>正常</td></tr>
+                <tr><td>scan-node</td><td>10.92.198.15</td><td>Linux</td><td>待檢</td></tr>
+              </tbody>
+            </table>
+            <p class="muted">問題：使用者看得到資料，但要自己判斷「這台主機現在要不要處理」。</p>
+          </div>
+        </div>
+
+        <div class="arrow">
+          <div class="box">
+            改什麼
+            <span class="symbol">→</span>
+            每台主機加入健康分數、採證完整度、異常摘要、owner/PAM、下一步建議
+          </div>
+        </div>
+
+        <div class="panel after">
+          <div class="panel-head">
+            <span>After：主機健康卡</span>
+            <span class="pill green">升級後</span>
+          </div>
+          <div class="content">
+            <div class="mini-grid">
+              <div class="mini"><b>健康分數 82</b>採證完整，AP 連線需確認。</div>
+              <div class="mini"><b>owner / PAM</b>維運組已對應，通知名單可產出。</div>
+              <div class="mini"><b>L1/L2/L3</b>L3 可交給 AI 判讀。</div>
+              <div class="mini gold"><b>下一步</b>確認 AP_PORT、health endpoint、防火牆。</div>
+            </div>
+            <p class="muted">結果：使用者一進主機頁，就知道「狀態、原因、該做什麼」。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="change-row">
+      <div class="change-title">
+        <h2>改動二：核心影響圖</h2>
+        <div class="mid">從「畫出關係」改成「判斷影響範圍」</div>
+        <h2>升級到：ADM 影響依賴圖</h2>
+      </div>
+      <div class="compare">
+        <div class="panel before">
+          <div class="panel-head">
+            <span>Before：拓撲 / 關聯圖</span>
+            <span class="pill">目前感覺</span>
+          </div>
+          <div class="content">
+            <div class="bad-map">
+              選一個系統時，畫面容易看到太多巡檢系統。<br>
+              右側有統計，但使用者仍要自己解讀：哪些主機、哪些服務、通知誰。
+            </div>
+          </div>
+        </div>
+
+        <div class="arrow">
+          <div class="box">
+            改什麼
+            <span class="symbol">→</span>
+            SYS → Service/Port → Host/IP → owner/PAM → 通知對象，只顯示該 SYS 的關係
+          </div>
+        </div>
+
+        <div class="panel after">
+          <div class="panel-head">
+            <span>After：ADM 影響圖</span>
+            <span class="pill green">升級後</span>
+          </div>
+          <div class="content">
+            <div class="map">
+              <div class="lane a">核心系統<div class="node red">巡檢系統</div></div>
+              <div class="lane b">服務 / Port<div class="node orange">web 8002</div><div class="node orange">Mongo 27017</div></div>
+              <div class="lane c">主機 / IP<div class="node">10.92.198.14</div><div class="node">192.168.1.221</div></div>
+              <div class="lane d">通知 / owner<div class="node">維運組</div><div class="node">PAM 已對應</div></div>
+              <div class="line x1"></div><div class="line x2"></div><div class="line x3"></div><div class="line x4"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="change-row">
+      <div class="change-title">
+        <h2>改動三：L3 / 異常判讀</h2>
+        <div class="mid">從「script 文字結果」改成「可判讀、已判讀、可接手」</div>
+        <h2>升級到：AI Judgement Layer</h2>
+      </div>
+      <div class="compare">
+        <div class="panel before">
+          <div class="panel-head">
+            <span>Before：文字輸出</span>
+            <span class="pill">目前感覺</span>
+          </div>
+          <div class="content">
+            <div class="note" style="border-color:#b9c1ca;background:#fff;color:#475569;">
+              AP 連線檢查目的：確認本機指定 port 或 health endpoint 是否可用。
+              結果未取得明確 LISTEN 或 health ok，可能是 AP 未啟動、port 設錯或防火牆阻擋。
+            </div>
+            <p class="muted">問題：內容有用，但人要自己讀完、自己轉成主管能理解的摘要。</p>
+          </div>
+        </div>
+
+        <div class="arrow">
+          <div class="box">
+            改什麼
+            <span class="symbol">→</span>
+            Shell 採證不變，新增淡金框 AI-ready、深金框 AI 已判讀、API 不可用時 script fallback
+          </div>
+        </div>
+
+        <div class="panel after">
+          <div class="panel-head">
+            <span>After：AI 判讀卡</span>
+            <span class="pill gold">金框語言</span>
+          </div>
+          <div class="content">
+            <div class="mini-grid">
+              <div class="mini gold"><b>AI-ready</b>資料足夠，可送 AI 產出摘要。</div>
+              <div class="mini gold"><b>AI 判讀結果</b>可能為 AP_PORT 或 health endpoint 設定問題。</div>
+              <div class="mini"><b>Script fallback</b>API 不可用時保留原 script 結果。</div>
+              <div class="mini"><b>主管摘要</b>目前未見主機失聯，建議先確認服務設定。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="change-row">
+      <div class="change-title">
+        <h2>改動四：效能月報</h2>
+        <div class="mid">從「有圖表」改成「有容量觀察建議」</div>
+        <h2>升級到：RU 效能建議</h2>
+      </div>
+      <div class="compare">
+        <div class="panel before">
+          <div class="panel-head">
+            <span>Before：NMON 圖表</span>
+            <span class="pill">目前感覺</span>
+          </div>
+          <div class="content">
+            <div class="chart"><div class="spark cpu"></div><div class="spark mem"></div><div class="spark io"></div></div>
+            <p class="muted">問題：看得到 CPU / Memory / I/O，但仍要維運人員自己寫結論。</p>
+          </div>
+        </div>
+
+        <div class="arrow">
+          <div class="box">
+            改什麼
+            <span class="symbol">→</span>
+            NMON 圖表旁新增「觀察結論、容量風險、是否需調整」摘要
+          </div>
+        </div>
+
+        <div class="panel after">
+          <div class="panel-head">
+            <span>After：RU 容量建議</span>
+            <span class="pill gold">AI-ready 摘要</span>
+          </div>
+          <div class="content">
+            <div class="note">
+              CPU 有偶發尖峰，但未形成持續性壓力；Memory 穩定，Disk I/O 建議觀察盤中尖峰時段。
+              若屬核心巡檢鏈路，建議列入一週追蹤。
+            </div>
+            <div class="cards" style="margin-top:10px;">
+              <div class="small-card"><b>結論</b>持續觀察</div>
+              <div class="small-card"><b>風險</b>低到中</div>
+              <div class="small-card"><b>動作</b>納入月報</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="change-row">
+      <div class="change-title">
+        <h2>改動五：採證通訊</h2>
+        <div class="mid">從「遇到問題才查 port」改成「安裝前就講清楚」</div>
+        <h2>升級到：Port Requirement Matrix</h2>
+      </div>
+      <div class="compare">
+        <div class="panel before">
+          <div class="panel-head">
+            <span>Before：分散在文件或 script</span>
+            <span class="pill">目前感覺</span>
+          </div>
+          <div class="content">
+            <table class="table">
+              <tbody>
+                <tr><td>SSH</td><td class="muted">script 裡才知道</td></tr>
+                <tr><td>WinRM</td><td class="muted">遇到 Windows 再確認</td></tr>
+                <tr><td>MongoDB</td><td class="muted">安裝失敗才排錯</td></tr>
+                <tr><td>API Key</td><td class="muted">驗證頁才看到</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="arrow">
+          <div class="box">
+            改什麼
+            <span class="symbol">→</span>
+            新增「採證通訊需求」頁，列出來源、Port、Protocol、用途、狀態、備註
+          </div>
+        </div>
+
+        <div class="panel after">
+          <div class="panel-head">
+            <span>After：Port 需求表</span>
+            <span class="pill green">升級後</span>
+          </div>
+          <div class="content">
+            <table class="table">
+              <thead>
+                <tr><th>Port</th><th>用途</th><th>狀態</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>22 SSH</td><td>Linux 採證</td><td><span class="pill green">可用</span></td></tr>
+                <tr><td>5985/5986</td><td>Windows 採證</td><td><span class="pill orange">需確認</span></td></tr>
+                <tr><td>8002</td><td>Web / health</td><td><span class="pill green">正常</span></td></tr>
+                <tr><td>27017</td><td>MongoDB</td><td><span class="pill green">正常</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
