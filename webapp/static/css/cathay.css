@@ -1047,6 +1047,45 @@ a.metric:hover {
   color: var(--c1);
 }
 
+.asset-optional-section {
+  display: block;
+}
+
+.asset-optional-section > summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+}
+
+.asset-optional-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.asset-optional-section > summary h2 {
+  margin: 0 0 4px;
+}
+
+.asset-optional-section[open] > summary {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--c4);
+  margin-bottom: 14px;
+}
+
+.asset-optional-section .step-collapse-label {
+  display: none;
+}
+
+.asset-optional-section[open] .step-expand-label {
+  display: none;
+}
+
+.asset-optional-section[open] .step-collapse-label {
+  display: inline;
+}
+
 .draft-created-table th:last-child,
 .draft-created-table td:last-child {
   width: 100px;

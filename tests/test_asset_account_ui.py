@@ -78,8 +78,14 @@ def test_asset_secondary_actions_are_grouped_and_scan_rows_are_expandable():
     assert "掃描帶入建議" in host_edit
     assert "先掃描，再矯正資產主檔" in host_edit
     assert "建議值只放進表單，仍需人工確認後儲存" in host_edit
+    assert "掃描方式：nmap TCP 常見服務優先" in host_edit
     assert "prefillScanForm" in host_edit
     assert "asset-prefill-panel" in css
+    assert "asset-optional-section" in host_edit
+    assert "asset-optional-section[open]" in css
+    assert "低頻操作，只有需要從 IPAM" in host_edit
+    assert "停用、申請下線、下線封存等低頻治理動作" in host_edit
+    assert "PAM 代號、業務窗口備註等非必要欄位" in host_edit
     assert "host_prefill_scan_submit" in host_routes
     assert "scan_host_prefill" in cmdb_service
     assert "after_save" in host_routes

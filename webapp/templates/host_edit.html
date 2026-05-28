@@ -48,6 +48,7 @@
       <div>
         <h2>先掃描，再矯正資產主檔</h2>
         <p class="text-muted-sm">用主要 IP 先採證，帶出 Hostname、OS、主機類型、連線方式與開放服務建議；建議值只放進表單，仍需人工確認後儲存。</p>
+        <p class="text-muted-sm">掃描方式：nmap TCP 常見服務優先（-Pn -R --open），無結果時改用 ARP/Ping 探測；只採證、不直接寫入主檔。</p>
       </div>
       <button class="btn secondary" form="prefillScanForm" type="submit">立即掃描這台</button>
     </div>
@@ -135,8 +136,14 @@
     </div>
 
     {% if mode != "new" %}
-    <div class="asset-edit-section">
-      <h2>IP 分配</h2>
+    <details class="asset-edit-section asset-optional-section">
+      <summary>
+        <div>
+          <h2>IP 分配</h2>
+          <p class="text-muted-sm">低頻操作，只有需要從 IPAM 挑下一個可用 IP 時再展開。</p>
+        </div>
+        <span class="btn secondary"><span class="step-expand-label">展開</span><span class="step-collapse-label">收合</span></span>
+      </summary>
       <p class="text-muted-sm">從 IPAM 網段挑下一個可用 IP。系統會避開已在 CMDB 使用或已預留的 IP。</p>
       <div class="asset-inline-tool">
         <select form="allocateIpForm" name="cidr" required>
@@ -147,12 +154,18 @@
         </select>
         <button form="allocateIpForm" class="btn secondary" type="submit">分配下一個可用 IP</button>
       </div>
-    </div>
+    </details>
     {% endif %}
 
     {% if mode != "new" and current_user.role in ["admin", "super", "superadmin"] %}
-    <div class="asset-edit-section asset-lifecycle-box">
-      <h2>資產生命週期</h2>
+    <details class="asset-edit-section asset-lifecycle-box asset-optional-section">
+      <summary>
+        <div>
+          <h2>資產生命週期</h2>
+          <p class="text-muted-sm">停用、申請下線、下線封存等低頻治理動作，預設收合。</p>
+        </div>
+        <span class="btn secondary"><span class="step-expand-label">展開</span><span class="step-collapse-label">收合</span></span>
+      </summary>
       <p class="text-muted-sm">掃描誤建的草稿可以刪除；正式資產請走停用、申請下線或下線封存，系統會留下操作紀錄。</p>
       {% if host.lifecycle_reason %}
       <div class="notice">最近處理：{{ host.lifecycle_reason }} / {{ host.lifecycle_updated_by or "-" }}</div>
@@ -173,12 +186,18 @@
         <button form="assetLifecycleForm" class="btn primary" name="action" value="restore" type="submit">恢復使用中</button>
         {% endif %}
       </div>
-    </div>
+    </details>
     {% endif %}
 
     {% if extension_definitions %}
-    <div class="asset-edit-section">
-      <h2>擴充欄位</h2>
+    <details class="asset-edit-section asset-optional-section">
+      <summary>
+        <div>
+          <h2>擴充欄位</h2>
+          <p class="text-muted-sm">PAM 代號、業務窗口備註等非必要欄位，使用時再展開。</p>
+        </div>
+        <span class="btn secondary"><span class="step-expand-label">展開</span><span class="step-collapse-label">收合</span></span>
+      </summary>
       <div class="asset-edit-grid">
         {% for item in extension_definitions %}
         {% set ext_value = (host.extensions or {}).get(item.key, "") %}
@@ -188,7 +207,7 @@
         </label>
         {% endfor %}
       </div>
-    </div>
+    </details>
     {% endif %}
 
     <div class="asset-edit-actions">
