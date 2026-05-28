@@ -107,13 +107,6 @@
   </section>
 
   <section class="panel compact">
-    <form class="asset-draft-form" method="post" action="{{ url_for('api_hosts.host_draft_submit') }}">
-      <strong>快速建立草稿</strong>
-      <input name="asset_name" placeholder="資產名稱 / 系統名稱" required>
-      <input name="ticket" placeholder="需求單號">
-      <button class="btn secondary" type="submit">建立草稿</button>
-      {% if request.args.get("draft_error") %}<span class="text-muted-sm">{{ request.args.get("draft_error") }}</span>{% endif %}
-    </form>
     <div class="saved-view-row">
       <strong>常用篩選</strong>
       {% if request.args.get("save_view_error") %}<span class="text-muted-sm">{{ request.args.get("save_view_error") }}</span>{% endif %}

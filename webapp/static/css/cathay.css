@@ -1461,16 +1461,6 @@ a.metric:hover {
 }
 .asset-edit-grid textarea { resize: vertical; }
 .asset-edit-grid .span-2 { grid-column: span 2; }
-.asset-draft-form {
-  display: grid;
-  grid-template-columns: auto minmax(220px, 1fr) minmax(150px, .5fr) auto;
-  gap: 8px;
-  align-items: center;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid var(--bg2);
-}
-.asset-draft-form input { min-height: 36px; }
 .asset-inline-tool {
   display: grid;
   grid-template-columns: minmax(260px, 1fr) auto;
@@ -3534,7 +3524,6 @@ button.is-busy {
   .asset-edit-hero { flex-direction: column; }
   .asset-edit-grid { grid-template-columns: 1fr; }
   .asset-edit-grid .span-2 { grid-column: auto; }
-  .asset-draft-form,
   .asset-inline-tool { grid-template-columns: 1fr; }
   .admin-sidebar { position: static; }
   .admin-hero, .admin-section-head { align-items: flex-start; flex-direction: column; }
