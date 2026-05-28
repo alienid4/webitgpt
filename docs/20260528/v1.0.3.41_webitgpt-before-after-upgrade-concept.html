@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>webitgpt 升級前後概念畫面</title>
+  <style>
+    :root {
+      --ink: #122033;
+      --muted: #637083;
+      --green: #006b4a;
+      --green-2: #16a078;
+      --line: #d9e2df;
+      --gold: #c78a14;
+      --gold-bg: #fff8e8;
+      --paper: #fbfcfd;
+      --soft: #eef7f3;
+      --old: #f5f6f7;
+      --old-line: #b9c1ca;
+      --warn: #d97706;
+      --ok: #059669;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #edf3f1;
+      color: var(--ink);
+      font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif;
+    }
+
+    .page {
+      width: 1440px;
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 32px;
+    }
+
+    .hero {
+      background:
+        radial-gradient(circle at 82% 8%, rgba(22, 160, 120, 0.12), transparent 28%),
+        linear-gradient(135deg, #ffffff 0%, #f9fcfb 100%);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 30px 34px;
+      box-shadow: 0 18px 45px rgba(18, 32, 51, 0.08);
+    }
+
+    .eyebrow {
+      color: var(--green);
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 8px 0 10px;
+      font-size: 40px;
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      width: 980px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.65;
+      margin: 0;
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+      margin-top: 24px;
+    }
+
+    .panel {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 24px;
+      min-height: 660px;
+      box-shadow: 0 10px 28px rgba(18, 32, 51, 0.07);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel.before {
+      background: linear-gradient(180deg, #ffffff 0%, var(--old) 100%);
+    }
+
+    .panel.after {
+      background: linear-gradient(180deg, #ffffff 0%, #f5fbf8 100%);
+      border-color: #a7d8c5;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 14px;
+      margin-bottom: 18px;
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.25;
+    }
+
+    .tag {
+      border-radius: 999px;
+      padding: 8px 13px;
+      font-size: 13px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .before .tag {
+      background: #eef0f2;
+      color: #4a5565;
+      border: 1px solid var(--old-line);
+    }
+
+    .after .tag {
+      background: #e7f7f1;
+      color: var(--green);
+      border: 1px solid #91cfba;
+    }
+
+    .mock-topbar {
+      height: 46px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      margin-bottom: 14px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #1f3143;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green-2);
+    }
+
+    .nav {
+      display: flex;
+      gap: 8px;
+      margin-left: auto;
+      color: #6b7686;
+      font-size: 12px;
+    }
+
+    .nav span {
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: #f1f4f4;
+    }
+
+    .before-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .old-card {
+      border: 1px solid var(--old-line);
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 118px;
+      background: #ffffff;
+    }
+
+    .old-card h3,
+    .new-card h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+      line-height: 1.25;
+    }
+
+    .old-card p,
+    .new-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .silo {
+      margin-top: 14px;
+      border: 1px dashed #b7c0c8;
+      border-radius: 8px;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .silo h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+
+    .silo-row {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 9px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .bar {
+      height: 10px;
+      border-radius: 999px;
+      background: #e3e8eb;
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      background: #aeb8c1;
+    }
+
+    .after-map {
+      display: grid;
+      grid-template-columns: 190px 1fr 190px;
+      gap: 14px;
+      align-items: stretch;
+      margin-bottom: 16px;
+    }
+
+    .rail,
+    .center-map {
+      border: 1px solid #b8ddd0;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.86);
+      padding: 14px;
+    }
+
+    .rail h3,
+    .center-map h3 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      color: var(--green);
+    }
+
+    .pill {
+      display: block;
+      border: 1px solid #b8ddd0;
+      border-radius: 999px;
+      padding: 9px 10px;
+      margin-bottom: 8px;
+      background: var(--soft);
+      font-size: 13px;
+      font-weight: 800;
+      color: #173a31;
+    }
+
+    .layer {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 7px;
+      margin-bottom: 7px;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .l1 { background: #4267b2; }
+    .l2 { background: #4c9f70; }
+    .l3 { background: #d1a13b; }
+    .l4 { background: #9b6fd3; }
+    .l5 { background: #5a7d8c; }
+    .l6 { background: #34495e; }
+
+    .new-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .new-card {
+      border: 1px solid #a7d8c5;
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 14px;
+      min-height: 118px;
+    }
+
+    .new-card.gold {
+      border: 2px solid var(--gold);
+      background: var(--gold-bg);
+    }
+
+    .new-card h3 {
+      color: #0b4737;
+    }
+
+    .source {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 999px;
+      padding: 5px 8px;
+      margin-top: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--gold);
+      background: #fff3d5;
+      border: 1px solid #e5bb61;
+    }
+
+    .benefits {
+      margin-top: 24px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .metric {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 18px 18px 16px;
+      box-shadow: 0 10px 28px rgba(18, 32, 51, 0.06);
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 30px;
+      color: var(--green);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .roadmap {
+      margin-top: 24px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 10px 28px rgba(18, 32, 51, 0.06);
+    }
+
+    .roadmap h2 {
+      margin: 0 0 14px;
+      font-size: 26px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+    }
+
+    .step {
+      border-top: 5px solid var(--green);
+      background: var(--soft);
+      border-radius: 8px;
+      padding: 13px;
+      min-height: 118px;
+    }
+
+    .step b {
+      display: block;
+      color: var(--green);
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .step span {
+      display: block;
+      color: #2f4051;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1460px) {
+      .page {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="eyebrow">UPGRADE CONCEPT</div>
+      <h1>從巡檢工具升級為維運影響判斷平台</h1>
+      <p class="lead">
+        強化方向不是增加更多分散功能，而是把資產、帳號、Port、效能、核心影響與通知對象放在同一個維運視角中。
+        採證維持低侵入，判讀逐步導入規則與 AI 輔助，讓事件發生時更快形成可回報、可追蹤、可交接的結論。
+      </p>
+    </section>
+
+    <section class="compare">
+      <article class="panel before">
+        <div class="panel-title">
+          <h2>升級前：功能已具備，但使用者需要自己串線</h2>
+          <span class="tag">分頁式維運資料</span>
+        </div>
+
+        <div class="mock-topbar">
+          <span class="dot"></span>
+          IT 巡檢系統
+          <div class="nav">
+            <span>資產</span>
+            <span>帳號</span>
+            <span>效能</span>
+            <span>拓撲</span>
+          </div>
+        </div>
+
+        <div class="before-grid">
+          <div class="old-card">
+            <h3>資產管理</h3>
+            <p>CMDB、主機、IP、草稿區可查詢，但事件影響需要人工判斷。</p>
+          </div>
+          <div class="old-card">
+            <h3>帳號盤點</h3>
+            <p>OS 與 AP 帳號資料可匯入，owner、PAM 與權限關聯仍需補強。</p>
+          </div>
+          <div class="old-card">
+            <h3>效能月報</h3>
+            <p>NMON 與 EOS 可整理成報表，但尚未直接回扣到事件影響。</p>
+          </div>
+          <div class="old-card">
+            <h3>系統拓撲</h3>
+            <p>可視化已出現，但關聯、通知與判讀來源還需要更清楚標示。</p>
+          </div>
+        </div>
+
+        <div class="silo">
+          <h3>現場痛點</h3>
+          <div class="silo-row">
+            <span>跨頁查證時間</span>
+            <div class="bar"><span style="width: 84%"></span></div>
+          </div>
+          <div class="silo-row">
+            <span>人工整理依賴</span>
+            <div class="bar"><span style="width: 76%"></span></div>
+          </div>
+          <div class="silo-row">
+            <span>影響範圍可視性</span>
+            <div class="bar"><span style="width: 42%"></span></div>
+          </div>
+          <div class="silo-row">
+            <span>判讀來源透明度</span>
+            <div class="bar"><span style="width: 48%"></span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel after">
+        <div class="panel-title">
+          <h2>升級後：以事件為中心，自動收斂影響與證據</h2>
+          <span class="tag">維運影響判斷平台</span>
+        </div>
+
+        <div class="mock-topbar">
+          <span class="dot"></span>
+          webitgpt 維運工作台
+          <div class="nav">
+            <span>Discovery</span>
+            <span>Impact</span>
+            <span>AI-ready</span>
+          </div>
+        </div>
+
+        <div class="after-map">
+          <div class="rail">
+            <h3>採證來源</h3>
+            <span class="pill">CMDB / Excel</span>
+            <span class="pill">nmap / Port</span>
+            <span class="pill">SSH / WinRM</span>
+            <span class="pill">NMON / EOS</span>
+            <span class="pill">PAM / owner</span>
+          </div>
+
+          <div class="center-map">
+            <h3>維運關聯層</h3>
+            <div class="layer l6">核心系統</div>
+            <div class="layer l5">應用 / 服務 / Port</div>
+            <div class="layer l4">主機 / IP / OS</div>
+            <div class="layer l3">帳號 / PAM / owner</div>
+            <div class="layer l2">效能 / EOS / 生命週期</div>
+            <div class="layer l1">通知對象 / 影響清單</div>
+          </div>
+
+          <div class="rail">
+            <h3>輸出結果</h3>
+            <span class="pill">核心影響圖</span>
+            <span class="pill">L3 深度檢查</span>
+            <span class="pill">異常摘要</span>
+            <span class="pill">通知名單</span>
+            <span class="pill">主管回報</span>
+          </div>
+        </div>
+
+        <div class="new-grid">
+          <div class="new-card">
+            <h3>Agentless 採證</h3>
+            <p>以現有管理通道收集資料，降低導入阻力，不先改變主機環境。</p>
+          </div>
+          <div class="new-card">
+            <h3>Port 需求透明</h3>
+            <p>把 SSH、WinRM、HTTP、Mongo、API endpoint 需求整理成一張表。</p>
+          </div>
+          <div class="new-card">
+            <h3>ADM 影響圖</h3>
+            <p>從核心系統展開到主機、服務、帳號、通知對象與受影響範圍。</p>
+          </div>
+          <div class="new-card">
+            <h3>RU 效能建議</h3>
+            <p>NMON 與效能月報不只呈現數據，也協助形成調整或觀察建議。</p>
+          </div>
+          <div class="new-card gold">
+            <h3>AI 判讀層</h3>
+            <p>Shell 負責採證，規則與 AI 負責判讀；API 不可用時保留 script 接手。</p>
+            <span class="source">AI-ready / AI 判讀可視化</span>
+          </div>
+          <div class="new-card">
+            <h3>可交接報告</h3>
+            <p>把事件、證據、影響、建議、後續確認項目整理成一致格式。</p>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="benefits">
+      <div class="metric">
+        <strong>更快</strong>
+        <span>減少跨工具查證與人工整理時間，盤中異常更快形成初步摘要。</span>
+      </div>
+      <div class="metric">
+        <strong>更清楚</strong>
+        <span>每個異常可回到資產、帳號、Port、效能與通知對象。</span>
+      </div>
+      <div class="metric">
+        <strong>更可控</strong>
+        <span>AI 只做判讀輔助，script fallback 保留，避免單點依賴。</span>
+      </div>
+      <div class="metric">
+        <strong>更好推廣</strong>
+        <span>以既有資料與低侵入採證開始，逐步擴大到更多系統。</span>
+      </div>
+    </section>
+
+    <section class="roadmap">
+      <h2>可納入後續升級的六個產品化方向</h2>
+      <div class="steps">
+        <div class="step">
+          <b>Asset Discovery</b>
+          <span>CMDB、主機、IP、草稿區、匯入檢核與欄位治理。</span>
+        </div>
+        <div class="step">
+          <b>Account Intelligence</b>
+          <span>OS / AP 帳號、PAM、owner、權限與異常帳號彙整。</span>
+        </div>
+        <div class="step">
+          <b>Service & Port Mapping</b>
+          <span>nmap、port、health endpoint 與服務通訊需求表。</span>
+        </div>
+        <div class="step">
+          <b>Dependency Impact Map</b>
+          <span>核心系統、主機、通知對象與可能受影響範圍。</span>
+        </div>
+        <div class="step">
+          <b>Performance & Lifecycle</b>
+          <span>NMON、效能月報、EOS 摘要與容量觀察建議。</span>
+        </div>
+        <div class="step">
+          <b>AI Judgement Layer</b>
+          <span>L1 / L2 / L3、AI-ready、AI 判讀與 script fallback。</span>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
