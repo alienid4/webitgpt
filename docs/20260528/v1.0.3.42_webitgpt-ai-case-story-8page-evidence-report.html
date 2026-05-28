@@ -611,21 +611,21 @@
       <div class="proof-wide">
         <div class="proof-strip two" style="margin-top: 0;">
           <div class="shot">
-            <img src="screenshots-live/v1.0.3.42_live_opening-check.png" alt="實機開門檢查畫面">
+            <img src="screenshots-live/v1.0.3.42_live_opening-check-l3-host.png" alt="實機開門檢查與 L3 主機畫面">
             <div class="shot-label"><span>開門檢查</span><span>實機畫面</span></div>
           </div>
           <div class="shot">
-            <img src="screenshots-live/v1.0.3.42_live_account-inventory.png" alt="實機 L3 深度判讀畫面">
-            <div class="shot-label"><span>L3 深度判讀</span><span>實機畫面</span></div>
+            <img src="screenshots-live/v1.0.3.42_live_l3-ap-remedy-detail.png" alt="實機 L3 AP 連線與 Remedy 畫面">
+            <div class="shot-label"><span>L3 Remedy</span><span>實機畫面</span></div>
           </div>
         </div>
         <div class="proof-copy">
           <h3>畫面證據</h3>
-          <p>開門檢查頁面可作為盤前觀察訊號；L3 深度判讀畫面則說明資料可進一步整理成風險與建議。</p>
+          <p>開門檢查先看到主機健康分數與警示數；L3 Remedy 再把 AP 連線問題整理成可確認的原因與下一步。</p>
           <ul>
-            <li>可選擇開門檢查系統。</li>
-            <li>可看到正常、警示、待檢摘要。</li>
-            <li>可延伸到 L3 深度判讀與平台別檢查。</li>
+            <li>盤前先看哪台主機有警示。</li>
+            <li>盤中可直接展開 L3，看 AP、網路、服務等面向。</li>
+            <li>對主管回報時，可說明問題點、警示門檻與建議處置。</li>
           </ul>
         </div>
       </div>
@@ -634,41 +634,41 @@
     </section>
 
     <section class="slide">
-      <div class="kicker">Current Evidence</div>
-      <h2>平台要補上的，是巡檢後到決策前的整理流程。</h2>
+      <div class="kicker">Expected Benefits</div>
+      <h2>主管會問的效益：縮短判斷時間，減少漏看與反覆追問。</h2>
       <p class="lead">
-        webitgpt 將資產、帳號、拓撲、效能與巡檢放到同一個維運工作台。
-        目標不是多做一張報表，而是讓事件發生時，更快看見「誰可能受影響、證據在哪、下一步可先確認什麼」。
+        這個平台的價值不只是多一張報表，而是把開門檢查、L3 判讀、核心影響與通知對象串起來。
+        事件發生時，維運可以少花時間找資料，把時間留給確認與處置。
       </p>
       <div class="grid-2">
         <article class="card">
-          <h3>目前可見的落地畫面</h3>
+          <h3>盤前與盤中效益</h3>
           <ul>
-            <li>資產管理可呈現正式資產、草稿、匯入與欄位治理。</li>
-            <li>安裝後驗證可呈現 API Key 與 Script 檢查語意。</li>
-            <li>畫面可以直接作為備詢證據，不只靠口頭說明。</li>
+            <li>開門檢查先收斂正常、警示、待檢項目。</li>
+            <li>L3 把警示轉成問題點、門檻與建議處置。</li>
+            <li>核心影響圖協助確認可能受影響系統與通知對象。</li>
           </ul>
         </article>
         <article class="card green">
-          <h3>後續接手重點</h3>
+          <h3>管理效益</h3>
           <ul>
-            <li>把每個畫面對應到驗收案例。</li>
-            <li>逐步補齊帳號、owner 與通知欄位。</li>
-            <li>把安裝、patch、移植與回滾流程文件化。</li>
+            <li>降低臨時翻資料、跨工具比對與人工彙整時間。</li>
+            <li>回報內容從「有異常」提升到「影響、證據、下一步」。</li>
+            <li>把處置過程留成可回顧、可交接、可追蹤的紀錄。</li>
           </ul>
         </article>
       </div>
       <div class="proof-strip two">
         <div class="shot">
-          <img src="screenshots-live/v1.0.3.42_live_asset-management.png" alt="實機 資產管理畫面">
-          <div class="shot-label"><span>資產 / CMDB</span><span>實機畫面</span></div>
+          <img src="screenshots-live/v1.0.3.42_live_l3-ap-remedy-detail.png" alt="實機 L3 AP 連線 Remedy 畫面">
+          <div class="shot-label"><span>L3 判讀</span><span>實機畫面</span></div>
         </div>
         <div class="shot">
-          <img src="screenshots-live/v1.0.3.42_live_post-install.png" alt="實機 安裝後驗證畫面">
-          <div class="shot-label"><span>驗證 / API</span><span>實機畫面</span></div>
+          <img src="screenshots-live/v1.0.3.42_live_core-impact-graph.png" alt="實機 核心影響關聯圖畫面">
+          <div class="shot-label"><span>影響範圍</span><span>實機畫面</span></div>
         </div>
       </div>
-      <div class="footer">pain points and expected value</div>
+      <div class="footer">expected benefits</div>
       <div class="page">2 / 8</div>
     </section>
 
@@ -694,7 +694,7 @@
         </div>
         <div class="evidence-shots">
           <div class="shot">
-            <img src="screenshots-live/v1.0.3.42_live_core-impact-fullscreen.png" alt="實機 核心影響圖畫面">
+            <img src="screenshots-live/v1.0.3.42_live_core-impact-graph.png" alt="實機 核心影響圖畫面">
             <div class="shot-label"><span>核心影響圖</span><span>實機畫面</span></div>
           </div>
           <div class="shot">
@@ -795,7 +795,7 @@
         </article>
         <article class="evidence-card">
           <div class="shot">
-            <img src="screenshots-live/v1.0.3.42_live_core-impact-fullscreen.png" alt="實機 核心影響圖畫面">
+            <img src="screenshots-live/v1.0.3.42_live_core-impact-graph.png" alt="實機 核心影響圖畫面">
             <div class="shot-label"><span>核心影響圖</span><span>實機畫面</span></div>
           </div>
           <div class="evidence-card-body">
@@ -1016,7 +1016,7 @@
           <div class="shot-label"><span>帳號 / 權限</span><span>實機畫面</span></div>
         </div>
         <div class="shot">
-          <img src="screenshots-live/v1.0.3.42_live_core-impact-fullscreen.png" alt="實機 共同流程畫面">
+          <img src="screenshots-live/v1.0.3.42_live_core-impact-graph.png" alt="實機 共同流程畫面">
           <div class="shot-label"><span>共同流程</span><span>實機畫面</span></div>
         </div>
       </div>
