@@ -546,6 +546,7 @@ def test_ai_judgement_visual_contrast_cards_exist():
     assert "judgement-source-card script" in accounts
     assert "judgement-source-card data" in accounts
     assert "judgement-source-card ai-ready" in accounts
+    assert "compact-note" in accounts
     assert "Shell / Script 採證" in accounts
     assert "L3 可交給 AI 深度判讀" in accounts
     assert "judgement-source-panel" in ai_settings
@@ -560,6 +561,7 @@ def test_ai_judgement_visual_contrast_cards_exist():
         ".judgement-source-card.data",
         ".judgement-source-card.fallback",
         ".judgement-source-path",
+        ".compact-note",
         ".source-badge.ai-ready",
     ]:
         assert token in css

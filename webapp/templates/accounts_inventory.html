@@ -51,15 +51,24 @@
     <section class="judgement-source-panel" aria-label="帳號盤點判斷來源">
       <article class="judgement-source-card script">
         <strong><span class="source-badge script">Script 採證</span>OS 帳號</strong>
-        <p>由主機 Script 讀取帳號、群組與登入資訊。這是證據來源，不是 AI 結論。</p>
+        <details class="compact-note">
+          <summary>說明</summary>
+          <p>由主機 Script 讀取帳號、群組與登入資訊。這是證據來源，不是 AI 結論。</p>
+        </details>
       </article>
       <article class="judgement-source-card data">
         <strong><span class="source-badge cmdb">資料規則</span>AP / PAM</strong>
-        <p>AP CSV / Excel、owner、PAM 與權限欄位用規則判斷缺漏與待複核。</p>
+        <details class="compact-note">
+          <summary>說明</summary>
+          <p>AP CSV / Excel、owner、PAM 與權限欄位用規則判斷缺漏與待複核。</p>
+        </details>
       </article>
       <article class="judgement-source-card ai-ready">
         <strong><span class="source-badge ai-ready">L3 可交給 AI 判讀</span>深度風險</strong>
-        <p>目前是 AI-ready：可交給 AI 跨 OS、AP、PAM 與 CMDB 綜合判讀；未啟用時由規則接手。</p>
+        <details class="compact-note">
+          <summary>說明</summary>
+          <p>目前是 AI-ready：可交給 AI 跨 OS、AP、PAM 與 CMDB 綜合判讀；未啟用時由規則接手。</p>
+        </details>
       </article>
     </section>
     <section class="judgement-source-path" aria-label="帳號判斷流程">

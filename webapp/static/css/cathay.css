@@ -1865,7 +1865,7 @@ a.metric:hover {
   position: relative;
   display: grid;
   gap: 8px;
-  min-height: 116px;
+  min-height: 74px;
   border: 1px solid var(--c4);
   border-left: 6px solid var(--c3);
   border-radius: var(--radius-sm);
@@ -1885,6 +1885,40 @@ a.metric:hover {
   margin: 0;
   color: var(--c2);
   line-height: 1.55;
+}
+
+.compact-note {
+  color: var(--c2);
+  font-size: 13px;
+}
+
+.compact-note > summary {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  color: var(--c2);
+  font-weight: 800;
+}
+
+.compact-note > summary::-webkit-details-marker {
+  display: none;
+}
+
+.compact-note > summary::before {
+  content: "▸";
+  color: var(--g-text);
+  font-size: 11px;
+}
+
+.compact-note[open] > summary::before {
+  content: "▾";
+}
+
+.compact-note p {
+  margin-top: 8px;
+  font-size: 13px;
 }
 
 .judgement-source-card.script {
