@@ -876,6 +876,51 @@ a.metric:hover {
   font-size: 13px;
 }
 
+.asset-create-step {
+  display: block;
+}
+
+.asset-create-step > summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+}
+
+.asset-create-step > summary::-webkit-details-marker {
+  display: none;
+}
+
+.asset-create-step > summary h2 {
+  margin: 0;
+}
+
+.asset-create-step[open] > summary {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--c4);
+  margin-bottom: 14px;
+}
+
+.asset-create-step[open] > summary .btn {
+  background: var(--g-light);
+  border-color: var(--g1);
+  color: var(--g-text);
+}
+
+.asset-create-step .step-collapse-label {
+  display: none;
+}
+
+.asset-create-step[open] .step-expand-label {
+  display: none;
+}
+
+.asset-create-step[open] .step-collapse-label {
+  display: inline;
+}
+
 .draft-next-step {
   display: flex;
   flex-wrap: wrap;
@@ -942,7 +987,7 @@ a.metric:hover {
 
 .draft-workflow-steps {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 

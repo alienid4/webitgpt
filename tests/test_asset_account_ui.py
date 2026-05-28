@@ -69,9 +69,17 @@ def test_asset_secondary_actions_are_grouped_and_scan_rows_are_expandable():
     assert "進入草稿區處理" in host_new
     assert "草稿區下一步" in hosts
     assert "新增完成，共" in hosts
+    assert '<details class="panel asset-create-step" id="single-create">' in host_new
+    assert '<details class="panel asset-create-step" id="csv-import" {% if import_result %}open{% endif %}>' in host_new
+    assert '<details class="panel asset-create-step" id="network-scan" {% if scan_report or scan_created %}open{% endif %}>' in host_new
+    assert "step-expand-label" in host_new
+    assert "驗證或人工確認主機識別、負責人與用途" in host_new
+    assert "3 驗證 / 確認資料" in hosts
+    assert "4 批次轉正式，完成新增" in hosts
     assert "{% if host.status == \"draft\" %}補資料{% else %}編輯{% endif %}" in hosts
     assert "draft-next-panel" in css
     assert "draft-workflow-panel" in css
+    assert "asset-create-step[open]" in css
     assert "asset-action-menu-panel" in css
     assert "scan-result-table" in css
 

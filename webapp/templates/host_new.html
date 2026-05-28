@@ -104,21 +104,35 @@
   {% endif %}
 </section>
 
-<section class="panel" id="single-create">
-  <div class="page-header">
+<details class="panel asset-create-step" id="single-create">
+  <summary>
     <div>
       <h2>1. 單筆新增</h2>
       <p class="text-muted-sm">適合新申請主機、已完成 IP 配發，準備補齊資產資料的情境。</p>
     </div>
+    <span class="btn secondary"><span class="step-expand-label">展開</span><span class="step-collapse-label">收合</span></span>
+  </summary>
+  <div class="page-header">
+    <div>
+      <h3>建立單台主機</h3>
+      <p class="text-muted-sm">會進入完整表單，適合資料已明確的主機。</p>
+    </div>
     <a class="btn primary" href="{{ url_for('api_hosts.host_new_full_page') }}">開完整新增表單</a>
   </div>
-</section>
+</details>
 
-<section class="panel" id="csv-import">
-  <div class="page-header">
+<details class="panel asset-create-step" id="csv-import" {% if import_result %}open{% endif %}>
+  <summary>
     <div>
       <h2>2. CSV / Excel 大量匯入</h2>
       <p class="text-muted-sm">適合一次匯入大量主機。可用 CSV 或 .xlsx；匯入後會顯示成功、失敗與草稿筆數。</p>
+    </div>
+    <span class="btn secondary"><span class="step-expand-label">展開</span><span class="step-collapse-label">收合</span></span>
+  </summary>
+  <div class="page-header">
+    <div>
+      <h3>匯入清冊</h3>
+      <p class="text-muted-sm">請先下載範本確認欄位，再匯入 CSV 或 Excel。</p>
     </div>
     <div class="asset-actions">
       <a class="btn secondary" href="{{ url_for('api_hosts.csv_template') }}">下載 CSV 範本</a>
@@ -132,13 +146,19 @@
     <button class="btn primary" type="submit">匯入 CSV / Excel</button>
   </form>
   <div class="submit-status" hidden aria-live="polite"></div>
-</section>
+</details>
 
-<section class="panel" id="network-scan">
-  <div class="page-header">
+<details class="panel asset-create-step" id="network-scan" {% if scan_report or scan_created %}open{% endif %}>
+  <summary>
     <div>
       <h2>3. 網段掃描新增</h2>
       <p class="text-muted-sm">用在你知道某個網段有主機，但不確定哪些還沒加入資產管理。掃描只會先建立草稿，不會直接正式納管。</p>
+    </div>
+    <span class="btn secondary"><span class="step-expand-label">展開</span><span class="step-collapse-label">收合</span></span>
+  </summary>
+  <div class="page-header">
+    <div>
+      <h3>掃描網段並建立待補草稿</h3>
       <p class="text-muted-sm">掃描結果會盡量列出 IP、hostname、OS 判斷、開放服務與是否已納管；不同網段、NAT 或防火牆可能讓結果少於 VM 清單。</p>
     </div>
   </div>
@@ -261,6 +281,7 @@
   <ol class="draft-next-steps">
     <li>補齊系統名稱、owner、環境、用途與必要 CMDB 欄位。</li>
     <li>確認 IP / Hostname / OS 判斷沒有誤建或重複。</li>
+    <li>驗證或人工確認主機識別、負責人與用途。</li>
     <li>回草稿區勾選，批次轉正式，才算完成主機新增。</li>
   </ol>
   <table class="data-table draft-created-table">
@@ -277,6 +298,6 @@
     </tbody>
   </table>
   {% endif %}
-</section>
+</details>
 <script src="{{ url_for('static', filename='js/host_new.js', v=asset_version) }}"></script>
 {% endblock %}
