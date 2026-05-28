@@ -69,9 +69,19 @@ def test_asset_secondary_actions_are_grouped_and_scan_rows_are_expandable():
     assert "進入草稿區處理" in host_new
     assert "草稿區下一步" in hosts
     assert "新增完成，共" in hosts
+    assert "資產已儲存，已回到資產管理列表" in hosts
+    assert "儲存並回資產管理" in read("webapp/templates/host_edit.html")
+    assert "儲存後繼續編輯" in read("webapp/templates/host_edit.html")
+    assert "after_save" in read("webapp/routes/api_hosts.py")
+    assert "asset_saved" in read("webapp/routes/api_hosts.py")
+    assert "新增方式導覽" in host_new
+    assert "判斷標籤與來源說明預設收合" in host_new
+    assert '<details class="panel compact asset-helper-panel">' in host_new
+    assert '<details class="judgement-source-legend asset-helper-panel"' in host_new
     assert '<details class="panel asset-create-step" id="single-create">' in host_new
     assert '<details class="panel asset-create-step" id="csv-import" {% if import_result %}open{% endif %}>' in host_new
-    assert '<details class="panel asset-create-step" id="network-scan" {% if scan_report or scan_created %}open{% endif %}>' in host_new
+    assert '<details class="panel asset-create-step" id="network-scan">' in host_new
+    assert "展開第 3 步查看掃描結果" in host_new
     assert "step-expand-label" in host_new
     assert "驗證或人工確認主機識別、負責人與用途" in host_new
     assert "3 驗證 / 確認資料" in hosts
@@ -80,8 +90,10 @@ def test_asset_secondary_actions_are_grouped_and_scan_rows_are_expandable():
     assert "draft-next-panel" in css
     assert "draft-workflow-panel" in css
     assert "asset-create-step[open]" in css
+    assert "asset-helper-panel[open]" in css
     assert "asset-action-menu-panel" in css
     assert "scan-result-table" in css
+    assert "openHashTarget" in read("webapp/static/js/host_new.js")
 
 
 def test_account_metrics_link_to_detail_views():

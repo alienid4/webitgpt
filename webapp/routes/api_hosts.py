@@ -299,11 +299,10 @@ def _host_form_data() -> dict:
 
 
 def _host_new_context(**extra: dict) -> dict:
-    last_scan_report = cmdb_service.latest_network_reconcile("") or None
     context = {
         "errors": None,
         "import_result": None,
-        "scan_report": last_scan_report,
+        "scan_report": None,
         "scan_created": None,
         "scan_skipped": None,
         "ipam_networks": cmdb_service.list_networks(),
@@ -451,7 +450,9 @@ def host_new_submit():
     try:
         host = host_service.create_host(_host_form_data(), user=current_user()["username"])
         audit_log_service.append("host.create", current_user()["username"], {"hostname": host["hostname"], "asset_seq": host["asset_seq"]})
-        return redirect(url_for("api_hosts.host_edit_page", asset_seq=host["hostname"]))
+        if request.form.get("after_save") == "continue_edit":
+            return redirect(url_for("api_hosts.host_edit_page", asset_seq=host["hostname"]))
+        return redirect(url_for("api_hosts.hosts_page", q=host["hostname"], asset_saved=host["hostname"]))
     except ValidationError as exc:
         errors, error_fields = _translate_host_form_messages(exc.errors)
         warnings, warning_fields = _translate_host_form_messages(exc.warnings, warning=True)
@@ -714,7 +715,9 @@ def host_edit_submit(asset_seq: str):
     try:
         host = host_service.update_host(asset_seq, _host_form_data(), user=current_user()["username"])
         audit_log_service.append("host.update", current_user()["username"], {"hostname": host["hostname"], "asset_seq": host["asset_seq"]})
-        return redirect(url_for("api_hosts.host_edit_page", asset_seq=host["hostname"]))
+        if request.form.get("after_save") == "continue_edit":
+            return redirect(url_for("api_hosts.host_edit_page", asset_seq=host["hostname"]))
+        return redirect(url_for("api_hosts.hosts_page", q=host["hostname"], asset_saved=host["hostname"]))
     except ValidationError as exc:
         errors, error_fields = _translate_host_form_messages(exc.errors)
         warnings, warning_fields = _translate_host_form_messages(exc.warnings, warning=True)

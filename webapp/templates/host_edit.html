@@ -150,7 +150,8 @@
     {% endif %}
 
     <div class="asset-edit-actions">
-      <button class="btn primary" type="submit">儲存資產</button>
+      <button class="btn primary" type="submit">儲存並回資產管理</button>
+      <button class="btn secondary" name="after_save" value="continue_edit" type="submit">儲存後繼續編輯</button>
       <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">取消</a>
     </div>
   </form>

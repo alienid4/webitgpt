@@ -856,6 +856,57 @@ a.metric:hover {
   gap: 12px;
   margin-top: 16px;
 }
+
+.asset-helper-panel {
+  display: block;
+  margin-top: 14px;
+}
+
+.asset-helper-panel > summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+}
+
+.asset-helper-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.asset-helper-panel > summary div {
+  display: grid;
+  gap: 4px;
+}
+
+.asset-helper-panel > summary strong {
+  color: var(--g-text);
+}
+
+.asset-helper-panel > summary span:not(.btn):not(.step-expand-label):not(.step-collapse-label) {
+  color: var(--c2);
+  font-size: 13px;
+}
+
+.asset-helper-panel[open] > summary {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--c4);
+  margin-bottom: 14px;
+}
+
+.asset-helper-panel .step-collapse-label {
+  display: none;
+}
+
+.asset-helper-panel[open] .step-expand-label {
+  display: none;
+}
+
+.asset-helper-panel[open] .step-collapse-label {
+  display: inline;
+}
+
 .asset-create-card {
   display: grid;
   gap: 6px;
@@ -1636,6 +1687,7 @@ a.metric:hover {
 }
 
 .judgement-source-legend {
+  display: block;
   border: 1px solid var(--c4);
   border-left: 6px solid #c79b2d;
   border-radius: var(--radius-sm);

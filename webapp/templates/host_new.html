@@ -15,30 +15,47 @@
     </div>
   </div>
 
-  <div class="asset-create-options">
-    <a class="asset-create-card" href="#single-create">
-      <strong>1. 單筆新增</strong>
-      <span>已知道主機名稱、IP、OS 與管理者時使用。</span>
-    </a>
-    <a class="asset-create-card" href="#csv-import">
-      <strong>2. CSV 大量匯入</strong>
-      <span>一次匯入多台，適合已有 Excel / CMDB 清冊。</span>
-    </a>
-    <a class="asset-create-card" href="#network-scan">
-      <strong>3. 網段掃描新增</strong>
-      <span>知道網段但不知道哪些主機未納管時使用，可將勾選 IP 建立草稿。</span>
-    </a>
-  </div>
+  <details class="panel compact asset-helper-panel">
+    <summary>
+      <div>
+        <strong>新增方式導覽</strong>
+        <span>單筆、CSV / Excel、網段掃描三種入口，預設收合，需要時再展開。</span>
+      </div>
+      <span class="btn secondary"><span class="step-expand-label">展開</span><span class="step-collapse-label">收合</span></span>
+    </summary>
+    <div class="asset-create-options">
+      <a class="asset-create-card" href="#single-create">
+        <strong>1. 單筆新增</strong>
+        <span>已知道主機名稱、IP、OS 與管理者時使用。</span>
+      </a>
+      <a class="asset-create-card" href="#csv-import">
+        <strong>2. CSV 大量匯入</strong>
+        <span>一次匯入多台，適合已有 Excel / CMDB 清冊。</span>
+      </a>
+      <a class="asset-create-card" href="#network-scan">
+        <strong>3. 網段掃描新增</strong>
+        <span>知道網段但不知道哪些主機未納管時使用，可將勾選 IP 建立草稿。</span>
+      </a>
+    </div>
+  </details>
 
   {% if errors %}<div class="notice danger">{{ errors|join(' / ') }}</div>{% endif %}
-  <section class="judgement-source-legend" aria-label="CMDB 匯入判斷來源">
-    <strong>CMDB 匯入判斷來源</strong>
-    <span class="source-badge cmdb">CSV / Excel 原始資料</span>
-    <span class="source-badge rule">欄位規則</span>
-    <span class="source-badge api">匯入 API</span>
-    <span class="source-badge ai-ready">AI-ready 錯誤解讀</span>
-    <span class="source-badge fallback">無 API Key 時顯示人可讀規則原因</span>
-  </section>
+  <details class="judgement-source-legend asset-helper-panel" aria-label="CMDB 匯入判斷來源">
+    <summary>
+      <div>
+        <strong>CMDB 匯入判斷來源</strong>
+        <span>判斷標籤與來源說明預設收合，避免新增畫面太滿。</span>
+      </div>
+      <span class="btn secondary"><span class="step-expand-label">展開</span><span class="step-collapse-label">收合</span></span>
+    </summary>
+    <div class="judgement-source-row">
+      <span class="source-badge cmdb">CSV / Excel 原始資料</span>
+      <span class="source-badge rule">欄位規則</span>
+      <span class="source-badge api">匯入 API</span>
+      <span class="source-badge ai-ready">AI-ready 錯誤解讀</span>
+      <span class="source-badge fallback">無 API Key 時顯示人可讀規則原因</span>
+    </div>
+  </details>
   {% if import_result %}
   <div class="notice">
     CSV / Excel 匯入結果：讀到 {{ import_result.total_rows or 0 }} 筆，新增 {{ import_result.created }}，更新 {{ import_result.updated }}，草稿 {{ import_result.draft or 0 }}，失敗 {{ import_result.failed }}。
@@ -101,6 +118,11 @@
     新增待補草稿完成，共 {{ scan_created|length }} 筆；略過 {{ scan_skipped|length if scan_skipped else 0 }} 筆。
     <a class="btn-sm" href="{{ url_for('api_hosts.hosts_page', status='draft') }}">進入草稿區處理</a>
   </div>
+  {% elif scan_report %}
+  <div class="notice draft-next-step">
+    網段掃描結果已產生；為了讓新增工作台保持乾淨，結果預設收合。
+    <a class="btn-sm" href="#network-scan">展開第 3 步查看掃描結果</a>
+  </div>
   {% endif %}
 </section>
 
@@ -148,7 +170,7 @@
   <div class="submit-status" hidden aria-live="polite"></div>
 </details>
 
-<details class="panel asset-create-step" id="network-scan" {% if scan_report or scan_created %}open{% endif %}>
+<details class="panel asset-create-step" id="network-scan">
   <summary>
     <div>
       <h2>3. 網段掃描新增</h2>

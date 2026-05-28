@@ -199,6 +199,12 @@
   {% if request.args.get("bulk_promoted") is not none %}
   <div class="notice success">新增完成，共 {{ request.args.get("bulk_promoted", 0) }} 筆；略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
   {% endif %}
+  {% if request.args.get("asset_saved") %}
+  <div class="notice success">
+    資產已儲存，已回到資產管理列表。畫面已用主機名稱篩選：{{ request.args.get("asset_saved") }}。
+    <a class="btn-sm" href="{{ url_for('api_hosts.hosts_page') }}">查看全部資產</a>
+  </div>
+  {% endif %}
   {% if request.args.get("bulk_updated") is not none %}
   <div class="notice">草稿欄位更新完成，共 {{ request.args.get("bulk_updated", 0) }} 筆；略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
   {% endif %}
