@@ -15,6 +15,7 @@
       <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">返回列表</a>
       <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM</a>
       {% if mode != "new" and current_user.role in ["admin", "super", "superadmin"] %}
+      <button class="btn primary" form="prefillScanForm" type="submit">掃描帶入建議</button>
       <button class="btn secondary" form="verifyIdentityForm" type="submit">驗證名稱/OS</button>
       <button class="btn secondary" data-self-check="{{ host.asset_seq }}" type="button">自檢</button>
       {% endif %}
@@ -39,6 +40,47 @@
       {% for item in warnings %}<li>{{ item }}</li>{% endfor %}
     </ul>
   </div>
+  {% endif %}
+
+  {% if mode != "new" and current_user.role in ["admin", "super", "superadmin"] %}
+  <section class="panel asset-prefill-panel">
+    <div class="page-header">
+      <div>
+        <h2>先掃描，再矯正資產主檔</h2>
+        <p class="text-muted-sm">用主要 IP 先採證，帶出 Hostname、OS、主機類型、連線方式與開放服務建議；建議值只放進表單，仍需人工確認後儲存。</p>
+      </div>
+      <button class="btn secondary" form="prefillScanForm" type="submit">立即掃描這台</button>
+    </div>
+    {% if prefill_scan %}
+    <div class="asset-prefill-result">
+      <div class="notice {% if prefill_scan.status == 'error' %}danger{% endif %}">
+        掃描目標：{{ prefill_scan.target_ip or "-" }}。
+        {% if prefill_scan.applied_fields %}
+        已先帶入 {{ prefill_scan.applied_fields|length }} 個欄位到表單，請確認後儲存。
+        {% else %}
+        未自動帶入欄位；可能是既有資料已填，或掃描沒有取得更可信的值。
+        {% endif %}
+        {% if prefill_scan.error %}<br>訊息：{{ prefill_scan.error }}{% endif %}
+      </div>
+      <div class="asset-prefill-grid">
+        {% set suggestions = prefill_scan.suggestions or {} %}
+        <div><span>Hostname 建議</span><strong>{{ suggestions.hostname or "-" }}</strong></div>
+        <div><span>OS 建議</span><strong>{{ suggestions.os or "-" }}</strong></div>
+        <div><span>類型建議</span><strong>{{ (host_type_labels|default({})).get(suggestions.host_type, suggestions.host_type or "-") }}</strong></div>
+        <div><span>連線方式建議</span><strong>{{ suggestions.connection or "-" }}</strong></div>
+      </div>
+      <details class="scan-row-detail">
+        <summary>展開掃描採證</summary>
+        <div><b>來源</b><span>{{ (prefill_scan.scan_sources or [])|join('、') or '-' }}</span></div>
+        <div><b>開放服務</b>
+          {% for port in prefill_scan.open_ports or [] %}
+          <span class="code-inline">{{ port.service or port.protocol }}:{{ port.port }}</span>
+          {% else %}<span>-</span>{% endfor %}
+        </div>
+      </details>
+    </div>
+    {% endif %}
+  </section>
   {% endif %}
 
   <form class="panel asset-edit-form" method="post">
@@ -170,6 +212,7 @@
   </div>
   <form id="allocateIpForm" method="post" action="{{ url_for('api_hosts.host_allocate_ip', asset_seq=host.hostname or host.asset_seq) }}"></form>
   <form id="assetLifecycleForm" method="post" action="{{ url_for('api_hosts.host_lifecycle_submit', asset_seq=host.hostname or host.asset_seq) }}"></form>
+  <form id="prefillScanForm" method="post" action="{{ url_for('api_hosts.host_prefill_scan_submit', asset_seq=host.hostname or host.asset_seq) }}" data-submit-status data-submit-message="正在掃描這台主機並整理建議值，請稍候。"></form>
   <form id="verifyIdentityForm" method="post" action="{{ url_for('api_hosts.host_verify_identity_submit', asset_seq=host.hostname or host.asset_seq) }}" data-submit-status data-submit-message="正在連線採集真實 Hostname / OS，請稍候。"></form>
   {% endif %}
 </section>

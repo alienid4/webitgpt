@@ -1013,6 +1013,40 @@ a.metric:hover {
   margin: 4px 0;
 }
 
+.asset-prefill-panel {
+  border-left: 6px solid var(--g1);
+}
+
+.asset-prefill-result {
+  display: grid;
+  gap: 12px;
+}
+
+.asset-prefill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.asset-prefill-grid > div {
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: var(--bg2);
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.asset-prefill-grid span {
+  color: var(--c2);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.asset-prefill-grid strong {
+  color: var(--c1);
+}
+
 .draft-created-table th:last-child,
 .draft-created-table td:last-child {
   width: 100px;

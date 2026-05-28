@@ -298,6 +298,29 @@ def _host_form_data() -> dict:
     return data
 
 
+def _apply_prefill_suggestions(host: dict, prefill_scan: dict) -> tuple[dict, list[str]]:
+    suggestions = (prefill_scan or {}).get("suggestions") or {}
+    if not suggestions:
+        return host, []
+    applied: list[str] = []
+    result = dict(host)
+    current_hostname = str(result.get("hostname") or "")
+    generated_hostname = current_hostname.startswith("scan-") or current_hostname.startswith("DISC-")
+    fill_rules = {
+        "hostname": lambda value: value and (not current_hostname or generated_hostname),
+        "os": lambda value: value and str(result.get("os") or "") in {"", "未偵測", "未知 OS"},
+        "host_type": lambda value: value and str(result.get("host_type") or "") in {"", "end_device"},
+        "connection": lambda value: value and not result.get("connection"),
+        "ssh_port": lambda value: value and not result.get("ssh_port"),
+    }
+    for field, should_fill in fill_rules.items():
+        value = suggestions.get(field)
+        if should_fill(value):
+            result[field] = value
+            applied.append(field)
+    return result, applied
+
+
 def _host_new_context(**extra: dict) -> dict:
     context = {
         "errors": None,
@@ -703,6 +726,7 @@ def host_edit_page(asset_seq: str):
         required_fields=REQUIRED_FIELDS,
         ipam_networks=cmdb_service.list_networks(),
         extension_definitions=cmdb_service.list_extension_definitions(),
+        host_type_labels=HOST_TYPE_LABELS,
         mode="edit",
     )
 
@@ -735,6 +759,54 @@ def host_edit_submit(asset_seq: str):
             warnings=warnings,
             error_fields=error_fields,
             warning_fields=warning_fields,
+        ), 400
+
+
+@bp.post("/hosts/<asset_seq>/prefill-scan")
+@require_feature("cmdb_network_scan")
+@require_role("admin")
+def host_prefill_scan_submit(asset_seq: str):
+    host = host_service.get_host(asset_seq)
+    if not host:
+        return render_template("host_edit.html", error="找不到資產", host=None), 404
+    try:
+        prefill_scan = cmdb_service.scan_host_prefill(asset_seq, user=current_user()["username"])
+        host, applied_fields = _apply_prefill_suggestions(host, prefill_scan)
+        prefill_scan["applied_fields"] = applied_fields
+        audit_log_service.append(
+            "host.prefill_scan",
+            current_user()["username"],
+            {
+                "asset_seq": host.get("asset_seq"),
+                "hostname": host.get("hostname"),
+                "target_ip": prefill_scan.get("target_ip"),
+                "applied_fields": applied_fields,
+            },
+        )
+        return render_template(
+            "host_edit.html",
+            host=host,
+            edit_fields=EDIT_FIELDS,
+            field_labels=ASSET_FIELD_LABELS,
+            required_fields=REQUIRED_FIELDS,
+            ipam_networks=cmdb_service.list_networks(),
+            extension_definitions=cmdb_service.list_extension_definitions(),
+            host_type_labels=HOST_TYPE_LABELS,
+            mode="edit",
+            prefill_scan=prefill_scan,
+        )
+    except Exception as exc:
+        return render_template(
+            "host_edit.html",
+            host=host,
+            edit_fields=EDIT_FIELDS,
+            field_labels=ASSET_FIELD_LABELS,
+            required_fields=REQUIRED_FIELDS,
+            ipam_networks=cmdb_service.list_networks(),
+            extension_definitions=cmdb_service.list_extension_definitions(),
+            host_type_labels=HOST_TYPE_LABELS,
+            mode="edit",
+            errors=[f"掃描帶入建議失敗：{exc}"],
         ), 400
 
 

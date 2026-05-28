@@ -70,9 +70,19 @@ def test_asset_secondary_actions_are_grouped_and_scan_rows_are_expandable():
     assert "草稿區下一步" in hosts
     assert "新增完成，共" in hosts
     assert "資產已儲存，已回到資產管理列表" in hosts
-    assert "儲存並回資產管理" in read("webapp/templates/host_edit.html")
-    assert "儲存後繼續編輯" in read("webapp/templates/host_edit.html")
-    assert "after_save" in read("webapp/routes/api_hosts.py")
+    host_edit = read("webapp/templates/host_edit.html")
+    host_routes = read("webapp/routes/api_hosts.py")
+    cmdb_service = read("webapp/services/cmdb_service.py")
+    assert "儲存並回資產管理" in host_edit
+    assert "儲存後繼續編輯" in host_edit
+    assert "掃描帶入建議" in host_edit
+    assert "先掃描，再矯正資產主檔" in host_edit
+    assert "建議值只放進表單，仍需人工確認後儲存" in host_edit
+    assert "prefillScanForm" in host_edit
+    assert "asset-prefill-panel" in css
+    assert "host_prefill_scan_submit" in host_routes
+    assert "scan_host_prefill" in cmdb_service
+    assert "after_save" in host_routes
     assert "asset_saved" in read("webapp/routes/api_hosts.py")
     assert "新增方式導覽" in host_new
     assert "判斷標籤與來源說明預設收合" in host_new
