@@ -98,9 +98,8 @@
   {% endif %}
   {% if scan_created is not none %}
   <div class="notice draft-next-step">
-    掃描建檔結果：建立 {{ scan_created|length }} 筆待補草稿，略過 {{ scan_skipped|length if scan_skipped else 0 }} 筆。
-    草稿還不是正式納管；請到草稿區補齊系統、owner、環境與用途後再轉正式。
-    <a class="btn-sm" href="{{ url_for('api_hosts.hosts_page', status='draft') }}">去草稿區補資料</a>
+    新增待補草稿完成，共 {{ scan_created|length }} 筆；略過 {{ scan_skipped|length if scan_skipped else 0 }} 筆。
+    <a class="btn-sm" href="{{ url_for('api_hosts.hosts_page', status='draft') }}">進入草稿區處理</a>
   </div>
   {% endif %}
 </section>
@@ -248,7 +247,7 @@
   {% if scan_created %}
   <div class="draft-next-panel">
     <div>
-      <h3>已建立待補草稿</h3>
+      <h3>新增待補草稿完成，共 {{ scan_created|length }} 筆</h3>
       <p class="text-muted-sm">下一步不是結束，而是把草稿補成可正式納管的主機資料。</p>
     </div>
     <div class="draft-next-actions">

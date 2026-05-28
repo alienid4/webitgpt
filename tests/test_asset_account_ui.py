@@ -60,12 +60,18 @@ def test_asset_secondary_actions_are_grouped_and_scan_rows_are_expandable():
     assert "scan-row-detail" in host_new
     assert "展開技術明細" in host_new
     assert "將勾選 IP 建立待補草稿" in host_new
-    assert "去草稿區補資料" in host_new
-    assert "草稿還不是正式納管" in host_new
+    assert "進入草稿區處理" in host_new
+    assert "下一步不是結束" in host_new
     assert "去草稿區批次補欄位" in host_new
     assert "立即補這台資料" in host_new
     assert "批次轉正式，才算完成主機新增" in host_new
+    assert "新增待補草稿完成，共" in host_new
+    assert "進入草稿區處理" in host_new
+    assert "草稿區下一步" in hosts
+    assert "新增完成，共" in hosts
+    assert "{% if host.status == \"draft\" %}補資料{% else %}編輯{% endif %}" in hosts
     assert "draft-next-panel" in css
+    assert "draft-workflow-panel" in css
     assert "asset-action-menu-panel" in css
     assert "scan-result-table" in css
 

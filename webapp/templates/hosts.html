@@ -194,17 +194,35 @@
   </div>
   {% endif %}
   {% if request.args.get("bulk_deleted") is not none %}
-  <div class="notice">批次刪除草稿：刪除 {{ request.args.get("bulk_deleted", 0) }} 筆，略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
+  <div class="notice">草稿刪除完成，共 {{ request.args.get("bulk_deleted", 0) }} 筆；略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
   {% endif %}
   {% if request.args.get("bulk_promoted") is not none %}
-  <div class="notice">批次轉正式：轉正式 {{ request.args.get("bulk_promoted", 0) }} 筆，略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
+  <div class="notice success">新增完成，共 {{ request.args.get("bulk_promoted", 0) }} 筆；略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
   {% endif %}
   {% if request.args.get("bulk_updated") is not none %}
-  <div class="notice">批次補草稿欄位：更新 {{ request.args.get("bulk_updated", 0) }} 筆，略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
+  <div class="notice">草稿欄位更新完成，共 {{ request.args.get("bulk_updated", 0) }} 筆；略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
   {% endif %}
   {% if request.args.get("bulk_error") %}<div class="notice danger">{{ request.args.get("bulk_error") }}</div>{% endif %}
 
   <section class="table-wrap asset-table-wrap" id="asset-details">
+    {% if request.args.get("status") == "draft" %}
+    <div class="draft-workflow-panel">
+      <div>
+        <p class="eyebrow">DRAFT WORKFLOW</p>
+        <h2>草稿區下一步</h2>
+        <p class="text-muted-sm">草稿是待補資料，不是完成新增。請先補欄位，再轉正式。</p>
+      </div>
+      <div class="draft-workflow-steps">
+        <span>1 勾選草稿</span>
+        <span>2 批次補欄位或逐筆補資料</span>
+        <span>3 批次轉正式</span>
+      </div>
+      <div class="draft-workflow-actions">
+        <a class="btn secondary" href="#asset-details">開始處理本頁草稿</a>
+        <a class="btn secondary" href="{{ url_for('api_hosts.host_new_page') }}">回新增工作台</a>
+      </div>
+    </div>
+    {% endif %}
     {% if current_user.role in ["admin", "super", "superadmin"] %}
     <div class="asset-bulk-actions">
       <strong>批次草稿處理</strong>
@@ -302,7 +320,7 @@
             {% if current_user.role in ["admin", "super", "superadmin"] %}
             <details class="asset-row-menu">
               <summary>動作</summary>
-              <a class="btn-sm btn-secondary" href="{{ url_for('api_hosts.host_edit_page', asset_seq=host.hostname or host.asset_seq) }}">編輯</a>
+              <a class="btn-sm btn-secondary" href="{{ url_for('api_hosts.host_edit_page', asset_seq=host.hostname or host.asset_seq) }}">{% if host.status == "draft" %}補資料{% else %}編輯{% endif %}</a>
               <form method="post" action="{{ url_for('api_hosts.host_verify_identity_submit', asset_seq=host.hostname or host.asset_seq) }}" data-submit-status data-submit-message="正在連線採集真實 Hostname / OS，請稍候。">
                 <button class="btn-sm btn-secondary" type="submit">驗證名稱/OS</button>
               </form>
