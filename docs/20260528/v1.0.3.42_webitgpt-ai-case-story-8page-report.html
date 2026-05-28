@@ -376,11 +376,11 @@
   <main class="deck">
     <section class="slide">
       <div class="kicker">Case Opening</div>
-      <h1>開門檢查有訊號，盤中 10:30 問題開始擴大。</h1>
+      <h1>開門檢查看到訊號，盤中 10:30 需要更快形成判斷。</h1>
       <p class="lead">
         早上開門檢查先看到幾個異常訊號，當時還不確定是否會影響服務。
-        到 10:30 盤中交易時段，核心服務開始出現連線不穩，維運團隊必須快速把主機、
-        帳號、效能、拓撲與通知對象拼成可以決策的畫面。
+        到 10:30 盤中交易時段，核心服務開始出現連線不穩，維運團隊需要更快把主機、
+        帳號、效能、拓撲與通知對象整理成可以討論的畫面。
       </p>
       <div class="grid-3">
         <article class="card red">
@@ -399,17 +399,17 @@
           <p>主管需要結論與建議，現場常只有 log、CSV、掃描文字與口頭經驗。</p>
         </article>
       </div>
-      <div class="quote">導入前主要痛點：開門檢查看得到訊號，但盤中要快速判斷影響範圍仍然吃力。</div>
+      <div class="quote">導入前觀察：開門檢查看得到訊號，但盤中要快速整理影響範圍仍需要更多工具支援。</div>
       <div class="footer">webitgpt AI 維運平台導入報告</div>
       <div class="page">1 / 8</div>
     </section>
 
     <section class="slide">
       <div class="kicker">Before / After</div>
-      <h2>平台要解決的，不只是巡檢，而是決策前的混亂。</h2>
+      <h2>平台要補上的，是巡檢後到決策前的整理流程。</h2>
       <p class="lead">
         webitgpt 將資產、帳號、拓撲、效能與巡檢放到同一個維運工作台。
-        目標不是多做一張報表，而是讓異常發生時，能快速知道「誰受影響、證據在哪、下一步做什麼」。
+        目標不是多做一張報表，而是讓事件發生時，更快看見「誰可能受影響、證據在哪、下一步可先確認什麼」。
       </p>
       <div class="grid-2">
         <article class="card">
@@ -418,7 +418,7 @@
             <li>CMDB 欄位不一致，匯入錯誤難以一眼理解。</li>
             <li>OS/AP 帳號、PAM、owner 資訊分散。</li>
             <li>拓撲、效能、巡檢結果各自孤島。</li>
-            <li>離線移植與版本更新高度仰賴現場經驗。</li>
+            <li>離線移植與版本更新需要更多標準化紀錄。</li>
           </ul>
         </article>
         <article class="card green">
@@ -437,10 +437,10 @@
 
     <section class="slide">
       <div class="kicker">The Platform Steps In</div>
-      <h2>事件發生後，平台先把事實收齊。</h2>
+      <h2>事件發生後，平台先協助把資料收斂。</h2>
       <p class="lead">
-        當核心服務異常，維運人員不需要從零開始翻檔案。平台從資產、拓撲、效能、
-        帳號與巡檢結果建立共同畫面，讓團隊先站在同一份事實上。
+        當核心服務出現異常，維運人員不需要完全從零開始整理資料。平台從資產、拓撲、效能、
+        帳號與巡檢結果建立共同畫面，讓團隊先有一致的討論基礎。
       </p>
       <div class="story-strip">
         <div class="time">08:40</div>
@@ -484,7 +484,7 @@
 
     <section class="slide">
       <div class="kicker">Function Coverage</div>
-      <h2>重點功能不是全列，而是支撐事件處理的四個能力。</h2>
+      <h2>重點功能收斂成四個支撐事件處理的能力。</h2>
       <p class="lead">
         這些功能共同回答四個問題：資產是誰、誰有權限、目前狀態如何、異常會影響誰。
       </p>
@@ -513,10 +513,10 @@
 
     <section class="slide">
       <div class="kicker">AI With Guardrails</div>
-      <h2>AI 預期效益：讓現場少整理，讓主管快決策。</h2>
+      <h2>AI 預期效益：協助整理脈絡，讓討論更聚焦。</h2>
       <p class="lead">
-        AI 不取代維運採證。平台採用分工設計：Shell/Script/API 負責取得事實，
-        AI 負責摘要、風險分級、跨資料源關聯與建議行動。
+        AI 先作為維運採證後的輔助判讀。平台採用分工設計：Shell/Script/API 負責取得事實，
+        AI 協助摘要、分級、跨資料源關聯與建議行動。
       </p>
       <div class="grid-2">
         <article class="card gold-ai">
@@ -539,15 +539,15 @@
       <div class="grid-3" style="margin-top: 16px;">
         <article class="card">
           <h3>時間效益</h3>
-          <p>縮短資料收集、比對與回報整理時間。</p>
+          <p>協助縮短資料收集、比對與回報整理時間。</p>
         </article>
         <article class="card">
           <h3>品質效益</h3>
-          <p>降低漏看關聯系統、帳號權限與通知對象的風險。</p>
+          <p>協助提醒關聯系統、帳號權限與通知對象。</p>
         </article>
         <article class="card">
           <h3>治理效益</h3>
-          <p>透過來源標示、預算控管與紀錄，提高可稽核性。</p>
+          <p>透過來源標示、預算控管與紀錄，保留可追溯脈絡。</p>
         </article>
       </div>
       <div class="footer">AI expected benefit and tools</div>
@@ -556,7 +556,7 @@
 
     <section class="slide">
       <div class="kicker">Three-Month Introduction Plan</div>
-      <h2>從 4/15 開始，三個月完成可驗收導入。</h2>
+      <h2>從 4/15 開始，三個月形成第一階段可驗收版本。</h2>
       <p class="lead">
         時程設計先建立資料與採證基礎，再完成營運可視化，最後導入 AI 判讀、成本治理與正式驗收。
       </p>
@@ -598,7 +598,7 @@
 
     <section class="slide">
       <div class="kicker">Operating Model</div>
-      <h2>導入治理建議：把平台當成共同維運流程來經營。</h2>
+      <h2>導入治理建議：把平台當成共同維運流程來逐步經營。</h2>
       <p class="lead">
         webitgpt 的價值來自跨單位資料與維運流程的整合。導入時建議先把資料來源、
         採證方式、權限、成本與版本流程定義清楚，讓平台成為共同協作的工作台。
@@ -660,7 +660,7 @@
         </article>
         <article class="card">
           <h3>落實最小權限</h3>
-          <p>讀取、匯出、巡檢、管理、API Key 設定必須分角色。</p>
+          <p>讀取、匯出、巡檢、管理、API Key 設定建議分角色。</p>
         </article>
         <article class="card">
           <h3>定義 AI 使用規則</h3>

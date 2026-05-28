@@ -201,38 +201,38 @@
   <main class="deck">
     <section class="slide">
       <div class="kicker">Backup Q&A</div>
-      <h1>主管可能關心的問題與建議回答</h1>
+      <h1>主管可能關心的事項與建議回答</h1>
       <p class="lead">
         建議作為備詢附件，不在主簡報一開始主動展開。主簡報聚焦案例、效益與導入方向；
         若主管追問，再用本附件補充治理、成本、權限與維運方式。
       </p>
       <div class="qa-grid">
         <article class="qa">
-          <strong>這會不會變成另一個需要維護的平台？</strong>
-          <p class="answer">會需要維護，但它把原本分散在多份檔案、Script 與人工經驗中的工作集中管理，重點是降低跨工具整理成本。</p>
+          <strong>後續維護量會不會增加？</strong>
+          <p class="answer">會需要安排維護窗口，但平台可把原本分散在多份檔案、Script 與人工經驗中的工作集中管理，讓維護內容更可追蹤。</p>
         </article>
         <article class="qa">
-          <strong>AI 判讀可以相信嗎？</strong>
-          <p class="answer">AI 不直接取代採證與決策。Shell、API、CMDB 與 NMON 先提供證據，AI 負責摘要與分級，高風險操作仍保留人工覆核。</p>
+          <strong>AI 判讀如何使用比較穩妥？</strong>
+          <p class="answer">AI 不直接取代採證與決策。Shell、API、CMDB 與 NMON 先提供證據，AI 協助摘要與分級，重要操作仍保留人工確認。</p>
         </article>
         <article class="qa">
-          <strong>如果 AI 或 API Key 不可用怎麼辦？</strong>
-          <p class="answer">系統設計保留 Script fallback。L1 基礎檢查可以不依賴 AI，L2/L3 才依情境使用模型與預算。</p>
+          <strong>如果 AI 或 API Key 暫時不可用怎麼辦？</strong>
+          <p class="answer">系統設計保留 Script fallback。L1 基礎檢查可以不依賴 AI，L2/L3 再依情境使用模型與預算。</p>
         </article>
         <article class="qa">
-          <strong>成本會不會失控？</strong>
-          <p class="answer">建議採 L1/L2/L3 分級，低風險用 Script 或低成本模型，深度判讀才使用高階模型，並設定月預算與超額降級。</p>
+          <strong>成本如何掌握？</strong>
+          <p class="answer">建議採 L1/L2/L3 分級，低複雜度情境用 Script 或低成本模型，深度判讀才使用高階模型，並設定月預算與降級策略。</p>
         </article>
         <article class="qa">
-          <strong>資料品質不足會不會影響結果？</strong>
-          <p class="answer">會影響，因此導入時要同步建立欄位規則與資料窗口。平台可以協助顯示缺口，但不把資料治理責任推給單一單位。</p>
+          <strong>資料品質如何逐步補齊？</strong>
+          <p class="answer">導入時可同步建立欄位規則與資料窗口。平台協助呈現可補強項目，讓各單位逐步對齊資料內容。</p>
         </article>
         <article class="qa">
-          <strong>權限與資料外流怎麼控管？</strong>
+          <strong>權限與資料保護怎麼安排？</strong>
           <p class="answer">以最小權限設計角色，區分讀取、匯出、巡檢、管理與 API Key 設定；文件與畫面不顯示真實 key。</p>
         </article>
       </div>
-      <div class="note">建議主動講的只有一句：平台會以「可追溯證據 + 人工覆核 + 成本分級」方式導入，不會直接用 AI 取代維運判斷。</div>
+      <div class="note">建議主動講的只有一句：平台會以「可追溯證據 + 人工確認 + 成本分級」方式導入，AI 先作為維運判讀輔助。</div>
       <div class="footer">webitgpt導入備詢附件</div>
       <div class="page">A1</div>
     </section>
@@ -241,7 +241,7 @@
       <div class="kicker">Promotion Guardrails</div>
       <h2>推廣時建議先談共同成功條件</h2>
       <p class="lead">
-        這些不是要指出任何單位問題，而是把跨單位導入需要的配合項目先講清楚，
+        這些不是要指出任何單位問題，而是把跨單位導入需要的配合項目先對齊，
         讓後續驗收與維護比較順。
       </p>
       <table>
@@ -256,27 +256,27 @@
           <tr>
             <td>資料品質</td>
             <td>需要共同建立標準欄位與資料窗口。</td>
-            <td>不要說現有 CMDB 很亂或資料不可信。</td>
+            <td>避免聚焦在現有資料落差。</td>
           </tr>
           <tr>
             <td>維運流程</td>
             <td>讓既有 Script 與人工經驗被系統化保存。</td>
-            <td>不要說現行作業太靠人工或效率低。</td>
+            <td>避免把現行作業描述成效率問題。</td>
           </tr>
           <tr>
             <td>AI 判讀</td>
             <td>AI 協助整理脈絡，重大異動仍由人員確認。</td>
-            <td>不要說 AI 比人更準或可以取代判斷。</td>
+            <td>避免把 AI 描述成主要決策者。</td>
           </tr>
           <tr>
             <td>成本治理</td>
             <td>用分級與預算讓 AI 使用可控、可追蹤。</td>
-            <td>不要把成本風險放大成導入阻礙。</td>
+            <td>避免把成本議題放大成導入阻礙。</td>
           </tr>
           <tr>
             <td>推廣節奏</td>
             <td>先挑一個核心場景驗證，再逐步擴大。</td>
-            <td>不要一次承諾所有系統全面接入。</td>
+            <td>避免一次承諾所有系統全面接入。</td>
           </tr>
         </tbody>
       </table>
