@@ -13,7 +13,7 @@
     </div>
     <div class="asset-actions">
       <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">返回列表</a>
-      <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM</a>
+      <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM 網段管理</a>
       {% if mode != "new" and current_user.role in ["admin", "super", "superadmin"] %}
       <button class="btn primary" form="prefillScanForm" type="submit">掃描帶入建議</button>
       <button class="btn secondary" form="verifyIdentityForm" type="submit">驗證名稱/OS</button>
