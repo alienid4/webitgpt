@@ -279,6 +279,12 @@
       height: 100%;
       object-fit: cover;
       object-position: top left;
+      cursor: zoom-in;
+    }
+
+    .shot img:focus-visible {
+      outline: 3px solid rgba(192, 124, 0, 0.7);
+      outline-offset: -3px;
     }
 
     .proof-wide {
@@ -342,6 +348,43 @@
       color: var(--green);
       text-decoration: none;
       white-space: nowrap;
+    }
+
+    .image-lightbox[hidden] {
+      display: none;
+    }
+
+    .image-lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: grid;
+      place-items: center;
+      padding: 30px;
+      background: rgba(15, 23, 42, 0.82);
+    }
+
+    .image-lightbox img {
+      max-width: 94vw;
+      max-height: 86vh;
+      object-fit: contain;
+      background: #fff;
+      border: 6px solid #fff;
+      border-radius: 10px;
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+    }
+
+    .lightbox-close {
+      position: fixed;
+      top: 18px;
+      right: 22px;
+      padding: 9px 14px;
+      color: var(--ink);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-weight: 900;
+      cursor: pointer;
     }
 
     .evidence-gallery {
@@ -651,7 +694,7 @@
         </div>
         <div class="evidence-shots">
           <div class="shot">
-            <img src="screenshots-live/v1.0.3.42_live_core-impact.png" alt="實機 核心影響圖畫面">
+            <img src="screenshots-live/v1.0.3.42_live_core-impact-fullscreen.png" alt="實機 核心影響圖畫面">
             <div class="shot-label"><span>核心影響圖</span><span>實機畫面</span></div>
           </div>
           <div class="shot">
@@ -752,7 +795,7 @@
         </article>
         <article class="evidence-card">
           <div class="shot">
-            <img src="screenshots-live/v1.0.3.42_live_core-impact.png" alt="實機 核心影響圖畫面">
+            <img src="screenshots-live/v1.0.3.42_live_core-impact-fullscreen.png" alt="實機 核心影響圖畫面">
             <div class="shot-label"><span>核心影響圖</span><span>實機畫面</span></div>
           </div>
           <div class="evidence-card-body">
@@ -973,7 +1016,7 @@
           <div class="shot-label"><span>帳號 / 權限</span><span>實機畫面</span></div>
         </div>
         <div class="shot">
-          <img src="screenshots-live/v1.0.3.42_live_core-impact.png" alt="實機 共同流程畫面">
+          <img src="screenshots-live/v1.0.3.42_live_core-impact-fullscreen.png" alt="實機 共同流程畫面">
           <div class="shot-label"><span>共同流程</span><span>實機畫面</span></div>
         </div>
       </div>
@@ -981,5 +1024,51 @@
       <div class="page">8 / 8</div>
     </section>
   </main>
+  <div class="image-lightbox" id="imageLightbox" hidden>
+    <button class="lightbox-close" type="button">關閉放大圖</button>
+    <img alt="放大檢視">
+  </div>
+  <script>
+    (function () {
+      const lightbox = document.getElementById('imageLightbox');
+      const image = lightbox.querySelector('img');
+      const closeButton = lightbox.querySelector('button');
+
+      function openImage(sourceImage) {
+        image.src = sourceImage.src;
+        image.alt = sourceImage.alt || '放大檢視';
+        lightbox.hidden = false;
+        closeButton.focus();
+      }
+
+      function closeImage() {
+        lightbox.hidden = true;
+        image.removeAttribute('src');
+      }
+
+      document.querySelectorAll('.shot img').forEach((sourceImage) => {
+        sourceImage.tabIndex = 0;
+        sourceImage.addEventListener('click', () => openImage(sourceImage));
+        sourceImage.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openImage(sourceImage);
+          }
+        });
+      });
+
+      closeButton.addEventListener('click', closeImage);
+      lightbox.addEventListener('click', (event) => {
+        if (event.target === lightbox) {
+          closeImage();
+        }
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !lightbox.hidden) {
+          closeImage();
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
