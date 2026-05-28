@@ -564,19 +564,25 @@
           <p>主管需要結論與建議，現場常只有 log、CSV、掃描文字與口頭經驗。</p>
         </article>
       </div>
-      <div class="quote">導入前觀察：開門檢查看得到訊號，但要在盤中快速連到設定、容量、影響範圍與處置順序，仍需要更多工具支援。</div>
+      <div class="quote">盤前觀察：開門檢查看得到訊號，但要在盤中快速連到設定、容量、影響範圍與處置順序，仍需要更多工具支援。</div>
       <div class="proof-wide">
-        <div class="shot">
-          <img src="screenshots-221/v1.0.3.42_221_opening-check.png" alt="221 開門檢查畫面">
-          <div class="shot-label"><span>221 開門檢查</span><a href="http://192.168.1.221:8002/inspections">開啟</a></div>
+        <div class="proof-strip two" style="margin-top: 0;">
+          <div class="shot">
+            <img src="screenshots-live/v1.0.3.42_live_opening-check.png" alt="實機開門檢查畫面">
+            <div class="shot-label"><span>開門檢查</span><span>實機畫面</span></div>
+          </div>
+          <div class="shot">
+            <img src="screenshots-live/v1.0.3.42_live_account-inventory.png" alt="實機 L3 深度判讀畫面">
+            <div class="shot-label"><span>L3 深度判讀</span><span>實機畫面</span></div>
+          </div>
         </div>
         <div class="proof-copy">
           <h3>畫面證據</h3>
-          <p>開門檢查頁面已能以系統為範圍，呈現正常、警示與待檢項目，作為盤前觀察訊號。</p>
+          <p>開門檢查頁面可作為盤前觀察訊號；L3 深度判讀畫面則說明資料可進一步整理成風險與建議。</p>
           <ul>
             <li>可選擇開門檢查系統。</li>
             <li>可看到正常、警示、待檢摘要。</li>
-            <li>可延伸到 L3 深度檢查與平台別檢查。</li>
+            <li>可延伸到 L3 深度判讀與平台別檢查。</li>
           </ul>
         </div>
       </div>
@@ -585,7 +591,7 @@
     </section>
 
     <section class="slide">
-      <div class="kicker">Before / After</div>
+      <div class="kicker">Current Evidence</div>
       <h2>平台要補上的，是巡檢後到決策前的整理流程。</h2>
       <p class="lead">
         webitgpt 將資產、帳號、拓撲、效能與巡檢放到同一個維運工作台。
@@ -593,32 +599,30 @@
       </p>
       <div class="grid-2">
         <article class="card">
-          <h3>導入前</h3>
+          <h3>目前可見的落地畫面</h3>
           <ul>
-            <li>CMDB 欄位不一致，匯入錯誤難以一眼理解。</li>
-            <li>OS/AP 帳號、PAM、owner 資訊分散。</li>
-            <li>拓撲、效能、巡檢結果各自孤島。</li>
-            <li>離線移植與版本更新需要更多標準化紀錄。</li>
+            <li>資產管理可呈現正式資產、草稿、匯入與欄位治理。</li>
+            <li>安裝後驗證可呈現 API Key 與 Script 檢查語意。</li>
+            <li>畫面可以直接作為備詢證據，不只靠口頭說明。</li>
           </ul>
         </article>
         <article class="card green">
-          <h3>導入後</h3>
+          <h3>後續接手重點</h3>
           <ul>
-            <li>資料先進草稿區，驗證後再進正式資產。</li>
-            <li>帳號、權限、PAM、owner 可一起盤點。</li>
-            <li>NMON、EOS、核心影響圖與巡檢互相連結。</li>
-            <li>安裝、patch、RHEL 移植有文件與版本治理。</li>
+            <li>把每個畫面對應到驗收案例。</li>
+            <li>逐步補齊帳號、owner 與通知欄位。</li>
+            <li>把安裝、patch、移植與回滾流程文件化。</li>
           </ul>
         </article>
       </div>
       <div class="proof-strip two">
         <div class="shot">
-          <img src="screenshots-221/v1.0.3.42_221_asset-management.png" alt="221 資產管理畫面">
-          <div class="shot-label"><span>資產 / CMDB</span><a href="http://192.168.1.221:8002/hosts">開啟</a></div>
+          <img src="screenshots-live/v1.0.3.42_live_asset-management.png" alt="實機 資產管理畫面">
+          <div class="shot-label"><span>資產 / CMDB</span><span>實機畫面</span></div>
         </div>
         <div class="shot">
-          <img src="screenshots-221/v1.0.3.42_221_post-install.png" alt="221 安裝後驗證畫面">
-          <div class="shot-label"><span>驗證 / API</span><a href="http://192.168.1.221:8002/reports/post-install">開啟</a></div>
+          <img src="screenshots-live/v1.0.3.42_live_post-install.png" alt="實機 安裝後驗證畫面">
+          <div class="shot-label"><span>驗證 / API</span><span>實機畫面</span></div>
         </div>
       </div>
       <div class="footer">pain points and expected value</div>
@@ -647,12 +651,12 @@
         </div>
         <div class="evidence-shots">
           <div class="shot">
-            <img src="screenshots-221/v1.0.3.42_221_core-impact.png" alt="221 核心影響圖畫面">
-            <div class="shot-label"><span>核心影響圖</span><a href="http://192.168.1.221:8002/dependencies">開啟</a></div>
+            <img src="screenshots-live/v1.0.3.42_live_core-impact.png" alt="實機 核心影響圖畫面">
+            <div class="shot-label"><span>核心影響圖</span><span>實機畫面</span></div>
           </div>
           <div class="shot">
-            <img src="screenshots-221/v1.0.3.42_221_asset-management.png" alt="221 資產管理畫面">
-            <div class="shot-label"><span>資產管理</span><a href="http://192.168.1.221:8002/hosts">開啟</a></div>
+            <img src="screenshots-live/v1.0.3.42_live_asset-management.png" alt="實機 資產管理畫面">
+            <div class="shot-label"><span>資產管理</span><span>實機畫面</span></div>
           </div>
         </div>
       </div>
@@ -671,12 +675,12 @@
         </div>
         <div class="evidence-shots">
           <div class="shot">
-            <img src="screenshots-221/v1.0.3.42_221_nmon-monthly.png" alt="221 效能月報畫面">
-            <div class="shot-label"><span>效能月報</span><a href="http://192.168.1.221:8002/nmon">開啟</a></div>
+            <img src="screenshots-live/v1.0.3.42_live_nmon-monthly.png" alt="實機 效能月報畫面">
+            <div class="shot-label"><span>效能月報</span><span>實機畫面</span></div>
           </div>
           <div class="shot">
-            <img src="screenshots-221/v1.0.3.42_221_account-inventory.png" alt="221 帳號盤點畫面">
-            <div class="shot-label"><span>帳號盤點</span><a href="http://192.168.1.221:8002/accounts">開啟</a></div>
+            <img src="screenshots-live/v1.0.3.42_live_account-inventory.png" alt="實機 帳號盤點畫面">
+            <div class="shot-label"><span>帳號盤點</span><span>實機畫面</span></div>
           </div>
         </div>
       </div>
@@ -695,16 +699,16 @@
         </div>
         <div class="evidence-shots">
           <div class="shot">
-            <img src="screenshots-221/v1.0.3.42_221_opening-check.png" alt="221 今日巡檢畫面">
-            <div class="shot-label"><span>今日巡檢</span><a href="http://192.168.1.221:8002/inspections">開啟</a></div>
+            <img src="screenshots-live/v1.0.3.42_live_opening-check.png" alt="實機 今日巡檢畫面">
+            <div class="shot-label"><span>今日巡檢</span><span>實機畫面</span></div>
           </div>
           <div class="shot">
-            <img src="screenshots-221/v1.0.3.42_221_post-install.png" alt="221 安裝後驗證畫面">
-            <div class="shot-label"><span>安裝後驗證</span><a href="http://192.168.1.221:8002/reports/post-install">開啟</a></div>
+            <img src="screenshots-live/v1.0.3.42_live_post-install.png" alt="實機 安裝後驗證畫面">
+            <div class="shot-label"><span>安裝後驗證</span><span>實機畫面</span></div>
           </div>
         </div>
       </div>
-      <p class="safe-note">註：本頁使用 221 實機截圖作為畫面證據；縮圖右下角可連到實機頁面備詢。</p>
+      <p class="safe-note">註：本頁使用實機截圖作為畫面證據；畫面為實機截圖，備詢時可由系統入口開啟相同功能。</p>
       <div class="footer">application scenario</div>
       <div class="page">3 / 8</div>
     </section>
@@ -718,8 +722,8 @@
       <div class="evidence-gallery">
         <article class="evidence-card">
           <div class="shot">
-            <img src="screenshots-221/v1.0.3.42_221_asset-management.png" alt="221 資產治理畫面">
-            <div class="shot-label"><span>資產治理</span><a href="http://192.168.1.221:8002/hosts">開啟</a></div>
+            <img src="screenshots-live/v1.0.3.42_live_asset-management.png" alt="實機 資產治理畫面">
+            <div class="shot-label"><span>資產治理</span><span>實機畫面</span></div>
           </div>
           <div class="evidence-card-body">
             <h3>資產治理</h3>
@@ -728,8 +732,8 @@
         </article>
         <article class="evidence-card">
           <div class="shot">
-            <img src="screenshots-221/v1.0.3.42_221_account-inventory.png" alt="221 帳號盤點畫面">
-            <div class="shot-label"><span>帳號盤點</span><a href="http://192.168.1.221:8002/accounts">開啟</a></div>
+            <img src="screenshots-live/v1.0.3.42_live_account-inventory.png" alt="實機 帳號盤點畫面">
+            <div class="shot-label"><span>帳號盤點</span><span>實機畫面</span></div>
           </div>
           <div class="evidence-card-body">
             <h3>帳號盤點</h3>
@@ -738,8 +742,8 @@
         </article>
         <article class="evidence-card">
           <div class="shot">
-            <img src="screenshots-221/v1.0.3.42_221_nmon-monthly.png" alt="221 效能月報畫面">
-            <div class="shot-label"><span>效能月報</span><a href="http://192.168.1.221:8002/nmon">開啟</a></div>
+            <img src="screenshots-live/v1.0.3.42_live_nmon-monthly.png" alt="實機 效能月報畫面">
+            <div class="shot-label"><span>效能月報</span><span>實機畫面</span></div>
           </div>
           <div class="evidence-card-body">
             <h3>效能與巡檢</h3>
@@ -748,8 +752,8 @@
         </article>
         <article class="evidence-card">
           <div class="shot">
-            <img src="screenshots-221/v1.0.3.42_221_core-impact.png" alt="221 核心影響圖畫面">
-            <div class="shot-label"><span>核心影響圖</span><a href="http://192.168.1.221:8002/dependencies">開啟</a></div>
+            <img src="screenshots-live/v1.0.3.42_live_core-impact.png" alt="實機 核心影響圖畫面">
+            <div class="shot-label"><span>核心影響圖</span><span>實機畫面</span></div>
           </div>
           <div class="evidence-card-body">
             <h3>影響分析</h3>
@@ -758,11 +762,7 @@
         </article>
       </div>
       <div class="quote">平台價值不是「功能很多」，而是讓資料能串成同一個維運決策流程。</div>
-      <div class="quote">畫面佐證可於備詢時點選 221 實機頁面：
-        <a href="http://192.168.1.221:8002/hosts">資產管理</a>、
-        <a href="http://192.168.1.221:8002/accounts">帳號盤點</a>、
-        <a href="http://192.168.1.221:8002/nmon">效能月報</a>、
-        <a href="http://192.168.1.221:8002/dependencies">核心影響圖</a>。
+      <div class="quote">畫面佐證以實機截圖呈現；備詢時可由系統入口開啟相同功能。
       </div>
       <div class="footer">key capabilities</div>
       <div class="page">4 / 8</div>
@@ -809,12 +809,12 @@
       </div>
       <div class="proof-strip two">
         <div class="shot">
-          <img src="screenshots-221/v1.0.3.42_221_ai-settings.png" alt="221 AI 設定畫面">
-          <div class="shot-label"><span>AI 設定 / L1-L3</span><a href="http://192.168.1.221:8002/superadmin/ai">開啟</a></div>
+          <img src="screenshots-live/v1.0.3.42_live_ai-settings.png" alt="實機 AI 設定畫面">
+          <div class="shot-label"><span>AI 設定 / L1-L3</span><span>實機畫面</span></div>
         </div>
         <div class="shot">
-          <img src="screenshots-221/v1.0.3.42_221_token-costs.png" alt="221 Token 成本治理畫面">
-          <div class="shot-label"><span>成本治理</span><a href="http://192.168.1.221:8002/superadmin/token-costs">開啟</a></div>
+          <img src="screenshots-live/v1.0.3.42_live_token-costs.png" alt="實機 Token 成本治理畫面">
+          <div class="shot-label"><span>成本治理</span><span>實機畫面</span></div>
         </div>
       </div>
       <div class="footer">AI expected benefit and tools</div>
@@ -861,16 +861,16 @@
       </div>
       <div class="proof-strip">
         <div class="shot">
-          <img src="screenshots-221/v1.0.3.42_221_asset-management.png" alt="第 1 個月資產治理畫面">
-          <div class="shot-label"><span>第 1 月：資產基礎</span><a href="http://192.168.1.221:8002/hosts">開啟</a></div>
+          <img src="screenshots-live/v1.0.3.42_live_asset-management.png" alt="第 1 個月資產治理畫面">
+          <div class="shot-label"><span>第 1 月：資產基礎</span><span>實機畫面</span></div>
         </div>
         <div class="shot">
-          <img src="screenshots-221/v1.0.3.42_221_nmon-monthly.png" alt="第 2 個月營運可視化畫面">
-          <div class="shot-label"><span>第 2 月：營運可視化</span><a href="http://192.168.1.221:8002/nmon">開啟</a></div>
+          <img src="screenshots-live/v1.0.3.42_live_nmon-monthly.png" alt="第 2 個月營運可視化畫面">
+          <div class="shot-label"><span>第 2 月：營運可視化</span><span>實機畫面</span></div>
         </div>
         <div class="shot">
-          <img src="screenshots-221/v1.0.3.42_221_ai-settings.png" alt="第 3 個月 AI 治理畫面">
-          <div class="shot-label"><span>第 3 月：AI 治理</span><a href="http://192.168.1.221:8002/superadmin/ai">開啟</a></div>
+          <img src="screenshots-live/v1.0.3.42_live_ai-settings.png" alt="第 3 個月 AI 治理畫面">
+          <div class="shot-label"><span>第 3 月：AI 治理</span><span>實機畫面</span></div>
         </div>
       </div>
       <div class="footer">introduction schedule from 2026/4/15</div>
@@ -917,12 +917,12 @@
       </table>
       <div class="proof-strip two">
         <div class="shot">
-          <img src="screenshots-221/v1.0.3.42_221_post-install.png" alt="221 安裝後驗證畫面">
-          <div class="shot-label"><span>部署 / 驗證</span><a href="http://192.168.1.221:8002/reports/post-install">開啟</a></div>
+          <img src="screenshots-live/v1.0.3.42_live_post-install.png" alt="實機 安裝後驗證畫面">
+          <div class="shot-label"><span>部署 / 驗證</span><span>實機畫面</span></div>
         </div>
         <div class="shot">
-          <img src="screenshots-221/v1.0.3.42_221_token-costs.png" alt="221 成本治理畫面">
-          <div class="shot-label"><span>成本 / 預算</span><a href="http://192.168.1.221:8002/superadmin/token-costs">開啟</a></div>
+          <img src="screenshots-live/v1.0.3.42_live_token-costs.png" alt="實機 成本治理畫面">
+          <div class="shot-label"><span>成本 / 預算</span><span>實機畫面</span></div>
         </div>
       </div>
       <div class="footer">maintenance risks</div>
@@ -965,16 +965,16 @@
       <div class="quote">推廣重點是讓既有維運經驗、資料與流程能被更穩定地串起來，形成可持續累積的共同工作方式。</div>
       <div class="proof-strip">
         <div class="shot">
-          <img src="screenshots-221/v1.0.3.42_221_asset-management.png" alt="221 資料窗口畫面">
-          <div class="shot-label"><span>資料窗口</span><a href="http://192.168.1.221:8002/hosts">開啟</a></div>
+          <img src="screenshots-live/v1.0.3.42_live_asset-management.png" alt="實機 資料窗口畫面">
+          <div class="shot-label"><span>資料窗口</span><span>實機畫面</span></div>
         </div>
         <div class="shot">
-          <img src="screenshots-221/v1.0.3.42_221_account-inventory.png" alt="221 權限帳號畫面">
-          <div class="shot-label"><span>帳號 / 權限</span><a href="http://192.168.1.221:8002/accounts">開啟</a></div>
+          <img src="screenshots-live/v1.0.3.42_live_account-inventory.png" alt="實機 權限帳號畫面">
+          <div class="shot-label"><span>帳號 / 權限</span><span>實機畫面</span></div>
         </div>
         <div class="shot">
-          <img src="screenshots-221/v1.0.3.42_221_core-impact.png" alt="221 共同流程畫面">
-          <div class="shot-label"><span>共同流程</span><a href="http://192.168.1.221:8002/dependencies">開啟</a></div>
+          <img src="screenshots-live/v1.0.3.42_live_core-impact.png" alt="實機 共同流程畫面">
+          <div class="shot-label"><span>共同流程</span><span>實機畫面</span></div>
         </div>
       </div>
       <div class="footer">promotion readiness</div>
