@@ -14,6 +14,7 @@ from webapp.services.asset_governance_status_service import list_statuses as lis
 from webapp.services.asset_governance_status_service import save_status as save_governance_status
 from webapp.services.asset_governance_status_service import set_status_enabled as set_governance_status_enabled
 from webapp.services.auth_service import generate_backup_codes, list_users, reset_password, set_user_locked, upsert_user
+from webapp.services.collection_credential_service import get_collection_credentials, linux_bootstrap_script, save_collection_credentials
 from webapp.services.debug_bundle_service import ai_runtime_manifest, collect_debug_bundle, create_ai_debug_loop, get_ai_debug_loop_prompt, list_debug_bundles
 from webapp.services.feature_flags import DEFAULT_FLAGS, is_enabled, set_enabled, snapshot
 from webapp.services.important_service_service import delete_rule as delete_service_rule
@@ -190,30 +191,33 @@ def ai_page():
 @bp.get("/superadmin/credentials")
 @require_role("superadmin")
 def credentials_page():
-    tiers = [
-        {
-            "tier": "L1",
-            "name": "探測帳號",
-            "purpose": "確認連通、主機名稱、OS 線索與常見服務，不讀敏感資料。",
-            "permission": "低權限，不允許 sudo 或寫入。",
-            "examples": "ping、port、hostname、banner、基本 health check",
-        },
-        {
-            "tier": "L2",
-            "name": "盤點帳號",
-            "purpose": "讀取資產盤點需要的 OS、套件、服務、帳號與效能資訊。",
-            "permission": "read-only sudo 或受限指令白名單。",
-            "examples": "os-release、systemctl、套件清單、帳號清單、NMON/效能資料",
-        },
-        {
-            "tier": "L3",
-            "name": "深度檢查帳號",
-            "purpose": "事件排查時讀取 log、程序、網路與核心狀態，用於深度診斷。",
-            "permission": "高權限，需 PAM、審核、時間限制與稽核紀錄。",
-            "examples": "journal、kernel、process、socket、AP 服務狀態",
-        },
-    ]
-    return render_template("credentials.html", tiers=tiers)
+    settings = get_collection_credentials()
+    return render_template("credentials.html", tiers=settings["tiers"], settings=settings, saved=False)
+
+
+@bp.post("/superadmin/credentials")
+@require_role("superadmin")
+def credentials_save_page():
+    settings = save_collection_credentials(request.form.to_dict(), current_user()["username"])
+    audit_log_service.append(
+        "collection_credentials.update",
+        current_user()["username"],
+        {"tiers": [tier["tier"] for tier in settings["tiers"] if tier.get("enabled")]},
+    )
+    flash("採集帳號設定已儲存")
+    return render_template("credentials.html", tiers=settings["tiers"], settings=settings, saved=True)
+
+
+@bp.get("/superadmin/credentials/linux-bootstrap.sh")
+@require_role("superadmin")
+def credentials_linux_bootstrap_script():
+    settings = get_collection_credentials()
+    script = linux_bootstrap_script(settings)
+    return Response(
+        script,
+        mimetype="text/x-shellscript",
+        headers={"Content-Disposition": "attachment; filename=webitgpt_collection_accounts.sh"},
+    )
 
 
 @bp.post("/superadmin/ai")

@@ -174,6 +174,7 @@ def test_superadmin_full_system_surfaces_exist():
         "remote_tools_page",
         "dev_console_page",
         "credentials_page",
+        "credentials_linux_bootstrap_script",
     ]:
         assert name in routes
     for name in [
@@ -275,6 +276,7 @@ def test_collection_credentials_page_contract_exists():
     css = read("webapp/static/css/cathay.css")
 
     assert '"/superadmin/credentials"' in routes
+    assert '"/superadmin/credentials/linux-bootstrap.sh"' in routes
     assert "COLLECTION CREDENTIALS" in template
     assert "L1" in template
     assert "tier-{{ item.tier|lower }}" in template
@@ -285,6 +287,12 @@ def test_collection_credentials_page_contract_exists():
     assert "credentials_page" in search_registry
     assert ".credential-tier-grid" in css
     assert ".admin-nav-section[open] > .admin-nav-heading" in css
+    assert "itwebL1" in template
+    assert "itwebL2" in template
+    assert "itwebL3" in template
+    assert "1qaz@WSX" in template
+    assert "下載 Linux 偵測/建立腳本" in template
+    assert "linux_bootstrap_script" in read("webapp/services/collection_credential_service.py")
 
 
 def test_ai_token_cost_visibility_contract_exists():
