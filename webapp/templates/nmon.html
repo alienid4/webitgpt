@@ -30,14 +30,6 @@
   <div class="submit-status" hidden aria-live="polite"></div>
 </section>
 
-<section class="judgement-source-legend" aria-label="NMON 效能月報判斷來源">
-  <strong>效能判斷來源</strong>
-  <span class="source-badge nmon">NMON raw / sample</span>
-  <span class="source-badge rule">容量閾值規則</span>
-  <span class="source-badge script">Script 採樣</span>
-  <span class="source-badge ai-ready">AI-ready + NMON 判讀</span>
-  <span class="source-badge fallback">AI 不可用時仍保留趨勢與閾值判斷</span>
-</section>
 
 <section class="panel">
   <form class="nmon-filter-grid" method="get" action="{{ url_for('api_operations.nmon_page') }}">

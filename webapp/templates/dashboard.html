@@ -14,14 +14,6 @@
   </div>
 </section>
 
-<section class="judgement-source-legend" aria-label="判斷來源圖例">
-  <strong>判斷來源</strong>
-  <span class="source-badge cmdb">CMDB 資料</span>
-  <span class="source-badge rule">Rule 彙整</span>
-  <span class="source-badge script">Script 採證</span>
-  <span class="source-badge ai-ready">AI-ready + Script</span>
-  <span class="source-badge fallback">AI 不可用時 Script 接手</span>
-</section>
 
 <section class="ops-status-strip">
   <a class="metric" href="{{ url_for('api_hosts.hosts_page') }}"><strong>{{ summary.hosts_total }}</strong><span>納管資產</span></a>
