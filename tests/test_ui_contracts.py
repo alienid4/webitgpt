@@ -189,6 +189,8 @@ def test_superadmin_full_system_surfaces_exist():
     assert "Hash chain：" in superadmin
     assert "effective_enabled" in superadmin
     assert "admin-sidebar-grouped" in superadmin
+    assert '<details class="admin-nav-section" open>' in superadmin
+    assert '<summary class="admin-nav-heading">權限與憑證</summary>' in superadmin
     assert "credentials_page" in superadmin
     assert "API Token" in superadmin
     assert "important_services_page" in superadmin
@@ -282,6 +284,7 @@ def test_collection_credentials_page_contract_exists():
     assert "source-badge" in template
     assert "credentials_page" in search_registry
     assert ".credential-tier-grid" in css
+    assert ".admin-nav-section[open] > .admin-nav-heading" in css
 
 
 def test_ai_token_cost_visibility_contract_exists():

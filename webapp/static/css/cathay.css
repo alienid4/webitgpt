@@ -373,11 +373,29 @@ a.metric:hover {
   gap: 3px;
 }
 .admin-nav-heading {
+  cursor: pointer;
+  list-style: none;
   margin: 8px 0 2px;
   padding: 0 10px;
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
+}
+.admin-nav-heading::-webkit-details-marker {
+  display: none;
+}
+.admin-nav-heading::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 6px;
+  color: var(--g-text);
+  transition: transform .16s ease;
+}
+.admin-nav-section[open] > .admin-nav-heading::before {
+  transform: rotate(90deg);
+}
+.admin-nav-section[open] > .admin-nav-heading {
+  color: var(--c1);
 }
 .admin-content { min-width: 0; display: grid; gap: 16px; }
 .credential-tier-grid {

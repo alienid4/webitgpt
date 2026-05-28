@@ -8,47 +8,47 @@
       <a class="admin-side-link active" href="{{ url_for('api_superadmin.superadmin_page') }}">總覽 / 功能開關</a>
     </nav>
 
-    <div class="admin-nav-section">
-      <div class="admin-nav-heading">權限與憑證</div>
+    <details class="admin-nav-section" open>
+      <summary class="admin-nav-heading">權限與憑證</summary>
       <a class="admin-side-link" href="{{ url_for('api_superadmin.users_page') }}">使用者與權限</a>
       <a class="admin-side-link" href="{{ url_for('api_superadmin.credentials_page') }}">採集帳號 L1 / L2 / L3</a>
       <a class="admin-side-link" href="{{ url_for('api_superadmin.audit_logs_page') }}">稽核紀錄</a>
-    </div>
+    </details>
 
-    <div class="admin-nav-section">
-      <div class="admin-nav-heading">API 與 AI</div>
+    <details class="admin-nav-section">
+      <summary class="admin-nav-heading">API 與 AI</summary>
       <a class="admin-side-link" href="{{ url_for('api_superadmin.tokens_page') }}">API Token</a>
       <a class="admin-side-link" href="{{ url_for('api_superadmin.ai_page') }}">AI 供應商</a>
       <a class="admin-side-link" href="{{ url_for('api_superadmin.token_costs_page') }}">Token 成本</a>
-    </div>
+    </details>
 
-    <div class="admin-nav-section">
-      <div class="admin-nav-heading">規則與治理</div>
+    <details class="admin-nav-section">
+      <summary class="admin-nav-heading">規則與治理</summary>
       <a class="admin-side-link" href="{{ url_for('api_superadmin.important_services_page') }}">重要服務規則</a>
       <a class="admin-side-link" href="{{ url_for('api_superadmin.asset_governance_statuses_page') }}">資產治理狀態</a>
       <a class="admin-side-link" href="{{ url_for('api_notifications.notifications_page') }}">通知設定</a>
-    </div>
+    </details>
 
-    <div class="admin-nav-section">
-      <div class="admin-nav-heading">維運監控</div>
+    <details class="admin-nav-section">
+      <summary class="admin-nav-heading">維運監控</summary>
       <a class="admin-side-link" href="{{ url_for('api_superadmin.system_health_page') }}">健康檢查</a>
       <a class="admin-side-link" href="{{ url_for('api_superadmin.logs_page') }}">日誌檢視</a>
       <a class="admin-side-link" href="{{ url_for('api_superadmin.jobs_page') }}">工作排程</a>
-    </div>
+    </details>
 
-    <div class="admin-nav-section">
-      <div class="admin-nav-heading">備份與發布</div>
+    <details class="admin-nav-section">
+      <summary class="admin-nav-heading">備份與發布</summary>
       <a class="admin-side-link" href="{{ url_for('api_superadmin.backup_dr_page') }}">備份 / DR</a>
       <a class="admin-side-link" href="{{ url_for('api_superadmin.patches_page') }}">Patch / 回滾</a>
       <a class="admin-side-link" href="{{ url_for('api_housekeeping.housekeeping_page') }}">Housekeeping</a>
-    </div>
+    </details>
 
-    <div class="admin-nav-section">
-      <div class="admin-nav-heading">開發與對照</div>
+    <details class="admin-nav-section">
+      <summary class="admin-nav-heading">開發與對照</summary>
       <a class="admin-side-link" href="{{ url_for('api_superadmin.dev_console_page') }}">開發後台</a>
       <a class="admin-side-link" href="{{ url_for('api_superadmin.feature_parity_page') }}">功能對照</a>
       <a class="admin-side-link" href="{{ url_for('api_superadmin.settings_page') }}">系統設定</a>
-    </div>
+    </details>
   </aside>
 
   <div class="admin-content">
