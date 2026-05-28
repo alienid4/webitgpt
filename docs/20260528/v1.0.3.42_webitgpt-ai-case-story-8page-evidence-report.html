@@ -1,0 +1,985 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>webitgpt AI 維運平台 8 頁導入報告 - 畫面佐證版</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5f6b7a;
+      --paper: #fbfcfd;
+      --line: #d8e0e6;
+      --green: #006b4a;
+      --green-soft: #e7f4ed;
+      --gold: #9b6500;
+      --gold-soft: #fff8e8;
+      --gold-pale: #fffdf4;
+      --blue: #1f5f93;
+      --blue-soft: #edf5ff;
+      --red: #b42318;
+      --red-soft: #fff1f0;
+      --shadow: 0 20px 48px rgba(17, 24, 39, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #e8edf2;
+      font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif;
+      line-height: 1.55;
+    }
+
+    .deck {
+      width: min(1240px, calc(100vw - 32px));
+      margin: 24px auto 40px;
+    }
+
+    .slide {
+      position: relative;
+      min-height: 720px;
+      margin: 0 0 30px;
+      padding: 56px 66px 62px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 88% 10%, rgba(0, 107, 74, 0.08), transparent 34%),
+        var(--paper);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .slide::after {
+      content: "";
+      position: absolute;
+      left: 66px;
+      right: 66px;
+      bottom: 34px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--green), #94bd77, transparent);
+      border-radius: 99px;
+    }
+
+    .kicker {
+      margin-bottom: 12px;
+      color: var(--green);
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      max-width: 920px;
+      margin-bottom: 22px;
+      font-size: 50px;
+    }
+
+    h2 {
+      max-width: 960px;
+      margin-bottom: 18px;
+      font-size: 39px;
+    }
+
+    h3 {
+      margin-bottom: 8px;
+      font-size: 21px;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    .lead {
+      max-width: 930px;
+      margin-bottom: 30px;
+      color: var(--muted);
+      font-size: 19px;
+    }
+
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .card {
+      min-height: 138px;
+      padding: 20px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    .card.green {
+      background: var(--green-soft);
+      border-color: #9acdb7;
+    }
+
+    .card.blue {
+      background: var(--blue-soft);
+      border-color: #b7d6f3;
+    }
+
+    .card.gold-ready {
+      background: var(--gold-pale);
+      border: 2px solid #f1d89a;
+    }
+
+    .card.gold-ai {
+      background: var(--gold-soft);
+      border: 3px solid var(--gold);
+      box-shadow: 0 0 0 5px rgba(155, 101, 0, 0.10);
+    }
+
+    .card.red {
+      background: var(--red-soft);
+      border-color: #f2b8b5;
+    }
+
+    .big-number {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--green);
+      font-size: 44px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .story-strip {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 18px;
+      align-items: start;
+      padding: 17px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .story-strip:last-child {
+      border-bottom: 0;
+    }
+
+    .time {
+      color: var(--green);
+      font-size: 23px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 4px 11px;
+      color: var(--ink);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .tag.green {
+      color: var(--green);
+      background: var(--green-soft);
+      border-color: #9acdb7;
+    }
+
+    .tag.gold {
+      color: var(--gold);
+      background: var(--gold-soft);
+      border: 2px solid var(--gold);
+    }
+
+    .tag.pale {
+      color: var(--gold);
+      background: var(--gold-pale);
+      border: 2px solid #f1d89a;
+    }
+
+    .evidence-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 380px;
+      gap: 22px;
+      align-items: start;
+      padding: 17px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .evidence-row:last-child {
+      border-bottom: 0;
+    }
+
+    .evidence-main {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .evidence-shots {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .evidence-shots.single {
+      grid-template-columns: 1fr;
+    }
+
+    .shot {
+      position: relative;
+      min-height: 128px;
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 8px 20px rgba(17, 24, 39, 0.08);
+    }
+
+    .shot img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top left;
+    }
+
+    .proof-wide {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 18px;
+      align-items: start;
+      margin-top: 18px;
+      padding: 16px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    .proof-wide .shot {
+      min-height: 240px;
+    }
+
+    .proof-copy {
+      padding: 6px 4px;
+    }
+
+    .proof-copy ul {
+      margin-top: 12px;
+    }
+
+    .proof-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .proof-strip .shot {
+      min-height: 150px;
+    }
+
+    .proof-strip.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .shot-label {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 8px;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(216, 224, 230, 0.9);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .shot-label a {
+      color: var(--green);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .evidence-gallery {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .evidence-card {
+      min-height: 226px;
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    .evidence-card .shot {
+      height: 132px;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    .evidence-card-body {
+      padding: 14px 16px 16px;
+    }
+
+    .evidence-card-body p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .safe-note {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .quote {
+      margin: 24px 0 0;
+      padding: 20px 24px;
+      color: var(--ink);
+      background: #fff;
+      border-left: 7px solid var(--green);
+      border-radius: 8px;
+      font-size: 21px;
+      font-weight: 900;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .phase {
+      min-height: 235px;
+      padding: 20px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-top: 7px solid var(--green);
+      border-radius: 10px;
+    }
+
+    .phase .date {
+      display: inline-block;
+      margin-bottom: 10px;
+      color: var(--green);
+      font-weight: 900;
+    }
+
+    ul {
+      margin: 10px 0 0;
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      font-size: 15px;
+    }
+
+    th {
+      padding: 10px 12px;
+      color: #fff;
+      background: var(--blue);
+      text-align: left;
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) td {
+      background: #f6f8fa;
+    }
+
+    .footer {
+      position: absolute;
+      left: 66px;
+      bottom: 44px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .page {
+      position: absolute;
+      right: 66px;
+      bottom: 44px;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .deck {
+        width: 100%;
+        margin: 0;
+      }
+
+      .slide {
+        min-height: 0;
+        margin: 0;
+        page-break-after: always;
+        box-shadow: none;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .slide {
+        padding: 36px 26px 58px;
+      }
+
+      .slide::after,
+      .footer {
+        left: 26px;
+        right: 26px;
+      }
+
+      .page {
+        right: 26px;
+      }
+
+      h1 {
+        font-size: 38px;
+      }
+
+      h2 {
+        font-size: 31px;
+      }
+
+      .grid-2,
+      .grid-3,
+      .grid-4,
+      .timeline {
+        grid-template-columns: 1fr;
+      }
+
+      .story-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .evidence-row,
+      .evidence-main,
+      .evidence-gallery {
+        grid-template-columns: 1fr;
+      }
+
+      .evidence-shots {
+        grid-template-columns: 1fr;
+      }
+
+      .proof-wide,
+      .proof-strip,
+      .proof-strip.two {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck">
+    <section class="slide">
+      <div class="kicker">Case Opening</div>
+      <h1>開門檢查看到訊號，盤中 10:30 流量一上來就開始吃緊。</h1>
+      <p class="lead">
+        早上開門檢查先看到幾個異常訊號，當時還不確定是否會影響服務。
+        到 10:30 盤中交易量衝上來，部分設定、容量與處理節奏沒有完全跟上，
+        核心服務開始出現消化不良。維運團隊需要更快把已掌握的主機、效能、
+        拓撲與通知線索先整理出來；帳號與 owner 資訊則逐步補齊，形成可以討論的畫面。
+      </p>
+      <div class="grid-3">
+        <article class="card red">
+          <span class="big-number">01</span>
+          <h3>資料分散</h3>
+          <p>CMDB、掃描結果、帳號盤點、效能紀錄分散在不同工具與檔案。</p>
+        </article>
+        <article class="card red">
+          <span class="big-number">02</span>
+          <h3>判讀靠經驗</h3>
+          <p>Script 可以查出現象，但影響範圍、風險等級與處置順序仍仰賴人工。</p>
+        </article>
+        <article class="card red">
+          <span class="big-number">03</span>
+          <h3>回報難成形</h3>
+          <p>主管需要結論與建議，現場常只有 log、CSV、掃描文字與口頭經驗。</p>
+        </article>
+      </div>
+      <div class="quote">導入前觀察：開門檢查看得到訊號，但要在盤中快速連到設定、容量、影響範圍與處置順序，仍需要更多工具支援。</div>
+      <div class="proof-wide">
+        <div class="shot">
+          <img src="screenshots-221/v1.0.3.42_221_opening-check.png" alt="221 開門檢查畫面">
+          <div class="shot-label"><span>221 開門檢查</span><a href="http://192.168.1.221:8002/inspections">開啟</a></div>
+        </div>
+        <div class="proof-copy">
+          <h3>畫面證據</h3>
+          <p>開門檢查頁面已能以系統為範圍，呈現正常、警示與待檢項目，作為盤前觀察訊號。</p>
+          <ul>
+            <li>可選擇開門檢查系統。</li>
+            <li>可看到正常、警示、待檢摘要。</li>
+            <li>可延伸到 L3 深度檢查與平台別檢查。</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer">webitgpt AI 維運平台導入報告</div>
+      <div class="page">1 / 8</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Before / After</div>
+      <h2>平台要補上的，是巡檢後到決策前的整理流程。</h2>
+      <p class="lead">
+        webitgpt 將資產、帳號、拓撲、效能與巡檢放到同一個維運工作台。
+        目標不是多做一張報表，而是讓事件發生時，更快看見「誰可能受影響、證據在哪、下一步可先確認什麼」。
+      </p>
+      <div class="grid-2">
+        <article class="card">
+          <h3>導入前</h3>
+          <ul>
+            <li>CMDB 欄位不一致，匯入錯誤難以一眼理解。</li>
+            <li>OS/AP 帳號、PAM、owner 資訊分散。</li>
+            <li>拓撲、效能、巡檢結果各自孤島。</li>
+            <li>離線移植與版本更新需要更多標準化紀錄。</li>
+          </ul>
+        </article>
+        <article class="card green">
+          <h3>導入後</h3>
+          <ul>
+            <li>資料先進草稿區，驗證後再進正式資產。</li>
+            <li>帳號、權限、PAM、owner 可一起盤點。</li>
+            <li>NMON、EOS、核心影響圖與巡檢互相連結。</li>
+            <li>安裝、patch、RHEL 移植有文件與版本治理。</li>
+          </ul>
+        </article>
+      </div>
+      <div class="proof-strip two">
+        <div class="shot">
+          <img src="screenshots-221/v1.0.3.42_221_asset-management.png" alt="221 資產管理畫面">
+          <div class="shot-label"><span>資產 / CMDB</span><a href="http://192.168.1.221:8002/hosts">開啟</a></div>
+        </div>
+        <div class="shot">
+          <img src="screenshots-221/v1.0.3.42_221_post-install.png" alt="221 安裝後驗證畫面">
+          <div class="shot-label"><span>驗證 / API</span><a href="http://192.168.1.221:8002/reports/post-install">開啟</a></div>
+        </div>
+      </div>
+      <div class="footer">pain points and expected value</div>
+      <div class="page">2 / 8</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">The Platform Steps In</div>
+      <h2>事件發生後，平台先協助把資料收斂。</h2>
+      <p class="lead">
+        當交易量上來、設定或容量開始吃緊時，維運人員不需要完全從零開始整理資料。平台從資產、拓撲、效能、
+        帳號與巡檢結果建立共同畫面，讓團隊先有一致的討論基礎。
+      </p>
+      <div class="evidence-row">
+        <div class="evidence-main">
+          <div class="time">08:40</div>
+          <div>
+            <h3>確認核心系統與受影響範圍</h3>
+            <p>核心影響圖與資產清單協助先看關聯系統、主機/IP、通知線索與可能受影響範圍。</p>
+            <div class="tag-row">
+              <span class="tag green">核心影響圖</span>
+              <span class="tag green">CMDB</span>
+              <span class="tag green">通知線索</span>
+            </div>
+          </div>
+        </div>
+        <div class="evidence-shots">
+          <div class="shot">
+            <img src="screenshots-221/v1.0.3.42_221_core-impact.png" alt="221 核心影響圖畫面">
+            <div class="shot-label"><span>核心影響圖</span><a href="http://192.168.1.221:8002/dependencies">開啟</a></div>
+          </div>
+          <div class="shot">
+            <img src="screenshots-221/v1.0.3.42_221_asset-management.png" alt="221 資產管理畫面">
+            <div class="shot-label"><span>資產管理</span><a href="http://192.168.1.221:8002/hosts">開啟</a></div>
+          </div>
+        </div>
+      </div>
+      <div class="evidence-row">
+        <div class="evidence-main">
+          <div class="time">08:45</div>
+          <div>
+            <h3>集中採證資料</h3>
+            <p>nmap、NMON、巡檢、帳號盤點與 PAM/owner 規則集中呈現，避免多工具切換。</p>
+            <div class="tag-row">
+              <span class="tag green">Shell 採證</span>
+              <span class="tag green">NMON raw</span>
+              <span class="tag green">帳號盤點</span>
+            </div>
+          </div>
+        </div>
+        <div class="evidence-shots">
+          <div class="shot">
+            <img src="screenshots-221/v1.0.3.42_221_nmon-monthly.png" alt="221 效能月報畫面">
+            <div class="shot-label"><span>效能月報</span><a href="http://192.168.1.221:8002/nmon">開啟</a></div>
+          </div>
+          <div class="shot">
+            <img src="screenshots-221/v1.0.3.42_221_account-inventory.png" alt="221 帳號盤點畫面">
+            <div class="shot-label"><span>帳號盤點</span><a href="http://192.168.1.221:8002/accounts">開啟</a></div>
+          </div>
+        </div>
+      </div>
+      <div class="evidence-row">
+        <div class="evidence-main">
+          <div class="time">08:50</div>
+          <div>
+            <h3>形成可回報摘要</h3>
+            <p>異常不只停在 log，而是整理成風險、影響、建議處置與待確認項目。</p>
+            <div class="tag-row">
+              <span class="tag pale">AI-ready</span>
+              <span class="tag gold">AI 判讀</span>
+              <span class="tag green">Script fallback</span>
+            </div>
+          </div>
+        </div>
+        <div class="evidence-shots">
+          <div class="shot">
+            <img src="screenshots-221/v1.0.3.42_221_opening-check.png" alt="221 今日巡檢畫面">
+            <div class="shot-label"><span>今日巡檢</span><a href="http://192.168.1.221:8002/inspections">開啟</a></div>
+          </div>
+          <div class="shot">
+            <img src="screenshots-221/v1.0.3.42_221_post-install.png" alt="221 安裝後驗證畫面">
+            <div class="shot-label"><span>安裝後驗證</span><a href="http://192.168.1.221:8002/reports/post-install">開啟</a></div>
+          </div>
+        </div>
+      </div>
+      <p class="safe-note">註：本頁使用 221 實機截圖作為畫面證據；縮圖右下角可連到實機頁面備詢。</p>
+      <div class="footer">application scenario</div>
+      <div class="page">3 / 8</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Function Coverage</div>
+      <h2>重點功能收斂成四個支撐事件處理的能力。</h2>
+      <p class="lead">
+        這些功能共同回答四個問題：資產是誰、誰有權限、目前狀態如何、異常會影響誰。
+      </p>
+      <div class="evidence-gallery">
+        <article class="evidence-card">
+          <div class="shot">
+            <img src="screenshots-221/v1.0.3.42_221_asset-management.png" alt="221 資產治理畫面">
+            <div class="shot-label"><span>資產治理</span><a href="http://192.168.1.221:8002/hosts">開啟</a></div>
+          </div>
+          <div class="evidence-card-body">
+            <h3>資產治理</h3>
+            <p>CMDB CSV/Excel 匯入、草稿區、欄位驗證、錯誤列回報、正式資產管理。</p>
+          </div>
+        </article>
+        <article class="evidence-card">
+          <div class="shot">
+            <img src="screenshots-221/v1.0.3.42_221_account-inventory.png" alt="221 帳號盤點畫面">
+            <div class="shot-label"><span>帳號盤點</span><a href="http://192.168.1.221:8002/accounts">開啟</a></div>
+          </div>
+          <div class="evidence-card-body">
+            <h3>帳號盤點</h3>
+            <p>OS/AP 帳號、權限、owner、PAM 狀態與異常彙整，補足應用帳號缺口。</p>
+          </div>
+        </article>
+        <article class="evidence-card">
+          <div class="shot">
+            <img src="screenshots-221/v1.0.3.42_221_nmon-monthly.png" alt="221 效能月報畫面">
+            <div class="shot-label"><span>效能月報</span><a href="http://192.168.1.221:8002/nmon">開啟</a></div>
+          </div>
+          <div class="evidence-card-body">
+            <h3>效能與巡檢</h3>
+            <p>NMON 日/週/月報、EOS 摘要、L1/L2/L3 巡檢、Script 採證與結果追蹤。</p>
+          </div>
+        </article>
+        <article class="evidence-card">
+          <div class="shot">
+            <img src="screenshots-221/v1.0.3.42_221_core-impact.png" alt="221 核心影響圖畫面">
+            <div class="shot-label"><span>核心影響圖</span><a href="http://192.168.1.221:8002/dependencies">開啟</a></div>
+          </div>
+          <div class="evidence-card-body">
+            <h3>影響分析</h3>
+            <p>核心系統影響圖、關聯系統、主機/IP、Ghost 清單與通知名單匯出。</p>
+          </div>
+        </article>
+      </div>
+      <div class="quote">平台價值不是「功能很多」，而是讓資料能串成同一個維運決策流程。</div>
+      <div class="quote">畫面佐證可於備詢時點選 221 實機頁面：
+        <a href="http://192.168.1.221:8002/hosts">資產管理</a>、
+        <a href="http://192.168.1.221:8002/accounts">帳號盤點</a>、
+        <a href="http://192.168.1.221:8002/nmon">效能月報</a>、
+        <a href="http://192.168.1.221:8002/dependencies">核心影響圖</a>。
+      </div>
+      <div class="footer">key capabilities</div>
+      <div class="page">4 / 8</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">AI With Guardrails</div>
+      <h2>AI 預期效益：協助整理脈絡，讓討論更聚焦。</h2>
+      <p class="lead">
+        AI 先作為維運採證後的輔助判讀。平台採用分工設計：Shell/Script/API 負責取得事實，
+        AI 協助摘要、分級、跨資料源關聯與建議行動。
+      </p>
+      <div class="grid-2">
+        <article class="card gold-ai">
+          <h3>真正 AI 判讀</h3>
+          <ul>
+            <li>L3 深度檢查產出風險摘要與建議。</li>
+            <li>把多來源資料轉成主管看得懂的結論。</li>
+            <li>深金框表示 AI 已參與判斷。</li>
+          </ul>
+        </article>
+        <article class="card gold-ready">
+          <h3>AI-ready 與保底</h3>
+          <ul>
+            <li>淡金框只表示資料可交給 AI 判讀。</li>
+            <li>API 或模型不可用時，Script 規則接手。</li>
+            <li>L1/L2/L3 API Key 依難度與預算分級。</li>
+          </ul>
+        </article>
+      </div>
+      <div class="grid-3" style="margin-top: 16px;">
+        <article class="card">
+          <h3>時間效益</h3>
+          <p>協助縮短資料收集、比對與回報整理時間。</p>
+        </article>
+        <article class="card">
+          <h3>品質效益</h3>
+          <p>協助提醒關聯系統、帳號權限與通知對象。</p>
+        </article>
+        <article class="card">
+          <h3>治理效益</h3>
+          <p>透過來源標示、預算控管與紀錄，保留可追溯脈絡。</p>
+        </article>
+      </div>
+      <div class="proof-strip two">
+        <div class="shot">
+          <img src="screenshots-221/v1.0.3.42_221_ai-settings.png" alt="221 AI 設定畫面">
+          <div class="shot-label"><span>AI 設定 / L1-L3</span><a href="http://192.168.1.221:8002/superadmin/ai">開啟</a></div>
+        </div>
+        <div class="shot">
+          <img src="screenshots-221/v1.0.3.42_221_token-costs.png" alt="221 Token 成本治理畫面">
+          <div class="shot-label"><span>成本治理</span><a href="http://192.168.1.221:8002/superadmin/token-costs">開啟</a></div>
+        </div>
+      </div>
+      <div class="footer">AI expected benefit and tools</div>
+      <div class="page">5 / 8</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Three-Month Introduction Plan</div>
+      <h2>從 4/15 開始，三個月形成第一階段可驗收版本。</h2>
+      <p class="lead">
+        時程設計先建立資料與採證基礎，再完成營運可視化，最後導入 AI 判讀、成本治理與正式驗收。
+      </p>
+      <div class="timeline">
+        <article class="phase">
+          <span class="date">第 1 個月｜4/15 - 5/14</span>
+          <h3>建立基礎資料面</h3>
+          <ul>
+            <li>CMDB 欄位治理與草稿區。</li>
+            <li>主機管理與基礎巡檢。</li>
+            <li>版本規則與部署流程。</li>
+            <li>匯入錯誤回報格式。</li>
+          </ul>
+        </article>
+        <article class="phase">
+          <span class="date">第 2 個月｜5/15 - 6/14</span>
+          <h3>完成營運可視化</h3>
+          <ul>
+            <li>NMON 與 EOS 主管摘要。</li>
+            <li>OS/AP 帳號盤點。</li>
+            <li>核心影響圖與通知名單。</li>
+            <li>離線安裝與 RHEL 9.6 驗證。</li>
+          </ul>
+        </article>
+        <article class="phase">
+          <span class="date">第 3 個月｜6/15 - 7/14</span>
+          <h3>導入 AI 判讀與治理</h3>
+          <ul>
+            <li>L1/L2/L3 判讀分級。</li>
+            <li>API Key、預算與 fallback。</li>
+            <li>AI-ready / AI 判讀視覺標示。</li>
+            <li>驗收文件與操作交接。</li>
+          </ul>
+        </article>
+      </div>
+      <div class="proof-strip">
+        <div class="shot">
+          <img src="screenshots-221/v1.0.3.42_221_asset-management.png" alt="第 1 個月資產治理畫面">
+          <div class="shot-label"><span>第 1 月：資產基礎</span><a href="http://192.168.1.221:8002/hosts">開啟</a></div>
+        </div>
+        <div class="shot">
+          <img src="screenshots-221/v1.0.3.42_221_nmon-monthly.png" alt="第 2 個月營運可視化畫面">
+          <div class="shot-label"><span>第 2 月：營運可視化</span><a href="http://192.168.1.221:8002/nmon">開啟</a></div>
+        </div>
+        <div class="shot">
+          <img src="screenshots-221/v1.0.3.42_221_ai-settings.png" alt="第 3 個月 AI 治理畫面">
+          <div class="shot-label"><span>第 3 月：AI 治理</span><a href="http://192.168.1.221:8002/superadmin/ai">開啟</a></div>
+        </div>
+      </div>
+      <div class="footer">introduction schedule from 2026/4/15</div>
+      <div class="page">6 / 8</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Operating Model</div>
+      <h2>導入治理建議：把平台當成共同維運流程來逐步經營。</h2>
+      <p class="lead">
+        webitgpt 的價值來自跨單位資料與維運流程的整合。導入時建議先把資料來源、
+        採證方式、權限、成本與版本流程定義清楚，讓平台成為共同協作的工作台。
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>治理面向</th>
+            <th>目的</th>
+            <th>建議做法</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>CMDB 資料品質</td>
+            <td>讓資產、拓撲、帳號與 AI 判讀能建立在一致欄位上。</td>
+            <td>建立資料負責窗口，定義必填/選填/允許空值與錯誤列處理。</td>
+          </tr>
+          <tr>
+            <td>Script 採證維護</td>
+            <td>保留可追溯的事實來源，讓 AI 判讀有可靠依據。</td>
+            <td>nmap、NMON、SSH、WinRM、帳號查詢納入測試與版本紀錄。</td>
+          </tr>
+          <tr>
+            <td>AI 判讀治理</td>
+            <td>讓 AI 協助摘要與分級，同時保留高風險操作的控管。</td>
+            <td>停機、停帳、修補與異動保留人工覆核、來源證據與回滾流程。</td>
+          </tr>
+          <tr>
+            <td>API Key 與成本</td>
+            <td>讓 AI 使用可預期、可追蹤，也能控制成本。</td>
+            <td>L1/L2/L3 分級，超額時自動降級或停用，保留 debug log。</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="proof-strip two">
+        <div class="shot">
+          <img src="screenshots-221/v1.0.3.42_221_post-install.png" alt="221 安裝後驗證畫面">
+          <div class="shot-label"><span>部署 / 驗證</span><a href="http://192.168.1.221:8002/reports/post-install">開啟</a></div>
+        </div>
+        <div class="shot">
+          <img src="screenshots-221/v1.0.3.42_221_token-costs.png" alt="221 成本治理畫面">
+          <div class="shot-label"><span>成本 / 預算</span><a href="http://192.168.1.221:8002/superadmin/token-costs">開啟</a></div>
+        </div>
+      </div>
+      <div class="footer">maintenance risks</div>
+      <div class="page">7 / 8</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Promotion Readiness</div>
+      <h2>推廣建議：先建立共同成功條件，再擴大使用範圍。</h2>
+      <p class="lead">
+        推廣時建議把平台定位成共同維運治理工具，由各單位一起定義資料、流程、
+        權限與驗收方式，讓既有經驗可以被系統化累積。
+      </p>
+      <div class="grid-3">
+        <article class="card green">
+          <h3>建立資料窗口</h3>
+          <p>每個系統、主機、AP 帳號、備份與個資欄位建議有對應維護窗口。</p>
+        </article>
+        <article class="card green">
+          <h3>對齊標準欄位</h3>
+          <p>共同定義 CMDB 與帳號盤點必要欄位、選填欄位與空值規則。</p>
+        </article>
+        <article class="card green">
+          <h3>對齊使用流程</h3>
+          <p>匯入、草稿審核、異常確認與追蹤關閉，建議有共同操作流程。</p>
+        </article>
+        <article class="card">
+          <h3>落實最小權限</h3>
+          <p>讀取、匯出、巡檢、管理、API Key 設定建議分角色。</p>
+        </article>
+        <article class="card">
+          <h3>定義 AI 使用規則</h3>
+          <p>明確區分 AI 判讀、AI-ready 與需要人工覆核的情境。</p>
+        </article>
+        <article class="card">
+          <h3>建立驗收指標</h3>
+          <p>匯入成功率、巡檢覆蓋率、NMON 覆蓋率、拓撲正確率、異常追蹤率。</p>
+        </article>
+      </div>
+      <div class="quote">推廣重點是讓既有維運經驗、資料與流程能被更穩定地串起來，形成可持續累積的共同工作方式。</div>
+      <div class="proof-strip">
+        <div class="shot">
+          <img src="screenshots-221/v1.0.3.42_221_asset-management.png" alt="221 資料窗口畫面">
+          <div class="shot-label"><span>資料窗口</span><a href="http://192.168.1.221:8002/hosts">開啟</a></div>
+        </div>
+        <div class="shot">
+          <img src="screenshots-221/v1.0.3.42_221_account-inventory.png" alt="221 權限帳號畫面">
+          <div class="shot-label"><span>帳號 / 權限</span><a href="http://192.168.1.221:8002/accounts">開啟</a></div>
+        </div>
+        <div class="shot">
+          <img src="screenshots-221/v1.0.3.42_221_core-impact.png" alt="221 共同流程畫面">
+          <div class="shot-label"><span>共同流程</span><a href="http://192.168.1.221:8002/dependencies">開啟</a></div>
+        </div>
+      </div>
+      <div class="footer">promotion readiness</div>
+      <div class="page">8 / 8</div>
+    </section>
+  </main>
+</body>
+</html>
