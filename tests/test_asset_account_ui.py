@@ -40,6 +40,16 @@ def test_asset_actions_are_consistent_and_superadmin_only_for_sensitive_buttons(
     assert compliance_route.count('@require_role("superadmin")') >= 2
 
 
+def test_asset_add_host_entry_is_clear_from_asset_page():
+    hosts = read("webapp/templates/hosts.html")
+    css = read("webapp/static/css/cathay.css")
+
+    for text in ["新增 / 匯入主機", "單筆新增主機", "Excel / CSV 大量匯入", "掃描網段建立草稿"]:
+        assert text in hosts
+    assert "asset-intake-panel" in hosts
+    assert "asset-intake-card" in css
+
+
 def test_account_metrics_link_to_detail_views():
     html = read("webapp/templates/accounts_inventory.html")
     js = read("webapp/static/js/account_inventory.js")
