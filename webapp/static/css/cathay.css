@@ -1332,6 +1332,18 @@ a.metric:hover {
   flex-wrap: wrap;
   margin-bottom: 10px;
 }
+.asset-bulk-panel {
+  margin-bottom: 12px;
+}
+.asset-bulk-panel > summary {
+  padding: 12px 14px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: var(--bg2);
+}
+.asset-bulk-panel[open] > summary {
+  background: var(--g-light);
+}
 .asset-bulk-actions input[name="reason"] {
   min-width: 300px;
 }

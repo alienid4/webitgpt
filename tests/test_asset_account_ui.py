@@ -69,6 +69,10 @@ def test_asset_secondary_actions_are_grouped_and_scan_rows_are_expandable():
     assert "進入草稿區處理" in host_new
     assert "草稿區下一步" in hosts
     assert "新增完成，共" in hosts
+    assert '<details class="asset-bulk-panel asset-optional-section">' in hosts
+    assert "批次草稿處理 / 治理" in hosts
+    assert "低頻維運功能：用來清理掃描誤建草稿" in hosts
+    assert "asset-bulk-panel[open]" in css
     assert "資產已儲存，已回到資產管理列表" in hosts
     host_edit = read("webapp/templates/host_edit.html")
     host_routes = read("webapp/routes/api_hosts.py")
