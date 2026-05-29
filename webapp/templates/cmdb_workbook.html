@@ -24,7 +24,7 @@
     <span><strong>待分類</strong> 欄位不足或未知 sheet</span>
   </div>
 
-  <div class="cmdb-workbook-actions">
+  <div class="cmdb-workbook-actions" id="cmdb-workbook-import">
     <form class="cmdb-workbook-form" method="post" enctype="multipart/form-data" action="{{ url_for('api_hosts.cmdb_workbook_preview_page') }}" data-submit-status data-submit-message="正在預檢 CMDB Excel。">
       <input type="file" name="workbook_file" accept=".xlsx" required>
       <button class="btn primary" type="submit">1. 預檢整份 Excel</button>
@@ -144,6 +144,40 @@
     <a class="metric" href="#cmdb-asset-pool-list"><strong>{{ asset_pool.counts.get("hardware", 0) }}</strong><span>硬體證據</span></a>
     <a class="metric" href="#cmdb-asset-pool-list"><strong>{{ asset_pool.counts.get("unknown", 0) }}</strong><span>待分類</span></a>
   </div>
+  {% if (asset_pool.total or 0) == 0 %}
+  <div class="cmdb-empty-diagnosis">
+    <div>
+      <strong>目前資產池沒有資料，不代表匯入資料消失。</strong>
+      <p class="text-muted-sm">主機 CSV / Excel 匯入會進資產清冊；只有 `整份治理匯入` 或 `只匯入資產池` 才會把資料、軟體、人員與硬體證據放進這裡。</p>
+    </div>
+    <div class="cmdb-empty-diagnosis-grid">
+      <div>
+        <span class="source-badge cmdb">主機清冊</span>
+        <strong>{{ asset_pool.host_total or 0 }}</strong>
+        <small>目前正式 / 草稿主機總數</small>
+      </div>
+      <div>
+        <span class="source-badge rule">最近主機匯入</span>
+        <strong>{{ (asset_pool.latest_host_import.created or 0) + (asset_pool.latest_host_import.updated or 0) }}</strong>
+        <small>新增 / 更新；這些資料在資產管理主清冊</small>
+      </div>
+      <div>
+        <span class="source-badge fallback">最近 Excel 預檢</span>
+        <strong>{{ asset_pool.latest_workbook_preview.total_rows or 0 }}</strong>
+        <small>預檢只看內容，不會寫入資產池</small>
+      </div>
+      <div>
+        <span class="source-badge rule">最近資產池匯入</span>
+        <strong>{{ (asset_pool.latest_workbook_import.pool_created or 0) + (asset_pool.latest_workbook_import.pool_updated or 0) }}</strong>
+        <small>整份治理匯入 / 只匯入資產池才會增加</small>
+      </div>
+    </div>
+    <div class="cmdb-empty-actions">
+      <a class="btn primary" href="{{ url_for('api_hosts.hosts_page') }}">去資產清冊看已匯入主機</a>
+      <a class="btn secondary" href="#cmdb-workbook-import">回到上方執行整份治理匯入</a>
+    </div>
+  </div>
+  {% endif %}
   <table class="data-table" id="cmdb-asset-pool-list">
     <thead><tr><th>類型</th><th>治理狀態</th><th>資產編號</th><th>名稱</th><th>AP ID</th><th>Owner</th><th>主機關聯</th><th>操作</th></tr></thead>
     <tbody>
@@ -170,7 +204,7 @@
         <td><a class="btn secondary" href="{{ url_for('api_hosts.cmdb_asset_pool_edit_page', object_type=item.object_type, asset_seq=item.asset_seq) }}">編輯</a></td>
       </tr>
       {% else %}
-      <tr><td colspan="8" class="no-data">尚未匯入資料、軟體、人員或硬體證據。</td></tr>
+      <tr><td colspan="8" class="no-data">尚未匯入資產池資料。若剛剛使用主機匯入，請到資產清冊查看；若只做 Excel 預檢，請再按整份治理匯入。</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.3.51"
-PATCH_ID = "cmdb-asset-pool-menu-entry"
-RELEASE_NOTE = "資產管理頁新增 CMDB 資產池分類入口，人員、軟體/AP、資料資產與待分類可直接從工具列進入"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-29 14:30:00 +08:00")
+VERSION = "1.0.3.52"
+PATCH_ID = "cmdb-asset-pool-empty-diagnosis"
+RELEASE_NOTE = "CMDB 資產池空白時顯示匯入口徑診斷，分辨主機清冊匯入、Excel 預檢與資產池治理匯入"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-29 15:00:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

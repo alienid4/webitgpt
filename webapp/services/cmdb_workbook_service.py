@@ -707,6 +707,14 @@ def asset_pool_overview(limit: int = 200, object_type: str = "") -> dict[str, An
     try:
         col = get_collection(ASSET_COLLECTION)
         counts = {str(item.get("_id")): int(item.get("count", 0)) for item in col.aggregate([{"$group": {"_id": "$object_type", "count": {"$sum": 1}}}])}
+        host_col = get_collection("hosts")
+        audit_col = get_collection("audit_logs")
+        latest_host_import = _latest_audit(audit_col, "host.csv_import")
+        latest_workbook_preview = _latest_audit(audit_col, "cmdb.workbook.preview")
+        latest_workbook_import = _latest_audit(
+            audit_col,
+            {"$in": ["cmdb.workbook.import_governed", "cmdb.workbook.import_pool", "cmdb.workbook.import_hardware"]},
+        )
         query = {"object_type": object_type} if object_type else {}
         items = [
             _public(doc)
@@ -731,7 +739,39 @@ def asset_pool_overview(limit: int = 200, object_type: str = "") -> dict[str, An
     except Exception as exc:
         return {"counts": {}, "total": 0, "items": [], "error": str(exc)}
     visible_total = len(items) if object_type else sum(counts.values())
-    return {"counts": counts, "total": sum(counts.values()), "visible_total": visible_total, "items": items, "active_type": object_type}
+    return {
+        "counts": counts,
+        "total": sum(counts.values()),
+        "visible_total": visible_total,
+        "items": items,
+        "active_type": object_type,
+        "host_total": host_col.count_documents({}),
+        "latest_host_import": latest_host_import,
+        "latest_workbook_preview": latest_workbook_preview,
+        "latest_workbook_import": latest_workbook_import,
+    }
+
+
+def _latest_audit(audit_col: Any, action: str | dict[str, Any]) -> dict[str, Any]:
+    query = {"action": action} if isinstance(action, str) else {"action": action}
+    row = audit_col.find_one(query, {"_id": 0}, sort=[("seq", -1)])
+    if not row:
+        return {}
+    details = row.get("details") or row.get("detail") or {}
+    return {
+        "action": row.get("action", ""),
+        "seq": row.get("seq", 0),
+        "ts": row.get("ts") or row.get("created_at"),
+        "total_rows": details.get("total_rows", 0),
+        "created": details.get("created", 0),
+        "updated": details.get("updated", 0),
+        "draft": details.get("draft", 0),
+        "failed": details.get("failed", 0),
+        "pool_created": details.get("pool_created", 0),
+        "pool_updated": details.get("pool_updated", 0),
+        "quarantine": details.get("quarantine", 0),
+        "status": details.get("status", ""),
+    }
 
 
 def get_asset_pool_item(object_type: str, asset_seq: str) -> dict[str, Any] | None:

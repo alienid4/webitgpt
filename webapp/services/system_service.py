@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.52",
+        "date": "2026-05-29 15:00 +08:00",
+        "patch_id": "cmdb-asset-pool-empty-diagnosis",
+        "changes": [
+            "CMDB 資產池為 0 時新增空狀態診斷，說明主機匯入不等於資產池匯入。",
+            "空狀態顯示主機清冊總數、最近主機匯入、最近 Excel 預檢與最近資產池匯入。",
+            "提供下一步入口：去資產清冊看已匯入主機，或回上方執行整份治理匯入。",
+        ],
+    },
+    {
         "version": "1.0.3.51",
         "date": "2026-05-29 14:30 +08:00",
         "patch_id": "cmdb-asset-pool-menu-entry",

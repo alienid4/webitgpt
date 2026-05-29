@@ -1222,9 +1222,55 @@ a.metric:hover {
   white-space: nowrap;
 }
 
+.cmdb-empty-diagnosis {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 14px;
+  border: 1px solid rgba(232, 124, 7, .45);
+  border-left: 5px solid var(--orange);
+  border-radius: var(--radius-sm);
+  background: #FFF9E8;
+}
+
+.cmdb-empty-diagnosis p {
+  margin: 4px 0 0;
+}
+
+.cmdb-empty-diagnosis-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.cmdb-empty-diagnosis-grid > div {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+}
+
+.cmdb-empty-diagnosis-grid strong {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.cmdb-empty-diagnosis-grid small {
+  color: var(--c3);
+}
+
+.cmdb-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 @media (max-width: 1100px) {
   .cmdb-workbook-actions,
-  .cmdb-workbook-form {
+  .cmdb-workbook-form,
+  .cmdb-empty-diagnosis-grid {
     grid-template-columns: 1fr;
   }
 }

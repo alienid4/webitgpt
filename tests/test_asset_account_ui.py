@@ -265,6 +265,7 @@ def test_cmdb_workbook_import_contracts_exist():
     assert "def import_asset_pool" in workbook_service
     assert "def import_governed_workbook" in workbook_service
     assert "def update_asset_pool_item" in workbook_service
+    assert "def _latest_audit" in workbook_service
     assert "ASSET_TYPE_TABS" in workbook_service
     assert "EDITABLE_FIELDS" in workbook_service
     assert "ghost_candidate" in workbook_service
@@ -283,6 +284,10 @@ def test_cmdb_workbook_import_contracts_exist():
     assert "CMDB Excel 匯入精靈" in host_new
     assert "CMDB Excel 匯入精靈" in hosts
     for text in ["CMDB Excel 匯入精靈", "整份治理匯入", "幽靈候選", "待分類", "CMDB 資產池"]:
+        assert text in template
+    for text in ["目前資產池沒有資料，不代表匯入資料消失", "主機清冊", "最近主機匯入", "最近 Excel 預檢", "最近資產池匯入"]:
+        assert text in template
+    for text in ["去資產清冊看已匯入主機", "回到上方執行整份治理匯入", "cmdb-empty-diagnosis"]:
         assert text in template
     edit_template = read("webapp/templates/cmdb_asset_edit.html")
     for text in ["編輯 CMDB 資產池", "原始 Excel 資料", "變更原因"]:
@@ -451,7 +456,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.51"' in config
+    assert 'VERSION = "1.0.3.52"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -542,8 +547,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.51"' in config
-    assert "cmdb-asset-pool-menu-entry" in config
+    assert 'VERSION = "1.0.3.52"' in config
+    assert "cmdb-asset-pool-empty-diagnosis" in config
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -577,7 +582,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "cmdb-asset-pool-menu-entry" in config
+    assert "cmdb-asset-pool-empty-diagnosis" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog
