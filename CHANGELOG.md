@@ -1,5 +1,12 @@
 # webitgpt Changelog
 
+## v1.0.3.44 - 2026-05-29 10:05 +08:00 - host-data-dir-permission-guard
+
+- 修正 `/opt/webitgpt/data/hosts` 權限不足導致草稿補資料儲存顯示失敗的問題。
+- 主機資料已寫入 MongoDB 後，若主機目錄或 meta.json 同步失敗，不再阻斷儲存流程。
+- 會在資產資料標記 `host_dir_status=warning` 與 `host_dir_error`，方便後續查權限問題。
+- patch 安裝流程會修正 `/opt/webitgpt/data`、`logs`、`backup` 目錄 owner，避免 runtime 使用者無法寫入。
+
 ## v1.0.3.43 - 2026-05-29 09:35 +08:00 - host-draft-save-error-guard
 
 - 主機新增與草稿補資料儲存若遇到非預期例外，不再顯示 Internal Server Error 白頁。

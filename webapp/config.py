@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.3.43"
-PATCH_ID = "host-draft-save-error-guard"
-RELEASE_NOTE = "主機新增與草稿補資料儲存失敗時不再白頁 500，回表單顯示錯誤並寫入 server log"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-29 09:35:00 +08:00")
+VERSION = "1.0.3.44"
+PATCH_ID = "host-data-dir-permission-guard"
+RELEASE_NOTE = "修正公司主機 data/hosts 權限造成草稿儲存失敗，主機目錄同步改為非阻斷並在安裝時修復權限"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-29 10:05:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

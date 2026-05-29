@@ -98,6 +98,11 @@ def test_asset_secondary_actions_are_grouped_and_scan_rows_are_expandable():
     assert "asset_saved" in read("webapp/routes/api_hosts.py")
     assert 'errors=[f"儲存失敗：{exc}"]' in host_routes
     assert "current_app.logger.exception(\"host_edit_submit failed" in host_routes
+    host_service = read("webapp/services/host_service.py")
+    assert "_sync_host_dir_best_effort" in host_service
+    assert "host_dir_status" in host_service
+    assert "host_dir_error" in host_service
+    assert "host directory sync skipped" in host_service
     assert "新增方式導覽" in host_new
     assert "判斷標籤與來源說明預設收合" in host_new
     assert '<details class="panel compact asset-helper-panel">' in host_new
@@ -391,7 +396,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.43"' in config
+    assert 'VERSION = "1.0.3.44"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -482,8 +487,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.43"' in config
-    assert "host-draft-save-error-guard" in config
+    assert 'VERSION = "1.0.3.44"' in config
+    assert "host-data-dir-permission-guard" in config
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -498,6 +503,7 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     assert "1.0.3.42" in service
     assert "ai-judgement-gold-frame-ui" in changelog
     assert "host-draft-save-error-guard" in changelog
+    assert "host-data-dir-permission-guard" in changelog
     assert "ai-judgement-gold-frame-ui" in read("docs/release_notes/v1.0.3.37.md")
     assert "Shell 負責採證" in read("docs/20260527/v1.0.3.36_ai-judgement-source-ux-design.md")
     assert "AI 判斷來源與 Fallback 設計" in read("docs/20260527/v1.0.3.36_webitgpt-system-architecture-slides.html")
@@ -516,7 +522,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "host-draft-save-error-guard" in config
+    assert "host-data-dir-permission-guard" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog

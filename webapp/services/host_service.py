@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -8,6 +9,8 @@ from pymongo import ASCENDING, DESCENDING
 from webapp.services.host_dir_service import archive_dir, init_dir, restore_dir, write_meta
 from webapp.services.host_schema import assert_valid_host_doc, normalize_host_doc
 from webapp.services.mongo_service import get_collection
+
+LOGGER = logging.getLogger(__name__)
 
 
 def _now() -> datetime:
@@ -21,6 +24,31 @@ def _public(doc: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
     if "_id" in out:
         out["_id"] = str(out["_id"])
     return out
+
+
+def _mark_host_dir_warning(asset_seq: str, exc: Exception) -> None:
+    get_collection("hosts").update_one(
+        {"asset_seq": asset_seq},
+        {
+            "$set": {
+                "host_dir_status": "warning",
+                "host_dir_error": str(exc),
+                "host_dir_checked_at": _now(),
+            }
+        },
+    )
+
+
+def _sync_host_dir_best_effort(host: dict[str, Any], *, meta_only: bool = False) -> None:
+    try:
+        if meta_only:
+            write_meta(host)
+        else:
+            init_dir(host)
+    except OSError as exc:
+        LOGGER.warning("host directory sync skipped for %s: %s", host.get("asset_seq"), exc)
+        if host.get("asset_seq"):
+            _mark_host_dir_warning(str(host["asset_seq"]), exc)
 
 
 def list_hosts(
@@ -119,7 +147,7 @@ def create_host(doc: dict[str, Any], user: str = "system") -> dict[str, Any]:
     if existing:
         raise ValidationError([f"hostname already exists: {normalized['hostname']}"])
     get_collection("hosts").insert_one(normalized)
-    init_dir(normalized)
+    _sync_host_dir_best_effort(normalized)
     result = get_host(normalized["hostname"]) or {}
     result["_warnings"] = warnings
     return result
@@ -141,8 +169,8 @@ def update_host(asset_seq: str, changes: dict[str, Any], user: str = "system") -
     if merged.get("status") == "retired":
         archive_dir(original_asset_seq, existing.get("hostname"))
     else:
-        init_dir(merged)
-        write_meta(merged)
+        _sync_host_dir_best_effort(merged)
+        _sync_host_dir_best_effort(merged, meta_only=True)
     result = get_host(merged["hostname"]) or {}
     result["_warnings"] = warnings
     return result
