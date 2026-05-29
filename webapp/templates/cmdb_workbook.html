@@ -25,19 +25,19 @@
   </div>
 
   <div class="cmdb-workbook-actions" id="cmdb-workbook-import">
-    <form class="cmdb-workbook-form" method="post" enctype="multipart/form-data" action="{{ url_for('api_hosts.cmdb_workbook_preview_page') }}" data-submit-status data-submit-message="正在預檢 CMDB Excel。">
+    <form class="cmdb-workbook-form cmdb-workbook-primary-import" method="post" enctype="multipart/form-data" action="{{ url_for('api_hosts.cmdb_workbook_import_governed_page') }}" data-submit-status data-submit-message="正在治理匯入，不會直接污染正式資產。">
       <input type="file" name="workbook_file" accept=".xlsx" required>
-      <button class="btn primary" type="submit">1. 預檢整份 Excel</button>
-    </form>
-    <form class="cmdb-workbook-form" method="post" enctype="multipart/form-data" action="{{ url_for('api_hosts.cmdb_workbook_import_governed_page') }}" data-submit-status data-submit-message="正在治理匯入，不會直接污染正式資產。">
-      <input type="file" name="workbook_file" accept=".xlsx" required>
-      <button class="btn primary" type="submit">2. 整份治理匯入</button>
+      <button class="btn primary" type="submit">整份治理匯入</button>
     </form>
   </div>
 
   <details class="dev-detail">
     <summary>進階匯入動作</summary>
     <div class="cmdb-workbook-actions">
+      <form class="cmdb-workbook-form" method="post" enctype="multipart/form-data" action="{{ url_for('api_hosts.cmdb_workbook_preview_page') }}" data-submit-status data-submit-message="正在預檢 CMDB Excel。">
+        <input type="file" name="workbook_file" accept=".xlsx" required>
+        <button class="btn secondary" type="submit">只預檢，不寫入</button>
+      </form>
       <form class="cmdb-workbook-form" method="post" enctype="multipart/form-data" action="{{ url_for('api_hosts.cmdb_workbook_import_hardware_page') }}" data-submit-status data-submit-message="正在把硬體 sheet 分流為草稿或證據。">
         <input type="file" name="workbook_file" accept=".xlsx" required>
         <button class="btn secondary" type="submit">只處理硬體 sheet</button>

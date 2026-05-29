@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.53",
+        "date": "2026-05-30 09:15 +08:00",
+        "patch_id": "cmdb-direct-governed-import",
+        "changes": [
+            "CMDB Excel 匯入主流程改為直接整份治理匯入。",
+            "預檢改收進進階匯入動作，保留能力但不再要求使用者多點一步。",
+            "匯入入口文案去除步驟編號，避免使用者以為必須先預檢才能匯入。",
+        ],
+    },
+    {
         "version": "1.0.3.52",
         "date": "2026-05-29 15:00 +08:00",
         "patch_id": "cmdb-asset-pool-empty-diagnosis",
