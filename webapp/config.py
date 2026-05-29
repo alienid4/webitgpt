@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.3.42"
-PATCH_ID = "ai-ready-pale-gold-contrast"
-RELEASE_NOTE = "AI-ready 改用淡金框，與真正 AI 判斷深金框分離，避免誤會"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-28 00:25:00 +08:00")
+VERSION = "1.0.3.43"
+PATCH_ID = "host-draft-save-error-guard"
+RELEASE_NOTE = "主機新增與草稿補資料儲存失敗時不再白頁 500，回表單顯示錯誤並寫入 server log"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-29 09:35:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")
@@ -55,4 +55,3 @@ def ensure_runtime_dirs() -> None:
         BACKUP_DIR,
     ]:
         Path(path).mkdir(parents=True, exist_ok=True)
-

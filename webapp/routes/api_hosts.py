@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ipaddress
 
-from flask import Blueprint, Response, abort, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, Response, abort, current_app, jsonify, redirect, render_template, request, url_for
 
 from webapp.decorators import current_user, market_hours_protected, require_feature, require_role
 from webapp.services import audit_log_service, cmdb_relationship_service, cmdb_service, host_service, ipam_schedule_service
@@ -494,6 +494,22 @@ def host_new_submit():
             error_fields=error_fields,
             warning_fields=warning_fields,
         ), 400
+    except Exception as exc:
+        current_app.logger.exception("host_new_submit failed")
+        return render_template(
+            "host_edit.html",
+            host=_host_form_data(),
+            edit_fields=EDIT_FIELDS,
+            field_labels=ASSET_FIELD_LABELS,
+            required_fields=REQUIRED_FIELDS,
+            ipam_networks=cmdb_service.list_networks(),
+            extension_definitions=cmdb_service.list_extension_definitions(),
+            mode="new",
+            errors=[f"儲存失敗：{exc}"],
+            error_fields=[],
+            warnings=[],
+            warning_fields=[],
+        ), 400
 
 
 @bp.post("/hosts/import/csv")
@@ -760,6 +776,23 @@ def host_edit_submit(asset_seq: str):
             warnings=warnings,
             error_fields=error_fields,
             warning_fields=warning_fields,
+        ), 400
+    except Exception as exc:
+        current_app.logger.exception("host_edit_submit failed: %s", asset_seq)
+        form_host = {**_host_form_data(), "asset_seq": request.form.get("asset_seq", asset_seq)}
+        return render_template(
+            "host_edit.html",
+            host=form_host,
+            edit_fields=EDIT_FIELDS,
+            field_labels=ASSET_FIELD_LABELS,
+            required_fields=REQUIRED_FIELDS,
+            ipam_networks=cmdb_service.list_networks(),
+            extension_definitions=cmdb_service.list_extension_definitions(),
+            mode="edit",
+            errors=[f"儲存失敗：{exc}"],
+            error_fields=[],
+            warnings=[],
+            warning_fields=[],
         ), 400
 
 

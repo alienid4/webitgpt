@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.43 - 2026-05-29 09:35 +08:00 - host-draft-save-error-guard
+
+- 主機新增與草稿補資料儲存若遇到非預期例外，不再顯示 Internal Server Error 白頁。
+- 新增/編輯表單會保留使用者輸入並顯示「儲存失敗」原因，方便現場修正。
+- server log 會記錄 `host_new_submit failed` 或 `host_edit_submit failed` traceback，方便後續排錯。
+
 ## v1.0.3.42 - 2026-05-28 00:25 +08:00 - ai-ready-pale-gold-contrast
 
 - AI-ready / 可交給 AI 判讀的區塊改用淡金框，與真正 AI 判斷的深金框分離。
