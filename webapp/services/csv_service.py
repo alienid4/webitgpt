@@ -279,11 +279,13 @@ def _xlsx_sheet_paths(archive: zipfile.ZipFile) -> list[tuple[str, str]]:
     return paths
 
 
-def xlsx_rows_from_bytes(payload: bytes) -> list[dict[str, str]]:
+def xlsx_workbook_rows_from_bytes(payload: bytes) -> list[dict[str, Any]]:
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         shared_strings = _xlsx_shared_strings(archive)
-        for _, sheet_path in _xlsx_sheet_paths(archive):
+        sheets: list[dict[str, Any]] = []
+        for workbook_sheet_name, sheet_path in _xlsx_sheet_paths(archive):
             root = ET.fromstring(archive.read(sheet_path))
+            sheet_name = workbook_sheet_name or sheet_path.rsplit("/", 1)[-1].removesuffix(".xml")
             raw_rows: list[list[str]] = []
             for row in root.findall(".//m:sheetData/m:row", XLSX_NS):
                 values: dict[int, str] = {}
@@ -311,8 +313,13 @@ def xlsx_rows_from_bytes(payload: bytes) -> list[dict[str, str]]:
                 if any(item.values()):
                     item["_row_no"] = str(row_no)
                     rows.append(item)
-            return rows
-    return []
+            sheets.append({"name": sheet_name, "headers": headers, "rows": rows})
+        return sheets
+
+
+def xlsx_rows_from_bytes(payload: bytes) -> list[dict[str, str]]:
+    sheets = xlsx_workbook_rows_from_bytes(payload)
+    return sheets[0]["rows"] if sheets else []
 
 
 def _simple_xlsx_bytes(headers: list[str], rows: list[list[Any]], sheet_name: str = "hosts_export") -> bytes:

@@ -243,6 +243,41 @@ def test_cmdb_import_report_excel_and_draft_bulk_contracts_exist():
     assert "cmdb-import-report-excel-drafts" in changelog
 
 
+def test_cmdb_workbook_import_contracts_exist():
+    csv_service = read("webapp/services/csv_service.py")
+    workbook_service = read("webapp/services/cmdb_workbook_service.py")
+    host_routes = read("webapp/routes/api_hosts.py")
+    host_new = read("webapp/templates/host_new.html")
+    hosts = read("webapp/templates/hosts.html")
+    template = read("webapp/templates/cmdb_workbook.html")
+
+    assert "def xlsx_workbook_rows_from_bytes" in csv_service
+    assert "def workbook_preview" in workbook_service
+    assert "def import_hardware_drafts" in workbook_service
+    assert "def import_asset_pool" in workbook_service
+    assert "ASSET_COLLECTION = \"cmdb_asset_pool\"" in workbook_service
+    for route in [
+        "cmdb_workbook_page",
+        "cmdb_workbook_preview_page",
+        "cmdb_workbook_import_hardware_page",
+        "cmdb_workbook_import_pool_page",
+    ]:
+        assert route in host_routes
+    assert "CMDB Excel 匯入精靈" in host_new
+    assert "CMDB Excel 匯入精靈" in hosts
+    for text in ["CMDB Excel 匯入精靈", "硬體建立草稿", "匯入資產池", "CMDB 資產池"]:
+        assert text in template
+
+
+def test_cmdb_workbook_sheet_classification():
+    from webapp.services.cmdb_workbook_service import classify_sheet
+
+    assert classify_sheet(["資產序號", "設備機型", "主機名稱", "作業系統", "IP"]) == "hardware"
+    assert classify_sheet(["資產序號", "資料類別", "主機名稱", "IP"]) == "data"
+    assert classify_sheet(["資產序號", "人員姓名", "聯絡電話"]) == "people"
+    assert classify_sheet(["資產序號", "AP ID", "委外維護", "處理個資"]) == "software"
+
+
 def test_cmdb_relationship_dashboard_contracts_exist():
     hosts = read("webapp/templates/hosts.html")
     relationships = read("webapp/templates/cmdb_relationships.html")
@@ -396,7 +431,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.44"' in config
+    assert 'VERSION = "1.0.3.48"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -487,8 +522,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.44"' in config
-    assert "host-data-dir-permission-guard" in config
+    assert 'VERSION = "1.0.3.48"' in config
+    assert "cmdb-workbook-asset-pool" in config
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -522,7 +557,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "host-data-dir-permission-guard" in config
+    assert "cmdb-workbook-asset-pool" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog

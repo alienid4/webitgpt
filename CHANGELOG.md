@@ -1,5 +1,27 @@
 # webitgpt Changelog
 
+## v1.0.3.48 - 2026-05-29 11:55 +08:00 - cmdb-workbook-asset-pool
+
+- 新增 CMDB Excel 匯入精靈頁面，整份 workbook 可先預檢，再分流處理。
+- 硬體 sheet 可建立主機草稿，讓公司清冊先進待治理區，再挑選正式納管。
+- 資料、軟體、人員 sheet 匯入 `cmdb_asset_pool`，不再誤塞成巡檢主機。
+- 資料資產會嘗試以主機名稱 / IP 關聯既有主機，未命中會標示待關聯。
+
+## v1.0.3.47 - 2026-05-29 11:45 +08:00 - cmdb-data-asset-link
+
+- 建立資料資產匯入模型，保留資料類別、保留年限、備份方式、個資與申請單資訊。
+- 預檢報告顯示資料資產可關聯與待關聯主機數，協助後續 CMDB 關聯治理。
+
+## v1.0.3.46 - 2026-05-29 11:35 +08:00 - cmdb-hardware-draft-import
+
+- 硬體 sheet 匯入時只建立 `draft` 主機，不直接進正式巡檢。
+- 依作業系統、設備機型與位置推估 host_type、connection 與機房，正式納管前仍需人工確認。
+
+## v1.0.3.45 - 2026-05-29 11:25 +08:00 - cmdb-workbook-preview
+
+- Excel parser 支援讀取多工作表，預檢可辨識硬體、資料、軟體與人員 sheet。
+- 新增重複資產序號、缺主機識別、主機關聯狀態與建議處理方式。
+
 ## v1.0.3.44 - 2026-05-29 10:05 +08:00 - host-data-dir-permission-guard
 
 - 修正 `/opt/webitgpt/data/hosts` 權限不足導致草稿補資料儲存顯示失敗的問題。

@@ -5,7 +5,7 @@ import ipaddress
 from flask import Blueprint, Response, abort, current_app, jsonify, redirect, render_template, request, url_for
 
 from webapp.decorators import current_user, market_hours_protected, require_feature, require_role
-from webapp.services import audit_log_service, cmdb_relationship_service, cmdb_service, host_service, ipam_schedule_service
+from webapp.services import audit_log_service, cmdb_relationship_service, cmdb_service, cmdb_workbook_service, host_service, ipam_schedule_service
 from webapp.services.csv_service import csv_template as build_csv_template
 from webapp.services.csv_service import export_hosts_csv, export_hosts_xlsx, import_csv, import_json, import_xlsx, validate_csv, validate_xlsx, validation_errors_csv, validation_errors_xlsx
 from webapp.services.host_schema import ASSET_FIELDS, REQUIRED_FIELDS, ValidationError
@@ -1169,6 +1169,82 @@ def ipam_reserve_submit():
 @require_feature("cmdb_extension_fields")
 def extension_fields_page():
     return render_template("extension_fields.html", definitions=cmdb_service.list_extension_definitions())
+
+
+@bp.get("/cmdb/workbook")
+@require_feature("cmdb_csv_import")
+@require_role("admin")
+def cmdb_workbook_page():
+    return render_template(
+        "cmdb_workbook.html",
+        preview=None,
+        import_result=None,
+        asset_pool=cmdb_workbook_service.asset_pool_overview(),
+        active_action="preview",
+    )
+
+
+@bp.post("/cmdb/workbook/preview")
+@require_feature("cmdb_csv_import")
+@require_role("admin")
+def cmdb_workbook_preview_page():
+    upload = request.files.get("workbook_file")
+    if not upload:
+        return render_template(
+            "cmdb_workbook.html",
+            preview={"status": "needs_review", "error": "請先選擇 Excel 檔案。", "sheets": [], "totals": {}},
+            import_result=None,
+            asset_pool=cmdb_workbook_service.asset_pool_overview(),
+            active_action="preview",
+        ), 400
+    payload = upload.read()
+    preview = cmdb_workbook_service.workbook_preview(payload)
+    audit_log_service.append("cmdb.workbook.preview", current_user()["username"], {"status": preview["status"], "total_rows": preview["total_rows"]})
+    return render_template(
+        "cmdb_workbook.html",
+        preview=preview,
+        import_result=None,
+        asset_pool=cmdb_workbook_service.asset_pool_overview(),
+        active_action="preview",
+    )
+
+
+@bp.post("/cmdb/workbook/import-hardware")
+@require_feature("cmdb_csv_import")
+@require_role("admin")
+@market_hours_protected
+def cmdb_workbook_import_hardware_page():
+    upload = request.files.get("workbook_file")
+    if not upload:
+        return redirect(url_for("api_hosts.cmdb_workbook_page"))
+    result = cmdb_workbook_service.import_hardware_drafts(upload.read(), user=current_user()["username"])
+    audit_log_service.append("cmdb.workbook.import_hardware", current_user()["username"], result)
+    return render_template(
+        "cmdb_workbook.html",
+        preview=None,
+        import_result=result,
+        asset_pool=cmdb_workbook_service.asset_pool_overview(),
+        active_action="hardware",
+    ), 200 if result["failed"] == 0 else 400
+
+
+@bp.post("/cmdb/workbook/import-pool")
+@require_feature("cmdb_csv_import")
+@require_role("admin")
+@market_hours_protected
+def cmdb_workbook_import_pool_page():
+    upload = request.files.get("workbook_file")
+    if not upload:
+        return redirect(url_for("api_hosts.cmdb_workbook_page"))
+    result = cmdb_workbook_service.import_asset_pool(upload.read(), user=current_user()["username"])
+    audit_log_service.append("cmdb.workbook.import_pool", current_user()["username"], result)
+    return render_template(
+        "cmdb_workbook.html",
+        preview=None,
+        import_result=result,
+        asset_pool=cmdb_workbook_service.asset_pool_overview(),
+        active_action="pool",
+    ), 200 if result["failed"] == 0 else 400
 
 
 @bp.post("/cmdb/extensions")

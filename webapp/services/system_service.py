@@ -113,6 +113,43 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.48",
+        "date": "2026-05-29 11:55 +08:00",
+        "patch_id": "cmdb-workbook-asset-pool",
+        "changes": [
+            "新增 CMDB Excel 匯入精靈，整份 workbook 可先預檢，再分流匯入。",
+            "硬體 sheet 建立主機草稿，資料、軟體與人員進 cmdb_asset_pool。",
+            "資料資產可依主機名稱或 IP 嘗試關聯既有主機，未命中會標示待關聯。",
+        ],
+    },
+    {
+        "version": "1.0.3.47",
+        "date": "2026-05-29 11:45 +08:00",
+        "patch_id": "cmdb-data-asset-link",
+        "changes": [
+            "建立資料資產匯入模型，保留保留年限、備份方式、個資與申請單資訊。",
+            "預檢顯示資料資產可關聯與待關聯主機數。",
+        ],
+    },
+    {
+        "version": "1.0.3.46",
+        "date": "2026-05-29 11:35 +08:00",
+        "patch_id": "cmdb-hardware-draft-import",
+        "changes": [
+            "硬體 sheet 匯入只建立 draft 主機，不直接進正式巡檢。",
+            "依 OS、設備機型與位置推估 host_type、connection 與機房。",
+        ],
+    },
+    {
+        "version": "1.0.3.45",
+        "date": "2026-05-29 11:25 +08:00",
+        "patch_id": "cmdb-workbook-preview",
+        "changes": [
+            "Excel parser 支援多工作表，預檢可辨識硬體、資料、軟體與人員 sheet。",
+            "新增重複資產序號、缺主機識別與建議處理方式。",
+        ],
+    },
+    {
         "version": "1.0.3.42",
         "date": "2026-05-28 00:25 +08:00",
         "patch_id": "ai-ready-pale-gold-contrast",
@@ -1273,4 +1310,3 @@ def save_dev_upload(filename: str, content: bytes, user: str = "system") -> dict
         "updated_by": user,
         "updated_at": datetime.now(timezone.utc),
     }
-

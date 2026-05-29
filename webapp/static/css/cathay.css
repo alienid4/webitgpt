@@ -1163,6 +1163,40 @@ a.metric:hover {
   display: inline;
 }
 
+.cmdb-workbook-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cmdb-workbook-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.cmdb-workbook-form input[type="file"] {
+  min-width: 0;
+}
+
+.cmdb-workbook-preview .source-badge,
+.cmdb-workbook-result .source-badge,
+.cmdb-asset-pool .source-badge {
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .cmdb-workbook-actions,
+  .cmdb-workbook-form {
+    grid-template-columns: 1fr;
+  }
+}
+
 .draft-next-step {
   display: flex;
   flex-wrap: wrap;
