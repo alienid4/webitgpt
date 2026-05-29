@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.50",
+        "date": "2026-05-29 14:05 +08:00",
+        "patch_id": "cmdb-asset-pool-tabs-edit",
+        "changes": [
+            "CMDB 資產池新增分類 tabs：全部、主機證據、資料資產、軟體 / AP、人員窗口、待分類。",
+            "資產池項目可直接編輯整理後資料，人員、軟體、資料資產不再混在同一張難讀大表。",
+            "編輯時保留原始 Excel raw，並要求變更原因與記錄更新者。",
+        ],
+    },
+    {
         "version": "1.0.3.49",
         "date": "2026-05-29 13:30 +08:00",
         "patch_id": "cmdb-workbook-governed-import",

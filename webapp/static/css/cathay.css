@@ -1185,6 +1185,13 @@ a.metric:hover {
   font-size: 13px;
 }
 
+.cmdb-asset-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
 .cmdb-workbook-form {
   display: grid;
   grid-template-columns: minmax(180px, 1fr) auto;

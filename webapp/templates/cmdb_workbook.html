@@ -132,6 +132,11 @@
     </div>
     <span class="source-badge cmdb">Total {{ asset_pool.total or 0 }}</span>
   </div>
+  <nav class="cmdb-asset-tabs" aria-label="CMDB 資產池分類">
+    {% for tab in asset_type_tabs or [] %}
+    <a class="btn {% if tab.active %}primary{% else %}secondary{% endif %}" href="{{ url_for('api_hosts.cmdb_workbook_page', type=tab.key) }}">{{ tab.label }}</a>
+    {% endfor %}
+  </nav>
   <div class="metric-grid">
     <a class="metric" href="#cmdb-asset-pool-list"><strong>{{ asset_pool.counts.get("data", 0) }}</strong><span>資料</span></a>
     <a class="metric" href="#cmdb-asset-pool-list"><strong>{{ asset_pool.counts.get("software", 0) }}</strong><span>軟體</span></a>
@@ -140,7 +145,7 @@
     <a class="metric" href="#cmdb-asset-pool-list"><strong>{{ asset_pool.counts.get("unknown", 0) }}</strong><span>待分類</span></a>
   </div>
   <table class="data-table" id="cmdb-asset-pool-list">
-    <thead><tr><th>類型</th><th>治理狀態</th><th>資產編號</th><th>名稱</th><th>AP ID</th><th>Owner</th><th>主機關聯</th></tr></thead>
+    <thead><tr><th>類型</th><th>治理狀態</th><th>資產編號</th><th>名稱</th><th>AP ID</th><th>Owner</th><th>主機關聯</th><th>操作</th></tr></thead>
     <tbody>
       {% for item in asset_pool["items"] %}
       <tr>
@@ -162,9 +167,10 @@
           -
           {% endif %}
         </td>
+        <td><a class="btn secondary" href="{{ url_for('api_hosts.cmdb_asset_pool_edit_page', object_type=item.object_type, asset_seq=item.asset_seq) }}">編輯</a></td>
       </tr>
       {% else %}
-      <tr><td colspan="7" class="no-data">尚未匯入資料、軟體、人員或硬體證據。</td></tr>
+      <tr><td colspan="8" class="no-data">尚未匯入資料、軟體、人員或硬體證據。</td></tr>
       {% endfor %}
     </tbody>
   </table>

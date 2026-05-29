@@ -1175,11 +1175,13 @@ def extension_fields_page():
 @require_feature("cmdb_csv_import")
 @require_role("admin")
 def cmdb_workbook_page():
+    object_type = request.args.get("type", "")
     return render_template(
         "cmdb_workbook.html",
         preview=None,
         import_result=None,
-        asset_pool=cmdb_workbook_service.asset_pool_overview(),
+        asset_pool=cmdb_workbook_service.asset_pool_overview(object_type=object_type),
+        asset_type_tabs=cmdb_workbook_service.asset_type_tabs(object_type),
         active_action="preview",
     )
 
@@ -1195,6 +1197,7 @@ def cmdb_workbook_preview_page():
             preview={"status": "needs_review", "error": "請先選擇 Excel 檔案。", "sheets": [], "totals": {}},
             import_result=None,
             asset_pool=cmdb_workbook_service.asset_pool_overview(),
+            asset_type_tabs=cmdb_workbook_service.asset_type_tabs(),
             active_action="preview",
         ), 400
     payload = upload.read()
@@ -1205,6 +1208,7 @@ def cmdb_workbook_preview_page():
         preview=preview,
         import_result=None,
         asset_pool=cmdb_workbook_service.asset_pool_overview(),
+        asset_type_tabs=cmdb_workbook_service.asset_type_tabs(),
         active_action="preview",
     )
 
@@ -1224,6 +1228,7 @@ def cmdb_workbook_import_hardware_page():
         preview=None,
         import_result=result,
         asset_pool=cmdb_workbook_service.asset_pool_overview(),
+        asset_type_tabs=cmdb_workbook_service.asset_type_tabs(),
         active_action="hardware",
     ), 200 if result["failed"] == 0 else 400
 
@@ -1243,6 +1248,7 @@ def cmdb_workbook_import_governed_page():
         preview=None,
         import_result=result,
         asset_pool=cmdb_workbook_service.asset_pool_overview(),
+        asset_type_tabs=cmdb_workbook_service.asset_type_tabs(),
         active_action="governed",
     ), 200 if result["failed"] == 0 else 400
 
@@ -1262,8 +1268,40 @@ def cmdb_workbook_import_pool_page():
         preview=None,
         import_result=result,
         asset_pool=cmdb_workbook_service.asset_pool_overview(),
+        asset_type_tabs=cmdb_workbook_service.asset_type_tabs(),
         active_action="pool",
     ), 200 if result["failed"] == 0 else 400
+
+
+@bp.get("/cmdb/assets/<object_type>/<path:asset_seq>/edit")
+@require_feature("cmdb_csv_import")
+@require_role("admin")
+def cmdb_asset_pool_edit_page(object_type: str, asset_seq: str):
+    item = cmdb_workbook_service.get_asset_pool_item(object_type, asset_seq)
+    if not item:
+        return redirect(url_for("api_hosts.cmdb_workbook_page", type=object_type))
+    return render_template(
+        "cmdb_asset_edit.html",
+        item=item,
+        editable_fields=cmdb_workbook_service.editable_fields(object_type),
+        active_nav="hosts",
+    )
+
+
+@bp.post("/cmdb/assets/<object_type>/<path:asset_seq>/edit")
+@require_feature("cmdb_csv_import")
+@require_role("admin")
+@market_hours_protected
+def cmdb_asset_pool_edit_submit(object_type: str, asset_seq: str):
+    item = cmdb_workbook_service.update_asset_pool_item(object_type, asset_seq, dict(request.form), user=current_user()["username"])
+    audit_log_service.append("cmdb.asset_pool.edit", current_user()["username"], {"object_type": object_type, "asset_seq": asset_seq})
+    return render_template(
+        "cmdb_asset_edit.html",
+        item=item,
+        editable_fields=cmdb_workbook_service.editable_fields(object_type),
+        saved=True,
+        active_nav="hosts",
+    )
 
 
 @bp.post("/cmdb/extensions")

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}編輯 CMDB 資產池 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="page-header">
+    <div>
+      <p class="eyebrow">CMDB ASSET POOL</p>
+      <h1>編輯 {{ item.object_type }}：{{ item.asset_name or item.asset_seq }}</h1>
+      <details class="inline-help">
+        <summary>?</summary>
+        <p>此頁只修正整理後資料；原始 Excel raw 會保留，方便日後追溯來源。</p>
+      </details>
+    </div>
+    <div class="asset-actions">
+      <a class="btn secondary" href="{{ url_for('api_hosts.cmdb_workbook_page', type=item.object_type) }}">回分類清單</a>
+    </div>
+  </div>
+  {% if saved %}
+  <div class="notice success">已儲存 CMDB 資產池資料。</div>
+  {% endif %}
+  <form class="asset-edit-form" method="post" action="{{ url_for('api_hosts.cmdb_asset_pool_edit_submit', object_type=item.object_type, asset_seq=item.asset_seq) }}">
+    <div class="asset-form-grid">
+      {% for field in editable_fields %}
+      <label>{{ field.label }}
+        <input name="{{ field.key }}" value="{{ (item.data or {}).get(field.key, item.get(field.key, '')) }}">
+      </label>
+      {% endfor %}
+    </div>
+    <label>變更原因
+      <input name="edit_reason" required placeholder="例如：修正 owner、補電話、校正 AP ID">
+    </label>
+    <div class="asset-actions">
+      <button class="btn primary" type="submit">儲存</button>
+      <a class="btn secondary" href="{{ url_for('api_hosts.cmdb_workbook_page', type=item.object_type) }}">取消</a>
+    </div>
+  </form>
+</section>
+
+<section class="panel compact">
+  <div class="page-header">
+    <div>
+      <p class="eyebrow">SOURCE</p>
+      <h2>原始 Excel 資料</h2>
+    </div>
+    <span class="source-badge fallback">唯讀</span>
+  </div>
+  <table class="data-table">
+    <thead><tr><th>欄位</th><th>原始值</th></tr></thead>
+    <tbody>
+      {% for key, value in (item.raw or {}).items() %}
+      <tr><td>{{ key }}</td><td>{{ value }}</td></tr>
+      {% else %}
+      <tr><td colspan="2" class="no-data">沒有保留原始列資料。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

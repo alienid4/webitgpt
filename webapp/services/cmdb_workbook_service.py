@@ -99,6 +99,66 @@ TYPE_ALIASES = {
     "people": PEOPLE_ALIASES,
 }
 
+ASSET_TYPE_TABS = [
+    {"key": "", "label": "全部"},
+    {"key": "hardware", "label": "主機證據"},
+    {"key": "data", "label": "資料資產"},
+    {"key": "software", "label": "軟體 / AP"},
+    {"key": "people", "label": "人員窗口"},
+    {"key": "unknown", "label": "待分類"},
+]
+
+EDITABLE_FIELDS = {
+    "hardware": [
+        ("asset_name", "資產名稱"),
+        ("hostname", "Hostname"),
+        ("ip", "IP"),
+        ("owner", "Owner"),
+        ("custodian", "保管人"),
+        ("note", "備註"),
+    ],
+    "data": [
+        ("asset_name", "資料名稱"),
+        ("data_category", "資料類別"),
+        ("hostname", "Hostname"),
+        ("ip", "IP"),
+        ("backup_frequency", "備份頻率"),
+        ("backup_method", "備份方式"),
+        ("data_retention_period", "保留年限"),
+        ("owner", "Owner"),
+        ("custodian", "保管人"),
+        ("note", "備註"),
+    ],
+    "software": [
+        ("asset_name", "系統 / AP 名稱"),
+        ("apid", "AP ID"),
+        ("owner", "Owner"),
+        ("custodian", "保管人"),
+        ("outsourced_maintenance", "委外維護"),
+        ("personal_data", "處理個資"),
+        ("company", "廠商 / 公司"),
+        ("note", "備註"),
+    ],
+    "people": [
+        ("person_name", "姓名"),
+        ("division", "處別"),
+        ("department", "部門"),
+        ("affiliation_division", "所屬處別"),
+        ("affiliation_department", "所屬部門"),
+        ("phone", "電話"),
+        ("job_summary", "職務摘要"),
+        ("proxy_name", "代理人"),
+        ("proxy_phone", "代理人電話"),
+        ("note", "備註"),
+    ],
+    "unknown": [
+        ("asset_name", "名稱"),
+        ("owner", "Owner"),
+        ("custodian", "保管人"),
+        ("note", "備註"),
+    ],
+}
+
 STATUS_ALIASES = {
     "使用中": "active",
     "已停用": "disabled",
@@ -638,14 +698,20 @@ def import_governed_workbook(payload: bytes, user: str) -> dict[str, Any]:
     return result
 
 
-def asset_pool_overview(limit: int = 200) -> dict[str, Any]:
+def asset_type_tabs(active: str = "") -> list[dict[str, str | bool]]:
+    active = _clean(active)
+    return [{**tab, "active": tab["key"] == active} for tab in ASSET_TYPE_TABS]
+
+
+def asset_pool_overview(limit: int = 200, object_type: str = "") -> dict[str, Any]:
     try:
         col = get_collection(ASSET_COLLECTION)
         counts = {str(item.get("_id")): int(item.get("count", 0)) for item in col.aggregate([{"$group": {"_id": "$object_type", "count": {"$sum": 1}}}])}
+        query = {"object_type": object_type} if object_type else {}
         items = [
             _public(doc)
             for doc in col.find(
-                {},
+                query,
                 {
                     "_id": 1,
                     "object_type": 1,
@@ -664,4 +730,58 @@ def asset_pool_overview(limit: int = 200) -> dict[str, Any]:
         ]
     except Exception as exc:
         return {"counts": {}, "total": 0, "items": [], "error": str(exc)}
-    return {"counts": counts, "total": sum(counts.values()), "items": items}
+    visible_total = len(items) if object_type else sum(counts.values())
+    return {"counts": counts, "total": sum(counts.values()), "visible_total": visible_total, "items": items, "active_type": object_type}
+
+
+def get_asset_pool_item(object_type: str, asset_seq: str) -> dict[str, Any] | None:
+    object_type = _clean(object_type)
+    asset_seq = _clean(asset_seq)
+    if not object_type or not asset_seq:
+        return None
+    return _public(get_collection(ASSET_COLLECTION).find_one(_asset_pool_doc_key(object_type, asset_seq)))
+
+
+def editable_fields(object_type: str) -> list[dict[str, str]]:
+    return [{"key": key, "label": label} for key, label in EDITABLE_FIELDS.get(object_type, EDITABLE_FIELDS["unknown"])]
+
+
+def update_asset_pool_item(object_type: str, asset_seq: str, payload: dict[str, Any], user: str) -> dict[str, Any]:
+    object_type = _clean(object_type)
+    asset_seq = _clean(asset_seq)
+    existing = get_collection(ASSET_COLLECTION).find_one(_asset_pool_doc_key(object_type, asset_seq))
+    if not existing:
+        raise KeyError(f"asset pool item not found: {object_type}/{asset_seq}")
+    allowed = {key for key, _label in EDITABLE_FIELDS.get(object_type, EDITABLE_FIELDS["unknown"])}
+    data_updates: dict[str, Any] = {}
+    for key in allowed:
+        if key in payload:
+            data_updates[key] = _clean(payload.get(key))
+    if not data_updates:
+        raise ValueError("no editable fields submitted")
+    reason = _clean(payload.get("edit_reason")) or "asset pool edit"
+    set_doc: dict[str, Any] = {
+        "updated_at": _now(),
+        "updated_by": user,
+        "last_edit_reason": reason,
+    }
+    for key, value in data_updates.items():
+        set_doc[f"data.{key}"] = value
+    for key in ("asset_name", "apid", "owner", "custodian"):
+        if key in data_updates:
+            set_doc[key] = data_updates[key]
+    get_collection(ASSET_COLLECTION).update_one(
+        {"_id": existing["_id"]},
+        {
+            "$set": set_doc,
+            "$push": {
+                "edit_history": {
+                    "updated_at": _now(),
+                    "updated_by": user,
+                    "reason": reason,
+                    "fields": sorted(data_updates.keys()),
+                }
+            },
+        },
+    )
+    return get_asset_pool_item(object_type, asset_seq) or {}
