@@ -13,9 +13,22 @@
       <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM 網段管理</a>
       <a class="btn secondary cmdb-relationship-entry" href="{{ url_for('api_hosts.cmdb_relationships_page') }}">CMDB 關聯總覽</a>
       <details class="asset-action-menu">
+        <summary class="btn secondary">CMDB 資產池</summary>
+        <div class="asset-action-menu-panel">
+          <span class="asset-action-menu-label">分類檢視</span>
+          <a href="{{ url_for('api_hosts.cmdb_workbook_page') }}">全部資產池</a>
+          <a href="{{ url_for('api_hosts.cmdb_workbook_page', type='hardware') }}">主機證據</a>
+          <a href="{{ url_for('api_hosts.cmdb_workbook_page', type='data') }}">資料資產</a>
+          <a href="{{ url_for('api_hosts.cmdb_workbook_page', type='software') }}">軟體 / AP</a>
+          <a href="{{ url_for('api_hosts.cmdb_workbook_page', type='people') }}">人員窗口</a>
+          <a href="{{ url_for('api_hosts.cmdb_workbook_page', type='unknown') }}">待分類</a>
+        </div>
+      </details>
+      <details class="asset-action-menu">
         <summary class="btn secondary">更多操作</summary>
         <div class="asset-action-menu-panel">
           {% if current_user.role in ["admin", "super", "superadmin"] %}
+          <span class="asset-action-menu-label">資料維護</span>
           <form method="post" action="{{ url_for('api_hosts.hosts_refresh_identity_submit') }}" data-submit-status data-submit-message="正在重整本頁資產 Hostname / OS，請稍候。">
             <input type="hidden" name="scope" value="page">
             <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
@@ -41,10 +54,12 @@
             <button type="submit">重整全部納管資產</button>
           </form>
           {% endif %}
+          <span class="asset-action-menu-label">匯出 / 匯入</span>
           <a href="{{ url_for('api_hosts.csv_export') }}">匯出 CSV</a>
           <a href="{{ url_for('api_hosts.xlsx_export') }}">匯出 Excel</a>
           <a href="{{ url_for('api_hosts.cmdb_workbook_page') }}">CMDB Excel 匯入精靈</a>
           <a href="{{ url_for('api_hosts.csv_template') }}">下載範本</a>
+          <span class="asset-action-menu-label">治理工具</span>
           <a href="{{ url_for('api_hosts.asset_quality_page') }}">異常清單</a>
           <a href="{{ url_for('api_hosts.extension_fields_page') }}">擴充欄位</a>
         </div>

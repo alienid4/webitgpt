@@ -59,6 +59,14 @@ def test_asset_secondary_actions_are_grouped_and_scan_rows_are_expandable():
 
     assert "asset-action-menu" in hosts
     assert "更多操作" in hosts
+    assert "CMDB 資產池" in hosts
+    assert "分類檢視" in hosts
+    for text in ["全部資產池", "主機證據", "資料資產", "軟體 / AP", "人員窗口", "待分類"]:
+        assert text in hosts
+    for query in ["type='hardware'", "type='data'", "type='software'", "type='people'", "type='unknown'"]:
+        assert query in hosts
+    for label in ["資料維護", "匯出 / 匯入", "治理工具"]:
+        assert label in hosts
     assert "scan-row-detail" in host_new
     assert "展開技術明細" in host_new
     assert "將勾選 IP 建立待補草稿" in host_new
@@ -443,7 +451,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.50"' in config
+    assert 'VERSION = "1.0.3.51"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -534,8 +542,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.50"' in config
-    assert "cmdb-asset-pool-tabs-edit" in config
+    assert 'VERSION = "1.0.3.51"' in config
+    assert "cmdb-asset-pool-menu-entry" in config
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -569,7 +577,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "cmdb-asset-pool-tabs-edit" in config
+    assert "cmdb-asset-pool-menu-entry" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog

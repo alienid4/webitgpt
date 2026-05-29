@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.51",
+        "date": "2026-05-29 14:30 +08:00",
+        "patch_id": "cmdb-asset-pool-menu-entry",
+        "changes": [
+            "資產管理頁工具列新增 CMDB 資產池分類入口。",
+            "人員窗口、軟體 / AP、資料資產、主機證據與待分類可從工具列直接進入。",
+            "更多操作選單加入分類小標，將資料維護、匯出匯入與治理工具分開，避免按鈕過多。",
+        ],
+    },
+    {
         "version": "1.0.3.50",
         "date": "2026-05-29 14:05 +08:00",
         "patch_id": "cmdb-asset-pool-tabs-edit",

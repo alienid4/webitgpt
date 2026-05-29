@@ -949,6 +949,15 @@ a.metric:hover {
   box-shadow: var(--shadow);
 }
 
+.asset-action-menu-label {
+  display: block;
+  padding: 6px 10px 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
 .asset-action-menu-panel a,
 .asset-action-menu-panel button {
   display: block;
