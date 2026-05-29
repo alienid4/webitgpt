@@ -55,8 +55,13 @@
     <section class="admin-hero">
       <div>
         <p class="eyebrow">SUPERADMIN CONSOLE</p>
-        <h1>系統管理</h1>
-        <p class="muted">集中管理功能開關、使用者、Token、備份、DR、Patch 回滾與系統健康。</p>
+        <div class="page-title-with-help">
+          <h1>系統管理</h1>
+          <details class="inline-help">
+            <summary title="說明" aria-label="系統管理說明">?</summary>
+            <p>集中管理功能開關、使用者、Token、備份、DR、Patch 回滾與系統健康。</p>
+          </details>
+        </div>
       </div>
       <div class="admin-health">
         <span class="{{ 'badge-ok' if audit_status.ok else 'badge-error' }}">Hash chain：{{ '正常' if audit_status.ok else '異常' }}</span>

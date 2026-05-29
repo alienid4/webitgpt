@@ -485,6 +485,55 @@ a.metric:hover {
 }
 .admin-hero h1,
 .admin-section h2 { margin: 0; }
+.page-title-with-help {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.inline-help {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.inline-help summary {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--c4);
+  border-radius: 999px;
+  color: var(--c1);
+  background: var(--white);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+.inline-help summary::-webkit-details-marker {
+  display: none;
+}
+.inline-help[open] summary {
+  border-color: var(--c2);
+  background: var(--g-light);
+}
+.inline-help p {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 55;
+  width: min(360px, calc(100vw - 32px));
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  color: var(--c3);
+  background: var(--white);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  line-height: 1.6;
+}
 .eyebrow {
   margin: 0 0 4px;
   color: var(--g-text);
