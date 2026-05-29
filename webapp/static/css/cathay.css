@@ -403,43 +403,80 @@ a.metric:hover {
 .admin-page-topnav .admin-sidebar {
   top: 0;
   z-index: 40;
-  margin: 0 0 16px;
+  margin: 0 0 10px;
   border-radius: 0 0 var(--radius) var(--radius);
 }
 .admin-page-topnav .admin-sidebar-grouped {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 12px;
-  align-items: flex-start;
+  gap: 6px 8px;
+  align-items: center;
 }
 .admin-page-topnav .admin-sidebar-title {
-  flex: 0 0 100%;
-  margin-bottom: 2px;
+  flex: 0 0 auto;
+  margin: 0 8px 0 0;
+  white-space: nowrap;
 }
 .admin-page-topnav .admin-nav-section {
-  min-width: 150px;
+  position: relative;
+  min-width: 132px;
 }
 .admin-page-topnav .admin-nav-section:not([open]) .admin-side-link {
   display: none;
 }
 .admin-page-topnav .admin-nav-heading {
-  min-height: 36px;
+  min-height: 30px;
   display: flex;
   align-items: center;
   margin: 0;
+  padding: 0 12px;
   border-radius: var(--radius-xs);
   background: var(--white);
   border: 1px solid var(--c4);
+  white-space: nowrap;
 }
 .admin-page-topnav .admin-nav-section[open] {
-  padding: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.admin-page-topnav .admin-nav-section[open] > .admin-nav-heading {
+  border-color: var(--c1);
+  background: var(--g-light);
+}
+.admin-page-topnav .admin-nav-section[open] .admin-side-link {
+  position: absolute;
+  left: 0;
+  z-index: 50;
+  width: 190px;
+  min-height: 32px;
+  background: var(--white);
+}
+.admin-page-topnav .admin-nav-section[open] .admin-side-link:first-of-type {
+  top: calc(100% + 6px);
+}
+.admin-page-topnav .admin-nav-section[open] .admin-side-link:nth-of-type(2) {
+  top: calc(100% + 40px);
+}
+.admin-page-topnav .admin-nav-section[open] .admin-side-link:nth-of-type(3) {
+  top: calc(100% + 74px);
+}
+.admin-page-topnav .admin-nav-section[open] .admin-side-link:nth-of-type(4) {
+  top: calc(100% + 108px);
+}
+.admin-page-topnav .admin-nav-section[open]::after {
+  content: "";
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  width: 190px;
+  bottom: auto;
+  z-index: 45;
+  min-height: 142px;
   border: 1px solid var(--c4);
   border-radius: var(--radius-sm);
   background: var(--white);
-}
-.admin-page-topnav .admin-nav-section[open] > .admin-nav-heading {
-  border-color: transparent;
-  background: var(--g-light);
+  box-shadow: var(--shadow);
 }
 .admin-content { min-width: 0; display: grid; gap: 16px; }
 .credential-tier-grid {

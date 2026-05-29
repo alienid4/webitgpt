@@ -292,6 +292,10 @@ def test_collection_credentials_page_contract_exists():
     assert ".credential-tier-grid" in css
     assert ".admin-nav-section[open] > .admin-nav-heading" in css
     assert ".admin-page-topnav .admin-sidebar" in css
+    assert ".admin-page-topnav .admin-sidebar-title" in css
+    assert "flex: 0 0 auto" in css
+    assert "min-height: 30px" in css
+    assert "position: absolute" in css
     assert ".page-title-with-help" in css
     assert ".inline-help summary" in css
     assert "itwebL1" in template
