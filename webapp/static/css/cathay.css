@@ -397,6 +397,50 @@ a.metric:hover {
 .admin-nav-section[open] > .admin-nav-heading {
   color: var(--c1);
 }
+.admin-page-topnav {
+  display: block;
+}
+.admin-page-topnav .admin-sidebar {
+  top: 0;
+  z-index: 40;
+  margin: 0 0 16px;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.admin-page-topnav .admin-sidebar-grouped {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: flex-start;
+}
+.admin-page-topnav .admin-sidebar-title {
+  flex: 0 0 100%;
+  margin-bottom: 2px;
+}
+.admin-page-topnav .admin-nav-section {
+  min-width: 150px;
+}
+.admin-page-topnav .admin-nav-section:not([open]) .admin-side-link {
+  display: none;
+}
+.admin-page-topnav .admin-nav-heading {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  border-radius: var(--radius-xs);
+  background: var(--white);
+  border: 1px solid var(--c4);
+}
+.admin-page-topnav .admin-nav-section[open] {
+  padding: 6px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+}
+.admin-page-topnav .admin-nav-section[open] > .admin-nav-heading {
+  border-color: transparent;
+  background: var(--g-light);
+}
 .admin-content { min-width: 0; display: grid; gap: 16px; }
 .credential-tier-grid {
   display: grid;

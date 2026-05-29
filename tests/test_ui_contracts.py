@@ -189,6 +189,7 @@ def test_superadmin_full_system_surfaces_exist():
         assert f"def {name}(" in service
     assert "Hash chain：" in superadmin
     assert "effective_enabled" in superadmin
+    assert "admin-page-topnav" in superadmin
     assert "admin-sidebar-grouped" in superadmin
     assert '<details class="admin-nav-section" open>' in superadmin
     assert '<summary class="admin-nav-heading">權限與憑證</summary>' in superadmin
@@ -287,6 +288,7 @@ def test_collection_credentials_page_contract_exists():
     assert "credentials_page" in search_registry
     assert ".credential-tier-grid" in css
     assert ".admin-nav-section[open] > .admin-nav-heading" in css
+    assert ".admin-page-topnav .admin-sidebar" in css
     assert "itwebL1" in template
     assert "itwebL2" in template
     assert "itwebL3" in template
