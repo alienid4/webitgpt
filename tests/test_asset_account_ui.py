@@ -255,17 +255,21 @@ def test_cmdb_workbook_import_contracts_exist():
     assert "def workbook_preview" in workbook_service
     assert "def import_hardware_drafts" in workbook_service
     assert "def import_asset_pool" in workbook_service
+    assert "def import_governed_workbook" in workbook_service
+    assert "ghost_candidate" in workbook_service
+    assert "quarantine_missing_identity" in workbook_service
     assert "ASSET_COLLECTION = \"cmdb_asset_pool\"" in workbook_service
     for route in [
         "cmdb_workbook_page",
         "cmdb_workbook_preview_page",
         "cmdb_workbook_import_hardware_page",
+        "cmdb_workbook_import_governed_page",
         "cmdb_workbook_import_pool_page",
     ]:
         assert route in host_routes
     assert "CMDB Excel 匯入精靈" in host_new
     assert "CMDB Excel 匯入精靈" in hosts
-    for text in ["CMDB Excel 匯入精靈", "硬體建立草稿", "匯入資產池", "CMDB 資產池"]:
+    for text in ["CMDB Excel 匯入精靈", "整份治理匯入", "幽靈候選", "待分類", "CMDB 資產池"]:
         assert text in template
 
 
@@ -431,7 +435,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.48"' in config
+    assert 'VERSION = "1.0.3.49"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -522,8 +526,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.48"' in config
-    assert "cmdb-workbook-asset-pool" in config
+    assert 'VERSION = "1.0.3.49"' in config
+    assert "cmdb-workbook-governed-import" in config
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -557,7 +561,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "cmdb-workbook-asset-pool" in config
+    assert "cmdb-workbook-governed-import" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog

@@ -8,14 +8,20 @@
       <h1>CMDB Excel 匯入精靈</h1>
       <details class="inline-help">
         <summary>?</summary>
-        <p>先預檢整份 Excel，分辨硬體、資料、軟體與人員。硬體只建立草稿；資料、軟體與人員進資產池，不會直接變成巡檢主機。</p>
+        <p>整份 Excel 都可先接收，但會依資料身分分流。正式資產不會被直接覆蓋；新主機先進幽靈候選草稿；資料、軟體、人員進資產池；無法辨識的列進待分類。</p>
       </details>
     </div>
     <div class="asset-actions">
-      <a class="btn secondary" href="{{ url_for('api_hosts.host_new_page') }}">回新增主機</a>
       <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">回資產列表</a>
       <a class="btn secondary" href="{{ url_for('api_hosts.cmdb_relationships_page') }}">CMDB 關聯總覽</a>
     </div>
+  </div>
+
+  <div class="cmdb-governance-strip">
+    <span><strong>正式資產</strong> 人工確認才進入巡檢</span>
+    <span><strong>幽靈候選</strong> Excel 有、CMDB 無</span>
+    <span><strong>資產池</strong> 資料 / 軟體 / 人員</span>
+    <span><strong>待分類</strong> 欄位不足或未知 sheet</span>
   </div>
 
   <div class="cmdb-workbook-actions">
@@ -23,15 +29,25 @@
       <input type="file" name="workbook_file" accept=".xlsx" required>
       <button class="btn primary" type="submit">1. 預檢整份 Excel</button>
     </form>
-    <form class="cmdb-workbook-form" method="post" enctype="multipart/form-data" action="{{ url_for('api_hosts.cmdb_workbook_import_hardware_page') }}" data-submit-status data-submit-message="正在把硬體 sheet 建立為主機草稿。">
+    <form class="cmdb-workbook-form" method="post" enctype="multipart/form-data" action="{{ url_for('api_hosts.cmdb_workbook_import_governed_page') }}" data-submit-status data-submit-message="正在治理匯入，不會直接污染正式資產。">
       <input type="file" name="workbook_file" accept=".xlsx" required>
-      <button class="btn secondary" type="submit">2. 硬體建立草稿</button>
-    </form>
-    <form class="cmdb-workbook-form" method="post" enctype="multipart/form-data" action="{{ url_for('api_hosts.cmdb_workbook_import_pool_page') }}" data-submit-status data-submit-message="正在匯入資料、軟體與人員資產池。">
-      <input type="file" name="workbook_file" accept=".xlsx" required>
-      <button class="btn secondary" type="submit">3. 匯入資產池</button>
+      <button class="btn primary" type="submit">2. 整份治理匯入</button>
     </form>
   </div>
+
+  <details class="dev-detail">
+    <summary>進階匯入動作</summary>
+    <div class="cmdb-workbook-actions">
+      <form class="cmdb-workbook-form" method="post" enctype="multipart/form-data" action="{{ url_for('api_hosts.cmdb_workbook_import_hardware_page') }}" data-submit-status data-submit-message="正在把硬體 sheet 分流為草稿或證據。">
+        <input type="file" name="workbook_file" accept=".xlsx" required>
+        <button class="btn secondary" type="submit">只處理硬體 sheet</button>
+      </form>
+      <form class="cmdb-workbook-form" method="post" enctype="multipart/form-data" action="{{ url_for('api_hosts.cmdb_workbook_import_pool_page') }}" data-submit-status data-submit-message="正在匯入資料、軟體與人員資產池。">
+        <input type="file" name="workbook_file" accept=".xlsx" required>
+        <button class="btn secondary" type="submit">只匯入資產池</button>
+      </form>
+    </div>
+  </details>
 </section>
 
 {% if preview %}
@@ -48,29 +64,23 @@
   </div>
   {% if preview.error %}<div class="notice danger">{{ preview.error }}</div>{% endif %}
   <div class="metric-grid">
-    <a class="metric" href="#cmdb-workbook-sheets"><strong>{{ preview.totals.get("hardware", 0) }}</strong><span>硬體可建草稿</span></a>
-    <a class="metric" href="#cmdb-workbook-sheets"><strong>{{ preview.totals.get("data", 0) }}</strong><span>資料資產</span></a>
-    <a class="metric" href="#cmdb-workbook-sheets"><strong>{{ preview.totals.get("software", 0) }}</strong><span>軟體資產</span></a>
-    <a class="metric" href="#cmdb-workbook-sheets"><strong>{{ preview.totals.get("people", 0) }}</strong><span>人員窗口</span></a>
+    <a class="metric" href="#cmdb-workbook-sheets"><strong>{{ preview.totals.get("hardware", 0) }}</strong><span>硬體列</span></a>
+    <a class="metric" href="#cmdb-workbook-sheets"><strong>{{ preview.totals.get("ghost_candidates", 0) }}</strong><span>幽靈候選</span></a>
+    <a class="metric" href="#cmdb-workbook-sheets"><strong>{{ preview.totals.get("existing_managed", 0) }}</strong><span>既有正式</span></a>
+    <a class="metric" href="#cmdb-workbook-sheets"><strong>{{ preview.totals.get("data", 0) + preview.totals.get("software", 0) + preview.totals.get("people", 0) }}</strong><span>資產池列</span></a>
+    <a class="metric" href="#cmdb-workbook-sheets"><strong>{{ preview.totals.get("quarantine", 0) }}</strong><span>待分類</span></a>
   </div>
   <table class="data-table" id="cmdb-workbook-sheets">
-    <thead><tr><th>Sheet</th><th>辨識類型</th><th>筆數</th><th>重複資產序號</th><th>主機關聯</th><th>建議</th></tr></thead>
+    <thead><tr><th>Sheet</th><th>類型</th><th>列數</th><th>幽靈候選</th><th>既有正式</th><th>待分類</th><th>建議</th></tr></thead>
     <tbody>
       {% for sheet in preview.sheets %}
       <tr>
         <td><strong>{{ sheet.name }}</strong></td>
         <td><span class="source-badge {% if sheet.type == 'hardware' %}cmdb{% elif sheet.type == 'unknown' %}fallback{% else %}rule{% endif %}">{{ sheet.type_label }}</span></td>
         <td>{{ sheet.row_count }}</td>
-        <td>{{ sheet.duplicate_asset_seq }}</td>
-        <td>
-          {% if sheet.type == "data" %}
-          linked {{ sheet.linked_hosts }} / unmatched {{ sheet.unmatched_hosts }}
-          {% elif sheet.type == "hardware" %}
-          missing identity {{ sheet.missing_host_identity }}
-          {% else %}
-          -
-          {% endif %}
-        </td>
+        <td>{{ sheet.ghost_candidates or 0 }}</td>
+        <td>{{ sheet.existing_managed or 0 }}</td>
+        <td>{{ sheet.quarantine or sheet.missing_host_identity or 0 }}</td>
         <td>{{ sheet.recommended_action }}</td>
       </tr>
       {% endfor %}
@@ -85,18 +95,20 @@
     <div>
       <p class="eyebrow">IMPORT RESULT</p>
       <h2>匯入完成</h2>
+      <p class="text-muted-sm">正式資產沒有被直接覆蓋；請從主機草稿挑選要納管的幽靈候選。</p>
     </div>
     <div class="asset-actions">
-      <a class="btn primary" href="{{ url_for('api_hosts.hosts_page', status='draft') }}">查看主機草稿</a>
+      <a class="btn primary" href="{{ url_for('api_hosts.hosts_page', status='draft') }}">查看幽靈候選 / 草稿</a>
       <a class="btn secondary" href="{{ url_for('api_hosts.cmdb_workbook_page') }}">回匯入精靈</a>
     </div>
   </div>
   <div class="metric-grid">
-    <a class="metric" href="#cmdb-workbook-result"><strong>{{ import_result.created or 0 }}</strong><span>新增</span></a>
-    <a class="metric" href="#cmdb-workbook-result"><strong>{{ import_result.updated or 0 }}</strong><span>更新</span></a>
-    <a class="metric" href="#cmdb-workbook-result"><strong>{{ import_result.draft or 0 }}</strong><span>主機草稿</span></a>
+    <a class="metric" href="#cmdb-workbook-result"><strong>{{ import_result.draft or 0 }}</strong><span>幽靈候選草稿</span></a>
+    <a class="metric" href="#cmdb-workbook-result"><strong>{{ import_result.existing_managed or 0 }}</strong><span>既有正式留證</span></a>
+    <a class="metric" href="#cmdb-workbook-result"><strong>{{ (import_result.pool_created or 0) + (import_result.pool_updated or 0) + (import_result.created or 0) + (import_result.updated or 0) }}</strong><span>接收 / 更新</span></a>
+    <a class="metric" href="#cmdb-workbook-result"><strong>{{ import_result.quarantine or 0 }}</strong><span>待分類</span></a>
     <a class="metric" href="#cmdb-workbook-result"><strong>{{ import_result.failed or 0 }}</strong><span>失敗</span></a>
-    <a class="metric" href="#cmdb-workbook-result"><strong>{{ import_result.linked or 0 }}</strong><span>已關聯主機</span></a>
+    <a class="metric" href="#cmdb-workbook-result"><strong>{{ import_result.linked or 0 }}</strong><span>已關聯</span></a>
     <a class="metric" href="#cmdb-workbook-result"><strong>{{ import_result.unmatched or 0 }}</strong><span>待關聯</span></a>
   </div>
   {% if import_result.errors %}
@@ -124,14 +136,16 @@
     <a class="metric" href="#cmdb-asset-pool-list"><strong>{{ asset_pool.counts.get("data", 0) }}</strong><span>資料</span></a>
     <a class="metric" href="#cmdb-asset-pool-list"><strong>{{ asset_pool.counts.get("software", 0) }}</strong><span>軟體</span></a>
     <a class="metric" href="#cmdb-asset-pool-list"><strong>{{ asset_pool.counts.get("people", 0) }}</strong><span>人員</span></a>
-    <a class="metric" href="#cmdb-asset-pool-list"><strong>{{ asset_pool.counts.get("hardware", 0) }}</strong><span>硬體</span></a>
+    <a class="metric" href="#cmdb-asset-pool-list"><strong>{{ asset_pool.counts.get("hardware", 0) }}</strong><span>硬體證據</span></a>
+    <a class="metric" href="#cmdb-asset-pool-list"><strong>{{ asset_pool.counts.get("unknown", 0) }}</strong><span>待分類</span></a>
   </div>
   <table class="data-table" id="cmdb-asset-pool-list">
-    <thead><tr><th>類型</th><th>資產序號</th><th>名稱</th><th>AP ID</th><th>Owner</th><th>主機關聯</th></tr></thead>
+    <thead><tr><th>類型</th><th>治理狀態</th><th>資產編號</th><th>名稱</th><th>AP ID</th><th>Owner</th><th>主機關聯</th></tr></thead>
     <tbody>
       {% for item in asset_pool["items"] %}
       <tr>
         <td>{{ item.object_type }}</td>
+        <td><span class="source-badge {% if 'quarantine' in (item.governance_status or '') %}fallback{% else %}rule{% endif %}">{{ item.governance_status or "candidate" }}</span></td>
         <td><span class="code-inline">{{ item.asset_seq }}</span></td>
         <td>{{ item.asset_name }}</td>
         <td>{{ item.apid or "-" }}</td>
@@ -140,6 +154,8 @@
           {% set link = item.host_link or {} %}
           {% if link.status == "linked" %}
           <span class="source-badge cmdb">{{ link.hostname or link.asset_seq }}</span>
+          {% elif link.status == "existing_managed" %}
+          <span class="source-badge cmdb">既有 {{ link.hostname or link.asset_seq }}</span>
           {% elif link.status == "unmatched" %}
           <span class="source-badge fallback">待關聯 {{ link.ip or link.hostname }}</span>
           {% else %}
@@ -148,7 +164,7 @@
         </td>
       </tr>
       {% else %}
-      <tr><td colspan="6" class="no-data">尚未匯入資料、軟體或人員資產。</td></tr>
+      <tr><td colspan="7" class="no-data">尚未匯入資料、軟體、人員或硬體證據。</td></tr>
       {% endfor %}
     </tbody>
   </table>

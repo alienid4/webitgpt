@@ -1169,6 +1169,22 @@ a.metric:hover {
   gap: 10px;
 }
 
+.cmdb-governance-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+
+.cmdb-governance-strip span {
+  border: 1px solid var(--c4);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  background: var(--bg);
+  font-size: 13px;
+}
+
 .cmdb-workbook-form {
   display: grid;
   grid-template-columns: minmax(180px, 1fr) auto;

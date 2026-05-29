@@ -1,5 +1,13 @@
 # webitgpt Changelog
 
+## v1.0.3.49 - 2026-05-29 13:30 +08:00 - cmdb-workbook-governed-import
+
+- 新增 CMDB Excel「整份治理匯入」：Excel 會被完整接收並分流，不直接覆蓋正式資產。
+- 硬體列若已存在正式主機，只進資產池留匯入證據；若是新主機，建立幽靈候選草稿；若缺 IP/Hostname，進待分類。
+- 資料、軟體、人員列進 `cmdb_asset_pool`；未知 sheet 也會隔離為待分類，避免垃圾污染正式 CMDB。
+- 匯入精靈 UI 簡化主線，只保留預檢與治理匯入，進階動作改為收合。
+- 主管儀表板改為區分正式納管資產與幽靈候選 / 草稿，避免草稿被誤認為正式主機。
+
 ## v1.0.3.48 - 2026-05-29 11:55 +08:00 - cmdb-workbook-asset-pool
 
 - 新增 CMDB Excel 匯入精靈頁面，整份 workbook 可先預檢，再分流處理。

@@ -113,6 +113,17 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.49",
+        "date": "2026-05-29 13:30 +08:00",
+        "patch_id": "cmdb-workbook-governed-import",
+        "changes": [
+            "CMDB Excel 可整份治理匯入，不直接覆蓋正式資產。",
+            "硬體列分流為既有正式主機證據、幽靈候選草稿或待分類。",
+            "資料、軟體與人員列進資產池，未知 sheet 進隔離待分類，避免垃圾污染正式 CMDB。",
+            "主管儀表板區分正式納管資產與幽靈候選 / 草稿。",
+        ],
+    },
+    {
         "version": "1.0.3.48",
         "date": "2026-05-29 11:55 +08:00",
         "patch_id": "cmdb-workbook-asset-pool",

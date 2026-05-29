@@ -95,11 +95,13 @@ def _summary() -> dict:
     except Exception as exc:
         hosts = []
         warnings.append(f"CMDB 資產摘要暫時不可用：{exc.__class__.__name__}")
+    formal_hosts = [host for host in hosts if str(host.get("status") or "") not in {"draft", "retired"}]
+    draft_hosts = [host for host in hosts if str(host.get("status") or "") == "draft"]
     by_env: dict[str, int] = {}
     by_status: dict[str, int] = {}
     by_type: dict[str, int] = {}
     by_dc: dict[str, int] = {}
-    for host in hosts:
+    for host in formal_hosts:
         by_env[host.get("environment", "")] = by_env.get(host.get("environment", ""), 0) + 1
         by_status[host.get("status", "")] = by_status.get(host.get("status", ""), 0) + 1
         by_type[host.get("host_type") or host.get("os_group") or "-"] = by_type.get(host.get("host_type") or host.get("os_group") or "-", 0) + 1
@@ -125,7 +127,9 @@ def _summary() -> dict:
         token_cost = {"summary": {"total_tokens": 0, "estimated_cost_usd": 0}}
         warnings.append(f"AI Token 摘要暫時不可用：{exc.__class__.__name__}")
     return {
-        "hosts_total": len(hosts),
+        "hosts_total": len(formal_hosts),
+        "hosts_all_total": len(hosts),
+        "draft_total": len(draft_hosts),
         "by_env": by_env,
         "by_status": by_status,
         "by_type": by_type,
@@ -229,6 +233,8 @@ def reports_summary_csv():
     writer = csv.writer(output)
     writer.writerow(["section", "name", "value"])
     writer.writerow(["summary", "hosts_total", summary["hosts_total"]])
+    writer.writerow(["summary", "hosts_all_total", summary.get("hosts_all_total", summary["hosts_total"])])
+    writer.writerow(["summary", "draft_total", summary.get("draft_total", 0)])
     writer.writerow(["summary", "open_findings", summary["compliance"].get("open_findings", 0)])
     writer.writerow(["summary", "rules_total", summary["compliance"].get("rules_total", 0)])
     writer.writerow(["ai_token", "month_total_tokens", summary["token_cost"]["summary"].get("total_tokens", 0)])

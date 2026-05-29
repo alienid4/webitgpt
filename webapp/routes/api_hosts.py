@@ -1228,6 +1228,25 @@ def cmdb_workbook_import_hardware_page():
     ), 200 if result["failed"] == 0 else 400
 
 
+@bp.post("/cmdb/workbook/import-governed")
+@require_feature("cmdb_csv_import")
+@require_role("admin")
+@market_hours_protected
+def cmdb_workbook_import_governed_page():
+    upload = request.files.get("workbook_file")
+    if not upload:
+        return redirect(url_for("api_hosts.cmdb_workbook_page"))
+    result = cmdb_workbook_service.import_governed_workbook(upload.read(), user=current_user()["username"])
+    audit_log_service.append("cmdb.workbook.import_governed", current_user()["username"], result)
+    return render_template(
+        "cmdb_workbook.html",
+        preview=None,
+        import_result=result,
+        asset_pool=cmdb_workbook_service.asset_pool_overview(),
+        active_action="governed",
+    ), 200 if result["failed"] == 0 else 400
+
+
 @bp.post("/cmdb/workbook/import-pool")
 @require_feature("cmdb_csv_import")
 @require_role("admin")

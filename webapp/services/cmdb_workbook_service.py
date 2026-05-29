@@ -11,6 +11,8 @@ from webapp.services.mongo_service import get_collection
 
 
 ASSET_COLLECTION = "cmdb_asset_pool"
+FORMAL_HOST_STATUSES = {"active", "disabled", "pending_retire", "pending_ip", "pending_data", "pending_deploy"}
+DRAFT_HOST_STATUSES = {"draft"}
 
 COMMON_ALIASES = {
     "盤點單位-處別": "division",
@@ -141,6 +143,53 @@ def _public(doc: dict[str, Any] | None) -> dict[str, Any] | None:
     if "_id" in doc:
         out["_id"] = str(doc["_id"])
     return out
+
+
+def _asset_pool_doc_key(sheet_type: str, asset_seq: str) -> dict[str, str]:
+    return {"object_type": sheet_type, "asset_seq": asset_seq}
+
+
+def _asset_pool_record(
+    *,
+    sheet_type: str,
+    sheet_name: str,
+    line: int,
+    normalized: dict[str, Any],
+    raw: dict[str, Any],
+    user: str,
+    host_link: dict[str, Any] | None = None,
+    governance_status: str = "candidate",
+) -> dict[str, Any]:
+    asset_seq = _clean(normalized.get("asset_seq")) or f"{sheet_type}-{sheet_name}-{line}"
+    return {
+        "object_type": sheet_type,
+        "sheet_name": sheet_name,
+        "asset_seq": asset_seq,
+        "asset_name": normalized.get("asset_name") or normalized.get("person_name") or normalized.get("hostname") or normalized.get("ip") or asset_seq,
+        "apid": normalized.get("apid") or "",
+        "status": normalized.get("status") or "active",
+        "governance_status": governance_status,
+        "owner": normalized.get("owner") or "",
+        "custodian": normalized.get("custodian") or "",
+        "host_link": host_link or {"status": "not_applicable"},
+        "data": normalized,
+        "raw": {k: v for k, v in raw.items() if k != "_row_no"},
+        "updated_at": _now(),
+        "updated_by": user,
+        "import_source": "cmdb_workbook_asset_pool",
+    }
+
+
+def _upsert_asset_pool_record(doc: dict[str, Any], user: str) -> str:
+    col = get_collection(ASSET_COLLECTION)
+    existing = col.find_one(_asset_pool_doc_key(str(doc["object_type"]), str(doc["asset_seq"])))
+    if existing:
+        col.update_one({"_id": existing["_id"]}, {"$set": doc})
+        return "updated"
+    doc["created_at"] = _now()
+    doc["created_by"] = user
+    col.insert_one(doc)
+    return "created"
 
 
 def classify_sheet(headers: Iterable[str]) -> str:
@@ -287,6 +336,24 @@ def _find_host_link(row: dict[str, Any]) -> dict[str, Any]:
     return {"status": "not_applicable"}
 
 
+def _find_existing_host_by_hardware(row: dict[str, Any]) -> dict[str, Any] | None:
+    terms = [_clean(row.get("asset_seq")), _clean(row.get("hostname")), _clean(row.get("ip"))]
+    terms = [term for term in terms if term]
+    if not terms:
+        return None
+    query = {
+        "$or": [
+            {"asset_seq": {"$in": terms}},
+            {"hostname": {"$in": terms}},
+            {"ip": {"$in": terms}},
+        ]
+    }
+    try:
+        return _public(get_collection("hosts").find_one(query, {"ssh_key": 0}))
+    except Exception:
+        return None
+
+
 def workbook_preview(payload: bytes) -> dict[str, Any]:
     sheets = xlsx_workbook_rows_from_bytes(payload)
     result = {
@@ -313,8 +380,23 @@ def workbook_preview(payload: bytes) -> dict[str, Any]:
                 link = _find_host_link(row)
                 linkable += 1 if link["status"] == "linked" else 0
                 unmatched += 1 if link["status"] == "unmatched" else 0
+        existing_managed = 0
+        ghost_candidates = 0
+        quarantine = 0
+        if sheet_type == "hardware":
+            for row in normalized:
+                if not _clean(row.get("hostname")) and not _clean(row.get("ip")):
+                    quarantine += 1
+                    continue
+                existing = _find_existing_host_by_hardware(row)
+                if existing and str(existing.get("status") or "") in FORMAL_HOST_STATUSES:
+                    existing_managed += 1
+                elif not existing:
+                    ghost_candidates += 1
+        elif sheet_type == "unknown":
+            quarantine = row_count
         action = {
-            "hardware": "可建立主機草稿，正式納管前再補欄位與採集帳號。",
+            "hardware": "治理分流：既有正式主機只留匯入證據；新主機進幽靈候選草稿；缺少 IP/Hostname 進待分類。",
             "data": "可進資料資產池，並用 IP / 主機名稱嘗試關聯主機。",
             "software": "可進軟體資產池，後續用 AP ID / 系統名稱關聯。",
             "people": "可進人員窗口池，後續連到 owner / 保管者 / 代理人。",
@@ -331,12 +413,18 @@ def workbook_preview(payload: bytes) -> dict[str, Any]:
                 "missing_host_identity": missing_host_identity,
                 "linked_hosts": linkable,
                 "unmatched_hosts": unmatched,
+                "existing_managed": existing_managed,
+                "ghost_candidates": ghost_candidates,
+                "quarantine": quarantine,
                 "status": status,
                 "recommended_action": action,
                 "sample": normalized[:3],
             }
         )
         result["totals"][sheet_type] += row_count
+        result["totals"]["existing_managed"] += existing_managed
+        result["totals"]["ghost_candidates"] += ghost_candidates
+        result["totals"]["quarantine"] += quarantine
     result["totals"] = dict(result["totals"])
     if not sheets:
         result["status"] = "needs_review"
@@ -345,74 +433,208 @@ def workbook_preview(payload: bytes) -> dict[str, Any]:
 
 def import_hardware_drafts(payload: bytes, user: str) -> dict[str, Any]:
     preview = workbook_preview(payload)
-    result = {"created": 0, "updated": 0, "failed": 0, "draft": 0, "errors": [], "sheets": preview["sheets"]}
+    result = {
+        "created": 0,
+        "updated": 0,
+        "failed": 0,
+        "draft": 0,
+        "existing_managed": 0,
+        "quarantine": 0,
+        "pool_created": 0,
+        "pool_updated": 0,
+        "processed": 0,
+        "errors": [],
+        "sheets": preview["sheets"],
+    }
     for sheet in xlsx_workbook_rows_from_bytes(payload):
         if classify_sheet(sheet.get("headers", [])) != "hardware":
             continue
         for row in sheet.get("rows") or []:
             line = int(row.get("_row_no") or 0)
+            result["processed"] += 1
             try:
                 normalized = normalize_sheet_row(row, "hardware")
+                existing = _find_existing_host_by_hardware(normalized)
+                if not _clean(normalized.get("hostname")) and not _clean(normalized.get("ip")):
+                    pool_doc = _asset_pool_record(
+                        sheet_type="hardware",
+                        sheet_name=sheet["name"],
+                        line=line,
+                        normalized=normalized,
+                        raw=row,
+                        user=user,
+                        governance_status="quarantine_missing_identity",
+                    )
+                    action = _upsert_asset_pool_record(pool_doc, user)
+                    result[f"pool_{action}"] += 1
+                    result["quarantine"] += 1
+                    continue
+                if existing and str(existing.get("status") or "") in FORMAL_HOST_STATUSES:
+                    pool_doc = _asset_pool_record(
+                        sheet_type="hardware",
+                        sheet_name=sheet["name"],
+                        line=line,
+                        normalized=normalized,
+                        raw=row,
+                        user=user,
+                        host_link={
+                            "status": "existing_managed",
+                            "asset_seq": existing.get("asset_seq"),
+                            "hostname": existing.get("hostname"),
+                            "ip": existing.get("ip"),
+                        },
+                        governance_status="evidence_only_existing_managed",
+                    )
+                    action = _upsert_asset_pool_record(pool_doc, user)
+                    result[f"pool_{action}"] += 1
+                    result["existing_managed"] += 1
+                    continue
                 doc = _host_doc_from_hardware(normalized, user)
-                existed = host_service.get_host(doc.get("asset_seq", "")) is not None
-                host = host_service.upsert_host(doc, user=user)
+                doc["governance_status"] = "ghost_candidate"
+                doc["candidate_reason"] = "CMDB workbook hardware row not found in formal hosts"
+                doc["import_source"] = "cmdb_workbook_hardware_ghost_candidate"
+                existed = existing is not None
+                if existing:
+                    host = host_service.update_host(existing.get("hostname") or existing.get("asset_seq"), doc, user=user)
+                else:
+                    host = host_service.upsert_host(doc, user=user)
                 result["updated" if existed else "created"] += 1
                 if host.get("status") == "draft":
                     result["draft"] += 1
             except Exception as exc:
                 result["failed"] += 1
                 result["errors"].append({"sheet": sheet["name"], "line": line, "error": str(exc)})
-    result["total_rows"] = result["created"] + result["updated"] + result["failed"]
+    result["total_rows"] = result["processed"]
     return result
 
 
 def import_asset_pool(payload: bytes, user: str, kinds: set[str] | None = None) -> dict[str, Any]:
     allowed = kinds or {"data", "software", "people"}
-    col = get_collection(ASSET_COLLECTION)
-    result = {"created": 0, "updated": 0, "failed": 0, "linked": 0, "unmatched": 0, "errors": []}
+    result = {"created": 0, "updated": 0, "failed": 0, "linked": 0, "unmatched": 0, "quarantine": 0, "processed": 0, "errors": []}
     for sheet in xlsx_workbook_rows_from_bytes(payload):
         sheet_type = classify_sheet(sheet.get("headers", []))
         if sheet_type not in allowed:
             continue
         for row in sheet.get("rows") or []:
             line = int(row.get("_row_no") or 0)
+            result["processed"] += 1
             try:
                 normalized = normalize_sheet_row(row, sheet_type)
-                asset_seq = _clean(normalized.get("asset_seq")) or f"{sheet_type}-{sheet['name']}-{line}"
                 link = _find_host_link(normalized) if sheet_type == "data" else {"status": "not_applicable"}
                 if link["status"] == "linked":
                     result["linked"] += 1
                 if link["status"] == "unmatched":
                     result["unmatched"] += 1
-                doc = {
-                    "object_type": sheet_type,
-                    "sheet_name": sheet["name"],
-                    "asset_seq": asset_seq,
-                    "asset_name": normalized.get("asset_name") or normalized.get("person_name") or asset_seq,
-                    "apid": normalized.get("apid") or "",
-                    "status": normalized.get("status") or "active",
-                    "owner": normalized.get("owner") or "",
-                    "custodian": normalized.get("custodian") or "",
-                    "host_link": link,
-                    "data": normalized,
-                    "raw": {k: v for k, v in row.items() if k != "_row_no"},
-                    "updated_at": _now(),
-                    "updated_by": user,
-                    "import_source": "cmdb_workbook_asset_pool",
-                }
-                existing = col.find_one({"object_type": sheet_type, "asset_seq": asset_seq})
-                if existing:
-                    col.update_one({"_id": existing["_id"]}, {"$set": doc})
-                    result["updated"] += 1
-                else:
-                    doc["created_at"] = _now()
-                    doc["created_by"] = user
-                    col.insert_one(doc)
-                    result["created"] += 1
+                doc = _asset_pool_record(
+                    sheet_type=sheet_type,
+                    sheet_name=sheet["name"],
+                    line=line,
+                    normalized=normalized,
+                    raw=row,
+                    user=user,
+                    host_link=link,
+                    governance_status="candidate",
+                )
+                action = _upsert_asset_pool_record(doc, user)
+                result[action] += 1
             except Exception as exc:
                 result["failed"] += 1
                 result["errors"].append({"sheet": sheet["name"], "line": line, "error": str(exc)})
-    result["total_rows"] = result["created"] + result["updated"] + result["failed"]
+    result["total_rows"] = result["processed"]
+    return result
+
+
+def import_governed_workbook(payload: bytes, user: str) -> dict[str, Any]:
+    """Import every workbook row into a controlled zone, never directly into formal hosts."""
+    preview = workbook_preview(payload)
+    result = {
+        "created": 0,
+        "updated": 0,
+        "failed": 0,
+        "draft": 0,
+        "linked": 0,
+        "unmatched": 0,
+        "existing_managed": 0,
+        "quarantine": 0,
+        "pool_created": 0,
+        "pool_updated": 0,
+        "processed": 0,
+        "errors": [],
+        "sheets": preview["sheets"],
+    }
+    for sheet in xlsx_workbook_rows_from_bytes(payload):
+        sheet_type = classify_sheet(sheet.get("headers", []))
+        for row in sheet.get("rows") or []:
+            line = int(row.get("_row_no") or 0)
+            result["processed"] += 1
+            try:
+                normalized = normalize_sheet_row(row, sheet_type)
+                if sheet_type == "hardware":
+                    existing = _find_existing_host_by_hardware(normalized)
+                    missing_identity = not _clean(normalized.get("hostname")) and not _clean(normalized.get("ip"))
+                    if missing_identity or (existing and str(existing.get("status") or "") in FORMAL_HOST_STATUSES):
+                        governance_status = "quarantine_missing_identity" if missing_identity else "evidence_only_existing_managed"
+                        host_link = {"status": "not_applicable"}
+                        if existing:
+                            host_link = {
+                                "status": "existing_managed",
+                                "asset_seq": existing.get("asset_seq"),
+                                "hostname": existing.get("hostname"),
+                                "ip": existing.get("ip"),
+                            }
+                            result["existing_managed"] += 1
+                        if missing_identity:
+                            result["quarantine"] += 1
+                        doc = _asset_pool_record(
+                            sheet_type="hardware",
+                            sheet_name=sheet["name"],
+                            line=line,
+                            normalized=normalized,
+                            raw=row,
+                            user=user,
+                            host_link=host_link,
+                            governance_status=governance_status,
+                        )
+                        action = _upsert_asset_pool_record(doc, user)
+                        result[f"pool_{action}"] += 1
+                        continue
+                    doc = _host_doc_from_hardware(normalized, user)
+                    doc["governance_status"] = "ghost_candidate"
+                    doc["candidate_reason"] = "CMDB workbook hardware row not found in formal hosts"
+                    doc["import_source"] = "cmdb_workbook_hardware_ghost_candidate"
+                    existed = existing is not None
+                    if existing:
+                        host = host_service.update_host(existing.get("hostname") or existing.get("asset_seq"), doc, user=user)
+                    else:
+                        host = host_service.upsert_host(doc, user=user)
+                    result["updated" if existed else "created"] += 1
+                    if host.get("status") == "draft":
+                        result["draft"] += 1
+                    continue
+                link = _find_host_link(normalized) if sheet_type == "data" else {"status": "not_applicable"}
+                if link["status"] == "linked":
+                    result["linked"] += 1
+                if link["status"] == "unmatched":
+                    result["unmatched"] += 1
+                governance_status = "quarantine_unknown_sheet" if sheet_type == "unknown" else "candidate"
+                if sheet_type == "unknown":
+                    result["quarantine"] += 1
+                doc = _asset_pool_record(
+                    sheet_type=sheet_type,
+                    sheet_name=sheet["name"],
+                    line=line,
+                    normalized=normalized,
+                    raw=row,
+                    user=user,
+                    host_link=link,
+                    governance_status=governance_status,
+                )
+                action = _upsert_asset_pool_record(doc, user)
+                result[f"pool_{action}"] += 1
+            except Exception as exc:
+                result["failed"] += 1
+                result["errors"].append({"sheet": sheet["name"], "line": line, "error": str(exc)})
+    result["total_rows"] = result["processed"]
     return result
 
 
@@ -420,7 +642,26 @@ def asset_pool_overview(limit: int = 200) -> dict[str, Any]:
     try:
         col = get_collection(ASSET_COLLECTION)
         counts = {str(item.get("_id")): int(item.get("count", 0)) for item in col.aggregate([{"$group": {"_id": "$object_type", "count": {"$sum": 1}}}])}
-        items = [_public(doc) for doc in col.find({}, {"_id": 1, "object_type": 1, "asset_seq": 1, "asset_name": 1, "apid": 1, "owner": 1, "custodian": 1, "host_link": 1, "updated_at": 1}).sort("updated_at", -1).limit(limit)]
+        items = [
+            _public(doc)
+            for doc in col.find(
+                {},
+                {
+                    "_id": 1,
+                    "object_type": 1,
+                    "asset_seq": 1,
+                    "asset_name": 1,
+                    "apid": 1,
+                    "owner": 1,
+                    "custodian": 1,
+                    "host_link": 1,
+                    "governance_status": 1,
+                    "updated_at": 1,
+                },
+            )
+            .sort("updated_at", -1)
+            .limit(limit)
+        ]
     except Exception as exc:
         return {"counts": {}, "total": 0, "items": [], "error": str(exc)}
     return {"counts": counts, "total": sum(counts.values()), "items": items}
