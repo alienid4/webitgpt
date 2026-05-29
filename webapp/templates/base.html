@@ -60,6 +60,11 @@
     {% with messages = get_flashed_messages() %}
       {% if messages %}<div class="notice">{{ messages|join(' / ') }}</div>{% endif %}
     {% endwith %}
+    {% if is_superadmin and endpoint.startswith('api_superadmin.') and endpoint not in ['api_superadmin.superadmin_page', 'api_superadmin.validation_page', 'api_superadmin.dev_console_page'] %}
+    <section class="admin-page admin-page-topnav admin-topnav-strip">
+      {% include "_partials/admin_topnav.html" %}
+    </section>
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
   {% if show_app_shell and feature_enabled("ai_chat_panel", default=false) %}{% include "_partials/ai_chat.html" %}{% endif %}

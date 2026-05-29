@@ -153,6 +153,8 @@ def test_dashboard_parity_and_legacy_pages_are_wired():
 def test_superadmin_full_system_surfaces_exist():
     routes = read("webapp/routes/api_superadmin.py")
     service = read("webapp/services/system_service.py")
+    base = read("webapp/templates/base.html")
+    admin_topnav = read("webapp/templates/_partials/admin_topnav.html")
     superadmin = read("webapp/templates/superadmin.html")
     users = read("webapp/templates/users.html")
     health = read("webapp/templates/system_health.html")
@@ -194,7 +196,13 @@ def test_superadmin_full_system_surfaces_exist():
     assert "page-title-with-help" in superadmin
     assert '<details class="inline-help">' in superadmin
     assert 'aria-label="系統管理說明"' in superadmin
-    assert '<details class="admin-nav-section" open>' in superadmin
+    assert '<details class="admin-nav-section">' in superadmin
+    assert '<details class="admin-nav-section" open>' not in superadmin
+    assert 'include "_partials/admin_topnav.html"' in base
+    assert "admin-topnav-strip" in base
+    assert "api_superadmin.system_health_page" in admin_topnav
+    assert "api_superadmin.logs_page" in admin_topnav
+    assert "admin-nav-heading {% if endpoint in" in admin_topnav
     assert '<summary class="admin-nav-heading">權限與憑證</summary>' in superadmin
     assert "credentials_page" in superadmin
     assert "API Token" in superadmin
@@ -290,7 +298,8 @@ def test_collection_credentials_page_contract_exists():
     assert "source-badge" in template
     assert "credentials_page" in search_registry
     assert ".credential-tier-grid" in css
-    assert ".admin-nav-section[open] > .admin-nav-heading" in css
+    assert "details.admin-nav-section[open] > .admin-nav-heading" in css
+    assert ".admin-page-topnav .admin-nav-heading.active" in css
     assert ".admin-page-topnav .admin-sidebar" in css
     assert ".admin-page-topnav .admin-sidebar-title" in css
     assert "flex: 0 0 auto" in css

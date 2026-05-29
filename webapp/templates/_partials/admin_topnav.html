@@ -1,0 +1,48 @@
+<aside class="admin-sidebar admin-sidebar-grouped">
+  <div class="admin-sidebar-title">系統管理</div>
+  <nav class="admin-nav-section" aria-label="系統管理分類">
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.superadmin_page' %}active{% endif %}" href="{{ url_for('api_superadmin.superadmin_page') }}">總覽 / 功能開關</a>
+  </nav>
+
+  <details class="admin-nav-section">
+    <summary class="admin-nav-heading {% if endpoint in ['api_superadmin.users_page', 'api_superadmin.credentials_page', 'api_superadmin.audit_logs_page'] %}active{% endif %}">權限與憑證</summary>
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.users_page' %}active{% endif %}" href="{{ url_for('api_superadmin.users_page') }}">使用者與權限</a>
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.credentials_page' %}active{% endif %}" href="{{ url_for('api_superadmin.credentials_page') }}">採集帳號 L1 / L2 / L3</a>
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.audit_logs_page' %}active{% endif %}" href="{{ url_for('api_superadmin.audit_logs_page') }}">稽核紀錄</a>
+  </details>
+
+  <details class="admin-nav-section">
+    <summary class="admin-nav-heading {% if endpoint in ['api_superadmin.tokens_page', 'api_superadmin.ai_page', 'api_superadmin.token_costs_page'] %}active{% endif %}">API 與 AI</summary>
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.tokens_page' %}active{% endif %}" href="{{ url_for('api_superadmin.tokens_page') }}">API Token</a>
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.ai_page' %}active{% endif %}" href="{{ url_for('api_superadmin.ai_page') }}">AI 供應商</a>
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.token_costs_page' %}active{% endif %}" href="{{ url_for('api_superadmin.token_costs_page') }}">Token 成本</a>
+  </details>
+
+  <details class="admin-nav-section">
+    <summary class="admin-nav-heading {% if endpoint in ['api_superadmin.important_services_page', 'api_superadmin.asset_governance_statuses_page', 'api_notifications.notifications_page'] %}active{% endif %}">規則與治理</summary>
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.important_services_page' %}active{% endif %}" href="{{ url_for('api_superadmin.important_services_page') }}">重要服務規則</a>
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.asset_governance_statuses_page' %}active{% endif %}" href="{{ url_for('api_superadmin.asset_governance_statuses_page') }}">資產治理狀態</a>
+    <a class="admin-side-link {% if endpoint == 'api_notifications.notifications_page' %}active{% endif %}" href="{{ url_for('api_notifications.notifications_page') }}">通知設定</a>
+  </details>
+
+  <details class="admin-nav-section">
+    <summary class="admin-nav-heading {% if endpoint in ['api_superadmin.system_health_page', 'api_superadmin.logs_page', 'api_superadmin.jobs_page'] %}active{% endif %}">維運監控</summary>
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.system_health_page' %}active{% endif %}" href="{{ url_for('api_superadmin.system_health_page') }}">健康檢查</a>
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.logs_page' %}active{% endif %}" href="{{ url_for('api_superadmin.logs_page') }}">日誌檢視</a>
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.jobs_page' %}active{% endif %}" href="{{ url_for('api_superadmin.jobs_page') }}">工作排程</a>
+  </details>
+
+  <details class="admin-nav-section">
+    <summary class="admin-nav-heading {% if endpoint in ['api_superadmin.backup_dr_page', 'api_superadmin.patches_page', 'api_housekeeping.housekeeping_page'] %}active{% endif %}">備份與發布</summary>
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.backup_dr_page' %}active{% endif %}" href="{{ url_for('api_superadmin.backup_dr_page') }}">備份 / DR</a>
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.patches_page' %}active{% endif %}" href="{{ url_for('api_superadmin.patches_page') }}">Patch / 回滾</a>
+    <a class="admin-side-link {% if endpoint == 'api_housekeeping.housekeeping_page' %}active{% endif %}" href="{{ url_for('api_housekeeping.housekeeping_page') }}">Housekeeping</a>
+  </details>
+
+  <details class="admin-nav-section">
+    <summary class="admin-nav-heading {% if endpoint in ['api_superadmin.dev_console_page', 'api_superadmin.feature_parity_page', 'api_superadmin.settings_page'] %}active{% endif %}">開發與對照</summary>
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.dev_console_page' %}active{% endif %}" href="{{ url_for('api_superadmin.dev_console_page') }}">開發後台</a>
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.feature_parity_page' %}active{% endif %}" href="{{ url_for('api_superadmin.feature_parity_page') }}">功能對照</a>
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.settings_page' %}active{% endif %}" href="{{ url_for('api_superadmin.settings_page') }}">系統設定</a>
+  </details>
+</aside>
