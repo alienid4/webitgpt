@@ -5,9 +5,9 @@ import ipaddress
 from flask import Blueprint, Response, abort, jsonify, redirect, render_template, request, url_for
 
 from webapp.decorators import current_user, market_hours_protected, require_feature, require_role
-from webapp.services import audit_log_service, cmdb_service, host_service, ipam_schedule_service
+from webapp.services import audit_log_service, cmdb_relationship_service, cmdb_service, host_service, ipam_schedule_service
 from webapp.services.csv_service import csv_template as build_csv_template
-from webapp.services.csv_service import export_hosts_csv, import_csv, import_json
+from webapp.services.csv_service import export_hosts_csv, export_hosts_xlsx, import_csv, import_json, import_xlsx, validate_csv, validate_xlsx, validation_errors_csv, validation_errors_xlsx
 from webapp.services.host_schema import ASSET_FIELDS, REQUIRED_FIELDS, ValidationError
 from webapp.services.saved_view_service import delete_view, list_views, save_view
 
@@ -37,6 +37,7 @@ GLOBAL_SEARCH_TARGETS = [
     {"endpoint": "api_platforms.vmware_page", "keywords": ["VMware", "vCenter", "虛擬化"], "role": "viewer"},
     {"endpoint": "api_superadmin.superadmin_page", "keywords": ["SA.A", "SA-A", "系統A", "系統管理", "後台", "后台", "superadmin", "超級管理員", "功能開關", "模組管理"], "role": "superadmin"},
     {"endpoint": "api_superadmin.users_page", "keywords": ["SA.B", "SA-B", "系統B", "使用者", "權限", "使用者與權限", "帳號權限", "角色"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.credentials_page", "keywords": ["採集帳號", "憑證", "L1", "L2", "L3", "SSH key", "WinRM", "PAM", "探測帳號", "盤點帳號", "深度檢查帳號"], "role": "superadmin"},
     {"endpoint": "api_superadmin.tokens_page", "keywords": ["SA.C", "SA-C", "系統C", "API Token", "token", "MCP token", "對外 API"], "role": "superadmin"},
     {"endpoint": "api_superadmin.ai_page", "keywords": ["SA.D", "SA-D", "系統D", "AI 供應商", "AI設定", "LLM", "Ollama", "OpenAI"], "role": "superadmin"},
     {"endpoint": "api_superadmin.system_health_page", "keywords": ["SA.E", "SA-E", "系統E", "健康檢查", "health", "ready", "metrics", "系統健康"], "role": "superadmin"},
@@ -298,12 +299,34 @@ def _host_form_data() -> dict:
     return data
 
 
+def _apply_prefill_suggestions(host: dict, prefill_scan: dict) -> tuple[dict, list[str]]:
+    suggestions = (prefill_scan or {}).get("suggestions") or {}
+    if not suggestions:
+        return host, []
+    applied: list[str] = []
+    result = dict(host)
+    current_hostname = str(result.get("hostname") or "")
+    generated_hostname = current_hostname.startswith("scan-") or current_hostname.startswith("DISC-")
+    fill_rules = {
+        "hostname": lambda value: value and (not current_hostname or generated_hostname),
+        "os": lambda value: value and str(result.get("os") or "") in {"", "未偵測", "未知 OS"},
+        "host_type": lambda value: value and str(result.get("host_type") or "") in {"", "end_device"},
+        "connection": lambda value: value and not result.get("connection"),
+        "ssh_port": lambda value: value and not result.get("ssh_port"),
+    }
+    for field, should_fill in fill_rules.items():
+        value = suggestions.get(field)
+        if should_fill(value):
+            result[field] = value
+            applied.append(field)
+    return result, applied
+
+
 def _host_new_context(**extra: dict) -> dict:
-    last_scan_report = cmdb_service.latest_network_reconcile("") or None
     context = {
         "errors": None,
         "import_result": None,
-        "scan_report": last_scan_report,
+        "scan_report": None,
         "scan_created": None,
         "scan_skipped": None,
         "ipam_networks": cmdb_service.list_networks(),
@@ -411,6 +434,17 @@ def asset_quality_page():
     )
 
 
+@bp.get("/hosts/cmdb-relationships")
+@require_feature("cmdb_manual_input")
+def cmdb_relationships_page():
+    overview = cmdb_relationship_service.cmdb_relationship_overview(request.args.get("system", ""))
+    return render_template(
+        "cmdb_relationships.html",
+        overview=overview,
+        selected_system=overview["selected_system"],
+    )
+
+
 @bp.get("/hosts/new")
 @require_feature("cmdb_manual_input")
 def host_new_page():
@@ -440,7 +474,9 @@ def host_new_submit():
     try:
         host = host_service.create_host(_host_form_data(), user=current_user()["username"])
         audit_log_service.append("host.create", current_user()["username"], {"hostname": host["hostname"], "asset_seq": host["asset_seq"]})
-        return redirect(url_for("api_hosts.host_edit_page", asset_seq=host["hostname"]))
+        if request.form.get("after_save") == "continue_edit":
+            return redirect(url_for("api_hosts.host_edit_page", asset_seq=host["hostname"]))
+        return redirect(url_for("api_hosts.hosts_page", q=host["hostname"], asset_saved=host["hostname"]))
     except ValidationError as exc:
         errors, error_fields = _translate_host_form_messages(exc.errors)
         warnings, warning_fields = _translate_host_form_messages(exc.warnings, warning=True)
@@ -466,9 +502,13 @@ def host_new_submit():
 @market_hours_protected
 def host_import_csv_page():
     text = request.form.get("csv_text", "")
-    if not text and request.files.get("csv_file"):
-        text = request.files["csv_file"].read().decode("utf-8-sig", errors="replace")
-    result = import_csv(text, user=current_user()["username"])
+    upload = request.files.get("csv_file")
+    if upload and upload.filename.lower().endswith(".xlsx"):
+        result = import_xlsx(upload.read(), user=current_user()["username"])
+    else:
+        if not text and upload:
+            text = upload.read().decode("utf-8-sig", errors="replace")
+        result = import_csv(text, user=current_user()["username"])
     audit_log_service.append("host.csv_import", current_user()["username"], result)
     return render_template("host_new.html", **_host_new_context(import_result=result)), 200 if result["failed"] == 0 else 400
 
@@ -687,6 +727,7 @@ def host_edit_page(asset_seq: str):
         required_fields=REQUIRED_FIELDS,
         ipam_networks=cmdb_service.list_networks(),
         extension_definitions=cmdb_service.list_extension_definitions(),
+        host_type_labels=HOST_TYPE_LABELS,
         mode="edit",
     )
 
@@ -699,7 +740,9 @@ def host_edit_submit(asset_seq: str):
     try:
         host = host_service.update_host(asset_seq, _host_form_data(), user=current_user()["username"])
         audit_log_service.append("host.update", current_user()["username"], {"hostname": host["hostname"], "asset_seq": host["asset_seq"]})
-        return redirect(url_for("api_hosts.host_edit_page", asset_seq=host["hostname"]))
+        if request.form.get("after_save") == "continue_edit":
+            return redirect(url_for("api_hosts.host_edit_page", asset_seq=host["hostname"]))
+        return redirect(url_for("api_hosts.hosts_page", q=host["hostname"], asset_saved=host["hostname"]))
     except ValidationError as exc:
         errors, error_fields = _translate_host_form_messages(exc.errors)
         warnings, warning_fields = _translate_host_form_messages(exc.warnings, warning=True)
@@ -717,6 +760,54 @@ def host_edit_submit(asset_seq: str):
             warnings=warnings,
             error_fields=error_fields,
             warning_fields=warning_fields,
+        ), 400
+
+
+@bp.post("/hosts/<asset_seq>/prefill-scan")
+@require_feature("cmdb_network_scan")
+@require_role("admin")
+def host_prefill_scan_submit(asset_seq: str):
+    host = host_service.get_host(asset_seq)
+    if not host:
+        return render_template("host_edit.html", error="找不到資產", host=None), 404
+    try:
+        prefill_scan = cmdb_service.scan_host_prefill(asset_seq, user=current_user()["username"])
+        host, applied_fields = _apply_prefill_suggestions(host, prefill_scan)
+        prefill_scan["applied_fields"] = applied_fields
+        audit_log_service.append(
+            "host.prefill_scan",
+            current_user()["username"],
+            {
+                "asset_seq": host.get("asset_seq"),
+                "hostname": host.get("hostname"),
+                "target_ip": prefill_scan.get("target_ip"),
+                "applied_fields": applied_fields,
+            },
+        )
+        return render_template(
+            "host_edit.html",
+            host=host,
+            edit_fields=EDIT_FIELDS,
+            field_labels=ASSET_FIELD_LABELS,
+            required_fields=REQUIRED_FIELDS,
+            ipam_networks=cmdb_service.list_networks(),
+            extension_definitions=cmdb_service.list_extension_definitions(),
+            host_type_labels=HOST_TYPE_LABELS,
+            mode="edit",
+            prefill_scan=prefill_scan,
+        )
+    except Exception as exc:
+        return render_template(
+            "host_edit.html",
+            host=host,
+            edit_fields=EDIT_FIELDS,
+            field_labels=ASSET_FIELD_LABELS,
+            required_fields=REQUIRED_FIELDS,
+            ipam_networks=cmdb_service.list_networks(),
+            extension_definitions=cmdb_service.list_extension_definitions(),
+            host_type_labels=HOST_TYPE_LABELS,
+            mode="edit",
+            errors=[f"掃描帶入建議失敗：{exc}"],
         ), 400
 
 
@@ -863,6 +954,62 @@ def host_bulk_delete_drafts_submit():
                 "api_hosts.hosts_page",
                 status=request.form.get("return_status", ""),
                 bulk_deleted=result["deleted_count"],
+                bulk_skipped=result["skipped_count"],
+            )
+        )
+    except Exception as exc:
+        return redirect(url_for("api_hosts.hosts_page", status=request.form.get("return_status", ""), bulk_error=str(exc)))
+
+
+@bp.post("/hosts/bulk-promote-drafts")
+@require_feature("cmdb_manual_input")
+@require_role("admin")
+def host_bulk_promote_drafts_submit():
+    try:
+        result = host_service.bulk_promote_draft_hosts(
+            request.form.getlist("asset_seq"),
+            request.form.get("reason", ""),
+            user=current_user()["username"],
+        )
+        audit_log_service.append("host.draft.bulk_promote", current_user()["username"], result)
+        return redirect(
+            url_for(
+                "api_hosts.hosts_page",
+                status=request.form.get("return_status", ""),
+                bulk_promoted=result["promoted_count"],
+                bulk_skipped=result["skipped_count"],
+            )
+        )
+    except Exception as exc:
+        return redirect(url_for("api_hosts.hosts_page", status=request.form.get("return_status", ""), bulk_error=str(exc)))
+
+
+@bp.post("/hosts/bulk-update-drafts")
+@require_feature("cmdb_manual_input")
+@require_role("admin")
+def host_bulk_update_drafts_submit():
+    try:
+        result = host_service.bulk_update_draft_hosts(
+            request.form.getlist("asset_seq"),
+            {
+                "environment": request.form.get("environment", ""),
+                "dc": request.form.get("dc", ""),
+                "host_type": request.form.get("host_type", ""),
+                "owner": request.form.get("owner", ""),
+                "custodian": request.form.get("custodian", ""),
+                "user_unit": request.form.get("user_unit", ""),
+                "system_name": request.form.get("system_name", ""),
+                "note": request.form.get("note", ""),
+            },
+            request.form.get("reason", ""),
+            user=current_user()["username"],
+        )
+        audit_log_service.append("host.draft.bulk_update", current_user()["username"], result)
+        return redirect(
+            url_for(
+                "api_hosts.hosts_page",
+                status=request.form.get("return_status", ""),
+                bulk_updated=result["updated_count"],
                 bulk_skipped=result["skipped_count"],
             )
         )
@@ -1097,6 +1244,17 @@ def csv_export():
     return Response(export_hosts_csv(data["items"]), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=hosts_export.csv"})
 
 
+@bp.get("/api/hosts/xlsx/export")
+@require_feature("cmdb_csv_import")
+def xlsx_export():
+    data = host_service.list_hosts(page=1, page_size=10000)
+    return Response(
+        export_hosts_xlsx(data["items"]),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=hosts_export.xlsx"},
+    )
+
+
 @bp.post("/api/hosts/csv/import")
 @require_feature("cmdb_csv_import")
 @require_role("admin")
@@ -1106,6 +1264,52 @@ def csv_import():
     result = import_csv(text, user=current_user()["username"])
     audit_log_service.append("host.csv_import", current_user()["username"], result)
     return jsonify(result), 200 if result["failed"] == 0 else 400
+
+
+@bp.post("/api/hosts/xlsx/import")
+@require_feature("cmdb_csv_import")
+@require_role("admin")
+@market_hours_protected
+def xlsx_import():
+    result = import_xlsx(request.get_data(), user=current_user()["username"])
+    audit_log_service.append("host.xlsx_import", current_user()["username"], result)
+    return jsonify(result), 200 if result["failed"] == 0 else 400
+
+
+@bp.post("/api/hosts/csv/validate")
+@require_feature("cmdb_csv_import")
+def csv_validate():
+    text = request.get_data(as_text=True)
+    report = validate_csv(text)
+    audit_log_service.append("host.csv_validate", current_user()["username"], {"status": report["status"], "row_count": report["row_count"], "error_count": report["error_count"]})
+    return jsonify(report), 200 if report["error_count"] == 0 else 400
+
+
+@bp.post("/api/hosts/csv/validate.csv")
+@require_feature("cmdb_csv_import")
+def csv_validate_errors():
+    text = request.get_data(as_text=True)
+    report = validate_csv(text)
+    return Response(validation_errors_csv(report), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=host_csv_validation_errors.csv"})
+
+
+@bp.post("/api/hosts/xlsx/validate")
+@require_feature("cmdb_csv_import")
+def xlsx_validate():
+    report = validate_xlsx(request.get_data())
+    audit_log_service.append("host.xlsx_validate", current_user()["username"], {"status": report["status"], "row_count": report["row_count"], "error_count": report["error_count"]})
+    return jsonify(report), 200 if report["error_count"] == 0 else 400
+
+
+@bp.post("/api/hosts/xlsx/validate.xlsx")
+@require_feature("cmdb_csv_import")
+def xlsx_validate_errors():
+    report = validate_xlsx(request.get_data())
+    return Response(
+        validation_errors_xlsx(report),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=host_xlsx_validation_errors.xlsx"},
+    )
 
 
 @bp.post("/api/hosts/json/import")

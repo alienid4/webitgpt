@@ -511,8 +511,14 @@ def main() -> int:
     status, csv_export_text, _ = request(opener, "GET", f"{base}/api/hosts/csv/export")
     check(report, "csv_export", status == 200 and "asset_seq" in csv_export_text and csv_asset_seq in csv_export_text, csv_export_text[:300])
 
-    host_root = Path("/opt/webitgpt/data/hosts")
-    if host_root.exists():
+    status, _, health_after_artifacts = request(opener, "GET", f"{base}/api/superadmin/system-health")
+    artifact_counts = (health_after_artifacts or {}).get("host_artifacts", {}) if status == 200 else {}
+    if artifact_counts:
+        check(report, "per_host_meta_files", int(artifact_counts.get("meta_files", 0)) >= after_total, {"host_artifacts": artifact_counts, "hosts_total": after_total})
+        check(report, "self_check_file_written", bool(self_check and self_check.get("artifact_path")) or int(artifact_counts.get("self_check_files", 0)) > 0, {"artifact_path": (self_check or {}).get("artifact_path"), "host_artifacts": artifact_counts})
+        check(report, "debug_snapshot_file_written", bool(debug and debug.get("artifact_path")) or int(artifact_counts.get("debug_snapshot_files", 0)) > 0, {"artifact_path": (debug or {}).get("artifact_path"), "host_artifacts": artifact_counts})
+    else:
+        host_root = Path(os.environ.get("WEBITGPT_VALIDATION_HOST_ROOT", "/opt/webitgpt/data/hosts"))
         meta_files = list(host_root.glob("*/meta.json"))
         check(report, "per_host_meta_files", len(meta_files) >= after_total, {"meta_files": len(meta_files), "hosts_total": after_total})
         check(report, "self_check_file_written", any((host_root / "HW-00000221" / "self_check").glob("*.json")), "HW-00000221/self_check")

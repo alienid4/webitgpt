@@ -28,5 +28,6 @@ def debug_snapshot(asset_seq: str):
     target = Path(config.HOSTS_DIR) / asset_seq / "debug_snapshots" / f"{now.strftime('%Y%m%d_%H%M%S')}.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(masked, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    masked["artifact_path"] = str(target)
     audit_log_service.append("host.debug_snapshot", current_user()["username"], {"asset_seq": asset_seq, "path": str(target)})
     return jsonify(masked)

@@ -110,6 +110,15 @@
       <a class="metric" href="#ipam-scan-details"><strong>{{ scan_report.mismatch_count }}</strong><span>不一致項目</span></a>
       <a class="metric" href="#ipam-scan-details"><strong>{{ scan_report.mode }}</strong><span>掃描模式</span></a>
     </div>
+    {% if scan_report.summary %}
+    <div class="metric-grid">
+      <a class="metric" href="#ipam-scan-details"><strong>{{ scan_report.summary.discovered }}</strong><span>掃描實際發現</span></a>
+      <a class="metric" href="#ipam-scan-details"><strong>{{ scan_report.summary.already_in_cmdb }}</strong><span>CMDB 已納管</span></a>
+      <a class="metric" href="#ipam-scan-details"><strong>{{ scan_report.summary.scan_not_in_cmdb }}</strong><span>未納管待建檔</span></a>
+      <a class="metric" href="#ipam-scan-details"><strong>{{ scan_report.summary.shown_rows }}</strong><span>畫面列出筆數</span></a>
+    </div>
+    <div class="notice">掃描命令：{{ scan_report.scan_command_hint or scan_report.mode }}。{{ scan_report.summary.note }}</div>
+    {% endif %}
     {% if scan_report.error %}<div class="notice danger">{{ scan_report.error }}</div>{% endif %}
     <form class="inline-form" method="post" action="{{ url_for('api_hosts.ipam_scan_create_drafts_submit') }}" data-submit-status data-submit-message="正在將未納管 IP 建立為資產草稿，請稍候。">
       <input type="hidden" name="cidr" value="{{ scan_report.cidr }}">

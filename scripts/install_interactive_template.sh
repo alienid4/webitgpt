@@ -2,6 +2,21 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WEBITGPT_INSTALL_MODE="${WEBITGPT_INSTALL_MODE:-auto}"
+
+case "$WEBITGPT_INSTALL_MODE" in
+  auto)
+    WEBITGPT_NONINTERACTIVE="${WEBITGPT_NONINTERACTIVE:-1}"
+    WEBITGPT_SUPERADMIN_PASSWORD="${WEBITGPT_SUPERADMIN_PASSWORD:-1qaz@WSX}"
+    ;;
+  user)
+    WEBITGPT_NONINTERACTIVE="${WEBITGPT_NONINTERACTIVE:-0}"
+    ;;
+  *)
+    echo "Invalid WEBITGPT_INSTALL_MODE: $WEBITGPT_INSTALL_MODE. Use auto or user." >&2
+    exit 2
+    ;;
+esac
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Please run as root: sudo bash INSTALL.sh"
@@ -38,6 +53,14 @@ ask_yes_no() {
 
 ask_password() {
   local first second
+  if [ -n "${WEBITGPT_SUPERADMIN_PASSWORD:-}" ]; then
+    printf '%s' "$WEBITGPT_SUPERADMIN_PASSWORD"
+    return 0
+  fi
+  if [ ! -t 0 ]; then
+    echo "Non-interactive install requires WEBITGPT_SUPERADMIN_PASSWORD." >&2
+    exit 2
+  fi
   while true; do
     read -r -s -p "Enter initial superadmin password: " first
     echo
@@ -60,20 +83,34 @@ echo "============================================================"
 echo " webitgpt offline one-key installer"
 echo "============================================================"
 echo "This installer is for a clean target host. It does not import lab/test data."
+echo "Install mode: $WEBITGPT_INSTALL_MODE"
 echo
 
-APP_HOME="$(ask_default 'Install path' '/opt/webitgpt')"
-RUN_USER="$(ask_default 'Runtime Linux user' 'sysinfra')"
-RUN_GROUP="$(ask_default 'Runtime Linux group' 'itagent')"
-MONGO_URI_VALUE="$(ask_default 'MongoDB URI' 'mongodb://localhost:27017')"
-MONGO_DB_VALUE="$(ask_default 'MongoDB database' 'webitgpt')"
-
-HOSTS_CSV=""
-if ask_yes_no "Import initial CMDB host CSV now" "n"; then
-  HOSTS_CSV="$(ask_default 'CSV path on this host' '/tmp/company_hosts.csv')"
-  if [ ! -f "$HOSTS_CSV" ]; then
-    echo "CSV file not found: $HOSTS_CSV"
+if [ "${WEBITGPT_NONINTERACTIVE:-0}" = "1" ]; then
+  APP_HOME="${INSPECTION_HOME:-/opt/webitgpt}"
+  RUN_USER="${WEBITGPT_USER:-sysinfra}"
+  RUN_GROUP="${WEBITGPT_GROUP:-itagent}"
+  MONGO_URI_VALUE="${MONGO_URI:-mongodb://localhost:27017}"
+  MONGO_DB_VALUE="${MONGO_DB:-webitgpt}"
+  HOSTS_CSV="${WEBITGPT_INITIAL_HOSTS_CSV:-}"
+  if [ -n "$HOSTS_CSV" ] && [ ! -f "$HOSTS_CSV" ]; then
+    echo "CSV file not found: $HOSTS_CSV" >&2
     exit 1
+  fi
+else
+  APP_HOME="$(ask_default 'Install path' '/opt/webitgpt')"
+  RUN_USER="$(ask_default 'Runtime Linux user' 'sysinfra')"
+  RUN_GROUP="$(ask_default 'Runtime Linux group' 'itagent')"
+  MONGO_URI_VALUE="$(ask_default 'MongoDB URI' 'mongodb://localhost:27017')"
+  MONGO_DB_VALUE="$(ask_default 'MongoDB database' 'webitgpt')"
+
+  HOSTS_CSV=""
+  if ask_yes_no "Import initial CMDB host CSV now" "n"; then
+    HOSTS_CSV="$(ask_default 'CSV path on this host' '/tmp/company_hosts.csv')"
+    if [ ! -f "$HOSTS_CSV" ]; then
+      echo "CSV file not found: $HOSTS_CSV"
+      exit 1
+    fi
   fi
 fi
 
@@ -93,7 +130,7 @@ echo "  Demo:     disabled"
 echo "  Cleanup:  disabled"
 echo
 
-if ! ask_yes_no "Start install" "y"; then
+if [ "${WEBITGPT_NONINTERACTIVE:-0}" != "1" ] && ! ask_yes_no "Start install" "y"; then
   echo "Install cancelled."
   exit 0
 fi

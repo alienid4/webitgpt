@@ -7,11 +7,15 @@ from webapp.services import audit_log_service
 from webapp.services.inventory_service import (
     account_inventory_view,
     account_excel_template_xlsx,
+    ap_account_template_xlsx,
     collect_inventory,
     create_change_ticket,
+    export_ap_account_diff_csv,
+    export_ap_accounts_csv,
     export_account_excel_diff_csv,
     export_inventory_diff_csv,
     export_accounts_csv,
+    import_ap_account_inventory,
     import_account_excel_inventory,
     inventory_diff_report,
     latest_inventory,
@@ -74,6 +78,52 @@ def accounts_excel_diff_csv():
         export_account_excel_diff_csv(),
         mimetype="text/csv",
         headers={"Content-Disposition": "attachment; filename=account_excel_vs_host_diff.csv"},
+    )
+
+
+@bp.get("/accounts/ap-template.xlsx")
+@require_module("module_compliance_security")
+@require_feature("compliance_account")
+def accounts_ap_template_xlsx():
+    return Response(
+        ap_account_template_xlsx(),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=ap_account_inventory_template.xlsx"},
+    )
+
+
+@bp.post("/accounts/ap-upload")
+@require_module("module_compliance_security")
+@require_feature("compliance_account")
+@require_role("admin")
+def accounts_ap_upload():
+    uploaded = request.files.get("file")
+    if not uploaded:
+        return redirect(url_for("api_inventory.accounts_page", tab="ap", upload_error="missing_file") + "#ap")
+    result = import_ap_account_inventory(uploaded.read(), uploaded.filename or "ap_account_inventory.csv", current_user()["username"])
+    audit_log_service.append("ap_account.upload", current_user()["username"], {"run_id": result.get("run_id"), "status": result.get("status"), "rows": result.get("row_count", 0)})
+    return redirect(url_for("api_inventory.accounts_page", tab="ap", upload_run=result.get("run_id", "")) + "#ap")
+
+
+@bp.get("/accounts/ap.csv")
+@require_module("module_compliance_security")
+@require_feature("compliance_account")
+def accounts_ap_csv():
+    return Response(
+        export_ap_accounts_csv(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=ap_account_inventory.csv"},
+    )
+
+
+@bp.get("/accounts/ap-diff.csv")
+@require_module("module_compliance_security")
+@require_feature("compliance_account")
+def accounts_ap_diff_csv():
+    return Response(
+        export_ap_account_diff_csv(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=ap_account_inventory_diff.csv"},
     )
 
 

@@ -102,6 +102,16 @@ def parse_nmon_raw(text: str, fallback_hostname: str = "") -> dict[str, Any]:
                 clean = [value for value in values if value is not None]
                 if clean:
                     sample["disk_pct"] = max(clean)
+            elif section == "NET":
+                values = []
+                for key, value in record.items():
+                    if key.startswith("lo_") or key == "lo":
+                        continue
+                    parsed = _to_float(value)
+                    if parsed is not None:
+                        values.append(abs(parsed))
+                if values:
+                    sample["network_kbps"] = round(sum(values), 2)
             continue
         headers[section] = [_header_key(item) for item in parts[2:]]
 
@@ -158,6 +168,7 @@ def import_nmon_raw_file(filename: str, content: bytes, user: str = "system") ->
                 "cpu_pct": sample.get("cpu_pct"),
                 "mem_pct": sample.get("mem_pct"),
                 "disk_pct": sample.get("disk_pct"),
+                "network_kbps": sample.get("network_kbps"),
                 "load_avg": "",
                 "created_by": user,
                 "source": "nmon_raw",

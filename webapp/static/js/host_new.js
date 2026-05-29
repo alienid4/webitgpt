@@ -16,5 +16,29 @@
     });
   }
 
-  document.addEventListener("DOMContentLoaded", initNetworkFill);
+  function openHashTarget() {
+    if (!window.location.hash) {
+      return;
+    }
+    var target = document.querySelector(window.location.hash);
+    if (target && target.tagName === "DETAILS") {
+      target.open = true;
+      target.scrollIntoView({ block: "start" });
+    }
+  }
+
+  function initStepLinks() {
+    document.querySelectorAll('a[href^="#"]').forEach(function (link) {
+      link.addEventListener("click", function () {
+        window.setTimeout(openHashTarget, 0);
+      });
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    initNetworkFill();
+    initStepLinks();
+    openHashTarget();
+  });
+  window.addEventListener("hashchange", openHashTarget);
 })();

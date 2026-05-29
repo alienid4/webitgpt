@@ -1250,10 +1250,43 @@ def topology(view: str = "system", center: str = "", depth: int = 2, limit: int 
     return data
 
 
+def _resolve_topology_node_id(nodes: list[dict[str, Any]], raw_value: str) -> str:
+    value = (raw_value or "").strip()
+    if not value:
+        return ""
+    node_ids = {str(node.get("id")) for node in nodes}
+    if value in node_ids:
+        return value
+    if value.startswith("core:"):
+        core_label = value.split(":", 1)[1].strip().lower()
+        for node in nodes:
+            if str(node.get("id", "")).startswith("core:") and str(node.get("label") or "").strip().lower() == core_label:
+                return str(node.get("id"))
+    lowered = value.lower()
+    for node in nodes:
+        candidates = [
+            node.get("label"),
+            node.get("id"),
+            node.get("system_id"),
+            node.get("hostname"),
+            node.get("ip"),
+        ]
+        for candidate in candidates:
+            if candidate and str(candidate).strip().lower() == lowered:
+                return str(node.get("id"))
+    for node in nodes:
+        label = str(node.get("label") or "").lower()
+        node_id = str(node.get("id") or "").lower()
+        if lowered and (lowered in label or lowered in node_id):
+            return str(node.get("id"))
+    return value
+
+
 def _apply_failure_simulation(data: dict[str, Any], failed_node: str = "", max_depth: int = 2) -> None:
     failed_node = (failed_node or "").strip()
     nodes = data.get("nodes") or []
     edges = data.get("edges") or []
+    failed_node = _resolve_topology_node_id(nodes, failed_node)
     node_ids = {str(node.get("id")) for node in nodes}
     if not failed_node or failed_node not in node_ids:
         data.setdefault("meta", {})["simulation"] = {"enabled": False, "failed_node": failed_node}
@@ -1354,7 +1387,8 @@ def _filter_to_failure_scope(data: dict[str, Any]) -> None:
         for edge in data.get("edges", [])
         if str(edge.get("source")) in keep and str(edge.get("target")) in keep and edge.get("simulation_status") in {"affected", "related"}
     ]
-    data.setdefault("meta", {}).update(_layout(data["nodes"], data["edges"]))
+    if data.get("view") != "core_impact":
+        data.setdefault("meta", {}).update(_layout(data["nodes"], data["edges"]))
     data.setdefault("meta", {})["focus_node_count"] = len(data["nodes"])
     data.setdefault("meta", {})["focus_edge_count"] = len(data["edges"])
 
@@ -1653,13 +1687,17 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
         selected_core = "巡檢系統" if any(_core_name_for_system(item) == "巡檢系統" for item in systems) else CORE_SYSTEM_NAMES[0]
     core_nodes = [_core_node(name) for name in CORE_SYSTEM_NAMES]
     related_systems = [item for item in systems if core_by_system.get(item["system_id"]) == selected_core]
+    scope = "core"
     if center_system_id:
         relations_all = list_relations({"system_id": center_system_id})
         linked_ids = {center_system_id}
         for rel in relations_all:
-            linked_ids.add(str(rel.get("from_system")))
-            linked_ids.add(str(rel.get("to_system")))
-        related_systems = [item for item in systems if item["system_id"] in linked_ids or core_by_system.get(item["system_id"]) == selected_core]
+            if rel.get("from_system"):
+                linked_ids.add(str(rel.get("from_system")))
+            if rel.get("to_system"):
+                linked_ids.add(str(rel.get("to_system")))
+        related_systems = [item for item in systems if item["system_id"] in linked_ids]
+        scope = "system_focus"
     related_systems = related_systems[: max(1, min(limit, 12))]
     selected_ids = {item["system_id"] for item in related_systems}
 
@@ -1677,6 +1715,8 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
                     "label": host.get("ip") or host.get("hostname") or host.get("asset_seq"),
                     "kind": "主機",
                     "system_id": system["system_id"],
+                    "hostname": host.get("hostname") or "",
+                    "ip": host.get("ip") or "",
                     "category": "host",
                     "tier": system.get("tier") or "C",
                 }
@@ -1702,10 +1742,14 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
         node["focus_state"] = "active" if node["id"] in active_ids else "muted"
 
     height = max(720, max(len(core_nodes), len(related_systems), len(host_nodes), 1) * 92 + 130)
+    lanes = [
+        {"key": "core", "label": "第一欄：六大核心", "x": 30, "y": 64, "width": 280, "height": int(height - 96)},
+        {"key": "system", "label": "第二欄：關聯系統", "x": 410, "y": 64, "width": 290, "height": int(height - 96)},
+        {"key": "host", "label": "第三欄：主機 / IP", "x": 810, "y": 64, "width": 310, "height": int(height - 96)},
+    ]
     guides = [
-        {"label": "第一圈：六大核心", "x": 130, "y": 36},
-        {"label": "第二圈：關聯系統", "x": 470, "y": 36},
-        {"label": "第三圈：主機 / IP", "x": 850, "y": 36},
+        {"label": lane["label"], "x": lane["x"] + lane["width"] / 2, "y": 36}
+        for lane in lanes
     ]
     columns = [("core", 170, core_nodes), ("system", 555, [node for node in nodes if node["id"] in selected_ids]), ("host", 965, host_nodes)]
     by_id = {node["id"]: node for node in nodes}
@@ -1721,6 +1765,7 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
         for rel in list_relations()
         if rel.get("from_system") in system_map and rel.get("to_system") in system_map and rel.get("from_system") in selected_ids and rel.get("to_system") in selected_ids and (include_external or not system_map.get(rel.get("to_system"), {}).get("external"))
     ]
+    trust_summary: dict[str, int] = {"manual": 0, "auto": 0, "unknown": 0}
     edges: list[dict[str, Any]] = []
     for system in related_systems:
         edges.append(_layer_edge(selected_core_id, system["system_id"], "核心關聯", selected_core, system.get("display_name") or system["system_id"], trust="manual"))
@@ -1732,6 +1777,8 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
     for rel in relations:
         edges.append(_edge_payload(rel, system_map.get(rel.get("from_system"), {}).get("display_name", rel.get("from_system")), system_map.get(rel.get("to_system"), {}).get("display_name", rel.get("to_system"))))
     for edge in edges:
+        trust = str(edge.get("trust") or edge.get("source") or "unknown").lower()
+        trust_summary[trust if trust in trust_summary else "unknown"] += 1
         edge["focus_state"] = "active" if edge.get("source") in active_ids and edge.get("target") in active_ids else "muted"
     _position_edge_labels(nodes, edges)
     focus_system = system_map.get(center_system_id or "")
@@ -1750,24 +1797,48 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
         affected_items = [
             {
                 "name": related_systems[0].get("display_name") or related_systems[0].get("system_id"),
-                "note": "目前此核心底下的主要關聯系統。",
+                "note": "目前焦點系統底下的主機與通知口徑。",
             }
         ]
+    host_count_by_system: dict[str, int] = {}
+    for host_node in host_nodes:
+        system_id = str(host_node.get("system_id") or "")
+        host_count_by_system[system_id] = host_count_by_system.get(system_id, 0) + 1
+    notification_contacts = []
+    for system in related_systems:
+        owner = (system.get("owner") or "").strip()
+        notification_contacts.append(
+            {
+                "core": selected_core,
+                "system_id": system.get("system_id"),
+                "system_name": system.get("display_name") or system.get("system_id"),
+                "owner": owner or "未指定",
+                "host_count": host_count_by_system.get(str(system.get("system_id")), 0),
+                "reason": "核心系統維護 / 故障影響通知",
+                "status": "需要補聯絡人" if not owner else "可通知",
+            }
+        )
     meta = _topology_meta("core_impact")
     meta.update({"width": 1120, "height": int(height), "layout_mode": "core_impact", "systems": len(related_systems), "relations": len(edges), "center": center_system_id or selected_core, "center_label": selected_core, "include_external": include_external, "include_unmanaged": include_unmanaged, "layer_guides": guides, "message": "處理角度：先看核心，再看關聯系統，最後展開主機 / IP 與通知對象。"})
     meta.update(
         {
             "width": 1220,
-            "message": "核心影響圖：第一欄是六大核心，第二欄是關聯系統，第三欄是主機 / IP。",
+            "message": "核心影響圖：選核心時顯示整個核心，選系統時只顯示焦點系統、直接關聯與主機 / IP。",
+            "scope": scope,
+            "layer_lanes": lanes,
             "impact_panel": {
                 "focus_label": focus_label,
                 "core_label": selected_core,
+                "scope_label": "焦點系統" if scope == "system_focus" else "核心總覽",
                 "system_count": len(related_systems),
                 "host_count": len(host_nodes),
                 "relation_count": len(edges),
                 "loop_count": sum(1 for rel in relations if rel.get("from_system") == rel.get("to_system")),
                 "notification_count": len({(item.get("owner") or "").strip() for item in related_systems if (item.get("owner") or "").strip()}),
                 "affected_items": affected_items[:6],
+                "notification_contacts": notification_contacts,
+                "trust_summary": trust_summary,
+                "trust_note": "manual=人工/CMDB，auto=自動採集，unknown=來源不足；通知或變更前請優先確認 unknown。",
             },
         }
     )

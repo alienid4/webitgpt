@@ -40,6 +40,84 @@ def test_asset_actions_are_consistent_and_superadmin_only_for_sensitive_buttons(
     assert compliance_route.count('@require_role("superadmin")') >= 2
 
 
+def test_asset_add_host_entry_is_clear_from_asset_page():
+    hosts = read("webapp/templates/hosts.html")
+
+    assert "新增 / 匯入主機" in hosts
+    assert "host_new_page" in hosts
+    assert "asset-intake-panel" not in hosts
+    assert "要新增主機，先選你手上的資料型態" not in hosts
+    assert "單筆新增主機" not in hosts
+    assert "Excel / CSV 大量匯入" not in hosts
+    assert "掃描網段建立草稿" not in hosts
+
+
+def test_asset_secondary_actions_are_grouped_and_scan_rows_are_expandable():
+    hosts = read("webapp/templates/hosts.html")
+    host_new = read("webapp/templates/host_new.html")
+    css = read("webapp/static/css/cathay.css")
+
+    assert "asset-action-menu" in hosts
+    assert "更多操作" in hosts
+    assert "scan-row-detail" in host_new
+    assert "展開技術明細" in host_new
+    assert "將勾選 IP 建立待補草稿" in host_new
+    assert "進入草稿區處理" in host_new
+    assert "下一步不是結束" in host_new
+    assert "去草稿區批次補欄位" in host_new
+    assert "立即補這台資料" in host_new
+    assert "批次轉正式，才算完成主機新增" in host_new
+    assert "新增待補草稿完成，共" in host_new
+    assert "進入草稿區處理" in host_new
+    assert "草稿區下一步" in hosts
+    assert "新增完成，共" in hosts
+    assert '<details class="asset-bulk-panel asset-optional-section">' in hosts
+    assert "批次草稿處理 / 治理" in hosts
+    assert "低頻維運功能：用來清理掃描誤建草稿" in hosts
+    assert "asset-bulk-panel[open]" in css
+    assert "資產已儲存，已回到資產管理列表" in hosts
+    host_edit = read("webapp/templates/host_edit.html")
+    host_routes = read("webapp/routes/api_hosts.py")
+    cmdb_service = read("webapp/services/cmdb_service.py")
+    assert "儲存並回資產管理" in host_edit
+    assert "儲存後繼續編輯" in host_edit
+    assert "掃描帶入建議" in host_edit
+    assert "先掃描，再矯正資產主檔" in host_edit
+    assert "建議值只放進表單，仍需人工確認後儲存" in host_edit
+    assert "掃描方式：nmap TCP 常見服務優先" in host_edit
+    assert "prefillScanForm" in host_edit
+    assert "asset-prefill-panel" in css
+    assert "asset-optional-section" in host_edit
+    assert "asset-optional-section[open]" in css
+    assert "低頻操作，只有需要從 IPAM" in host_edit
+    assert "停用、申請下線、下線封存等低頻治理動作" in host_edit
+    assert "PAM 代號、業務窗口備註等非必要欄位" in host_edit
+    assert "host_prefill_scan_submit" in host_routes
+    assert "scan_host_prefill" in cmdb_service
+    assert "after_save" in host_routes
+    assert "asset_saved" in read("webapp/routes/api_hosts.py")
+    assert "新增方式導覽" in host_new
+    assert "判斷標籤與來源說明預設收合" in host_new
+    assert '<details class="panel compact asset-helper-panel">' in host_new
+    assert '<details class="judgement-source-legend asset-helper-panel"' in host_new
+    assert '<details class="panel asset-create-step" id="single-create">' in host_new
+    assert '<details class="panel asset-create-step" id="csv-import" {% if import_result %}open{% endif %}>' in host_new
+    assert '<details class="panel asset-create-step" id="network-scan">' in host_new
+    assert "展開第 3 步查看掃描結果" in host_new
+    assert "step-expand-label" in host_new
+    assert "驗證或人工確認主機識別、負責人與用途" in host_new
+    assert "3 驗證 / 確認資料" in hosts
+    assert "4 批次轉正式，完成新增" in hosts
+    assert "{% if host.status == \"draft\" %}補資料{% else %}編輯{% endif %}" in hosts
+    assert "draft-next-panel" in css
+    assert "draft-workflow-panel" in css
+    assert "asset-create-step[open]" in css
+    assert "asset-helper-panel[open]" in css
+    assert "asset-action-menu-panel" in css
+    assert "scan-result-table" in css
+    assert "openHashTarget" in read("webapp/static/js/host_new.js")
+
+
 def test_account_metrics_link_to_detail_views():
     html = read("webapp/templates/accounts_inventory.html")
     js = read("webapp/static/js/account_inventory.js")
@@ -88,6 +166,451 @@ def test_account_excel_inventory_tabs_and_upload_contracts_exist():
     assert "activateAccountMainTab" in js
     assert ".account-main-tabs" in css
     assert ".account-upload-bar" in css
+
+
+def test_ap_account_inventory_import_and_report_contracts_exist():
+    html = read("webapp/templates/accounts_inventory.html")
+    routes = read("webapp/routes/api_inventory.py")
+    service = read("webapp/services/inventory_service.py")
+
+    assert "AP 帳號" in html
+    assert 'data-account-main-tab="ap"' in html
+    assert 'data-account-main-panel="ap"' in html
+    assert "accounts_ap_template_xlsx" in routes
+    assert "accounts_ap_upload" in routes
+    assert "accounts_ap_csv" in routes
+    assert "accounts_ap_diff_csv" in routes
+    assert "AP_ACCOUNT_HEADERS" in service
+    assert 'AP_ACCOUNT_REQUIRED_FIELDS = ["app_id", "system_name", "account"]' in service
+    assert "import_ap_account_inventory" in service
+    assert "ap_account_report" in service
+    assert "ap_account_diff_view" in service
+    assert "owner、PAM、權限、最後登入等欄位可以空白" in html
+
+
+def test_cmdb_csv_validation_and_self_check_guard_contracts_exist():
+    csv_service = read("webapp/services/csv_service.py")
+    host_routes = read("webapp/routes/api_hosts.py")
+    self_check = read("webapp/routes/api_self_check.py")
+
+    assert "def validate_csv(" in csv_service
+    assert "def validation_errors_csv(" in csv_service
+    assert "def validate_xlsx(" in csv_service
+    assert "def validation_errors_xlsx(" in csv_service
+    assert "def export_hosts_xlsx(" in csv_service
+    assert 'return "\\ufeff" + output.getvalue()' in csv_service
+    assert '"/api/hosts/csv/validate"' in host_routes
+    assert '"/api/hosts/csv/validate.csv"' in host_routes
+    assert '"/api/hosts/xlsx/import"' in host_routes
+    assert '"/api/hosts/xlsx/export"' in host_routes
+    assert '"/api/hosts/xlsx/validate"' in host_routes
+    assert '"/api/hosts/xlsx/validate.xlsx"' in host_routes
+    assert "duplicate asset_seq" in csv_service
+    assert "payload.get(\"limit\", request.args.get(\"limit\", \"10\"))" in self_check
+    assert "min(max(int(requested_limit), 1), 20)" in self_check
+    assert "except TimeoutError" in self_check
+
+
+def test_cmdb_import_report_excel_and_draft_bulk_contracts_exist():
+    csv_service = read("webapp/services/csv_service.py")
+    host_new = read("webapp/templates/host_new.html")
+    hosts = read("webapp/templates/hosts.html")
+    host_routes = read("webapp/routes/api_hosts.py")
+    host_service = read("webapp/services/host_service.py")
+    hosts_js = read("webapp/static/js/hosts.js")
+    changelog = read("CHANGELOG.md")
+
+    for text in ["CMDB 匯入結果摘要", "讀到筆數", "成功入庫", "人可讀原因", "匯入 CSV / Excel"]:
+        assert text in host_new
+    assert "錯誤明細只顯示前 10 筆" in host_new
+    assert "{{ import_result.errors }}" not in host_new
+    for text in ["批次轉正式", "批次補欄位", "bulkDraftPromoteForm", "bulkDraftUpdateForm", "匯出 Excel"]:
+        assert text in hosts
+    for text in ["host_bulk_promote_drafts_submit", "host_bulk_update_drafts_submit", "xlsx_export", "xlsx_import"]:
+        assert text in host_routes
+    for text in ["bulk_promote_draft_hosts", "bulk_update_draft_hosts", "bulk_promote_draft", "bulk_update_draft"]:
+        assert text in host_service
+    assert "data-draft-bulk-form" in hosts
+    assert "data-draft-bulk-copy" in hosts_js
+    assert "xlsx_rows_from_bytes" in csv_service
+    assert "cmdb-import-report-excel-drafts" in changelog
+
+
+def test_cmdb_relationship_dashboard_contracts_exist():
+    hosts = read("webapp/templates/hosts.html")
+    relationships = read("webapp/templates/cmdb_relationships.html")
+    host_routes = read("webapp/routes/api_hosts.py")
+    service = read("webapp/services/cmdb_relationship_service.py")
+    css = read("webapp/static/css/cathay.css")
+
+    assert "cmdb_relationships_page" in host_routes
+    assert "cmdb_relationship_service.cmdb_relationship_overview" in host_routes
+    assert "cmdb_relationship_entry" not in hosts
+    assert "cmdb-relationship-entry" in hosts
+    for text in ["CMDB 關聯總覽", "關聯覆蓋率", "核心系統關聯檢視", "待補清單", "系統關聯覆蓋明細"]:
+        assert text in relationships
+    for token in ["cmdb_relationship_overview", "DRAFT_STATUSES", "missing_owner", "service_port"]:
+        assert token in service
+    for token in [".cmdb-coverage-grid", ".cmdb-relation-map", ".cmdb-gap-item", ".cmdb-system-table"]:
+        assert token in css
+
+
+def test_cmdb_relationship_overview_summarizes_quality_and_relationships(monkeypatch):
+    from webapp.services import cmdb_relationship_service
+
+    hosts = [
+        {
+            "hostname": "app1",
+            "asset_name": "巡檢系統主機",
+            "ip": "10.0.0.1",
+            "status": "active",
+            "system_name": "巡檢系統",
+            "owner": "ops",
+            "open_ports": [{"port": "8002"}],
+        },
+        {
+            "hostname": "app2",
+            "asset_name": "巡檢系統資料庫",
+            "ip": "10.0.0.2",
+            "status": "draft",
+            "system_name": "巡檢系統",
+        },
+        {
+            "hostname": "misc1",
+            "asset_name": "未分類主機",
+            "status": "active",
+            "custodian": "infra",
+        },
+    ]
+
+    class FakeCursor(list):
+        def limit(self, _limit):
+            return self
+
+    class FakeCollection:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def find(self, *_args, **_kwargs):
+            return FakeCursor(self.rows)
+
+    def fake_get_collection(name):
+        rows = {
+            "dependency_systems": [{"system_id": "SYS-INSPECTION", "display_name": "巡檢系統"}],
+            "dependency_relations": [{"from_system": "SYS-INSPECTION", "to_system": "SYS-MONGO"}],
+        }
+        return FakeCollection(rows.get(name, []))
+
+    monkeypatch.setattr(cmdb_relationship_service.host_service, "list_hosts", lambda **_kwargs: {"items": hosts})
+    monkeypatch.setattr(cmdb_relationship_service, "get_collection", fake_get_collection)
+
+    overview = cmdb_relationship_service.cmdb_relationship_overview("巡檢")
+
+    assert overview["summary"]["total"] == 3
+    assert overview["summary"]["formal_count"] == 2
+    assert overview["summary"]["draft_count"] == 1
+    assert overview["summary"]["dependency_relation_count"] == 1
+    assert overview["coverage"]["system"]["pct"] == 67
+    assert overview["coverage"]["owner"]["pct"] == 67
+    assert overview["coverage"]["service_port"]["pct"] == 33
+    assert overview["selected_system"]["display_name"] == "巡檢系統"
+    assert overview["selected_system"]["host_count"] == 2
+    assert overview["selected_system"]["missing_owner"] == 1
+
+
+def test_cmdb_relationship_page_renders_with_overview(monkeypatch):
+    from webapp.app import create_app
+    from webapp.routes import api_hosts
+
+    fake_overview = {
+        "summary": {
+            "total": 3,
+            "formal_count": 2,
+            "draft_count": 1,
+            "dependency_relation_count": 1,
+        },
+        "coverage": {
+            "system": {"label": "系統關聯率", "count": 2, "total": 3, "pct": 67},
+            "owner": {"label": "owner 完整率", "count": 2, "total": 3, "pct": 67},
+            "notification": {"label": "通知依據完整率", "count": 2, "total": 3, "pct": 67},
+            "service_port": {"label": "服務 / Port 完整率", "count": 1, "total": 3, "pct": 33},
+        },
+        "gaps": [
+            {"key": "missing_owner", "label": "缺 owner / 保管者", "count": 1, "action": "補 owner"},
+        ],
+        "systems": [
+            {
+                "key": "巡檢系統",
+                "display_name": "巡檢系統",
+                "is_classified": True,
+                "host_count": 2,
+                "formal_count": 1,
+                "draft_count": 1,
+                "owners": ["ops"],
+                "missing_owner": 1,
+                "missing_notification": 0,
+                "missing_ports": 1,
+            }
+        ],
+        "selected_system": {
+            "key": "巡檢系統",
+            "display_name": "巡檢系統",
+            "host_count": 2,
+            "formal_count": 1,
+            "draft_count": 1,
+            "missing_owner": 1,
+            "missing_notification": 0,
+            "missing_ports": 1,
+            "owners": ["ops"],
+            "ports": ["8002"],
+            "hosts": [{"hostname": "app1", "ip": "10.0.0.1"}],
+        },
+    }
+
+    monkeypatch.setattr(api_hosts.cmdb_relationship_service, "cmdb_relationship_overview", lambda _selected="": fake_overview)
+    app = create_app()
+    client = app.test_client()
+
+    response = client.get("/hosts/cmdb-relationships")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "CMDB 關聯總覽" in body
+    assert "關聯覆蓋率" in body
+    assert "巡檢系統" in body
+
+
+def test_operations_hardening_to_10323_contracts_exist():
+    html = read("webapp/templates/accounts_inventory.html")
+    service = read("webapp/services/inventory_service.py")
+    reports = read("webapp/routes/api_reports.py")
+    deps = read("webapp/services/dependency_service.py")
+    deps_html = read("webapp/templates/dependencies.html")
+    css = read("webapp/static/css/cathay.css")
+    config = read("webapp/config.py")
+
+    assert 'VERSION = "1.0.3.42"' in config
+    assert "AP_ACCOUNT_RISK_LABELS" in service
+    for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
+        assert text in service
+    assert "AP 風險分類" in html
+    assert "operations_data_quality" in reports
+    assert '"status": "degraded" if warnings' in read("webapp/services/quality_service.py")
+    assert '"/api/reports/data-quality"' in reports
+    assert '"/api/reports/data-quality.csv"' in reports
+    assert "trust_summary" in deps
+    assert "trust_note" in deps
+    assert "topology-trust-list" in deps_html
+    assert ".topology-trust-list" in css
+    assert "post_install_verify.sh" in read("docs/release_notes/v1.0.3.20.md")
+    assert "phase_readonly_mode" in read("docs/operations_hardening_roadmap.md")
+
+
+def test_ops_ux_to_10329_contracts_exist():
+    dashboard = read("webapp/templates/dashboard.html")
+    reports = read("webapp/templates/reports.html")
+    routes = read("webapp/routes/api_reports.py")
+    quality = read("webapp/templates/data_quality.html")
+    post_install = read("webapp/templates/post_install_report.html")
+    css = read("webapp/static/css/cathay.css")
+    service = read("webapp/services/system_service.py")
+
+    assert "維運總覽" in dashboard
+    assert "資料品質分數" in dashboard
+    assert "ops-decision-grid" in dashboard
+    assert "資料品質工作台" in quality
+    assert "quality-score-band" in quality
+    assert "安裝後驗證" in post_install
+    assert "post_install_verify.sh" in post_install
+    assert "統計報表" in reports
+    assert "資料品質缺口" in reports
+    assert "data_quality_page" in routes
+    assert "post_install_report_page" in routes
+    assert ".ops-hero" in css
+    assert ".quality-score-band" in css
+    assert "1.0.3.29" in service
+    assert "ops-ux-decision-workbench" in read("CHANGELOG.md")
+
+
+def test_reports_next_action_to_10330_contracts_exist():
+    reports = read("webapp/templates/reports.html")
+    css = read("webapp/static/css/cathay.css")
+    service = read("webapp/services/system_service.py")
+    changelog = read("CHANGELOG.md")
+
+    assert "reports-next-action-entry" in changelog
+    assert "下一步要做什麼" in reports
+    assert "report-next-actions" in reports
+    assert "前往資料品質工作台" in reports
+    assert "前往帳號盤點" in reports
+    assert "前往核心影響圖" in reports
+    assert "安裝驗證" in reports
+    assert ".report-action-card" in css
+    assert "1.0.3.30" in service
+    assert "reports-next-action-entry" in changelog
+    assert "reports-next-action-entry" in read("docs/release_notes/v1.0.3.30.md")
+
+
+def test_api_key_post_install_to_10331_contracts_exist():
+    config = read("webapp/config.py")
+    api_v1 = read("webapp/routes/api_v1.py")
+    script = read("scripts/post_install_verify.sh")
+    post_install = read("webapp/templates/post_install_report.html")
+    tokens = read("webapp/templates/tokens.html")
+    service = read("webapp/services/system_service.py")
+    changelog = read("CHANGELOG.md")
+
+    assert "api-key-post-install-verify" in changelog
+    assert '"/api/v1/post-install/verify"' in api_v1
+    assert '@require_api_scope("system:read")' in api_v1
+    assert "API_TOKEN" in script
+    assert "api_key_verify" in script
+    assert "system:read" in post_install
+    assert "system:read" in tokens
+    assert "1.0.3.31" in service
+    assert "api-key-post-install-verify" in changelog
+    assert "api-key-post-install-verify" in read("docs/release_notes/v1.0.3.31.md")
+
+
+def test_api_key_verify_visibility_to_10332_contracts_exist():
+    config = read("webapp/config.py")
+    api_v1 = read("webapp/routes/api_v1.py")
+    post_install = read("webapp/templates/post_install_report.html")
+    css = read("webapp/static/css/cathay.css")
+    service = read("webapp/services/system_service.py")
+    changelog = read("CHANGELOG.md")
+
+    assert 'VERSION = "1.0.3.42"' in config
+    assert "ai-ready-pale-gold-contrast" in config
+    assert "verification_source" in api_v1
+    assert "verification_label" in api_v1
+    assert "required_scope" in api_v1
+    assert "API Key 驗證" in post_install
+    assert "Script 檢查" in post_install
+    assert "verification_source=api_key" in post_install
+    assert "/api/v1/post-install/verify" in post_install
+    assert "verify-mode-grid" in post_install
+    assert ".verify-mode-card" in css
+    assert ".verify-badge.api" in css
+    assert ".verify-badge.script" in css
+    assert "1.0.3.42" in service
+    assert "ai-judgement-gold-frame-ui" in changelog
+    assert "ai-judgement-gold-frame-ui" in read("docs/release_notes/v1.0.3.37.md")
+    assert "Shell 負責採證" in read("docs/20260527/v1.0.3.36_ai-judgement-source-ux-design.md")
+    assert "AI 判斷來源與 Fallback 設計" in read("docs/20260527/v1.0.3.36_webitgpt-system-architecture-slides.html")
+    assert "verify-mode-card ai-judgement" in post_install
+    assert "AI 判斷金框" in read("webapp/templates/inspections.html")
+    assert ".verify-badge.ai" in css
+    assert ".l3-panel.l3-ai-ready" in css
+
+
+def test_global_judgement_source_visibility_contracts_exist():
+    css = read("webapp/static/css/cathay.css")
+    config = read("webapp/config.py")
+    changelog = read("CHANGELOG.md")
+    dashboard = read("webapp/templates/dashboard.html")
+    accounts = read("webapp/templates/accounts_inventory.html")
+    nmon = read("webapp/templates/nmon.html")
+    dependencies = read("webapp/templates/dependencies.html")
+
+    assert "ai-ready-pale-gold-contrast" in config
+    assert "static-asset-cache-busting" in changelog
+    assert "ai-judgement-visual-contrast" in changelog
+    assert "global-judgement-source-visibility" in changelog
+    assert "v1.0.3.38" in changelog
+    assert "judgement-source-legend" not in dashboard
+    assert "judgement-source-panel" not in accounts
+    assert "judgement-source-path" not in accounts
+    assert "judgement-source-legend" not in nmon
+    assert "judgement-source-legend" not in dependencies
+    assert "judgement-source-legend" in read("webapp/templates/reports.html")
+    assert "judgement-source-legend" in read("webapp/templates/data_quality.html")
+    assert "judgement-source-legend asset-helper-panel" in read("webapp/templates/host_new.html")
+    for token in [
+        ".judgement-source-legend",
+        ".source-badge.ai",
+        ".source-badge.hybrid",
+        ".source-badge.nmon",
+        ".source-badge.cmdb",
+        ".source-badge.fallback",
+        ".source-badge.insufficient",
+    ]:
+        assert token in css
+    assert "AI ???? Script ??" not in dashboard
+
+def test_ai_judgement_visual_contrast_cards_exist():
+    accounts = read("webapp/templates/accounts_inventory.html")
+    ai_settings = read("webapp/templates/ai_settings.html")
+    token_costs = read("webapp/templates/token_costs.html")
+    css = read("webapp/static/css/cathay.css")
+    changelog = read("CHANGELOG.md")
+
+    assert "ai-judgement-visual-contrast" in changelog
+    assert "judgement-source-panel" not in accounts
+    assert "judgement-source-path" not in accounts
+    assert "Shell / Script ??" not in accounts
+    assert "L3 ??? AI ????" not in accounts
+    assert "judgement-source-panel" in ai_settings
+    assert "judgement-source-card ai-ready" in ai_settings
+    assert "judgement-source-panel" in token_costs
+    assert "AI KEY" in token_costs
+    for token in [
+        ".judgement-source-panel",
+        ".judgement-source-card.ai",
+        ".judgement-source-card.ai-ready",
+        ".judgement-source-card.script",
+        ".judgement-source-card.data",
+        ".judgement-source-card.fallback",
+        ".judgement-source-path",
+        ".compact-note",
+        ".source-badge.ai-ready",
+    ]:
+        assert token in css
+    assert "ai-ready-pale-gold-contrast" in changelog
+
+def test_ai_ready_uses_pale_gold_not_deep_ai_style():
+    css = read("webapp/static/css/cathay.css")
+    post_install = read("webapp/templates/post_install_report.html")
+    inspections = read("webapp/templates/inspections.html")
+
+    assert ".source-badge.ai-ready" in css
+    assert ".judgement-source-card.ai-ready" in css
+    assert "judgement-source-card ai-ready" not in read("webapp/templates/accounts_inventory.html")
+    assert "verify-mode-card ai-judgement" in post_install
+    assert "l3-panel l3-ai-ready" in inspections
+
+
+def test_static_assets_use_version_cache_busting():
+    base = read("webapp/templates/base.html")
+    app = read("webapp/app.py")
+    accounts = read("webapp/templates/accounts_inventory.html")
+
+    assert "asset_version" in app
+    assert "css/cathay.css', v=asset_version" in base
+    assert "js/ui_tools.js', v=asset_version" in base
+    assert "js/table_sort.js', v=asset_version" in base
+    assert "js/account_inventory.js', v=asset_version" in accounts
+    assert "static-asset-cache-busting" in read("CHANGELOG.md")
+
+
+def test_rhel96_offline_prereq_installer_guards_core_packages():
+    install_prereqs = read("scripts/install_prereqs_offline.sh")
+    prereq_builder = read("scripts/prepare_offline_prereq_bundle.sh")
+    full_builder = read("scripts/prepare_221_full_offline_bundle.sh")
+    one_key = read("docs/one_key_install.md")
+    prereq_doc = read("docs/offline_prereq_bundle.md")
+
+    assert 'RPM_INSTALL_MODE="${RPM_INSTALL_MODE:-missing}"' in install_prereqs
+    assert "PROTECTED_RPM_RE" in install_prereqs
+    assert "systemd|systemd-libs" in install_prereqs
+    assert "SKIP protected package from offline bundle" in install_prereqs
+    assert "SKIP already installed package" in install_prereqs
+    assert "--disablerepo=*" in install_prereqs
+    assert "webitgpt_prereqs_${TARGET_OS_SLUG}_${STAMP}" in prereq_builder
+    assert "TARGET_OS_SLUG" in prereq_builder
+    assert "webitgpt_prereqs_*.tar.gz" in full_builder
+    assert "webitgpt_prereqs_<target-os>_<時間>.tar.gz" in one_key
+    assert "webitgpt_prereqs_<target-os>_<時間>.tar.gz" in prereq_doc
 
 
 def test_account_checkboxes_use_inline_left_layout():
@@ -178,6 +701,9 @@ def test_deep_check_items_are_collapsible_and_have_problem_recommendation():
 
     assert '<details class="l3-item l3-{{ item.level }}" data-l3-verdict="{{ item.verdict }}">' in html
     assert "l3-item-summary" in html
+    assert "l3-ai-ready" in html
+    assert "AI + Script" in html
+    assert "Script 接手" in html
     assert "問題點" in html
     assert "建議處置" in html
     assert ".l3-item-summary" in css

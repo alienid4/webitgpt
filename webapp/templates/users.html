@@ -2,22 +2,29 @@
 {% block title %}使用者與權限 - webitgpt{% endblock %}
 {% block content %}
 <section class="panel">
-  <h1>使用者與權限</h1>
+  <div class="page-header">
+    <div>
+      <p class="eyebrow">USERS</p>
+      <h1>使用者與權限</h1>
+      <p class="text-muted-sm">建立帳號、調整角色、鎖定帳號、重設密碼與產生 MFA 備援碼。</p>
+    </div>
+    <a class="btn secondary" href="{{ url_for('api_superadmin.superadmin_page') }}">返回系統管理</a>
+  </div>
   {% if reset_result %}
-    <div class="notice">{{ reset_result.username }} 重設密碼：<span class="code-inline">{{ reset_result.temporary_password }}</span></div>
+    <div class="notice">{{ reset_result.username }} 臨時密碼：<span class="code-inline">{{ reset_result.temporary_password }}</span></div>
   {% endif %}
   {% if backup_codes %}
-    <div class="notice">{{ backup_codes.username }} 備用碼：<span class="code-inline">{{ backup_codes.backup_codes|join(', ') }}</span></div>
+    <div class="notice">{{ backup_codes.username }} 備援碼：<span class="code-inline">{{ backup_codes.backup_codes|join(', ') }}</span></div>
   {% endif %}
-  <form class="grid-form" method="post" data-submit-status data-submit-message="正在建立或更新使用者，請稍候。">
+  <form class="grid-form" method="post" data-submit-status data-submit-message="正在儲存使用者，請稍候。">
     <label>帳號<input name="username" required></label>
     <label>顯示名稱<input name="display_name"></label>
     <label>Email<input name="email"></label>
     <label>角色
       <select name="role">
         <option value="viewer">檢視者 viewer</option>
-        <option value="admin">管理員 admin</option>
-        <option value="super">進階管理員 super</option>
+        <option value="admin">管理者 admin</option>
+        <option value="super">主管管理者 super</option>
         <option value="superadmin">最高管理員 superadmin</option>
       </select>
     </label>
@@ -41,10 +48,10 @@
         <td class="actions">
           <form method="post" action="{{ url_for('api_superadmin.users_lock_page', username=user.username) }}" data-submit-status data-submit-message="正在更新鎖定狀態，請稍候。">
             <label class="toggle"><input type="checkbox" name="locked" {% if user.locked %}checked{% endif %}><span>鎖定</span></label>
-            <button class="btn-sm" type="submit" data-busy-text="儲存中">儲存</button>
+            <button class="btn-sm" type="submit" data-busy-text="更新中">更新</button>
           </form>
           <form method="post" action="{{ url_for('api_superadmin.users_reset_password_page', username=user.username) }}" data-submit-status data-submit-message="正在重設密碼，請稍候。"><button class="btn-sm" type="submit" data-busy-text="重設中">重設密碼</button></form>
-          <form method="post" action="{{ url_for('api_superadmin.users_backup_codes_page', username=user.username) }}" data-submit-status data-submit-message="正在產生備用碼，請稍候。"><button class="btn-sm" type="submit" data-busy-text="產生中">備用碼</button></form>
+          <form method="post" action="{{ url_for('api_superadmin.users_backup_codes_page', username=user.username) }}" data-submit-status data-submit-message="正在產生備援碼，請稍候。"><button class="btn-sm" type="submit" data-busy-text="產生中">備援碼</button></form>
         </td>
       </tr>
       {% else %}

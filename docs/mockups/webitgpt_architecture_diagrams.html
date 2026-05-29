@@ -1,0 +1,1364 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>資訊戰情室架構圖</title>
+  <style>
+    :root {
+      --g1: #26A889;
+      --g2: #0D5C47;
+      --orange: #E87C07;
+      --red: #D71920;
+      --blue: #2474D6;
+      --ink: #141413;
+      --muted: #6B7280;
+      --line: #BEBEBE;
+      --bg: #FAF9F5;
+      --card: #FFFFFF;
+      --soft: #EBF7E8;
+      --soft-blue: #EAF2FF;
+      --soft-orange: #FFF3E3;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(250, 249, 245, .96);
+      border-bottom: 1px solid var(--line);
+      padding: 14px 24px 10px;
+      backdrop-filter: blur(8px);
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 26px;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .tab {
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .tab.active {
+      border-color: var(--g1);
+      background: var(--soft);
+      color: var(--g2);
+    }
+
+    main {
+      padding: 18px 24px 40px;
+    }
+
+    .panel {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, .05);
+    }
+
+    .panel.active { display: block; }
+
+    .panel-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    h2 {
+      margin: 0 0 4px;
+      font-size: 24px;
+    }
+
+    .hint {
+      color: var(--muted);
+      margin: 0;
+      max-width: 980px;
+    }
+
+    .tag {
+      border: 1px solid var(--g1);
+      color: var(--g2);
+      background: var(--soft);
+      border-radius: 999px;
+      padding: 5px 10px;
+      white-space: nowrap;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .diagram {
+      position: relative;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(#ffffff 0 0) padding-box,
+        repeating-linear-gradient(90deg, rgba(190,190,190,.12) 0 1px, transparent 1px 120px);
+      min-height: 560px;
+      padding: 24px;
+    }
+
+    .lane-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(180px, 1fr));
+      gap: 22px;
+      min-width: 1120px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .lane {
+      border: 1px dashed #CFCFCF;
+      border-radius: 12px;
+      padding: 14px;
+      min-height: 480px;
+      background: rgba(255,255,255,.64);
+      position: relative;
+    }
+
+    .lane:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -20px;
+      top: 48%;
+      transform: translateY(-50%);
+      color: var(--g2);
+      background: var(--card);
+      border: 2px solid var(--g1);
+      border-radius: 999px;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 900;
+      z-index: 2;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+    }
+
+    .lane-title {
+      color: var(--g2);
+      font-weight: 900;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .box {
+      border: 2px solid var(--g1);
+      background: #F7FFFB;
+      border-radius: 10px;
+      padding: 12px;
+      margin: 12px 0;
+      min-height: 68px;
+    }
+
+    .box strong {
+      display: block;
+      font-size: 17px;
+      margin-bottom: 4px;
+    }
+
+    .box small {
+      color: var(--muted);
+      display: block;
+      line-height: 1.45;
+    }
+
+    .box.blue {
+      border-color: var(--blue);
+      background: var(--soft-blue);
+    }
+
+    .box.orange {
+      border-color: var(--orange);
+      background: var(--soft-orange);
+    }
+
+    .box.red {
+      border-color: var(--red);
+      background: #FFF0F0;
+    }
+
+    .box.gray {
+      border-color: #8E8E8E;
+      background: #F7F7F7;
+    }
+
+    .arrow-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      min-width: 1120px;
+      pointer-events: none;
+      z-index: 0;
+      display: none;
+    }
+
+    .arrow {
+      stroke: var(--g2);
+      stroke-width: 3;
+      fill: none;
+      marker-end: url(#arrowHead);
+    }
+
+    .arrow.orange { stroke: var(--orange); stroke-dasharray: 8 7; }
+    .arrow.blue { stroke: var(--blue); }
+    .arrow.gray { stroke: #777; stroke-dasharray: 4 7; }
+
+    .module-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(210px, 1fr));
+      gap: 14px;
+      min-width: 980px;
+    }
+
+    .module-card {
+      border: 1px solid var(--line);
+      border-left: 7px solid var(--g1);
+      border-radius: 10px;
+      background: #fff;
+      padding: 14px;
+      min-height: 122px;
+    }
+
+    .module-card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .module-card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .module-card.future { border-left-color: var(--orange); }
+    .module-card.control { border-left-color: var(--blue); }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(150px, 1fr));
+      gap: 14px;
+      min-width: 1120px;
+      align-items: stretch;
+    }
+
+    .step {
+      border: 2px solid var(--g1);
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      position: relative;
+      min-height: 150px;
+    }
+
+    .step:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--g2);
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--g1);
+      color: #fff;
+      font-weight: 900;
+      margin-bottom: 10px;
+    }
+
+    .step h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+    }
+
+    .step p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .deploy-wrap {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(260px, 1fr));
+      gap: 18px;
+      min-width: 1040px;
+      align-items: stretch;
+    }
+
+    .deploy-card {
+      border: 2px solid var(--line);
+      background: #fff;
+      border-radius: 14px;
+      padding: 18px;
+      min-height: 320px;
+    }
+
+    .deploy-card h3 {
+      margin: 0 0 12px;
+      font-size: 22px;
+    }
+
+    .deploy-card ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .deploy-card li { margin: 8px 0; }
+    .deploy-card.build { border-color: var(--g1); background: #F7FFFB; }
+    .deploy-card.offline { border-color: var(--orange); background: #FFF9F0; }
+
+    .notes {
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px;
+      background: #fff;
+      color: var(--muted);
+    }
+
+    .small-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      background: #fff;
+    }
+
+    .small-table th,
+    .small-table td {
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      padding: 10px;
+      vertical-align: top;
+    }
+
+    .small-table th {
+      background: #F5F5F5;
+      color: #555;
+    }
+
+    .type-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .type-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .type-title {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--soft);
+      color: var(--g2);
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .type-body { padding: 16px; }
+
+    .mini-arch {
+      height: 230px;
+      max-width: 760px;
+      border: 1px solid #D9D9D9;
+      border-radius: 10px;
+      background: #FBFBFB;
+      position: relative;
+      margin-bottom: 14px;
+      overflow: visible;
+    }
+
+    .mini-box {
+      position: absolute;
+      border: 2px solid var(--g1);
+      background: #F7FFFB;
+      border-radius: 8px;
+      padding: 7px 9px;
+      font-weight: 900;
+      text-align: center;
+      min-width: 74px;
+      font-size: 13px;
+      line-height: 1.25;
+    }
+
+    .mini-box.blue { border-color: var(--blue); background: var(--soft-blue); }
+    .mini-box.orange { border-color: var(--orange); background: var(--soft-orange); }
+    .mini-box.gray { border-color: #777; background: #F5F5F5; }
+
+    .mini-line {
+      position: absolute;
+      height: 3px;
+      background: var(--g2);
+      transform-origin: left center;
+    }
+
+    .mini-line.dash {
+      background: repeating-linear-gradient(90deg, var(--orange) 0 8px, transparent 8px 14px);
+    }
+
+    .mini-layer {
+      position: absolute;
+      left: 22px;
+      right: 58px;
+      height: 34px;
+      border: 2px solid var(--g1);
+      border-radius: 8px;
+      background: #F7FFFB;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    .side-bar {
+      position: absolute;
+      top: 14px;
+      right: 10px;
+      bottom: 14px;
+      width: 34px;
+      border-radius: 8px;
+      background: #FFE6E6;
+      border: 1px solid #F2A9A9;
+      color: #B00000;
+      writing-mode: vertical-rl;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 12px;
+    }
+
+    .platform-band {
+      position: absolute;
+      left: 38px;
+      right: 38px;
+      top: 82px;
+      height: 50px;
+      border: 3px solid var(--orange);
+      border-radius: 999px;
+      background: #FFF9F0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    .type-card ul {
+      margin: 8px 0 0;
+      padding-left: 20px;
+    }
+
+    .type-card li { margin: 6px 0; }
+
+    .arch-canvas {
+      position: relative;
+      min-width: 1120px;
+      min-height: 560px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .arch-note {
+      position: absolute;
+      left: 24px;
+      bottom: 18px;
+      right: 24px;
+      color: var(--muted);
+      border-top: 1px solid #E5E5E5;
+      padding-top: 10px;
+    }
+
+    .arch-node {
+      position: absolute;
+      border: 2px solid var(--g1);
+      background: #F7FFFB;
+      border-radius: 12px;
+      padding: 12px 14px;
+      min-width: 150px;
+      min-height: 64px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-weight: 900;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, .05);
+    }
+
+    .arch-node small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .arch-node.blue { border-color: var(--blue); background: var(--soft-blue); }
+    .arch-node.orange { border-color: var(--orange); background: var(--soft-orange); }
+    .arch-node.red { border-color: var(--red); background: #FFF0F0; }
+    .arch-node.gray { border-color: #777; background: #F5F5F5; }
+
+    .arch-pill {
+      position: absolute;
+      border: 3px solid var(--orange);
+      background: #FFF9F0;
+      border-radius: 999px;
+      padding: 16px 24px;
+      min-width: 280px;
+      text-align: center;
+      font-weight: 900;
+      font-size: 18px;
+    }
+
+    .arch-line {
+      position: absolute;
+      height: 3px;
+      background: var(--g2);
+      transform-origin: left center;
+    }
+
+    .arch-line[style*="rotate"] {
+      display: none;
+    }
+
+    .arch-line.blue { background: var(--blue); }
+    .arch-line.orange { background: var(--orange); }
+    .arch-line.red { background: var(--red); }
+    .arch-line.gray { background: #777; }
+    .arch-line.dash { background: repeating-linear-gradient(90deg, var(--orange) 0 10px, transparent 10px 18px); }
+
+    .arch-arrow::after {
+      content: "";
+      position: absolute;
+      right: -2px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-left: 12px solid currentColor;
+      border-top: 7px solid transparent;
+      border-bottom: 7px solid transparent;
+      color: inherit;
+    }
+
+    .arch-line { color: var(--g2); }
+    .arch-line.blue { color: var(--blue); }
+    .arch-line.orange { color: var(--orange); }
+    .arch-line.red { color: var(--red); }
+    .arch-line.gray { color: #777; }
+
+    .arch-zone {
+      position: absolute;
+      border: 1px dashed #BEBEBE;
+      background: rgba(250, 249, 245, .55);
+      border-radius: 12px;
+      padding: 12px;
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    .arch-layer {
+      position: absolute;
+      left: 130px;
+      right: 170px;
+      height: 58px;
+      border: 2px solid var(--g1);
+      background: #F7FFFB;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 18px;
+    }
+
+    .arch-side {
+      position: absolute;
+      top: 70px;
+      right: 54px;
+      bottom: 110px;
+      width: 58px;
+      border: 2px solid #F2A9A9;
+      background: #FFE6E6;
+      color: #B00000;
+      border-radius: 12px;
+      writing-mode: vertical-rl;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+    }
+
+    @media print {
+      header { position: static; }
+      .tabs { display: none; }
+      .panel { display: block; page-break-after: always; box-shadow: none; }
+      main { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>資訊戰情室 / IT 巡檢系統架構圖</h1>
+    <p class="subtitle">同一套系統可以有不同架構圖：給主管看整體、給維運看流程、給安裝人員看部署。</p>
+    <nav class="tabs" aria-label="架構圖切換">
+      <button class="tab active" data-panel="overall">1. 整體架構</button>
+      <button class="tab" data-panel="dataflow">2. 資料流程</button>
+      <button class="tab" data-panel="modules">3. 功能模組</button>
+      <button class="tab" data-panel="deploy">4. 離線部署</button>
+      <button class="tab" data-panel="debug">5. AI Debug Loop</button>
+      <button class="tab" data-panel="types">6. 架構圖類型</button>
+      <button class="tab" data-panel="arch-overview">7. 整體系統</button>
+      <button class="tab" data-panel="arch-layered">8. 分層</button>
+      <button class="tab" data-panel="arch-deploy">9. 部署</button>
+      <button class="tab" data-panel="arch-flow">10. 資料流程</button>
+      <button class="tab" data-panel="arch-feature">11. 功能模組</button>
+      <button class="tab" data-panel="arch-integration">12. 整合</button>
+      <button class="tab" data-panel="arch-security">13. 安全</button>
+      <button class="tab" data-panel="arch-offline">14. 離線移植</button>
+      <button class="tab" data-panel="arch-ops">15. 維運</button>
+      <button class="tab" data-panel="arch-ai">16. AI 協作</button>
+      <button class="tab" data-panel="arch-topology">17. 網路拓撲</button>
+      <button class="tab" data-panel="arch-dr">18. HA / DR</button>
+      <button class="tab" data-panel="arch-monitor">19. 監控</button>
+      <button class="tab" data-panel="arch-db">20. 資料庫</button>
+      <button class="tab" data-panel="arch-role">21. 權限角色</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="overall" class="panel active">
+      <div class="panel-head">
+        <div>
+          <h2>整體系統架構圖</h2>
+          <p class="hint">用途：讓主管一眼看懂誰使用、系統處理什麼、資料存哪裡、最後產生什麼結果。</p>
+        </div>
+        <span class="tag">建議放簡報第 1 張</span>
+      </div>
+      <div class="diagram">
+        <div class="lane-grid">
+          <div class="lane">
+            <div class="lane-title">使用者</div>
+            <div class="box"><strong>維運人員</strong><small>每天看開門檢查、異常與處置建議。</small></div>
+            <div class="box"><strong>主管 / 稽核</strong><small>看月報、帳號盤點、資產治理狀態。</small></div>
+            <div class="box"><strong>開發維護者</strong><small>看 log、debug bundle、版本紀錄。</small></div>
+          </div>
+          <div class="lane">
+            <div class="lane-title">Web 系統</div>
+            <div class="box blue"><strong>資訊戰情室</strong><small>瀏覽器入口，集中呈現各功能結果。</small></div>
+            <div class="box"><strong>權限控管</strong><small>不同角色看到不同功能，保留操作紀錄。</small></div>
+          </div>
+          <div class="lane">
+            <div class="lane-title">核心功能</div>
+            <div class="box"><strong>資產管理</strong><small>主機、IP、系統、機房、狀態。</small></div>
+            <div class="box"><strong>開門檢查</strong><small>快速確認主機是否健康。</small></div>
+            <div class="box"><strong>帳號盤點</strong><small>高權限、PAM、異常帳號、差異報告。</small></div>
+            <div class="box"><strong>效能月報</strong><small>NMON raw file 轉成月報指標。</small></div>
+          </div>
+          <div class="lane">
+            <div class="lane-title">資料來源</div>
+            <div class="box"><strong>CMDB / Excel</strong><small>主機清單與資產資料來源。</small></div>
+            <div class="box"><strong>Linux / Windows / AIX</strong><small>透過 SSH、WinRM、Ansible 採集。</small></div>
+            <div class="box orange"><strong>NMON / nmap / ss</strong><small>效能與連線資料來源。</small></div>
+          </div>
+          <div class="lane">
+            <div class="lane-title">資料與輸出</div>
+            <div class="box"><strong>MongoDB</strong><small>保存資產、巡檢、帳號、報表與歷史。</small></div>
+            <div class="box"><strong>報表 / CSV / Excel</strong><small>給主管、稽核、維運人員使用。</small></div>
+            <div class="box gray"><strong>Log / Debug Bundle</strong><small>出問題時快速整理給公司 GPT 或開發者分析。</small></div>
+          </div>
+        </div>
+      </div>
+      <div class="notes">一句話說法：這套系統把「主機、帳號、巡檢、效能、關聯、報表」集中在一個平台，讓維運與主管都能看同一份可信資料。</div>
+    </section>
+
+    <section id="dataflow" class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>資料流程圖</h2>
+          <p class="hint">用途：說明資料怎麼進系統、怎麼整理、怎麼產生報表與異常清單。</p>
+        </div>
+        <span class="tag">建議放簡報第 2 張</span>
+      </div>
+      <div class="diagram">
+        <div class="flow">
+          <div class="step">
+            <span class="step-num">1</span>
+            <h3>建立資產來源</h3>
+            <p>從 CMDB、Excel、手動建立或網段掃描取得主機資料。</p>
+          </div>
+          <div class="step">
+            <span class="step-num">2</span>
+            <h3>整理與比對</h3>
+            <p>確認主機名稱、IP、OS、機房、狀態是否一致。</p>
+          </div>
+          <div class="step">
+            <span class="step-num">3</span>
+            <h3>執行採集</h3>
+            <p>用 SSH、WinRM、Ansible、nmap、NMON 取得實際資料。</p>
+          </div>
+          <div class="step">
+            <span class="step-num">4</span>
+            <h3>保存歷史</h3>
+            <p>每次盤點與巡檢都留下批次，之後可以比較差異。</p>
+          </div>
+          <div class="step">
+            <span class="step-num">5</span>
+            <h3>判斷異常</h3>
+            <p>找出缺資料、帳號異常、效能風險、未納管 IP。</p>
+          </div>
+          <div class="step">
+            <span class="step-num">6</span>
+            <h3>輸出報告</h3>
+            <p>產生畫面、CSV、Excel、月報、通知名單與 debug bundle。</p>
+          </div>
+        </div>
+      </div>
+      <table class="small-table">
+        <thead>
+          <tr><th>資料類型</th><th>主要來源</th><th>輸出結果</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>資產資料</td><td>CMDB、Excel、手動、掃描</td><td>資產清冊、缺漏清單、草稿清單</td></tr>
+          <tr><td>帳號資料</td><td>主機 passwd / group / sudoers / Windows 帳號</td><td>帳號盤點、PAM 狀態、異常帳號、差異報告</td></tr>
+          <tr><td>效能資料</td><td>NMON raw file</td><td>日報、週報、月報、容量趨勢</td></tr>
+          <tr><td>連線資料</td><td>ss -tunp、nmap、手動關聯</td><td>系統關聯圖、未納管節點、影響範圍</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="modules" class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>功能模組架構圖</h2>
+          <p class="hint">用途：說明系統有哪些功能，每個功能解決什麼問題。這張適合回答「這專案做了什麼」。</p>
+        </div>
+        <span class="tag">建議放功能說明</span>
+      </div>
+      <div class="diagram">
+        <div class="module-grid">
+          <div class="module-card">
+            <h3>資產管理</h3>
+            <p>管理主機、IP、OS、機房、環境、狀態，支援草稿與缺漏治理。</p>
+          </div>
+          <div class="module-card">
+            <h3>帳號盤點</h3>
+            <p>看高權限、PAM、服務帳號、異常帳號，並保留盤點差異。</p>
+          </div>
+          <div class="module-card">
+            <h3>開門檢查</h3>
+            <p>每天快速確認主機狀態，用小卡呈現重點，不讓維運淹沒在 raw data。</p>
+          </div>
+          <div class="module-card">
+            <h3>L3 深度檢查</h3>
+            <p>針對單台主機做更深入診斷，提供證據、判斷、建議指令。</p>
+          </div>
+          <div class="module-card">
+            <h3>效能月報</h3>
+            <p>以 NMON raw file 為主，整理月度趨勢、熱點主機與容量風險。</p>
+          </div>
+          <div class="module-card">
+            <h3>系統拓撲</h3>
+            <p>顯示核心系統、關聯系統、主機/IP，輔助影響評估與維護通知。</p>
+          </div>
+          <div class="module-card control">
+            <h3>系統管理</h3>
+            <p>管理功能開關、權限、排程、日誌、例外清單與操作紀錄。</p>
+          </div>
+          <div class="module-card control">
+            <h3>開發後台</h3>
+            <p>保存文件、提交紀錄、debug bundle、AI 接手資料與版本資訊。</p>
+          </div>
+          <div class="module-card future">
+            <h3>TWGCB / 合規</h3>
+            <p>未來整理成規則庫、稽核報表與修補紀錄。</p>
+          </div>
+          <div class="module-card future">
+            <h3>Housekeeping</h3>
+            <p>清理 Mongo、NMON raw、log、暫存與舊報表，避免磁碟爆滿。</p>
+          </div>
+          <div class="module-card future">
+            <h3>通知與簽核</h3>
+            <p>把需要主管或負責人確認的事件整理成通知名單。</p>
+          </div>
+          <div class="module-card future">
+            <h3>AI 輔助分析</h3>
+            <p>不直接接 VM，改由去識別或內部 bundle 交給公司 GPT 分析。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="deploy" class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>離線部署與移植架構圖</h2>
+          <p class="hint">用途：說明 221、224 與 Windows PC 各自負責什麼，避免誤以為離線主機還要下載套件。</p>
+        </div>
+        <span class="tag">給安裝與交付使用</span>
+      </div>
+      <div class="diagram">
+        <div class="deploy-wrap">
+          <div class="deploy-card">
+            <h3>Windows PC</h3>
+            <ul>
+              <li>整理程式碼、文件、版本紀錄。</li>
+              <li>準備安裝腳本與操作說明。</li>
+              <li>不負責下載 Rocky/RHEL RPM。</li>
+              <li>不打包 Mongo container image。</li>
+            </ul>
+          </div>
+          <div class="deploy-card build">
+            <h3>221 可上網建包機</h3>
+            <ul>
+              <li>產生完整離線包。</li>
+              <li>包含 RPM、Python wheels、Mongo image。</li>
+              <li>包含 nmap、nmon、podman。</li>
+              <li>產生 `INSTALL_ALL.sh`。</li>
+              <li>檢查包內不可含測試資料與 log。</li>
+            </ul>
+          </div>
+          <div class="deploy-card offline">
+            <h3>224 離線測試機</h3>
+            <ul>
+              <li>不能上網下載任何套件。</li>
+              <li>只解壓完整離線包。</li>
+              <li>執行 `sudo bash INSTALL_ALL.sh`。</li>
+              <li>安裝後檢查 health、ready、service。</li>
+              <li>正式資料由 CMDB Excel/CSV 匯入。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="notes">一句話說法：Windows 負責整理，221 負責打完整離線包，224 只負責一鍵安裝，不再連外下載。</div>
+    </section>
+
+    <section id="debug" class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>AI Debug Loop 架構圖</h2>
+          <p class="hint">用途：說明公司 VM 不直接給 GPT 連線，而是由系統產生 debug bundle，再交給公司 GPT 分析。</p>
+        </div>
+        <span class="tag">給 AI 工具討論會</span>
+      </div>
+      <div class="diagram">
+        <div class="flow">
+          <div class="step">
+            <span class="step-num">1</span>
+            <h3>VM 上跑系統</h3>
+            <p>問題發生在公司測試機或正式前環境。</p>
+          </div>
+          <div class="step">
+            <span class="step-num">2</span>
+            <h3>產生 Debug Bundle</h3>
+            <p>收集版本、設定摘要、log、狀態、磁碟、記憶體。</p>
+          </div>
+          <div class="step">
+            <span class="step-num">3</span>
+            <h3>資料分流</h3>
+            <p>公司 GPT 可保留內部資訊；外部 AI 必須遮蔽敏感資料。</p>
+          </div>
+          <div class="step">
+            <span class="step-num">4</span>
+            <h3>AI 協助分析</h3>
+            <p>判斷可能原因、建議修法、需要補哪些 log。</p>
+          </div>
+          <div class="step">
+            <span class="step-num">5</span>
+            <h3>Codex 修正程式</h3>
+            <p>把問題變成可追蹤修正，必要時補 regression test。</p>
+          </div>
+          <div class="step">
+            <span class="step-num">6</span>
+            <h3>重新部署驗證</h3>
+            <p>測試機驗證通過後，再進入 release 或 patch 流程。</p>
+          </div>
+        </div>
+      </div>
+      <table class="small-table">
+        <thead>
+          <tr><th>角色</th><th>負責事項</th><th>限制</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>公司 GPT</td><td>協助分析內部 debug bundle 與開發問題</td><td>不直接連 VM，不直接改系統</td></tr>
+          <tr><td>Codex</td><td>寫程式、修 bug、產測試、整理文件</td><td>敏感資料需依場景遮蔽</td></tr>
+          <tr><td>工程師</td><td>執行安裝、驗證畫面、判斷是否上線</td><td>危險操作要人工確認</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section id="types" class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>架構圖類型說明</h2>
+          <p class="hint">用途：把常見架構圖分成三種，簡報時可以依照對象選圖，不會每張都混在一起。</p>
+        </div>
+        <span class="tag">選圖指南</span>
+      </div>
+      <div class="diagram">
+        <div class="type-grid">
+          <article class="type-card">
+            <div class="type-title">A. 部署與資料流架構圖</div>
+            <div class="type-body">
+              <div class="mini-arch" aria-label="部署與資料流示意">
+                <div class="mini-box blue" style="left:28px; top:28px;">使用者<br>Browser</div>
+                <div class="mini-box" style="left:144px; top:28px;">Web<br>系統</div>
+                <div class="mini-box orange" style="left:260px; top:28px;">MongoDB</div>
+                <div class="mini-box gray" style="left:144px; top:150px;">受監控<br>主機</div>
+                <div class="mini-line" style="left:104px; top:54px; width:42px;"></div>
+                <div class="mini-line" style="left:220px; top:54px; width:42px;"></div>
+                <div class="mini-line dash" style="left:184px; top:96px; width:80px; transform: rotate(90deg);"></div>
+              </div>
+              <strong>回答的問題</strong>
+              <ul>
+                <li>系統裝在哪裡？</li>
+                <li>資料從哪裡來、流到哪裡？</li>
+                <li>哪些主機、DB、服務要連線？</li>
+              </ul>
+              <p class="hint">你的離線移植圖、221/224 安裝圖、Mongo 與 Webapp 關係圖，都屬於這一類。</p>
+            </div>
+          </article>
+
+          <article class="type-card">
+            <div class="type-title">B. 分層式系統架構圖</div>
+            <div class="type-body">
+              <div class="mini-arch" aria-label="分層式系統架構示意">
+                <div class="mini-layer" style="top:18px;">使用者層：主管 / 維運 / 稽核</div>
+                <div class="mini-layer" style="top:60px; border-color: var(--blue); background: var(--soft-blue);">入口層：Web UI / API / 權限</div>
+                <div class="mini-layer" style="top:102px;">功能層：資產 / 帳號 / 巡檢 / 月報</div>
+                <div class="mini-layer" style="top:144px; border-color: var(--orange); background: var(--soft-orange);">採集層：SSH / WinRM / nmap / NMON</div>
+                <div class="mini-layer" style="top:186px; border-color: #777; background: #F5F5F5;">資料層：MongoDB / 報表 / Log</div>
+                <div class="side-bar">安全與維運控管</div>
+              </div>
+              <strong>回答的問題</strong>
+              <ul>
+                <li>系統分成哪些層？</li>
+                <li>每一層負責什麼？</li>
+                <li>權限、日誌、維運控管在哪裡？</li>
+              </ul>
+              <p class="hint">這類圖最適合放在 AI 工具討論會，非技術主管也比較容易看懂。</p>
+            </div>
+          </article>
+
+          <article class="type-card">
+            <div class="type-title">C. 平台整合能力架構圖</div>
+            <div class="type-body">
+              <div class="mini-arch" aria-label="平台整合能力架構示意">
+                <div class="mini-box blue" style="left:24px; top:22px;">資產<br>管理</div>
+                <div class="mini-box blue" style="left:126px; top:22px;">帳號<br>盤點</div>
+                <div class="mini-box blue" style="left:228px; top:22px;">效能<br>月報</div>
+                <div class="platform-band">共用平台能力：權限 / 排程 / 報表 / Log</div>
+                <div class="mini-box orange" style="left:28px; top:166px;">SSH</div>
+                <div class="mini-box orange" style="left:118px; top:166px;">NMON</div>
+                <div class="mini-box orange" style="left:208px; top:166px;">CMDB</div>
+                <div class="mini-box gray" style="left:298px; top:166px;">Mongo</div>
+                <div class="mini-line dash" style="left:70px; top:132px; width:108px; transform: rotate(90deg);"></div>
+                <div class="mini-line dash" style="left:170px; top:132px; width:108px; transform: rotate(90deg);"></div>
+                <div class="mini-line dash" style="left:270px; top:132px; width:108px; transform: rotate(90deg);"></div>
+              </div>
+              <strong>回答的問題</strong>
+              <ul>
+                <li>哪些功能整合在同一平台？</li>
+                <li>哪些能力是共用的？</li>
+                <li>未來擴充功能時接在哪裡？</li>
+              </ul>
+              <p class="hint">資訊戰情室很適合用這類圖，因為它是把多個盤點與巡檢能力整合起來。</p>
+            </div>
+          </article>
+        </div>
+      </div>
+      <table class="small-table">
+        <thead>
+          <tr><th>圖的種類</th><th>適合對象</th><th>放在簡報哪裡</th><th>你這個專案的對應圖</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>部署與資料流架構圖</td><td>維運、安裝人員</td><td>落地規劃 / 部署方式</td><td>221 建包、224 離線安裝、Mongo/Webapp</td></tr>
+          <tr><td>分層式系統架構圖</td><td>主管、架構審查</td><td>系統架構說明</td><td>使用者層、Web 層、功能層、採集層、資料層</td></tr>
+          <tr><td>平台整合能力架構圖</td><td>主管、專案審查</td><td>解決方案 / 預期效益</td><td>資產、帳號、巡檢、效能、拓撲、Debug 整合</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section id="arch-overview" class="panel">
+      <div class="panel-head">
+        <div><h2>整體系統架構圖</h2><p class="hint">回答：這套系統由哪些大元件組成，誰使用，最後輸出什麼。</p></div>
+        <span class="tag">主管快速理解</span>
+      </div>
+      <div class="arch-canvas">
+        <div class="arch-node blue" style="left:60px; top:80px;">使用者<small>主管 / 維運 / 稽核</small></div>
+        <div class="arch-node" style="left:300px; top:80px;">資訊戰情室 Web<small>瀏覽器入口</small></div>
+        <div class="arch-node" style="left:560px; top:58px;">核心功能<small>資產 / 帳號 / 巡檢</small></div>
+        <div class="arch-node orange" style="left:560px; top:170px;">效能與拓撲<small>NMON / ss / nmap</small></div>
+        <div class="arch-node gray" style="left:820px; top:80px;">MongoDB<small>歷史與報表資料</small></div>
+        <div class="arch-node gray" style="left:820px; top:210px;">報表輸出<small>CSV / Excel / 月報</small></div>
+        <div class="arch-node" style="left:300px; top:300px;">受監控主機<small>Linux / Windows / AIX</small></div>
+        <div class="arch-node orange" style="left:560px; top:330px;">採集方式<small>SSH / WinRM / Ansible</small></div>
+        <div class="arch-line arch-arrow" style="left:212px; top:112px; width:88px;"></div>
+        <div class="arch-line arch-arrow" style="left:452px; top:112px; width:108px;"></div>
+        <div class="arch-line arch-arrow" style="left:710px; top:112px; width:110px;"></div>
+        <div class="arch-line arch-arrow orange" style="left:710px; top:210px; width:110px;"></div>
+        <div class="arch-line arch-arrow dash" style="left:374px; top:170px; width:170px; transform: rotate(90deg);"></div>
+        <div class="arch-line arch-arrow" style="left:452px; top:334px; width:108px;"></div>
+        <div class="arch-note">重點：這張圖是「總覽」，適合放第一張，讓人先知道系統全貌。</div>
+      </div>
+    </section>
+
+    <section id="arch-layered" class="panel">
+      <div class="panel-head">
+        <div><h2>分層架構圖</h2><p class="hint">回答：系統分成哪些層，每一層負責什麼。</p></div>
+        <span class="tag">架構審查常用</span>
+      </div>
+      <div class="arch-canvas">
+        <div class="arch-layer" style="top:58px;">使用者層：主管、維運、稽核、系統管理員</div>
+        <div class="arch-layer" style="top:130px; border-color: var(--blue); background: var(--soft-blue);">入口層：Web UI、API、登入與權限</div>
+        <div class="arch-layer" style="top:202px;">功能層：資產管理、帳號盤點、開門檢查、效能月報、系統拓撲</div>
+        <div class="arch-layer" style="top:274px; border-color: var(--orange); background: var(--soft-orange);">採集層：SSH、WinRM、Ansible、nmap、NMON</div>
+        <div class="arch-layer" style="top:346px; border-color: #777; background: #F5F5F5;">資料層：MongoDB、報表檔、Log、Debug Bundle</div>
+        <div class="arch-side">安全 / 稽核 / 維運控管</div>
+        <div class="arch-note">重點：右側安全與維運控管橫跨每一層，不是單一功能。</div>
+      </div>
+    </section>
+
+    <section id="arch-deploy" class="panel">
+      <div class="panel-head">
+        <div><h2>部署架構圖</h2><p class="hint">回答：系統實際裝在哪裡，服務與資料庫怎麼跑。</p></div>
+        <span class="tag">維運交接</span>
+      </div>
+      <div class="arch-canvas">
+        <div class="arch-zone" style="left:70px; top:70px; width:290px; height:360px;">使用者端</div>
+        <div class="arch-zone" style="left:430px; top:70px; width:560px; height:360px;">192.168.1.221 / 目標主機</div>
+        <div class="arch-node blue" style="left:120px; top:150px;">Browser<small>http://主機:8002</small></div>
+        <div class="arch-node" style="left:500px; top:110px;">webitgpt Web<small>gunicorn / port 8002</small></div>
+        <div class="arch-node orange" style="left:500px; top:240px;">Edge / Runner<small>SSH / WinRM / nmap</small></div>
+        <div class="arch-node gray" style="left:760px; top:110px;">MongoDB<small>podman container</small></div>
+        <div class="arch-node gray" style="left:760px; top:240px;">檔案區<small>logs / reports / raw</small></div>
+        <div class="arch-line arch-arrow" style="left:270px; top:182px; width:230px;"></div>
+        <div class="arch-line arch-arrow" style="left:650px; top:142px; width:110px;"></div>
+        <div class="arch-line arch-arrow orange" style="left:650px; top:272px; width:110px;"></div>
+        <div class="arch-note">重點：部署圖要清楚標出主機、Port、資料庫與服務。</div>
+      </div>
+    </section>
+
+    <section id="arch-flow" class="panel">
+      <div class="panel-head">
+        <div><h2>資料流程圖</h2><p class="hint">回答：資料如何進來、如何整理、最後變成什麼報告。</p></div>
+        <span class="tag">資料可信任說明</span>
+      </div>
+      <div class="arch-canvas">
+        <div class="arch-node blue" style="left:40px; top:130px;">CMDB / Excel<small>資產來源</small></div>
+        <div class="arch-node blue" style="left:40px; top:260px;">主機實際資料<small>SSH / WinRM</small></div>
+        <div class="arch-node" style="left:285px; top:195px;">資料清洗<small>格式、欄位、重複檢查</small></div>
+        <div class="arch-node" style="left:525px; top:195px;">差異比對<small>新增 / 移除 / 變更</small></div>
+        <div class="arch-node gray" style="left:765px; top:130px;">MongoDB<small>保存每次批次</small></div>
+        <div class="arch-node orange" style="left:765px; top:260px;">報表與清單<small>異常、缺漏、趨勢</small></div>
+        <div class="arch-line arch-arrow" style="left:190px; top:162px; width:96px; transform: rotate(25deg);"></div>
+        <div class="arch-line arch-arrow" style="left:190px; top:292px; width:96px; transform: rotate(-25deg);"></div>
+        <div class="arch-line arch-arrow" style="left:435px; top:228px; width:90px;"></div>
+        <div class="arch-line arch-arrow" style="left:675px; top:228px; width:90px;"></div>
+        <div class="arch-note">重點：資料流程圖要讓人知道「不是看一筆資料，而是保留每次盤點歷史」。</div>
+      </div>
+    </section>
+
+    <section id="arch-feature" class="panel">
+      <div class="panel-head">
+        <div><h2>功能模組圖</h2><p class="hint">回答：這個專案到底做了哪些功能。</p></div>
+        <span class="tag">解決方案範圍</span>
+      </div>
+      <div class="arch-canvas">
+        <div class="arch-pill" style="left:390px; top:235px;">資訊戰情室共用平台</div>
+        <div class="arch-node" style="left:90px; top:80px;">資產管理<small>CMDB / IPAM</small></div>
+        <div class="arch-node" style="left:330px; top:80px;">帳號盤點<small>PAM / 差異</small></div>
+        <div class="arch-node" style="left:570px; top:80px;">開門檢查<small>L1 / L3</small></div>
+        <div class="arch-node" style="left:810px; top:80px;">效能月報<small>NMON</small></div>
+        <div class="arch-node orange" style="left:210px; top:390px;">系統拓撲<small>影響分析</small></div>
+        <div class="arch-node orange" style="left:470px; top:390px;">系統管理<small>設定 / 排程</small></div>
+        <div class="arch-node orange" style="left:730px; top:390px;">開發後台<small>Debug / 版本</small></div>
+        <div class="arch-line dash" style="left:178px; top:144px; width:300px; transform: rotate(26deg);"></div>
+        <div class="arch-line dash" style="left:418px; top:144px; width:180px; transform: rotate(55deg);"></div>
+        <div class="arch-line dash" style="left:658px; top:144px; width:170px; transform: rotate(116deg);"></div>
+        <div class="arch-line dash" style="left:898px; top:144px; width:300px; transform: rotate(154deg);"></div>
+        <div class="arch-note">重點：功能模組圖適合說「做了什麼」，不要塞太多底層技術。</div>
+      </div>
+    </section>
+
+    <section id="arch-integration" class="panel">
+      <div class="panel-head">
+        <div><h2>整合架構圖</h2><p class="hint">回答：未來要跟哪些公司系統或資料來源串接。</p></div>
+        <span class="tag">未來串接</span>
+      </div>
+      <div class="arch-canvas">
+        <div class="arch-node" style="left:440px; top:210px; width:220px;">資訊戰情室<small>整合中心</small></div>
+        <div class="arch-node blue" style="left:80px; top:80px;">CMDB<small>資產主檔</small></div>
+        <div class="arch-node blue" style="left:80px; top:210px;">AD / LDAP<small>帳號來源</small></div>
+        <div class="arch-node blue" style="left:80px; top:340px;">PAM<small>高權限代登入</small></div>
+        <div class="arch-node orange" style="left:800px; top:80px;">NMON Raw<small>效能資料</small></div>
+        <div class="arch-node orange" style="left:800px; top:210px;">nmap / ss<small>連線與未納管</small></div>
+        <div class="arch-node gray" style="left:800px; top:340px;">報表 / 通知<small>CSV / Excel / Email</small></div>
+        <div class="arch-line arch-arrow" style="left:230px; top:112px; width:250px; transform: rotate(20deg);"></div>
+        <div class="arch-line arch-arrow" style="left:230px; top:242px; width:210px;"></div>
+        <div class="arch-line arch-arrow" style="left:230px; top:372px; width:250px; transform: rotate(-20deg);"></div>
+        <div class="arch-line arch-arrow orange" style="left:660px; top:242px; width:140px;"></div>
+        <div class="arch-line arch-arrow orange" style="left:660px; top:242px; width:178px; transform: rotate(-34deg);"></div>
+        <div class="arch-line arch-arrow gray" style="left:660px; top:242px; width:178px; transform: rotate(34deg);"></div>
+        <div class="arch-note">重點：整合圖要呈現「目前可接」與「未來想接」的來源。</div>
+      </div>
+    </section>
+
+    <section id="arch-security" class="panel">
+      <div class="panel-head">
+        <div><h2>安全架構圖</h2><p class="hint">回答：權限、操作紀錄、敏感資料與變更風險怎麼控管。</p></div>
+        <span class="tag">資安與稽核</span>
+      </div>
+      <div class="arch-canvas">
+        <div class="arch-node blue" style="left:90px; top:80px;">登入與角色<small>viewer / admin / superadmin</small></div>
+        <div class="arch-node" style="left:360px; top:80px;">功能權限<small>看得到才可操作</small></div>
+        <div class="arch-node orange" style="left:630px; top:80px;">高風險操作<small>刪除 / 修補 / 批次</small></div>
+        <div class="arch-node gray" style="left:900px; top:80px;">Audit Log<small>誰在何時做什麼</small></div>
+        <div class="arch-node" style="left:210px; top:280px;">敏感資料控管<small>密碼 / Token / IP / Log</small></div>
+        <div class="arch-node red" style="left:520px; top:280px;">例外與白名單<small>避免重複誤報</small></div>
+        <div class="arch-node gray" style="left:830px; top:280px;">Debug Bundle<small>內部保留 / 外部遮蔽</small></div>
+        <div class="arch-line arch-arrow" style="left:240px; top:112px; width:120px;"></div>
+        <div class="arch-line arch-arrow orange" style="left:510px; top:112px; width:120px;"></div>
+        <div class="arch-line arch-arrow gray" style="left:780px; top:112px; width:120px;"></div>
+        <div class="arch-line arch-arrow red" style="left:370px; top:312px; width:150px;"></div>
+        <div class="arch-line arch-arrow gray" style="left:680px; top:312px; width:150px;"></div>
+        <div class="arch-note">重點：安全圖不是畫防火牆而已，也包含權限、留痕、例外與資料遮蔽。</div>
+      </div>
+    </section>
+
+    <section id="arch-offline" class="panel">
+      <div class="panel-head">
+        <div><h2>離線安裝 / 移植架構圖</h2><p class="hint">回答：不能上網的新主機怎麼一鍵安裝。</p></div>
+        <span class="tag">224 離線機</span>
+      </div>
+      <div class="arch-canvas">
+        <div class="arch-node blue" style="left:70px; top:160px;">Windows PC<small>整理程式與文件</small></div>
+        <div class="arch-node" style="left:360px; top:160px;">221 建包機<small>可上網，產完整離線包</small></div>
+        <div class="arch-node orange" style="left:650px; top:160px;">完整離線包<small>RPM / wheels / Mongo image</small></div>
+        <div class="arch-node red" style="left:940px; top:160px;">224 離線機<small>只執行 INSTALL_ALL.sh</small></div>
+        <div class="arch-node gray" style="left:650px; top:330px;">正式資料匯入<small>CMDB Excel / CSV</small></div>
+        <div class="arch-line arch-arrow" style="left:220px; top:192px; width:140px;"></div>
+        <div class="arch-line arch-arrow" style="left:510px; top:192px; width:140px;"></div>
+        <div class="arch-line arch-arrow orange" style="left:800px; top:192px; width:140px;"></div>
+        <div class="arch-line arch-arrow gray" style="left:738px; top:224px; width:120px; transform: rotate(90deg);"></div>
+        <div class="arch-note">重點：224 不下載任何東西，所有軟體都必須先包在完整離線包內。</div>
+      </div>
+    </section>
+
+    <section id="arch-ops" class="panel">
+      <div class="panel-head">
+        <div><h2>維運架構圖</h2><p class="hint">回答：上線後怎麼查問題、清空間、更新版本。</p></div>
+        <span class="tag">維運交接</span>
+      </div>
+      <div class="arch-canvas">
+        <div class="arch-node" style="left:90px; top:100px;">Health / Ready<small>服務是否可用</small></div>
+        <div class="arch-node" style="left:330px; top:100px;">Log 檢視<small>app / error / audit</small></div>
+        <div class="arch-node orange" style="left:570px; top:100px;">Housekeeping<small>Mongo / NMON / log</small></div>
+        <div class="arch-node gray" style="left:810px; top:100px;">Patch 更新<small>版本與回滾</small></div>
+        <div class="arch-node blue" style="left:210px; top:300px;">排程工作<small>盤點 / 掃描 / 月報</small></div>
+        <div class="arch-node blue" style="left:510px; top:300px;">Debug Bundle<small>一次收集問題資料</small></div>
+        <div class="arch-node red" style="left:810px; top:300px;">人工確認<small>危險操作前確認</small></div>
+        <div class="arch-line arch-arrow" style="left:240px; top:132px; width:90px;"></div>
+        <div class="arch-line arch-arrow orange" style="left:480px; top:132px; width:90px;"></div>
+        <div class="arch-line arch-arrow gray" style="left:720px; top:132px; width:90px;"></div>
+        <div class="arch-line arch-arrow blue" style="left:360px; top:332px; width:150px;"></div>
+        <div class="arch-line arch-arrow red" style="left:660px; top:332px; width:150px;"></div>
+        <div class="arch-note">重點：維運架構圖要讓接手的人知道出事時先看哪裡。</div>
+      </div>
+    </section>
+
+    <section id="arch-ai" class="panel">
+      <div class="panel-head">
+        <div><h2>AI 協作架構圖</h2><p class="hint">回答：Codex、CodeRabbit、公司 GPT 各自負責什麼。</p></div>
+        <span class="tag">AI 工具討論會</span>
+      </div>
+      <div class="arch-canvas">
+        <div class="arch-node blue" style="left:80px; top:120px;">Codex<small>開發 / 修正 / 測試</small></div>
+        <div class="arch-node" style="left:350px; top:120px;">Git Branch / PR<small>可審查變更</small></div>
+        <div class="arch-node orange" style="left:620px; top:120px;">CodeRabbit<small>PR 自動審查</small></div>
+        <div class="arch-node gray" style="left:890px; top:120px;">人工 Review<small>最後確認</small></div>
+        <div class="arch-node" style="left:350px; top:320px;">Debug Bundle<small>公司 VM 問題資料</small></div>
+        <div class="arch-node blue" style="left:620px; top:320px;">公司 GPT<small>分析 root cause</small></div>
+        <div class="arch-line arch-arrow" style="left:230px; top:152px; width:120px;"></div>
+        <div class="arch-line arch-arrow orange" style="left:500px; top:152px; width:120px;"></div>
+        <div class="arch-line arch-arrow gray" style="left:770px; top:152px; width:120px;"></div>
+        <div class="arch-line arch-arrow blue" style="left:500px; top:352px; width:120px;"></div>
+        <div class="arch-line arch-arrow dash" style="left:704px; top:320px; width:270px; transform: rotate(-145deg);"></div>
+        <div class="arch-note">重點：GPT 不直接接 VM，而是看整理好的 debug bundle。</div>
+      </div>
+    </section>
+
+    <section id="arch-topology" class="panel">
+      <div class="panel-head">
+        <div><h2>網路拓撲圖</h2><p class="hint">回答：系統、主機、IP、Port 之間如何關聯，故障或維護會影響誰。</p></div>
+        <span class="tag">影響分析</span>
+      </div>
+      <div class="arch-canvas">
+        <div class="arch-node red" style="left:90px; top:230px;">核心系統<small>六大核心</small></div>
+        <div class="arch-node orange" style="left:350px; top:90px;">關聯系統 A<small>AP / DB</small></div>
+        <div class="arch-node orange" style="left:350px; top:230px;">關聯系統 B<small>外圍系統</small></div>
+        <div class="arch-node orange" style="left:350px; top:370px;">關聯系統 C<small>批次</small></div>
+        <div class="arch-node" style="left:650px; top:90px;">10.1.1.21<small>443 HTTPS</small></div>
+        <div class="arch-node" style="left:650px; top:230px;">10.1.1.22<small>1521 Oracle</small></div>
+        <div class="arch-node" style="left:650px; top:370px;">10.1.1.23<small>22 SSH</small></div>
+        <div class="arch-node gray" style="left:900px; top:230px;">未納管節點<small>nmap / ss 發現</small></div>
+        <div class="arch-line arch-arrow" style="left:240px; top:262px; width:150px; transform: rotate(-32deg);"></div>
+        <div class="arch-line arch-arrow" style="left:240px; top:262px; width:110px;"></div>
+        <div class="arch-line arch-arrow" style="left:240px; top:262px; width:150px; transform: rotate(32deg);"></div>
+        <div class="arch-line arch-arrow dash" style="left:500px; top:122px; width:150px;"></div>
+        <div class="arch-line arch-arrow dash" style="left:500px; top:262px; width:150px;"></div>
+        <div class="arch-line arch-arrow dash" style="left:800px; top:262px; width:100px;"></div>
+        <div class="arch-note">重點：拓撲圖要能看系統關聯、主機/IP 與未納管節點。</div>
+      </div>
+    </section>
+
+    <section id="arch-dr" class="panel">
+      <div class="panel-head">
+        <div><h2>高可用 / DR 架構圖</h2><p class="hint">回答：如果主站故障，資料與服務怎麼恢復。</p></div>
+        <span class="tag">未來正式規劃</span>
+      </div>
+      <div class="arch-canvas">
+        <div class="arch-zone" style="left:80px; top:80px; width:390px; height:310px;">Primary</div>
+        <div class="arch-zone" style="left:640px; top:80px; width:390px; height:310px;">DR</div>
+        <div class="arch-node" style="left:150px; top:140px;">Web 主節點<small>正常服務</small></div>
+        <div class="arch-node gray" style="left:150px; top:270px;">Mongo Primary<small>主要資料</small></div>
+        <div class="arch-node orange" style="left:710px; top:140px;">Web 備節點<small>待機</small></div>
+        <div class="arch-node gray" style="left:710px; top:270px;">Mongo Secondary<small>資料同步</small></div>
+        <div class="arch-node red" style="left:480px; top:210px;">DNS / 切換<small>RTO 目標</small></div>
+        <div class="arch-line arch-arrow" style="left:300px; top:172px; width:180px;"></div>
+        <div class="arch-line arch-arrow gray" style="left:300px; top:302px; width:410px;"></div>
+        <div class="arch-line arch-arrow orange" style="left:630px; top:242px; width:80px; transform: rotate(-35deg);"></div>
+        <div class="arch-note">重點：目前可以先當未來規劃，不要說已完成 HA/DR。</div>
+      </div>
+    </section>
+
+    <section id="arch-monitor" class="panel">
+      <div class="panel-head">
+        <div><h2>監控架構圖</h2><p class="hint">回答：系統如何知道服務正常、磁碟滿、效能異常或掃描失敗。</p></div>
+        <span class="tag">可觀測性</span>
+      </div>
+      <div class="arch-canvas">
+        <div class="arch-node" style="left:90px; top:110px;">/health /ready<small>服務可用性</small></div>
+        <div class="arch-node" style="left:90px; top:260px;">主機檢查<small>CPU / MEM / Disk</small></div>
+        <div class="arch-node blue" style="left:360px; top:185px;">監控整理<small>狀態 / 門檻 / 例外</small></div>
+        <div class="arch-node orange" style="left:640px; top:110px;">儀表板<small>健康分數 / 小卡</small></div>
+        <div class="arch-node orange" style="left:640px; top:260px;">告警清單<small>需要處理的項目</small></div>
+        <div class="arch-node gray" style="left:890px; top:185px;">歷史趨勢<small>NMON / 月報</small></div>
+        <div class="arch-line arch-arrow" style="left:240px; top:142px; width:140px; transform: rotate(25deg);"></div>
+        <div class="arch-line arch-arrow" style="left:240px; top:292px; width:140px; transform: rotate(-25deg);"></div>
+        <div class="arch-line arch-arrow orange" style="left:510px; top:217px; width:140px; transform: rotate(-25deg);"></div>
+        <div class="arch-line arch-arrow orange" style="left:510px; top:217px; width:140px; transform: rotate(25deg);"></div>
+        <div class="arch-line arch-arrow gray" style="left:790px; top:292px; width:100px; transform: rotate(-30deg);"></div>
+        <div class="arch-note">重點：監控圖要區分「即時狀態」與「歷史趨勢」。</div>
+      </div>
+    </section>
+
+    <section id="arch-db" class="panel">
+      <div class="panel-head">
+        <div><h2>資料庫架構圖</h2><p class="hint">回答：資料存在 MongoDB 哪些集合，歷史批次怎麼保留。</p></div>
+        <span class="tag">開發交接</span>
+      </div>
+      <div class="arch-canvas">
+        <div class="arch-node gray" style="left:450px; top:55px; width:220px;">MongoDB：webitgpt</div>
+        <div class="arch-node" style="left:90px; top:180px;">hosts<small>資產主檔</small></div>
+        <div class="arch-node" style="left:300px; top:180px;">inventory_runs<small>帳號盤點批次</small></div>
+        <div class="arch-node" style="left:540px; top:180px;">inspection_results<small>開門檢查結果</small></div>
+        <div class="arch-node" style="left:790px; top:180px;">nmon_data<small>效能資料</small></div>
+        <div class="arch-node orange" style="left:180px; top:340px;">dependency_relations<small>系統關聯</small></div>
+        <div class="arch-node orange" style="left:470px; top:340px;">audit_logs<small>操作紀錄</small></div>
+        <div class="arch-node orange" style="left:760px; top:340px;">feature_flags<small>功能開關</small></div>
+        <div class="arch-line arch-arrow gray" style="left:560px; top:119px; width:360px; transform: rotate(155deg);"></div>
+        <div class="arch-line arch-arrow gray" style="left:560px; top:119px; width:180px; transform: rotate(145deg);"></div>
+        <div class="arch-line arch-arrow gray" style="left:560px; top:119px; width:95px; transform: rotate(90deg);"></div>
+        <div class="arch-line arch-arrow gray" style="left:560px; top:119px; width:240px; transform: rotate(35deg);"></div>
+        <div class="arch-note">重點：資料庫架構圖不用列全部 collection，先列主管與交接最常問的。</div>
+      </div>
+    </section>
+
+    <section id="arch-role" class="panel">
+      <div class="panel-head">
+        <div><h2>權限角色圖</h2><p class="hint">回答：不同角色可以看什麼、做什麼。</p></div>
+        <span class="tag">管理制度</span>
+      </div>
+      <div class="arch-canvas">
+        <div class="arch-node blue" style="left:90px; top:90px;">viewer<small>只看報表與狀態</small></div>
+        <div class="arch-node" style="left:310px; top:90px;">admin<small>執行巡檢 / 匯出</small></div>
+        <div class="arch-node orange" style="left:530px; top:90px;">super<small>變更設定 / 批次</small></div>
+        <div class="arch-node red" style="left:750px; top:90px;">superadmin<small>系統管理 / 開發後台</small></div>
+        <div class="arch-node gray" style="left:170px; top:285px;">功能可見性<small>沒權限就不顯示</small></div>
+        <div class="arch-node gray" style="left:450px; top:285px;">操作留痕<small>所有變更寫 audit log</small></div>
+        <div class="arch-node gray" style="left:730px; top:285px;">高風險確認<small>刪除 / 修補 / 下線</small></div>
+        <div class="arch-line arch-arrow" style="left:240px; top:122px; width:70px;"></div>
+        <div class="arch-line arch-arrow orange" style="left:460px; top:122px; width:70px;"></div>
+        <div class="arch-line arch-arrow red" style="left:680px; top:122px; width:70px;"></div>
+        <div class="arch-line arch-arrow gray" style="left:625px; top:154px; width:200px; transform: rotate(125deg);"></div>
+        <div class="arch-note">重點：權限圖要讓人知道「不是每個人都能編輯、自檢、刪除或進開發後台」。</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const tabs = document.querySelectorAll(".tab");
+    const panels = document.querySelectorAll(".panel");
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        tabs.forEach((t) => t.classList.remove("active"));
+        panels.forEach((p) => p.classList.remove("active"));
+        tab.classList.add("active");
+        document.getElementById(tab.dataset.panel).classList.add("active");
+      });
+    });
+  </script>
+</body>
+</html>

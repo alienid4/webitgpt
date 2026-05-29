@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}CMDB 關聯總覽 - webitgpt{% endblock %}
+{% block content %}
+<section class="panel report-hero cmdb-rel-hero">
+  <div>
+    <p class="eyebrow">CMDB RELATIONSHIP</p>
+    <h1>CMDB 關聯總覽</h1>
+    <p class="muted">主管先看資料能不能信，再看系統、主機、服務、owner 與通知對象是否能串起來。</p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('api_hosts.hosts_page') }}">回資產清單</a>
+    <a class="btn" href="{{ url_for('api_hosts.asset_quality_page') }}">資料品質清單</a>
+    <a class="btn primary" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=selected_system.key, focus_impact=1) }}">開核心影響圖</a>
+  </div>
+</section>
+
+<section class="cmdb-rel-grid cmdb-rel-summary" aria-label="CMDB relationship summary">
+  <a class="metric" href="{{ url_for('api_hosts.hosts_page') }}"><strong>{{ overview.summary.total }}</strong><span>CMDB 資產總數</span></a>
+  <a class="metric" href="{{ url_for('api_hosts.hosts_page') }}"><strong>{{ overview.summary.formal_count }}</strong><span>正式資產</span></a>
+  <a class="metric" href="{{ url_for('api_hosts.hosts_page', status='draft') }}"><strong>{{ overview.summary.draft_count }}</strong><span>草稿 / 待確認</span></a>
+  <a class="metric" href="#coverage"><strong>{{ overview.summary.dependency_relation_count }}</strong><span>系統關聯筆數</span></a>
+</section>
+
+<section class="panel cmdb-rel-panel" id="coverage">
+  <div class="cmdb-rel-section-head">
+    <div>
+      <h2>關聯覆蓋率</h2>
+      <p class="muted">這些數字用來判斷 CMDB 是否已經能支援影響分析。</p>
+    </div>
+    <span class="source-badge cmdb">CMDB / relationship coverage</span>
+  </div>
+  <div class="cmdb-coverage-grid">
+    {% for item in overview.coverage.values() %}
+    <div class="cmdb-coverage-card">
+      <div class="cmdb-coverage-ring" style="--pct: {{ item.pct }};">
+        <span>{{ item.pct }}%</span>
+      </div>
+      <div>
+        <strong>{{ item.label }}</strong>
+        <p>{{ item.count }} / {{ item.total }} 筆已完成</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="cmdb-rel-layout">
+  <article class="panel cmdb-rel-panel">
+    <div class="cmdb-rel-section-head">
+      <div>
+        <h2>核心系統關聯檢視</h2>
+        <p class="muted">選一個系統，先看它關聯到哪些主機、owner、Port 與待補資料。</p>
+      </div>
+      <form class="cmdb-system-picker" method="get">
+        <select name="system">
+          {% for system in overview.systems %}
+          <option value="{{ system.key }}" {% if system.key == selected_system.key %}selected{% endif %}>{{ system.display_name }} ({{ system.host_count }})</option>
+          {% endfor %}
+        </select>
+        <button class="btn" type="submit">查看</button>
+      </form>
+    </div>
+
+    <div class="cmdb-relation-map" aria-label="CMDB relationship map">
+      <div class="cmdb-map-lane">
+        <strong>核心系統</strong>
+        <span class="cmdb-map-node cmdb-map-node-core">{{ selected_system.display_name }}</span>
+      </div>
+      <div class="cmdb-map-lane">
+        <strong>服務 / Port</strong>
+        {% for port in selected_system.ports[:4] %}
+        <span class="cmdb-map-node cmdb-map-node-service">{{ port }}</span>
+        {% else %}
+        <span class="cmdb-map-node cmdb-map-node-missing">待補 Port</span>
+        {% endfor %}
+      </div>
+      <div class="cmdb-map-lane">
+        <strong>主機 / IP</strong>
+        {% for host in selected_system.hosts[:4] %}
+        <span class="cmdb-map-node">{{ host.hostname or host.asset_seq or host.ip }}</span>
+        {% else %}
+        <span class="cmdb-map-node cmdb-map-node-missing">待補主機</span>
+        {% endfor %}
+      </div>
+      <div class="cmdb-map-lane">
+        <strong>負責 / 通知</strong>
+        {% for owner in selected_system.owners[:4] %}
+        <span class="cmdb-map-node">{{ owner }}</span>
+        {% else %}
+        <span class="cmdb-map-node cmdb-map-node-missing">待補 owner</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="cmdb-selected-summary">
+      <span><strong>{{ selected_system.host_count }}</strong> 台主機</span>
+      <span><strong>{{ selected_system.formal_count }}</strong> 正式</span>
+      <span><strong>{{ selected_system.draft_count }}</strong> 草稿</span>
+      <span><strong>{{ selected_system.missing_owner }}</strong> 缺 owner</span>
+      <span><strong>{{ selected_system.missing_ports }}</strong> 缺 Port</span>
+      <a class="btn primary" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=selected_system.key, focus_impact=1) }}">看這套系統影響圖</a>
+    </div>
+  </article>
+
+  <aside class="panel cmdb-rel-panel">
+    <div class="cmdb-rel-section-head">
+      <div>
+        <h2>待補清單</h2>
+        <p class="muted">這裡是主管最想看到的資料治理缺口。</p>
+      </div>
+    </div>
+    <div class="cmdb-gap-list">
+      {% for gap in overview.gaps %}
+      <div class="cmdb-gap-item {% if gap.count %}needs-work{% endif %}">
+        <strong>{{ gap.label }}</strong>
+        <span>{{ gap.count }} 筆</span>
+        <p>{{ gap.action }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </aside>
+</section>
+
+<section class="panel cmdb-rel-panel">
+  <div class="cmdb-rel-section-head">
+    <div>
+      <h2>系統關聯覆蓋明細</h2>
+      <p class="muted">用來決定下一批要補哪個系統的 owner、通知對象與服務 Port。</p>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table cmdb-system-table">
+      <thead>
+        <tr>
+          <th>系統 / 群組</th>
+          <th>主機</th>
+          <th>正式</th>
+          <th>草稿</th>
+          <th>owner</th>
+          <th>缺 owner</th>
+          <th>缺通知</th>
+          <th>缺 Port</th>
+          <th>關聯圖</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for system in overview.systems %}
+        <tr>
+          <td><strong>{{ system.display_name }}</strong>{% if not system.is_classified %}<span class="status-pill status-pill-warn">未分類</span>{% endif %}</td>
+          <td>{{ system.host_count }}</td>
+          <td>{{ system.formal_count }}</td>
+          <td>{{ system.draft_count }}</td>
+          <td>{{ system.owners|join(" / ") if system.owners else "-" }}</td>
+          <td>{{ system.missing_owner }}</td>
+          <td>{{ system.missing_notification }}</td>
+          <td>{{ system.missing_ports }}</td>
+          <td><a class="btn-sm" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=system.key, focus_impact=1) }}">看影響圖</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="no-data">目前沒有 CMDB 資產資料。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

@@ -356,3 +356,93 @@
 - Deployment/remote validation blocker remains: `192.168.1.221` ping failed or was denied, TCP 22 failed, TCP 8002 failed, and `http://192.168.1.221:8002/health` could not connect. Local `127.0.0.1:8002/health` also could not connect, so fresh `scripts/functional_validation.py`, deploy, and sync-back could not run.
 - Latest local validation report refreshed as stale-but-parseable: `data/functional_validation_latest.json`, 9 local status checks passed / 0 failed, `stale=true`, preserving the previous deployed summary of 82 passed / 0 failed.
 
+## Overnight continuation update - 2026-05-21 08:39 +08:00
+- Read latest local validation JSON, full handoff, dirty git state, version metadata, package script, SuperAdmin/system service surfaces, UI shell/scripts, NMON operations route, and the Phase read-only guard before editing.
+- Fixed a source/runtime blocker in `webapp/routes/api_operations.py`: restored valid NMON raw upload flash strings and kept the monthly NMON filters/raw pipeline route wiring intact.
+- Preserved and tightened the Phase parallel review rule: `phase_readonly_mode=True` remains the default, and `POST /api/nmon/deploy` is now explicitly decorated with `monitored_write_blocked`, so Ansible NMON deploy cannot run while monitored-host writes are locked.
+- Added a UI contract assertion in `tests/test_ui_contracts.py` so the NMON deploy route must retain `@monitored_write_blocked`.
+- Reconfirmed requested full-system surfaces in source: SuperAdmin user create/lock/unlock/reset/backup codes, Backup manifest, DR dry-run, Patch rollback dry-run plan, dark mode toggle, Alt-key shortcuts, and system health dashboard.
+- Local verification:
+  - `python -m compileall -f webapp scripts edge tests`: passed using `C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\platform\bundledpython\python.exe` 3.13.8.
+  - `node --check webapp/static/js/ui_tools.js` and `node --check webapp/static/js/admin_tools.js`: passed.
+  - `python -m pytest -q`: blocked because the bundled Python has no `pytest` module.
+  - Fallback direct test runner with temporary import stubs: 80 passed / 0 failed, 6 Flask/fixture/import-dependent checks skipped.
+- Rebuilt requested compatibility package: `dist/patch_webitgpt_v1.0.0.0-cmdb-bone.tar.gz`, size `1524579` bytes, 237 tar entries. Package listing check found no `.git`, `data`, `logs`, `tmp`, `backup`, `dist`, `venv`, `.pytest_cache`, `__pycache__`, `*.pyc`, archive, key, cert, or `.env` payload entries.
+- Native PowerShell/tar packaging was used because `bash scripts/make_patch.sh` maps to WSL and WSL is not installed. `C:\tmp` staging was denied by the sandbox, so a temporary `_stage_*` directory was left under `dist`; the package excludes `dist`, so staging is not inside the tarball.
+- Deployment blocker remains: direct SSH to `192.168.1.221:22` returns `Permission denied`, direct `192.168.1.221:8002/health` cannot connect, and deploy to `/opt/webitgpt` did not run.
+- Existing local tunnel `127.0.0.1:8002 -> 192.168.1.221:8002` was alive, so `scripts/functional_validation.py --base-url http://127.0.0.1:8002 --output data/functional_validation_latest.json` was run. Result: 88 passed / 9 failed. Failures were `superadmin_features_audit_page`, `system_health_page_loads`, `global_search_sa_a_shortcut_route`, `backup_manifest_api`, `dr_drill_api`, `audit_chain_verify`, `per_host_meta_files`, `self_check_file_written`, and `debug_snapshot_file_written`.
+- `data/functional_validation_latest.json` is fresh from the tunnel run and includes a note with local compile/test/package status plus the 221 deploy blocker.
+
+## Overnight continuation update - 2026-05-22 08:40 +08:00
+- Read automation memory, latest local validation JSON, handoff, dirty git state, release metadata, package script, SuperAdmin routes/templates, system service, self-check/debug routes, and the Phase read-only guard before editing.
+- Fixed local full-system runtime blockers:
+  - `webapp/templates/base.html`, `superadmin.html`, `users.html`, `system_health.html`, `backup_dr.html`, `patches.html`, and `search_results.html`: restored valid Traditional Chinese UI, dark mode/nav shell, SuperAdmin user create/lock/reset/backup codes, Backup/DR buttons, Patch rollback plan button, system health dashboard, and validation markers such as `Hash chain：正常`.
+  - `webapp/services/audit_log_service.py`: made audit hash verification tolerate legacy/malformed prefix records without 500 while still failing current chained hash/prev-hash mismatches.
+  - `webapp/services/system_service.py`: health API now reports host artifact counts; Backup manifest returns an auditable warning instead of 500 if the backup directory is not writable; release metadata now includes `1.0.2.97 / full-system-validation-artifacts`.
+  - `webapp/routes/api_self_check.py` and `webapp/routes/api_debug.py`: responses now include `artifact_path` so remote/tunnel validation can confirm self-check and debug snapshot writes through API evidence.
+  - `scripts/functional_validation.py`: final artifact checks now prefer `/api/superadmin/system-health` and response `artifact_path`, avoiding false local `/opt/webitgpt` failures when validation is run from a Windows tunnel.
+- Version metadata synchronized for this behavior fix:
+  - `webapp/config.py`: `1.0.2.97 / full-system-validation-artifacts`.
+  - `scripts/make_patch.sh`: default package name updated to `patch_webitgpt_v1.0.2.97-full-system-validation-artifacts`.
+  - `webapp/services/system_service.py`: release-note entry added.
+- Preserved the Phase parallel review rule: `phase_readonly_mode=True` remains the default feature flag and `POST /api/nmon/deploy` remains decorated with `@monitored_write_blocked`; no monitored-host write action was enabled.
+- Local verification:
+  - `python -m compileall -q -f webapp scripts edge tests`: passed using bundled Python 3.13.8.
+  - `node --check webapp/static/js/ui_tools.js`: passed.
+  - `node --check webapp/static/js/admin_tools.js`: passed.
+  - `python -m pytest -q`: blocked because the bundled Python has no `pytest` module.
+  - Direct UI contract run for `tests/test_ui_contracts.py`: 16 passed / 0 failed.
+- Rebuilt requested compatibility package: `dist/patch_webitgpt_v1.0.0.0-cmdb-bone.tar.gz`, size `1529848` bytes, 240 tar entries. Package listing check found no `.git`, `data`, `logs`, `tmp`, `backup`, `dist`, `venv`, `.pytest_cache`, `__pycache__`, `*.pyc`, `.env`, key, pem, or cert payload entries.
+- Deployment/remote validation blocker: `192.168.1.221` was unreachable from this PC in this run. TCP 22 returned `Permission denied`, TCP 8002 failed, `http://192.168.1.221:8002/health` failed, and the previous `127.0.0.1:8002` tunnel was also unavailable. Deploy, remote `pytest`, fresh live `scripts/functional_validation.py`, and sync-back could not run.
+- `data/functional_validation_latest.json` refreshed as a local status report: 5 passed / 3 failed-blocked (`pytest_local`, `deploy_192_168_1_221`, `functional_validation_live`) and preserves the previous tunnel report context of 88 passed / 9 failed.
+
+## Overnight continuation update - 2026-05-23 08:34 +08:00
+- Read the current local validation report, handoff, release metadata, package script, SuperAdmin routes/templates, system service, UI scripts, and Phase read-only guard before editing.
+- Confirmed requested full-system surfaces remain present in source: SuperAdmin user create/lock/unlock/password reset/backup codes, Backup manifest, DR dry-run, Patch rollback dry-run plan, dark mode toggle, Alt-key shortcuts, and system health dashboard.
+- Preserved the Phase parallel review rule: `phase_readonly_mode=True` remains the default feature flag, `webapp.decorators.monitored_write_blocked` still returns `403`, and `POST /api/nmon/deploy` remains decorated with `@monitored_write_blocked`.
+- Synced release/package metadata drift for the current source:
+  - `scripts/make_patch.sh`: default package name updated to `patch_webitgpt_v1.0.2.99-offline-install-noninteractive`.
+  - `webapp/services/system_service.py`: added `1.0.2.99 / offline-install-noninteractive` to `RECENT_PATCH_RELEASES`.
+- Local verification:
+  - `python -m compileall -q -f webapp scripts edge tests`: passed using bundled Python 3.13.8.
+  - `node --check webapp/static/js/ui_tools.js`: passed.
+  - `node --check webapp/static/js/admin_tools.js`: passed.
+  - `python -m pytest -q`: blocked because the bundled Python has no `pytest` module.
+  - Direct UI contract run for `tests/test_ui_contracts.py`: 16 passed / 0 failed.
+- Rebuilt requested compatibility package: `dist/patch_webitgpt_v1.0.0.0-cmdb-bone.tar.gz`, size `1545062` bytes, 244 tar entries. Package listing check found no `.git`, `data`, `logs`, `tmp`, `backup`, `dist`, `venv`, `.pytest_cache`, `__pycache__`, `*.pyc`, `.env`, key, pem, crt, or cert payload entries.
+- Deployment/remote validation blocker remains: `192.168.1.221` ping was inconsistent, TCP 22 failed, TCP 8002 failed, direct `http://192.168.1.221:8002/health` could not connect, and no `127.0.0.1:8002` tunnel was reachable. Deploy, remote pytest, fresh `scripts/functional_validation.py`, and sync-back could not run.
+- `data/functional_validation_latest.json` refreshed as a local status report: 6 passed / 3 failed-blocked (`pytest_local`, `deploy_192_168_1_221`, `functional_validation_live`) and preserves the previous tunnel report context of 88 passed / 9 failed.
+
+## Overnight continuation update - 2026-05-24 08:35 +08:00
+- Read the automation memory location, latest local validation JSON, full handoff, dirty git state, current release metadata, package script, SuperAdmin routes, system service, UI tools, operations/NMON routes, and the Phase read-only guard before editing.
+- No product-code behavior change was needed in this continuation. The apparent NMON/UI mojibake shown by PowerShell `Get-Content` was a console decoding issue; `py_compile` and `node --check` confirmed the source is parseable.
+- Reconfirmed requested full-system surfaces in source: SuperAdmin user create/lock/unlock/password reset/backup codes, Backup manifest, DR dry-run, Patch rollback dry-run plan, dark mode toggle, Alt-key shortcuts, and system health dashboard.
+- Preserved the Phase parallel review rule: `phase_readonly_mode=True` remains the default feature flag, `webapp.decorators.monitored_write_blocked` still returns `403`, and `POST /api/nmon/deploy` remains decorated with `@monitored_write_blocked`.
+- Local verification:
+  - `python -m compileall -q -f webapp scripts edge tests`: passed using bundled Python 3.13.8.
+  - `node --check webapp/static/js/ui_tools.js`: passed.
+  - `node --check webapp/static/js/admin_tools.js`: passed.
+  - `python -m pytest -q`: blocked because the bundled Python has no `pytest` module.
+  - Direct UI contract run for `tests/test_ui_contracts.py`: passed; 16 direct contract functions are present.
+  - Fallback direct test runner with temporary `pymongo`/`pyotp`/`bson` stubs: 80 passed / 0 failed / 6 skipped because Flask and pytest fixtures are unavailable locally.
+- Rebuilt requested compatibility package: `dist/patch_webitgpt_v1.0.0.0-cmdb-bone.tar.gz`, size `1545123` bytes, 244 tar entries. Package listing check found no `.git`, `data`, `logs`, `tmp`, `backup`, `dist`, `venv`, `.pytest_cache`, `__pycache__`, `*.pyc`, `.env`, key, pem, crt, or cert payload entries.
+- Deployment/remote validation blocker remains: `192.168.1.221` ping was denied/timed out, TCP 22 failed, TCP 8002 failed, direct `http://192.168.1.221:8002/health` failed, local `127.0.0.1:8002/health` failed, and BatchMode SSH returned `Permission denied`. Deploy, remote pytest, fresh live `scripts/functional_validation.py`, and sync-back from 221 did not run.
+- `data/functional_validation_latest.json` refreshed as a local status report: 8 passed / 3 failed-blocked (`pytest_local`, `deploy_192_168_1_221`, `functional_validation_live`) and preserves the previous tunnel report context of 88 passed / 9 failed.
+
+## Overnight continuation update - 2026-05-25 08:37 +08:00
+- Read the latest local validation JSON, current handoff, dirty git state, current release metadata, package script, SuperAdmin routes/templates, system service, UI scripts, operations/NMON routes, and the Phase read-only guard before editing.
+- No product-code behavior change was needed in this continuation. UTF-8 reads confirmed the apparent PowerShell mojibake is console decoding; source templates and tests contain valid Traditional Chinese strings.
+- Current source metadata is `1.0.3.1 / nmon-executive-technical-views`; `webapp/config.py` and `scripts/make_patch.sh` are aligned to that patch.
+- Reconfirmed requested full-system surfaces in source: SuperAdmin user create/lock/unlock/password reset/backup codes, Backup manifest, DR dry-run, Patch rollback dry-run plan, dark mode toggle, Alt-key shortcuts, and system health dashboard.
+- Preserved the Phase parallel review rule: `phase_readonly_mode=True` remains the default feature flag, `webapp.decorators.monitored_write_blocked` still returns `403`, and `POST /api/nmon/deploy` remains decorated with `@monitored_write_blocked`.
+- Local verification:
+  - `python -m compileall -q -f webapp scripts edge tests`: passed using bundled Python 3.13.8.
+  - `node --check webapp/static/js/ui_tools.js`: passed.
+  - `node --check webapp/static/js/admin_tools.js`: passed.
+  - `python -m pytest -q`: blocked because the bundled Python has no `pytest` module; Flask/Jinja/Werkzeug/pymongo are also unavailable locally.
+  - Direct UI contract run for `tests/test_ui_contracts.py`: 16 passed / 0 failed.
+  - Fallback direct test runner with temporary `pymongo`/`pyotp`/`bson` stubs: 80 passed / 0 failed / 6 skipped because Flask and pytest fixtures are unavailable locally.
+- Rebuilt requested compatibility package directly with Python tarfile to avoid blocked recursive staging cleanup: `dist/patch_webitgpt_v1.0.0.0-cmdb-bone.tar.gz`, size `1696460` bytes, 251 tar entries. Package listing check found no `.git`, `data`, `logs`, `tmp`, `backup`, `dist`, `venv`, `.pytest_cache`, `__pycache__`, `*.pyc`, `.env`, key, pem, crt, or cert payload entries.
+- Deployment/remote validation blocker remains: `192.168.1.221` ping was denied/timed out, TCP 22 failed, TCP 8002 failed, direct `http://192.168.1.221:8002/health` failed, local `127.0.0.1:8002/health` failed, and BatchMode SSH returned `Permission denied`. Deploy, remote pytest, fresh live `scripts/functional_validation.py`, and sync-back from 221 did not run.
+- `data/functional_validation_latest.json` refreshed as a local status report: 8 passed / 3 failed-blocked (`pytest_local`, `deploy_192_168_1_221`, `functional_validation_live`).
+

@@ -5,7 +5,7 @@
   <div>
     <p class="card-title">GLOBAL SEARCH</p>
     <h1>搜尋結果</h1>
-    <p class="muted">搜尋「{{ query }}」找到 {{ results|length }} 個相關功能，請選擇要前往的頁面。</p>
+    <p class="muted">「{{ query }}」找到 {{ results|length }} 個入口。</p>
   </div>
 </section>
 
@@ -14,8 +14,8 @@
   <a class="admin-module-card" href="{{ item.url }}">
     <em>{{ item.group }}</em>
     <strong>{{ item.title }}</strong>
-    <span>命中：{{ item.matched_keyword }}</span>
-    <span class="text-muted-sm">權限：{{ item.role }}</span>
+    <span>符合：{{ item.matched_keyword }}</span>
+    <span class="text-muted-sm">角色：{{ item.role }}</span>
   </a>
   {% endfor %}
 </section>

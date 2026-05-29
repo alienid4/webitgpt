@@ -1,5 +1,195 @@
 # webitgpt Changelog
 
+## v1.0.3.42 - 2026-05-28 00:25 +08:00 - ai-ready-pale-gold-contrast
+
+- AI-ready / 可交給 AI 判讀的區塊改用淡金框，與真正 AI 判斷的深金框分離。
+- 帳號盤點、AI 供應商、Token 成本、Dashboard、報表、資料品質、NMON、拓撲與 CMDB 匯入統一使用 `AI-ready` 淡金標示。
+- L3 深度檢查與安裝後驗證的 AI 判斷卡保留深金框，代表實際 AI 判斷。
+
+## v1.0.3.41 - 2026-05-28 00:15 +08:00 - static-asset-cache-busting
+
+- CSS 與主要 JavaScript 靜態檔加入 `?v={{ asset_version }}`，避免瀏覽器快取舊樣式造成 UI patch 看起來沒變。
+- `asset_version` 由目前 `VERSION` 與 `PATCH_ID` 組成，每次版號變更會自動刷新樣式與腳本。
+- 帳號盤點、資產管理、效能月報、巡檢、備份、housekeeping 等頁面腳本同步加入版本參數。
+
+## v1.0.3.40 - 2026-05-28 00:05 +08:00 - ai-judgement-visual-contrast
+
+- 帳號盤點、AI 供應商與 Token 成本頁改用三段式判斷來源卡，不再只是一排 badge。
+- AI 判讀使用金框與 AI 圓標，Script 使用灰框，資料/規則使用綠框，fallback 使用琥珀框。
+- 帳號盤點新增來源流程：Shell / Script 採證 → CSV / Excel 匯入 → PAM / owner 規則 → L3 AI 判讀 → 規則接手。
+
+## v1.0.3.39 - 2026-05-27 23:55 +08:00 - ai-key-budget-tier-routing
+
+- AI 供應商設定加入 L1/L2/L3 KEY 階級，可分別設定模型、月預算與可支援檢查層級。
+- Token 成本頁新增預算路由狀態，讓管理者看到目前費用、月預算、超額策略與 KEY 階級。
+- 新增 KEY 路由預覽 API；超額時可降級、停用 AI 或 Script fallback，不影響既有 Script / Rule 判斷。
+
+## v1.0.3.38 - 2026-05-27 23:45 +08:00 - global-judgement-source-visibility
+
+- 維運總覽、統計報表、資料品質、CMDB 匯入、NMON、核心影響圖與帳號盤點加入判斷來源圖例。
+- 統一顯示 CMDB、Script、Rule、API、NMON、AI-ready、AI + Script 與 fallback badge。
+- API Key 尚未設定時，UI 明確表示仍由既有 Script / Rule / NMON / CMDB 判斷保底，不阻斷維運流程。
+
+## v1.0.3.37 - 2026-05-27 23:20 +08:00 - ai-judgement-gold-frame-ui
+
+- 安裝後驗證頁新增金框 AI 判斷卡，讓使用者一眼看出 AI 判讀與 Script/API Key 檢查不同。
+- L3 深度檢查區塊套用金框 AI-ready 樣式，標示 Shell 採證 + AI 判讀與 Script 保底接手。
+- 新增 AI、AI + Script、Script 接手 badge，可重用在後續報表、深度檢查與 API 分析結果。
+
+## v1.0.3.36 - 2026-05-27 22:50 +08:00 - ai-judgement-source-ux
+
+- 新增 AI 判斷來源視覺規格：Script、API Key、AI、AI + Script、Script 接手與證據不足。
+- 定義核心原則：Shell 負責採證，AI 負責判讀；AI 不可用時，Script 保底接手。
+- 架構簡報加入 AI 判斷來源與 fallback 設計，作為後續 L1/L2/L3 深度檢查與 Debug 模式的 UI/UX 基準。
+
+## v1.0.3.35 - 2026-05-27 13:45 +08:00 - cmdb-import-fast-feedback
+
+- CMDB 匯入結果不再把完整錯誤陣列直接渲染到頁面，避免大量錯誤列讓瀏覽器看起來卡住。
+- 匯入結果新增耗時顯示，方便判斷匯入是否完成。
+- 單次 UI 匯入上限保護為 2000 筆，超過時回報人可讀原因並要求拆批。
+
+## v1.0.3.34 - 2026-05-27 11:45 +08:00 - cmdb-import-report-excel-drafts
+
+- CMDB 匯入結果新增總筆數、成功、新增、更新、草稿與失敗摘要，讓大量匯入失敗可一眼看出主因。
+- 資產匯入支援 `.xlsx`，並新增 Excel 匯出；CSV 範本、匯出與錯誤下載補 UTF-8 BOM，降低 Excel 開啟亂碼。
+- 草稿區新增批次轉正式與批次補欄位，適合 nmap/IPAM 建立草稿後集中處理。
+- API 補 `/api/hosts/xlsx/import`、`/api/hosts/xlsx/export`、`/api/hosts/xlsx/validate` 與 `.xlsx` 錯誤下載。
+
+## v1.0.3.33 - 2026-05-27 10:45 +08:00 - cmdb-real-fields-scan-visibility
+
+- CMDB 匯入支援真實中文欄位：總點單位、資產序號、APID、主機名稱、IP、備份頻率、資料保存、備份方式、CIA 與申請單編號。
+- 網段掃描報告新增「掃描實際發現、CMDB 已納管、未納管待建檔、畫面列出筆數」，避免現場以為只掃到一台。
+- TCP 掃描 port 範圍補齊 FTP、AD、LDAP、RDP、webitgpt 8002、app 5000 與 50000 系列服務。
+
+## v1.0.3.32 - 2026-05-27 00:15 +08:00 - api-key-verify-visibility
+
+- 安裝後驗證頁新增「API Key 驗證」與「Script 檢查」兩種模式卡，使用者可一眼辨識判斷來源。
+- API Key 模式明列 `system:read` scope、`verification_source=api_key` 回應標記與 curl 範例。
+- `/api/v1/post-install/verify` 回應新增 `verification_source`、`verification_label` 與 `required_scope`。
+
+## v1.0.3.31 - 2026-05-26 23:45 +08:00 - api-key-post-install-verify
+
+- 新增 `/api/v1/post-install/verify`，需使用 Bearer API Token 且具備 `system:read` scope。
+- `post_install_verify.sh` 支援 `API_TOKEN=wgpt_xxx` 模式，可用 API Key 判斷版本、Mongo 與資料品質 API。
+- 安裝後驗證頁補 API Key 模式指令，API Token 表單預設 scope 加入 `system:read`。
+
+## v1.0.3.30 - 2026-05-26 23:30 +08:00 - reports-next-action-entry
+
+- 統計報表新增「下一步要做什麼」操作區，直接引導到資料品質、帳號盤點、核心影響圖與交付匯出。
+- 報表主按鈕改成「看下一步」，避免使用者停在數字摘要不知道要點哪裡。
+- 補響應式樣式，手機與窄螢幕仍能清楚顯示操作卡。
+
+## v1.0.3.29 - 2026-05-26 23:10 +08:00 - ops-ux-decision-workbench
+
+- 維運總覽改成先看風險與資料品質分數，再進入帳號、拓撲與安裝驗證。
+- 新增資料品質工作台頁面與安裝後驗證頁，讓 API/腳本結果有可讀 UI 入口。
+- 統計報表改為決策摘要優先，降低亂碼頁面的第一眼壓力。
+
+## v1.0.3.28 - 2026-05-26 23:00 +08:00 - post-install-report-ui
+
+- 新增安裝後驗證 UI，列出 health、ready、帳號頁、AP 模板、核心影響圖與資料品質檢查。
+- 頁面提供可直接執行的 post_install_verify.sh 指令。
+
+## v1.0.3.27 - 2026-05-26 22:50 +08:00 - core-impact-decision-language
+
+- 核心影響圖延續可信度摘要，將來源語意收斂成維運可判斷的 manual、auto、unknown。
+- 右側面板定位為事故/維護決策面板。
+
+## v1.0.3.26 - 2026-05-26 22:40 +08:00 - ap-account-risk-first-ux
+
+- AP 帳號頁維持風險分類在清冊前方，讓使用者先看缺 owner、PAM、MFA 與待複核。
+- 風險標籤與匯出語意保持一致。
+
+## v1.0.3.25 - 2026-05-26 22:30 +08:00 - data-quality-workbench-ui
+
+- 新增資料品質工作台頁面，顯示品質分數、CMDB 待修、AP 待複核與每項修正建議。
+- 維運總覽新增資料品質入口。
+
+## v1.0.3.24 - 2026-05-26 22:20 +08:00 - ops-dashboard-readable-copy
+
+- 維運總覽與統計報表改用可讀中文主標、摘要與空狀態文案。
+- 新增決策式版面，避免第一眼被明細表格淹沒。
+
+## v1.0.3.23 - 2026-05-26 22:10 +08:00 - operations-quality-hardening
+
+- 補齊維運安全門檻文件，安全修補、停用帳號與 rollback 仍需 phase_readonly_mode 與正式 approval。
+- 整併 AP 帳號風險、資料品質、安裝驗證、UI 文案與拓撲可信度強化為可部署版本。
+
+## v1.0.3.22 - 2026-05-26 22:00 +08:00 - topology-trust-source
+
+- 核心影響圖新增 trust_summary 與 trust_note，標示 manual、auto、unknown 關係來源。
+- 右側影響面板顯示可信度摘要，避免只看圖形卻不知道資料來源。
+
+## v1.0.3.21 - 2026-05-26 21:50 +08:00 - ui-text-cleanup-map
+
+- 新增 UI 文案整理基準，避免後續新功能繼續帶入亂碼或不清楚的操作語意。
+- AP 帳號風險語意使用可讀中文標籤。
+
+## v1.0.3.20 - 2026-05-26 21:40 +08:00 - post-install-verification
+
+- 新增 post_install_verify.sh，安裝後可檢查 health、ready、accounts、AP template、核心拓撲與資料品質 API。
+- 驗證腳本支援 EXPECTED_VERSION，方便離線移植後確認版本一致。
+
+## v1.0.3.19 - 2026-05-26 21:30 +08:00 - operations-data-quality
+
+- 新增 operations data quality API，彙整 CMDB、AP 帳號與拓撲通知 owner 缺口。
+- 新增資料品質 CSV，讓維運可匯出待修項目。
+
+## v1.0.3.18 - 2026-05-26 21:20 +08:00 - ap-account-risk-rules
+
+- AP 帳號新增缺 owner、高權限未納 PAM、高權限未啟用 MFA、共用帳號與 180 天未登入風險。
+- AP 帳號頁新增風險分類表與中文 risk label。
+
+## v1.0.3.17 - 2026-05-26 18:20 +08:00 - ap-account-cmdb-runner-readonly-roadmap
+
+- 整併 v1.0.3.12 到 v1.0.3.17 的安全可落地項目，保留 phase_readonly_mode，不直接開放受監控主機寫入。
+- 安全稽核、修補、停用帳號維持 dry-run / rollback plan / blocked-by-phase-readonly 語意，作為後續正式驗收入口。
+- RHEL 9.6 離線包可沿用 TARGET_OS_LABEL 產生 target package。
+
+## v1.0.3.16 - 2026-05-26 18:10 +08:00 - batch-self-check-runner-guard
+
+- 批次自檢支援 JSON body limit，並將單次上限收斂到 20 台，避免誤觸大量連線。
+- 批次 runner 增加 timeout/error 結果列，單台失敗不阻斷整批結果。
+
+## v1.0.3.15 - 2026-05-26 18:00 +08:00 - cmdb-csv-validation-governance
+
+- 新增 CMDB CSV 預檢 API，檢查必要欄位、重複 asset_seq、數字欄位與 host_type warning。
+- 新增 CSV 預檢錯誤匯出，方便匯入前先修資料。
+
+## v1.0.3.14 - 2026-05-26 17:50 +08:00 - core-impact-readability-tune
+
+- 核心系統影響圖右側面板補強內距與清單間距，提升三欄式與影響清單掃讀性。
+- 延續 v1.0.3.10 的焦點系統範圍修正，選 SYS 時維持只看該系統直接關係。
+
+## v1.0.3.13 - 2026-05-26 17:40 +08:00 - ap-account-report-ui
+
+- 帳號盤點新增 AP 帳號頁籤，依 AP 系統、帳號數、高權限、缺 owner、PAM 與待複核彙整。
+- 提供 AP 帳號清冊、差異清單、CSV 匯出，讓主管可直接看應用程式帳號風險。
+
+## v1.0.3.12 - 2026-05-26 17:30 +08:00 - ap-account-import
+
+- 新增 AP 帳號 CSV / Excel 模板與匯入流程，必填 app_id、system_name、account。
+- owner、PAM、權限、最後登入等欄位允許空白；缺 owner 或高權限未納 PAM 會列為 review 而不阻擋匯入。
+- 新增 AP 帳號批次、明細與差異資料模型。
+
+## v1.0.3.11 - 2026-05-26 16:55 +08:00 - rhel96-offline-target-package
+
+- 完整離線包支援 `TARGET_OS_LABEL`，包名、README 與 prerequisite manifest 會標示目標 OS。
+- RHEL 9.6 新機移植可產生清楚標記的 target package，避免與 Rocky/RHEL 9.7 包混淆。
+- release note 明確記錄 build OS 與 target OS；若正式要求完全同版 RPM，請在 RHEL 9.6 build host 重建。
+
+## v1.0.3.10 - 2026-05-26 08:25 +08:00 - core-impact-system-focus-scope
+
+- 修正核心系統影響圖選取單一系統時仍把同核心全部系統畫出的問題。
+- 選核心時維持核心總覽；選系統時只顯示焦點系統、直接關聯與主機 / IP。
+- 右側影響面板新增「檢視口徑」，讓核心總覽與焦點系統口徑更清楚。
+
+## v1.0.3.9 - 2026-05-26 08:15 +08:00 - core-impact-notification-export
+
+- 核心系統影響圖新增三欄背景與更明確欄名，讓核心、關聯系統、主機 / IP 更容易掃讀。
+- 右側影響面板新增待通知對象摘要，顯示系統 owner、主機數與聯絡狀態。
+- 新增核心影響通知名單 CSV 匯出，避免「匯出通知名單」只回傳 JSON。
+
 ## v1.0.1.59 - 2026-05-13 12:15 +08:00 - topology-filter-hidden-data
 
 - 拓撲預設不再把未納管內網與外網對帳明細輸出到 HTML，避免展開或搜尋時仍看到非 CMDB 主機。

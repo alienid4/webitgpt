@@ -13,8 +13,9 @@
     </div>
     <div class="asset-actions">
       <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">返回列表</a>
-      <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM</a>
+      <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM 網段管理</a>
       {% if mode != "new" and current_user.role in ["admin", "super", "superadmin"] %}
+      <button class="btn primary" form="prefillScanForm" type="submit">掃描帶入建議</button>
       <button class="btn secondary" form="verifyIdentityForm" type="submit">驗證名稱/OS</button>
       <button class="btn secondary" data-self-check="{{ host.asset_seq }}" type="button">自檢</button>
       {% endif %}
@@ -39,6 +40,48 @@
       {% for item in warnings %}<li>{{ item }}</li>{% endfor %}
     </ul>
   </div>
+  {% endif %}
+
+  {% if mode != "new" and current_user.role in ["admin", "super", "superadmin"] %}
+  <section class="panel asset-prefill-panel">
+    <div class="page-header">
+      <div>
+        <h2>先掃描，再矯正資產主檔</h2>
+        <p class="text-muted-sm">用主要 IP 先採證，帶出 Hostname、OS、主機類型、連線方式與開放服務建議；建議值只放進表單，仍需人工確認後儲存。</p>
+        <p class="text-muted-sm">掃描方式：nmap TCP 常見服務優先（-Pn -R --open），無結果時改用 ARP/Ping 探測；只採證、不直接寫入主檔。</p>
+      </div>
+      <button class="btn secondary" form="prefillScanForm" type="submit">立即掃描這台</button>
+    </div>
+    {% if prefill_scan %}
+    <div class="asset-prefill-result">
+      <div class="notice {% if prefill_scan.status == 'error' %}danger{% endif %}">
+        掃描目標：{{ prefill_scan.target_ip or "-" }}。
+        {% if prefill_scan.applied_fields %}
+        已先帶入 {{ prefill_scan.applied_fields|length }} 個欄位到表單，請確認後儲存。
+        {% else %}
+        未自動帶入欄位；可能是既有資料已填，或掃描沒有取得更可信的值。
+        {% endif %}
+        {% if prefill_scan.error %}<br>訊息：{{ prefill_scan.error }}{% endif %}
+      </div>
+      <div class="asset-prefill-grid">
+        {% set suggestions = prefill_scan.suggestions or {} %}
+        <div><span>Hostname 建議</span><strong>{{ suggestions.hostname or "-" }}</strong></div>
+        <div><span>OS 建議</span><strong>{{ suggestions.os or "-" }}</strong></div>
+        <div><span>類型建議</span><strong>{{ (host_type_labels|default({})).get(suggestions.host_type, suggestions.host_type or "-") }}</strong></div>
+        <div><span>連線方式建議</span><strong>{{ suggestions.connection or "-" }}</strong></div>
+      </div>
+      <details class="scan-row-detail">
+        <summary>展開掃描採證</summary>
+        <div><b>來源</b><span>{{ (prefill_scan.scan_sources or [])|join('、') or '-' }}</span></div>
+        <div><b>開放服務</b>
+          {% for port in prefill_scan.open_ports or [] %}
+          <span class="code-inline">{{ port.service or port.protocol }}:{{ port.port }}</span>
+          {% else %}<span>-</span>{% endfor %}
+        </div>
+      </details>
+    </div>
+    {% endif %}
+  </section>
   {% endif %}
 
   <form class="panel asset-edit-form" method="post">
@@ -93,8 +136,14 @@
     </div>
 
     {% if mode != "new" %}
-    <div class="asset-edit-section">
-      <h2>IP 分配</h2>
+    <details class="asset-edit-section asset-optional-section">
+      <summary>
+        <div>
+          <h2>IP 分配</h2>
+          <p class="text-muted-sm">低頻操作，只有需要從 IPAM 挑下一個可用 IP 時再展開。</p>
+        </div>
+        <span class="btn secondary"><span class="step-expand-label">展開</span><span class="step-collapse-label">收合</span></span>
+      </summary>
       <p class="text-muted-sm">從 IPAM 網段挑下一個可用 IP。系統會避開已在 CMDB 使用或已預留的 IP。</p>
       <div class="asset-inline-tool">
         <select form="allocateIpForm" name="cidr" required>
@@ -105,12 +154,18 @@
         </select>
         <button form="allocateIpForm" class="btn secondary" type="submit">分配下一個可用 IP</button>
       </div>
-    </div>
+    </details>
     {% endif %}
 
     {% if mode != "new" and current_user.role in ["admin", "super", "superadmin"] %}
-    <div class="asset-edit-section asset-lifecycle-box">
-      <h2>資產生命週期</h2>
+    <details class="asset-edit-section asset-lifecycle-box asset-optional-section">
+      <summary>
+        <div>
+          <h2>資產生命週期</h2>
+          <p class="text-muted-sm">停用、申請下線、下線封存等低頻治理動作，預設收合。</p>
+        </div>
+        <span class="btn secondary"><span class="step-expand-label">展開</span><span class="step-collapse-label">收合</span></span>
+      </summary>
       <p class="text-muted-sm">掃描誤建的草稿可以刪除；正式資產請走停用、申請下線或下線封存，系統會留下操作紀錄。</p>
       {% if host.lifecycle_reason %}
       <div class="notice">最近處理：{{ host.lifecycle_reason }} / {{ host.lifecycle_updated_by or "-" }}</div>
@@ -131,12 +186,18 @@
         <button form="assetLifecycleForm" class="btn primary" name="action" value="restore" type="submit">恢復使用中</button>
         {% endif %}
       </div>
-    </div>
+    </details>
     {% endif %}
 
     {% if extension_definitions %}
-    <div class="asset-edit-section">
-      <h2>擴充欄位</h2>
+    <details class="asset-edit-section asset-optional-section">
+      <summary>
+        <div>
+          <h2>擴充欄位</h2>
+          <p class="text-muted-sm">PAM 代號、業務窗口備註等非必要欄位，使用時再展開。</p>
+        </div>
+        <span class="btn secondary"><span class="step-expand-label">展開</span><span class="step-collapse-label">收合</span></span>
+      </summary>
       <div class="asset-edit-grid">
         {% for item in extension_definitions %}
         {% set ext_value = (host.extensions or {}).get(item.key, "") %}
@@ -146,11 +207,12 @@
         </label>
         {% endfor %}
       </div>
-    </div>
+    </details>
     {% endif %}
 
     <div class="asset-edit-actions">
-      <button class="btn primary" type="submit">儲存資產</button>
+      <button class="btn primary" type="submit">儲存並回資產管理</button>
+      <button class="btn secondary" name="after_save" value="continue_edit" type="submit">儲存後繼續編輯</button>
       <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page') }}">取消</a>
     </div>
   </form>
@@ -169,9 +231,10 @@
   </div>
   <form id="allocateIpForm" method="post" action="{{ url_for('api_hosts.host_allocate_ip', asset_seq=host.hostname or host.asset_seq) }}"></form>
   <form id="assetLifecycleForm" method="post" action="{{ url_for('api_hosts.host_lifecycle_submit', asset_seq=host.hostname or host.asset_seq) }}"></form>
+  <form id="prefillScanForm" method="post" action="{{ url_for('api_hosts.host_prefill_scan_submit', asset_seq=host.hostname or host.asset_seq) }}" data-submit-status data-submit-message="正在掃描這台主機並整理建議值，請稍候。"></form>
   <form id="verifyIdentityForm" method="post" action="{{ url_for('api_hosts.host_verify_identity_submit', asset_seq=host.hostname or host.asset_seq) }}" data-submit-status data-submit-message="正在連線採集真實 Hostname / OS，請稍候。"></form>
   {% endif %}
 </section>
-<script src="{{ url_for('static', filename='js/hosts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/hosts.js', v=asset_version) }}"></script>
 {% endif %}
 {% endblock %}

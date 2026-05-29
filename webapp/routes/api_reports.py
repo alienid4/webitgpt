@@ -11,7 +11,10 @@ from webapp.services.feature_flags import is_enabled
 from webapp.services.host_service import list_hosts
 from webapp.services.inventory_service import account_report_summary
 from webapp.services import dependency_service
+from webapp.services import cmdb_relationship_service
 from webapp.services.dependency_service import topology
+from webapp.services.quality_service import operations_data_quality
+from webapp.services.token_cost_service import token_cost_report
 
 bp = Blueprint("api_reports", __name__)
 
@@ -28,8 +31,70 @@ def _focus_impact() -> bool:
     return request.args.get("focus_impact") in {"1", "true", "yes", "on"}
 
 
+def _topology_from_request(default_view: str = "core_impact") -> dict:
+    return topology(
+        view=request.args.get("view", default_view),
+        center=request.args.get("center", ""),
+        depth=int(request.args.get("depth", 2)),
+        limit=int(request.args.get("limit", 200)),
+        include_external=_include_external(),
+        include_unmanaged=_include_unmanaged(),
+        failed_node=request.args.get("failed_node", ""),
+        focus_impact=_focus_impact(),
+    )
+
+
+def _empty_account_summary() -> dict:
+    return {
+        "summary": {
+            "total": 0,
+            "abnormal": 0,
+            "privileged": 0,
+            "service_login": 0,
+            "never_login": 0,
+            "password_old": 0,
+            "system_default_hidden": 0,
+            "pam_managed": 0,
+        },
+        "count": 0,
+        "last_collected": "-",
+        "hide_system_defaults": True,
+        "by_department": [],
+        "by_host": [],
+        "by_risk": [],
+        "abnormal_items": [],
+        "abnormal_count": 0,
+    }
+
+
+def _empty_quality_report(message: str) -> dict:
+    return {
+        "score": 0,
+        "status": "degraded",
+        "warnings": [message],
+        "summary": {
+            "hosts": 0,
+            "accounts": 0,
+            "ap_accounts": 0,
+            "cmdb_issues": 0,
+            "ap_review": 0,
+            "ap_owner_missing": 0,
+            "topology_notification_missing": 0,
+            "relations": 0,
+            "notifications": 0,
+            "patches": 0,
+        },
+        "checks": [],
+    }
+
+
 def _summary() -> dict:
-    hosts = list_hosts(page=1, page_size=10000)["items"]
+    warnings: list[str] = []
+    try:
+        hosts = list_hosts(page=1, page_size=10000)["items"]
+    except Exception as exc:
+        hosts = []
+        warnings.append(f"CMDB 資產摘要暫時不可用：{exc.__class__.__name__}")
     by_env: dict[str, int] = {}
     by_status: dict[str, int] = {}
     by_type: dict[str, int] = {}
@@ -39,7 +104,26 @@ def _summary() -> dict:
         by_status[host.get("status", "")] = by_status.get(host.get("status", ""), 0) + 1
         by_type[host.get("host_type") or host.get("os_group") or "-"] = by_type.get(host.get("host_type") or host.get("os_group") or "-", 0) + 1
         by_dc[host.get("dc") or host.get("location") or "-"] = by_dc.get(host.get("dc") or host.get("location") or "-", 0) + 1
-    compliance = compliance_dashboard() if is_enabled("module_compliance_security", default=False) else {"open_findings": 0, "rules_total": 0}
+    try:
+        compliance = compliance_dashboard() if is_enabled("module_compliance_security", default=False) else {"open_findings": 0, "rules_total": 0}
+    except Exception as exc:
+        compliance = {"open_findings": 0, "rules_total": 0}
+        warnings.append(f"合規摘要暫時不可用：{exc.__class__.__name__}")
+    try:
+        accounts = account_report_summary()
+    except Exception as exc:
+        accounts = _empty_account_summary()
+        warnings.append(f"帳號摘要暫時不可用：{exc.__class__.__name__}")
+    try:
+        quality = operations_data_quality()
+    except Exception as exc:
+        quality = _empty_quality_report(f"資料品質摘要暫時不可用：{exc.__class__.__name__}")
+        warnings.append(f"資料品質摘要暫時不可用：{exc.__class__.__name__}")
+    try:
+        token_cost = token_cost_report()
+    except Exception as exc:
+        token_cost = {"summary": {"total_tokens": 0, "estimated_cost_usd": 0}}
+        warnings.append(f"AI Token 摘要暫時不可用：{exc.__class__.__name__}")
     return {
         "hosts_total": len(hosts),
         "by_env": by_env,
@@ -47,7 +131,10 @@ def _summary() -> dict:
         "by_type": by_type,
         "by_dc": by_dc,
         "compliance": compliance,
-        "accounts": account_report_summary(),
+        "accounts": accounts,
+        "quality": quality,
+        "token_cost": token_cost,
+        "warnings": warnings,
     }
 
 
@@ -100,6 +187,26 @@ def dashboard_page():
     return render_template("dashboard.html", summary=_summary())
 
 
+@bp.get("/reports/data-quality")
+@require_feature("summary")
+def data_quality_page():
+    return render_template("data_quality.html", report=operations_data_quality())
+
+
+@bp.get("/reports/post-install")
+@require_feature("summary")
+def post_install_report_page():
+    checks = [
+        {"name": "Health", "target": "/health", "purpose": "確認服務版本與狀態。"},
+        {"name": "Ready", "target": "/ready", "purpose": "確認 MongoDB 與核心依賴可用。"},
+        {"name": "帳號盤點", "target": "/accounts", "purpose": "確認 OS / AP 帳號工作台可載入。"},
+        {"name": "AP 模板", "target": "/accounts/ap-template.xlsx", "purpose": "確認 AP 帳號匯入模板可下載。"},
+        {"name": "核心影響圖", "target": "/dependencies?view=core_impact", "purpose": "確認拓撲決策圖可載入。"},
+        {"name": "資料品質", "target": "/api/reports/data-quality", "purpose": "確認維運資料品質 API 可回應。"},
+    ]
+    return render_template("post_install_report.html", checks=checks)
+
+
 @bp.get("/executive")
 @require_feature("summary")
 def executive_page():
@@ -124,6 +231,8 @@ def reports_summary_csv():
     writer.writerow(["summary", "hosts_total", summary["hosts_total"]])
     writer.writerow(["summary", "open_findings", summary["compliance"].get("open_findings", 0)])
     writer.writerow(["summary", "rules_total", summary["compliance"].get("rules_total", 0)])
+    writer.writerow(["ai_token", "month_total_tokens", summary["token_cost"]["summary"].get("total_tokens", 0)])
+    writer.writerow(["ai_token", "month_estimated_cost_usd", summary["token_cost"]["summary"].get("estimated_cost_usd", 0)])
     account_summary = summary["accounts"]["summary"]
     writer.writerow(["accounts", "total", account_summary.get("total", 0)])
     writer.writerow(["accounts", "abnormal", account_summary.get("abnormal", 0)])
@@ -145,25 +254,36 @@ def reports_summary_csv():
     return Response(output.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=webitgpt_summary.csv"})
 
 
+@bp.get("/api/reports/data-quality")
+@require_feature("summary")
+def data_quality_api():
+    return jsonify(operations_data_quality())
+
+
+@bp.get("/api/reports/data-quality.csv")
+@require_feature("summary")
+def data_quality_csv():
+    report = operations_data_quality()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["domain", "status", "count", "action"])
+    for item in report["checks"]:
+        writer.writerow([item["domain"], item["status"], item["count"], item["action"]])
+    return Response(output.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=webitgpt_data_quality.csv"})
+
+
 @bp.get("/dependencies")
 @require_feature("dependencies")
 def dependencies_page():
     collect_runs = dependency_service.collect_runs(limit=5)
     systems = dependency_service.list_systems()
     relations = dependency_service.list_relations()
-    data = topology(
-        view=request.args.get("view", "core_impact"),
-        center=request.args.get("center", ""),
-        depth=int(request.args.get("depth", 2)),
-        limit=int(request.args.get("limit", 200)),
-        include_external=_include_external(),
-        include_unmanaged=_include_unmanaged(),
-        failed_node=request.args.get("failed_node", ""),
-        focus_impact=_focus_impact(),
-    )
+    data = _topology_from_request()
+    cmdb_overview = cmdb_relationship_service.cmdb_relationship_overview(request.args.get("center", ""))
     return render_template(
         "dependencies.html",
         topology=data,
+        cmdb_overview=cmdb_overview,
         reconcile_report=dependency_service.filtered_reconcile_report(include_external=_include_external(), include_unmanaged=_include_unmanaged()),
         network_scan_report=dependency_service.latest_network_scan_report(),
         collect_runs=collect_runs,
@@ -175,4 +295,31 @@ def dependencies_page():
 @bp.get("/api/dependencies")
 @require_feature("dependencies")
 def dependencies_api():
-    return jsonify(topology(view=request.args.get("view", "core_impact"), center=request.args.get("center", ""), depth=int(request.args.get("depth", 2)), limit=int(request.args.get("limit", 200)), include_external=_include_external(), include_unmanaged=_include_unmanaged(), failed_node=request.args.get("failed_node", ""), focus_impact=_focus_impact()))
+    return jsonify(_topology_from_request())
+
+
+@bp.get("/api/dependencies/notifications.csv")
+@require_feature("dependencies")
+def dependencies_notifications_csv():
+    data = _topology_from_request("core_impact")
+    contacts = ((data.get("meta") or {}).get("impact_panel") or {}).get("notification_contacts") or []
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["core", "system_id", "system_name", "owner", "host_count", "status", "reason"])
+    for item in contacts:
+        writer.writerow(
+            [
+                item.get("core") or "",
+                item.get("system_id") or "",
+                item.get("system_name") or "",
+                item.get("owner") or "",
+                item.get("host_count") or 0,
+                item.get("status") or "",
+                item.get("reason") or "",
+            ]
+        )
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=webitgpt_core_impact_notifications.csv"},
+    )

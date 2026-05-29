@@ -11,6 +11,41 @@ from webapp.services import host_service
 from webapp.services.mongo_service import get_collection
 from webapp.services.runner_dispatcher import get_runner
 
+DISCOVERY_TCP_PORTS = [
+    "21",
+    "22",
+    "53",
+    "80",
+    "88",
+    "135",
+    "139",
+    "161",
+    "389",
+    "443",
+    "445",
+    "464",
+    "593",
+    "636",
+    "990",
+    "2121",
+    "3268",
+    "3269",
+    "3389",
+    "5000",
+    "5357",
+    "5985",
+    "5986",
+    "8002",
+    "8081",
+    "9090",
+    "9444",
+    "50000",
+    "50001",
+    "50002",
+    "50003",
+    "50006",
+]
+
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -420,6 +455,32 @@ def _run_nmap_ping_scan(cidr: str) -> dict[str, Any]:
     return {"mode": "nmap", "ips": sorted({ip for ip in ips if ip}), "error": ""}
 
 
+def _scan_type_counts(rows: list[dict[str, Any]]) -> dict[str, int]:
+    counts = {
+        "already_in_cmdb": 0,
+        "scan_not_in_cmdb": 0,
+        "cmdb_not_seen": 0,
+        "duplicate_ip": 0,
+        "reserved_but_alive": 0,
+    }
+    for row in rows:
+        row_type = str(row.get("type") or "")
+        if row_type in counts:
+            counts[row_type] += 1
+    return counts
+
+
+def _scan_report_summary(rows: list[dict[str, Any]], discovered_count: int, cmdb_count: int) -> dict[str, Any]:
+    return {
+        **_scan_type_counts(rows),
+        "discovered": discovered_count,
+        "cmdb": cmdb_count,
+        "shown_rows": len(rows),
+        "hidden_rows": 0,
+        "note": "掃描結果列出所有發現與治理狀態；不再只顯示可建草稿的主機。",
+    }
+
+
 def _infer_host_type_from_os(os_text: str) -> str:
     value = str(os_text or "").lower()
     if "windows" in value:
@@ -557,10 +618,15 @@ def run_asset_discovery_scan(cidr: str, user: str = "system", environment: str =
             errors.append(error)
     if mode in {"tcp", "combined"}:
         rows, error = _run_nmap_xml(
-            ["nmap", "-Pn", "-R", "-p", "22,80,135,139,443,445,3389,5985,5986,9444", "--open", "-oX", "-", str(network)],
+            ["nmap", "-Pn", "-R", "-p", ",".join(DISCOVERY_TCP_PORTS), "--open", "-oX", "-", str(network)],
             timeout=240,
         )
         scans.append(("TCP 常見服務", rows))
+        if error:
+            errors.append(error)
+    if mode == "combined" and not any(rows for _, rows in scans):
+        rows, error = _run_nmap_xml(["nmap", "-R", "-oX", "-", str(network)], timeout=240)
+        scans.append(("TCP Default 1000", rows))
         if error:
             errors.append(error)
     parsed_hosts = _merge_discovery_rows(scans)
@@ -613,6 +679,8 @@ def run_asset_discovery_scan(cidr: str, user: str = "system", environment: str =
         "discovered_count": len(parsed_hosts),
         "cmdb_count": len(hosts_by_ip),
         "mismatch_count": len([row for row in rows if row.get("type") == "scan_not_in_cmdb"]),
+        "summary": _scan_report_summary(rows, len(parsed_hosts), len(hosts_by_ip)),
+        "scan_command_hint": "nmap -sn plus nmap -Pn -p " + ",".join(DISCOVERY_TCP_PORTS) + "; fallback: nmap <CIDR>",
         "rows": rows,
         "started_at": _now(),
         "updated_by": user,
@@ -623,6 +691,77 @@ def run_asset_discovery_scan(cidr: str, user: str = "system", environment: str =
     }
     get_collection("network_scan_reports").insert_one(report)
     return _public(report) or report
+
+
+def scan_host_prefill(host_key: str, user: str = "system") -> dict[str, Any]:
+    host = host_service.get_host(host_key)
+    if not host:
+        raise KeyError(f"host not found: {host_key}")
+    candidates = [host.get("ip"), *(host.get("ip_addresses") or [])]
+    target_ip = next((str(item).strip() for item in candidates if str(item or "").strip()), "")
+    if not target_ip:
+        raise ValueError("這筆資產沒有 IP，無法先掃描帶入建議。")
+    ipaddress.ip_address(target_ip)
+    if not shutil.which("nmap"):
+        result = {
+            "status": "error",
+            "target_ip": target_ip,
+            "error": "nmap 未安裝，無法掃描主機。",
+            "suggestions": {},
+            "open_ports": [],
+            "scan_sources": [],
+            "created_at": _now(),
+            "created_by": user,
+        }
+        get_collection("host_prefill_scans").insert_one(result)
+        return _public(result) or result
+
+    scans: list[tuple[str, list[dict[str, Any]]]] = []
+    errors = []
+    rows, error = _run_nmap_xml(
+        ["nmap", "-Pn", "-R", "-p", ",".join(DISCOVERY_TCP_PORTS), "--open", "-oX", "-", target_ip],
+        timeout=60,
+    )
+    scans.append(("TCP 常見服務", rows))
+    if error:
+        errors.append(error)
+    if not rows:
+        rows, error = _run_nmap_xml(["nmap", "-sn", "-R", "-oX", "-", target_ip], timeout=30)
+        scans.append(("ARP/Ping", rows))
+        if error:
+            errors.append(error)
+
+    merged = _merge_discovery_rows(scans)
+    item = merged[0] if merged else {"ip": target_ip, "hostname": "", "os": "", "host_type": "", "open_ports": [], "scan_sources": []}
+    ports = {str(port.get("port")) for port in item.get("open_ports", [])}
+    connection = ""
+    if ports.intersection({"5985", "5986", "135", "445", "3389"}):
+        connection = "winrm"
+    elif "22" in ports:
+        connection = "ssh"
+    host_type = item.get("host_type") or _infer_host_type_from_os(item.get("os", ""))
+    suggestions = {
+        "hostname": item.get("hostname", ""),
+        "os": item.get("os", ""),
+        "host_type": host_type,
+        "connection": connection,
+        "ssh_port": "22" if "22" in ports else "",
+        "ip": target_ip,
+    }
+    suggestions = {key: value for key, value in suggestions.items() if value not in (None, "")}
+    result = {
+        "status": "ok" if merged else "empty",
+        "target_ip": target_ip,
+        "error": "；".join(errors) if errors else "",
+        "suggestions": suggestions,
+        "open_ports": item.get("open_ports", []),
+        "scan_sources": item.get("scan_sources", []),
+        "created_at": _now(),
+        "created_by": user,
+        "source": "asset_edit_prefill",
+    }
+    get_collection("host_prefill_scans").insert_one(result)
+    return _public(result) or result
 
 
 def run_network_reconcile(cidr: str, user: str = "system") -> dict[str, Any]:
@@ -710,6 +849,8 @@ def run_network_reconcile(cidr: str, user: str = "system") -> dict[str, Any]:
         "discovered_count": len(discovered),
         "cmdb_count": len(cmdb_ips),
         "mismatch_count": len(rows),
+        "summary": _scan_report_summary(rows, len(discovered), len(cmdb_ips)),
+        "scan_command_hint": "nmap -sn -oX - " + str(network),
         "rows": rows,
         "started_at": _now(),
         "updated_by": user,
@@ -774,6 +915,7 @@ def _refresh_scan_report_with_current_cmdb(report: Optional[dict[str, Any]]) -> 
     refreshed_report["cmdb_count"] = len(hosts_by_ip)
     refreshed_report["discovered_count"] = len(discovered_ips)
     refreshed_report["mismatch_count"] = len([row for row in refreshed_rows if row.get("type") == "scan_not_in_cmdb"])
+    refreshed_report["summary"] = _scan_report_summary(refreshed_rows, len(discovered_ips), len(hosts_by_ip))
     refreshed_report["status_refreshed"] = True
     return refreshed_report
 

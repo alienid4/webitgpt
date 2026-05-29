@@ -11,7 +11,7 @@
   {% endif %}
   <form class="form" method="post">
     <label>名稱<input name="name" value="operator-token" required></label>
-    <label>權限範圍<input name="scopes" value="hosts:read" required></label>
+    <label>權限範圍<input name="scopes" value="hosts:read,system:read" required></label>
     <button class="btn primary" type="submit">簽發 Token</button>
   </form>
 </section>

@@ -15,69 +15,172 @@
     </div>
   </div>
 
-  <div class="asset-create-options">
-    <a class="asset-create-card" href="#single-create">
-      <strong>1. 單筆新增</strong>
-      <span>已知道主機名稱、IP、OS 與管理者時使用。</span>
-    </a>
-    <a class="asset-create-card" href="#csv-import">
-      <strong>2. CSV 大量匯入</strong>
-      <span>一次匯入多台，適合已有 Excel / CMDB 清冊。</span>
-    </a>
-    <a class="asset-create-card" href="#network-scan">
-      <strong>3. 網段掃描新增</strong>
-      <span>知道網段但不知道哪些主機未納管時使用，可將勾選 IP 建立草稿。</span>
-    </a>
-  </div>
+  <details class="panel compact asset-helper-panel">
+    <summary>
+      <div>
+        <strong>新增方式導覽</strong>
+        <span>單筆、CSV / Excel、網段掃描三種入口，預設收合，需要時再展開。</span>
+      </div>
+      <span class="btn secondary"><span class="step-expand-label">展開</span><span class="step-collapse-label">收合</span></span>
+    </summary>
+    <div class="asset-create-options">
+      <a class="asset-create-card" href="#single-create">
+        <strong>1. 單筆新增</strong>
+        <span>已知道主機名稱、IP、OS 與管理者時使用。</span>
+      </a>
+      <a class="asset-create-card" href="#csv-import">
+        <strong>2. CSV 大量匯入</strong>
+        <span>一次匯入多台，適合已有 Excel / CMDB 清冊。</span>
+      </a>
+      <a class="asset-create-card" href="#network-scan">
+        <strong>3. 網段掃描新增</strong>
+        <span>知道網段但不知道哪些主機未納管時使用，可將勾選 IP 建立草稿。</span>
+      </a>
+    </div>
+  </details>
 
   {% if errors %}<div class="notice danger">{{ errors|join(' / ') }}</div>{% endif %}
+  <details class="judgement-source-legend asset-helper-panel" aria-label="CMDB 匯入判斷來源">
+    <summary>
+      <div>
+        <strong>CMDB 匯入判斷來源</strong>
+        <span>判斷標籤與來源說明預設收合，避免新增畫面太滿。</span>
+      </div>
+      <span class="btn secondary"><span class="step-expand-label">展開</span><span class="step-collapse-label">收合</span></span>
+    </summary>
+    <div class="judgement-source-row">
+      <span class="source-badge cmdb">CSV / Excel 原始資料</span>
+      <span class="source-badge rule">欄位規則</span>
+      <span class="source-badge api">匯入 API</span>
+      <span class="source-badge ai-ready">AI-ready 錯誤解讀</span>
+      <span class="source-badge fallback">無 API Key 時顯示人可讀規則原因</span>
+    </div>
+  </details>
   {% if import_result %}
   <div class="notice">
-    CSV 匯入結果：新增 {{ import_result.created }}，更新 {{ import_result.updated }}，失敗 {{ import_result.failed }}。
-    {% if import_result.errors %}<br>錯誤：{{ import_result.errors }}{% endif %}
+    CSV / Excel 匯入結果：讀到 {{ import_result.total_rows or 0 }} 筆，新增 {{ import_result.created }}，更新 {{ import_result.updated }}，草稿 {{ import_result.draft or 0 }}，失敗 {{ import_result.failed }}。
+    {% if import_result.elapsed_seconds is not none %}<br>耗時：{{ import_result.elapsed_seconds }} 秒。{% endif %}
+    {% if import_result.errors %}<br>錯誤明細只顯示前 10 筆，請依下方「人可讀原因」處理。{% endif %}
   </div>
+  <section class="panel compact" id="cmdb-import-result">
+    <div class="page-header">
+      <div>
+        <h2>CMDB 匯入結果摘要</h2>
+        <p class="text-muted-sm">讓人先看總數、成功、草稿與失敗原因，再決定要補資料、轉正式或下載錯誤列。</p>
+        <div class="judgement-source-row">
+          <span class="source-badge cmdb">CMDB 資料</span>
+          <span class="source-badge rule">Rule 驗證</span>
+          <span class="source-badge insufficient">失敗列需補證據</span>
+        </div>
+      </div>
+    </div>
+    {% set summary = import_result.summary or {} %}
+    <div class="metric-grid">
+      <a class="metric" href="#cmdb-import-result"><strong>{{ summary.total_rows or import_result.total_rows or 0 }}</strong><span>讀到筆數</span></a>
+      <a class="metric" href="#cmdb-import-result"><strong>{{ summary.success or 0 }}</strong><span>成功入庫</span></a>
+      <a class="metric" href="#cmdb-import-result"><strong>{{ summary.created or import_result.created or 0 }}</strong><span>新增</span></a>
+      <a class="metric" href="#cmdb-import-result"><strong>{{ summary.updated or import_result.updated or 0 }}</strong><span>更新</span></a>
+      <a class="metric" href="#cmdb-import-result"><strong>{{ summary.draft or import_result.draft or 0 }}</strong><span>草稿</span></a>
+      <a class="metric" href="#cmdb-import-result"><strong>{{ summary.failed or import_result.failed or 0 }}</strong><span>失敗</span></a>
+    </div>
+    {% if summary.categories %}
+    <table class="data-table">
+      <thead><tr><th>錯誤類型</th><th>筆數</th></tr></thead>
+      <tbody>
+        {% for item in summary.categories %}
+        <tr><td>{{ item.category }}</td><td>{{ item.count }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+    {% if import_result.errors %}
+    <table class="data-table">
+      <thead><tr><th>列</th><th>欄位</th><th>人可讀原因</th><th>建議</th></tr></thead>
+      <tbody>
+        {% for item in import_result.errors[:10] %}
+        <tr>
+          <td>{{ item.line or item.item or "-" }}</td>
+          <td>{{ item.field or "-" }}</td>
+          <td>{{ item.human_message or item.error }}</td>
+          <td>{{ item.suggestion or "修正後重新匯入" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if import_result.errors|length > 10 %}
+    <div class="notice">其餘 {{ import_result.errors|length - 10 }} 筆錯誤已省略，避免畫面過長；請修正主要錯誤類型後重新匯入。</div>
+    {% endif %}
+    {% endif %}
+  </section>
   {% endif %}
   {% if scan_created is not none %}
-  <div class="notice">
-    掃描建檔結果：建立 {{ scan_created|length }} 筆草稿，略過 {{ scan_skipped|length if scan_skipped else 0 }} 筆。
+  <div class="notice draft-next-step">
+    新增待補草稿完成，共 {{ scan_created|length }} 筆；略過 {{ scan_skipped|length if scan_skipped else 0 }} 筆。
+    <a class="btn-sm" href="{{ url_for('api_hosts.hosts_page', status='draft') }}">進入草稿區處理</a>
+  </div>
+  {% elif scan_report %}
+  <div class="notice draft-next-step">
+    網段掃描結果已產生；為了讓新增工作台保持乾淨，結果預設收合。
+    <a class="btn-sm" href="#network-scan">展開第 3 步查看掃描結果</a>
   </div>
   {% endif %}
 </section>
 
-<section class="panel" id="single-create">
-  <div class="page-header">
+<details class="panel asset-create-step" id="single-create">
+  <summary>
     <div>
       <h2>1. 單筆新增</h2>
       <p class="text-muted-sm">適合新申請主機、已完成 IP 配發，準備補齊資產資料的情境。</p>
     </div>
-    <a class="btn primary" href="{{ url_for('api_hosts.host_new_full_page') }}">開完整新增表單</a>
-  </div>
-</section>
-
-<section class="panel" id="csv-import">
+    <span class="btn secondary"><span class="step-expand-label">展開</span><span class="step-collapse-label">收合</span></span>
+  </summary>
   <div class="page-header">
     <div>
-      <h2>2. CSV 大量匯入</h2>
-      <p class="text-muted-sm">適合一次匯入大量主機。建議先下載範本，填完後再匯入。</p>
+      <h3>建立單台主機</h3>
+      <p class="text-muted-sm">會進入完整表單，適合資料已明確的主機。</p>
+    </div>
+    <a class="btn primary" href="{{ url_for('api_hosts.host_new_full_page') }}">開完整新增表單</a>
+  </div>
+</details>
+
+<details class="panel asset-create-step" id="csv-import" {% if import_result %}open{% endif %}>
+  <summary>
+    <div>
+      <h2>2. CSV / Excel 大量匯入</h2>
+      <p class="text-muted-sm">適合一次匯入大量主機。可用 CSV 或 .xlsx；匯入後會顯示成功、失敗與草稿筆數。</p>
+    </div>
+    <span class="btn secondary"><span class="step-expand-label">展開</span><span class="step-collapse-label">收合</span></span>
+  </summary>
+  <div class="page-header">
+    <div>
+      <h3>匯入清冊</h3>
+      <p class="text-muted-sm">請先下載範本確認欄位，再匯入 CSV 或 Excel。</p>
     </div>
     <div class="asset-actions">
       <a class="btn secondary" href="{{ url_for('api_hosts.csv_template') }}">下載 CSV 範本</a>
       <a class="btn secondary" href="{{ url_for('api_hosts.csv_export') }}">匯出現有資產</a>
+      <a class="btn secondary" href="{{ url_for('api_hosts.xlsx_export') }}">匯出 Excel</a>
     </div>
   </div>
-  <form class="form" method="post" action="{{ url_for('api_hosts.host_import_csv_page') }}" enctype="multipart/form-data" data-submit-status data-submit-message="正在匯入 CSV，請稍候。">
-    <label>CSV 檔案<input type="file" name="csv_file" accept=".csv,text/csv"></label>
+  <form class="form" method="post" action="{{ url_for('api_hosts.host_import_csv_page') }}" enctype="multipart/form-data" data-submit-status data-submit-message="正在匯入 CSV / Excel，請稍候。">
+    <label>CSV / Excel 檔案<input type="file" name="csv_file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
     <label>或貼上 CSV 內容<textarea name="csv_text" rows="8" placeholder="asset_seq,hostname,ip,host_type,os,..."></textarea></label>
-    <button class="btn primary" type="submit">匯入 CSV</button>
+    <button class="btn primary" type="submit">匯入 CSV / Excel</button>
   </form>
   <div class="submit-status" hidden aria-live="polite"></div>
-</section>
+</details>
 
-<section class="panel" id="network-scan">
-  <div class="page-header">
+<details class="panel asset-create-step" id="network-scan">
+  <summary>
     <div>
       <h2>3. 網段掃描新增</h2>
       <p class="text-muted-sm">用在你知道某個網段有主機，但不確定哪些還沒加入資產管理。掃描只會先建立草稿，不會直接正式納管。</p>
+    </div>
+    <span class="btn secondary"><span class="step-expand-label">展開</span><span class="step-collapse-label">收合</span></span>
+  </summary>
+  <div class="page-header">
+    <div>
+      <h3>掃描網段並建立待補草稿</h3>
       <p class="text-muted-sm">掃描結果會盡量列出 IP、hostname、OS 判斷、開放服務與是否已納管；不同網段、NAT 或防火牆可能讓結果少於 VM 清單。</p>
     </div>
   </div>
@@ -123,19 +226,24 @@
     {% if scan_report.status_refreshed %}<br>狀態已依目前資產清冊重新校正。{% endif %}
   </div>
   <form method="post" action="{{ url_for('api_hosts.host_new_discovery_create_drafts_page') }}" data-submit-status data-submit-message="正在將勾選 IP 建立為資產草稿，請稍候。">
+    {% if scan_report.summary %}
+    <div class="metric-grid">
+      <a class="metric" href="#network-scan-table"><strong>{{ scan_report.summary.discovered }}</strong><span>掃描實際發現</span></a>
+      <a class="metric" href="#network-scan-table"><strong>{{ scan_report.summary.already_in_cmdb }}</strong><span>CMDB 已納管</span></a>
+      <a class="metric" href="#network-scan-table"><strong>{{ scan_report.summary.scan_not_in_cmdb }}</strong><span>未納管待建檔</span></a>
+      <a class="metric" href="#network-scan-table"><strong>{{ scan_report.summary.shown_rows }}</strong><span>畫面列出筆數</span></a>
+    </div>
+    <div class="notice">掃描命令：{{ scan_report.scan_command_hint or scan_report.mode }}。{{ scan_report.summary.note }}</div>
+    {% endif %}
     <input type="hidden" name="cidr" value="{{ scan_report.cidr }}">
-    <table class="data-table">
+    <table class="data-table scan-result-table" id="network-scan-table">
       <thead>
         <tr>
           <th>勾選</th>
           <th>狀態</th>
           <th>IP</th>
-          <th>Hostname</th>
-          <th>OS 判斷</th>
-          <th>類型判斷</th>
-          <th>開放服務</th>
-          <th>發現方式</th>
-          <th>建議動作</th>
+          <th>主機摘要</th>
+          <th>下一步</th>
         </tr>
       </thead>
       <tbody>
@@ -150,40 +258,68 @@
           </td>
           <td>{{ row.type_label }}</td>
           <td><span class="code-inline">{{ row.ip }}</span></td>
-          <td>{{ row.hostname or "-" }}</td>
-          <td>{{ row.os or "未知" }}</td>
-          <td>{{ host_type_labels.get(row.host_type, row.host_type or "-") }}</td>
           <td>
-            {% for port in row.open_ports or [] %}
-            <span class="code-inline">{{ port.service or port.protocol }}:{{ port.port }}</span>
-            {% else %}-{% endfor %}
+            <strong>{{ row.hostname or "尚未取得 hostname" }}</strong>
+            <span>{{ row.os or "未知 OS" }} / {{ host_type_labels.get(row.host_type, row.host_type or "未判斷") }}</span>
+            <details class="scan-row-detail">
+              <summary>展開技術明細</summary>
+              <div><b>開放服務</b>
+                {% for port in row.open_ports or [] %}
+                <span class="code-inline">{{ port.service or port.protocol }}:{{ port.port }}</span>
+                {% else %}<span>-</span>{% endfor %}
+              </div>
+              <div><b>發現方式</b><span>{{ (row.scan_sources or [])|join('、') or '-' }}</span></div>
+              <div><b>建議動作</b><span>{{ row.suggestion }}</span></div>
+            </details>
           </td>
-          <td>{{ (row.scan_sources or [])|join('、') or '-' }}</td>
           <td>{{ row.suggestion }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="9" class="no-data">尚無掃描結果。請確認 nmap 是否已安裝、221 是否能連到該網段，必要時改用 TCP 探測。</td></tr>
+        <tr><td colspan="5" class="no-data">尚無掃描結果。請確認 nmap 是否已安裝、主機是否能連到該網段，必要時改用 TCP 探測。</td></tr>
         {% endfor %}
       </tbody>
     </table>
     <div class="asset-edit-actions">
-      <button class="btn primary" type="submit">將勾選 IP 建立草稿</button>
-      <span class="text-muted-sm">建立後狀態為草稿，需再進入資產編輯頁補齊欄位才算正式納管。</span>
+      <button class="btn primary" type="submit">將勾選 IP 建立待補草稿</button>
+      <span class="text-muted-sm">建立後會進入草稿區；補齊欄位並轉正式後，才算完成主機新增。</span>
     </div>
   </form>
   {% endif %}
 
   {% if scan_created %}
-  <h3>已建立草稿</h3>
-  <table class="data-table">
-    <thead><tr><th>IP</th><th>Hostname</th><th>資產編號</th></tr></thead>
+  <div class="draft-next-panel">
+    <div>
+      <h3>新增待補草稿完成，共 {{ scan_created|length }} 筆</h3>
+      <p class="text-muted-sm">下一步不是結束，而是把草稿補成可正式納管的主機資料。</p>
+    </div>
+    <div class="draft-next-actions">
+      <a class="btn primary" href="{{ url_for('api_hosts.hosts_page', status='draft') }}">去草稿區批次補欄位</a>
+      {% if scan_created|length == 1 %}
+      {% set first_draft = scan_created[0] %}
+      <a class="btn secondary" href="{{ url_for('api_hosts.host_edit_page', asset_seq=first_draft.hostname or first_draft.asset_seq) }}">立即補這台資料</a>
+      {% endif %}
+    </div>
+  </div>
+  <ol class="draft-next-steps">
+    <li>補齊系統名稱、owner、環境、用途與必要 CMDB 欄位。</li>
+    <li>確認 IP / Hostname / OS 判斷沒有誤建或重複。</li>
+    <li>驗證或人工確認主機識別、負責人與用途。</li>
+    <li>回草稿區勾選，批次轉正式，才算完成主機新增。</li>
+  </ol>
+  <table class="data-table draft-created-table">
+    <thead><tr><th>IP</th><th>Hostname</th><th>資產編號</th><th>下一步</th></tr></thead>
     <tbody>
       {% for row in scan_created %}
-      <tr><td>{{ row.ip }}</td><td>{{ row.hostname }}</td><td>{{ row.asset_seq }}</td></tr>
+      <tr>
+        <td>{{ row.ip }}</td>
+        <td>{{ row.hostname }}</td>
+        <td>{{ row.asset_seq }}</td>
+        <td><a class="btn-sm" href="{{ url_for('api_hosts.host_edit_page', asset_seq=row.hostname or row.asset_seq) }}">補資料</a></td>
+      </tr>
       {% endfor %}
     </tbody>
   </table>
   {% endif %}
-</section>
-<script src="{{ url_for('static', filename='js/host_new.js') }}"></script>
+</details>
+<script src="{{ url_for('static', filename='js/host_new.js', v=asset_version) }}"></script>
 {% endblock %}

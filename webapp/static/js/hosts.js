@@ -36,3 +36,17 @@ document.addEventListener("click", async (event) => {
   }
   alert(JSON.stringify(data, null, 2));
 });
+
+document.addEventListener("submit", (event) => {
+  const form = event.target.closest("[data-draft-bulk-form]");
+  if (!form) return;
+  form.querySelectorAll("input[data-draft-bulk-copy]").forEach((node) => node.remove());
+  document.querySelectorAll("[data-draft-checkbox]:checked").forEach((checkbox) => {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "asset_seq";
+    input.value = checkbox.value;
+    input.dataset.draftBulkCopy = "1";
+    form.appendChild(input);
+  });
+});

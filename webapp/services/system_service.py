@@ -16,6 +16,7 @@ from webapp.services.feature_flags import DEFAULT_FLAGS
 from webapp.services.housekeeping_service import disk_status
 from webapp.services.mongo_service import get_db
 from webapp.services.nmon_raw_service import nmon_raw_pipeline_status
+from webapp.services.token_cost_service import token_cost_report
 
 
 MODULE_CATEGORY_LABELS = {
@@ -111,6 +112,352 @@ MODULE_IMPACT = {
 
 
 RECENT_PATCH_RELEASES = [
+    {
+        "version": "1.0.3.42",
+        "date": "2026-05-28 00:25 +08:00",
+        "patch_id": "ai-ready-pale-gold-contrast",
+        "changes": [
+            "AI-ready 與可交給 AI 判讀的區塊改用淡金框，與真正 AI 判斷的深金框分離。",
+            "帳號盤點、AI 供應商、Token 成本、Dashboard、報表、資料品質、NMON、拓撲與 CMDB 匯入統一使用 AI-ready badge。",
+            "保留 L3 深度檢查與安裝後驗證 AI 卡的深金框，表示實際 AI 判斷。",
+        ],
+    },
+    {
+        "version": "1.0.3.41",
+        "date": "2026-05-28 00:15 +08:00",
+        "patch_id": "static-asset-cache-busting",
+        "changes": [
+            "CSS 與主要 JavaScript 載入加入版本參數，避免瀏覽器沿用舊快取造成 UI patch 看起來沒變。",
+            "模板注入 asset_version，值由 VERSION 與 PATCH_ID 組成，每次 patch 自動刷新靜態資產。",
+            "帳號盤點、資產、效能、巡檢與系統管理相關頁面的頁面腳本同步加入版本參數。",
+        ],
+    },
+    {
+        "version": "1.0.3.40",
+        "date": "2026-05-28 00:05 +08:00",
+        "patch_id": "ai-judgement-visual-contrast",
+        "changes": [
+            "帳號盤點、AI 供應商與 Token 成本頁改用三段式判斷來源卡，讓 AI、Script、資料規則與 fallback 一眼分辨。",
+            "AI 判讀卡改為金框與 AI 圓標，Script 維持灰框，資料規則使用綠框，fallback 使用琥珀框。",
+            "保留原 badge 語意，但改成流程卡與來源路徑，避免使用者只看到一排標籤看不出差異。",
+        ],
+    },
+    {
+        "version": "1.0.3.39",
+        "date": "2026-05-27 23:55 +08:00",
+        "patch_id": "ai-key-budget-tier-routing",
+        "changes": [
+            "AI 供應商設定加入 L1/L2/L3 KEY 階級、模型與月預算上限。",
+            "Token 成本頁新增預算路由狀態與 KEY 階級清單，只顯示遮罩資訊，不顯示完整 API Key。",
+            "新增 KEY 路由預覽 API，超額時可降級或 Script fallback，避免 AI 不可用時阻斷維運。",
+        ],
+    },
+    {
+        "version": "1.0.3.38",
+        "date": "2026-05-27 23:45 +08:00",
+        "patch_id": "global-judgement-source-visibility",
+        "changes": [
+            "Dashboard、統計報表、資料品質、CMDB 匯入、NMON、核心影響圖與帳號盤點加入判斷來源標示。",
+            "新增全域 judgement source legend，統一 Script、Rule、API Key、AI、AI + Script、NMON 與 CMDB 來源語意。",
+            "AI 功能未提供 API Key 時仍可顯示 AI-ready 與 Script/Rule 保底，不阻斷既有維運流程。",
+        ],
+    },
+    {
+        "version": "1.0.3.37",
+        "date": "2026-05-27 23:20 +08:00",
+        "patch_id": "ai-judgement-gold-frame-ui",
+        "changes": [
+            "安裝後驗證頁新增金框 AI 判斷卡，讓使用者一眼看出 AI 判讀與 Script 檢查不同。",
+            "L3 深度檢查區塊套用金框 AI-ready 樣式，標示 Shell 採證 + AI 判讀與 Script 保底接手。",
+            "新增 AI、AI + Script、Script 接手 badge 樣式，後續可重用在報表、深度檢查與 API 分析結果。",
+        ],
+    },
+    {
+        "version": "1.0.3.36",
+        "date": "2026-05-27 22:50 +08:00",
+        "patch_id": "ai-judgement-source-ux",
+        "changes": [
+            "建立 AI 判斷來源視覺規格：Script、API Key、AI、AI + Script、Script 接手與證據不足。",
+            "明確定義 L1/L2/L3 分流：L1 Script only，L2 輕量 AI 可選，L3 AI 深度判讀優先。",
+            "架構簡報加入核心亮點：Shell 負責採證，AI 負責判讀；AI 不可用時，Script 保底接手。",
+        ],
+    },
+    {
+        "version": "1.0.3.35",
+        "date": "2026-05-27 13:45 +08:00",
+        "patch_id": "cmdb-import-fast-feedback",
+        "changes": [
+            "CMDB 匯入結果不再把完整錯誤陣列直接渲染到頁面，避免 74 筆以上錯誤讓瀏覽器看起來卡住。",
+            "匯入結果新增耗時顯示，讓現場能判斷是仍在處理還是已完成。",
+            "單次 UI 匯入上限保護為 2000 筆，超過時回報人可讀原因並要求拆批。",
+        ],
+    },
+    {
+        "version": "1.0.3.34",
+        "date": "2026-05-27 11:45 +08:00",
+        "patch_id": "cmdb-import-report-excel-drafts",
+        "changes": [
+            "CMDB 匯入結果新增總筆數、成功、新增、更新、草稿與失敗摘要，錯誤列會顯示人可讀原因與修正建議。",
+            "資產匯入支援 .xlsx，並新增 Excel 匯出；CSV 範本、匯出與錯誤下載補 UTF-8 BOM，降低 Excel 開啟亂碼。",
+            "草稿區新增批次轉正式與批次補欄位，適合 nmap/IPAM 建立草稿後做大量整理。",
+        ],
+    },
+    {
+        "version": "1.0.3.33",
+        "date": "2026-05-27 10:45 +08:00",
+        "patch_id": "cmdb-real-fields-scan-visibility",
+        "changes": [
+            "CMDB CSV 匯入支援真實中文欄位，如總點單位、資產序號、APID、主機名稱、IP、備份頻率、CIA 與申請單編號。",
+            "網段掃描報告明確顯示實際發現、CMDB 已納管、未納管待建檔與畫面列出筆數。",
+            "TCP 掃描 port 範圍補齊 FTP、AD、LDAP、RDP、webitgpt 8002 與 50000 系列服務，避免現場以為只掃到一台。",
+        ],
+    },
+    {
+        "version": "1.0.3.32",
+        "date": "2026-05-27 00:15 +08:00",
+        "patch_id": "api-key-verify-visibility",
+        "changes": [
+            "安裝後驗證頁新增 API Key 驗證與 Script 檢查兩種模式卡，使用者可一眼辨識判斷來源。",
+            "API Key 模式明列 system:read scope、verification_source=api_key 回應標記與 curl 範例。",
+            "/api/v1/post-install/verify 回應新增 verification_source、verification_label 與 required_scope。",
+        ],
+    },
+    {
+        "version": "1.0.3.31",
+        "date": "2026-05-26 23:45 +08:00",
+        "patch_id": "api-key-post-install-verify",
+        "changes": [
+            "新增 /api/v1/post-install/verify，需使用 Bearer API Token 且具備 system:read scope。",
+            "post_install_verify.sh 支援 API_TOKEN=wgpt_xxx 模式，可用 API Key 判斷版本、Mongo 與資料品質 API。",
+            "安裝後驗證頁補 API Key 模式指令，API Token 表單預設 scope 加入 system:read。",
+        ],
+    },
+    {
+        "version": "1.0.3.30",
+        "date": "2026-05-26 23:30 +08:00",
+        "patch_id": "reports-next-action-entry",
+        "changes": [
+            "統計報表新增下一步操作區，直接引導到資料品質、帳號盤點、核心影響圖與交付匯出。",
+            "報表主按鈕改成看下一步，避免使用者停在數字摘要不知道要點哪裡。",
+            "補響應式樣式，手機與窄螢幕仍能清楚顯示操作卡。",
+        ],
+    },
+    {
+        "version": "1.0.3.29",
+        "date": "2026-05-26 23:10 +08:00",
+        "patch_id": "ops-ux-decision-workbench",
+        "changes": [
+            "維運總覽改成先看風險與資料品質分數，再進入帳號、拓撲與安裝驗證。",
+            "新增資料品質工作台頁面與安裝後驗證頁，讓 API/腳本結果有可讀 UI 入口。",
+            "統計報表改為決策摘要優先，降低亂碼頁面的第一眼壓力。",
+        ],
+    },
+    {
+        "version": "1.0.3.28",
+        "date": "2026-05-26 23:00 +08:00",
+        "patch_id": "post-install-report-ui",
+        "changes": [
+            "新增安裝後驗證 UI，列出 health、ready、帳號頁、AP 模板、核心影響圖與資料品質檢查。",
+            "頁面提供可直接執行的 post_install_verify.sh 指令。",
+        ],
+    },
+    {
+        "version": "1.0.3.27",
+        "date": "2026-05-26 22:50 +08:00",
+        "patch_id": "core-impact-decision-language",
+        "changes": [
+            "核心影響圖延續可信度摘要，將來源語意收斂成維運可判斷的 manual、auto、unknown。",
+            "右側面板定位為事故/維護決策面板。",
+        ],
+    },
+    {
+        "version": "1.0.3.26",
+        "date": "2026-05-26 22:40 +08:00",
+        "patch_id": "ap-account-risk-first-ux",
+        "changes": [
+            "AP 帳號頁維持風險分類在清冊前方，讓使用者先看缺 owner、PAM、MFA 與待複核。",
+            "風險標籤與匯出語意保持一致。",
+        ],
+    },
+    {
+        "version": "1.0.3.25",
+        "date": "2026-05-26 22:30 +08:00",
+        "patch_id": "data-quality-workbench-ui",
+        "changes": [
+            "新增資料品質工作台頁面，顯示品質分數、CMDB 待修、AP 待複核與每項修正建議。",
+            "維運總覽新增資料品質入口。",
+        ],
+    },
+    {
+        "version": "1.0.3.24",
+        "date": "2026-05-26 22:20 +08:00",
+        "patch_id": "ops-dashboard-readable-copy",
+        "changes": [
+            "維運總覽與統計報表改用可讀中文主標、摘要與空狀態文案。",
+            "新增決策式版面，避免第一眼被明細表格淹沒。",
+        ],
+    },
+    {
+        "version": "1.0.3.23",
+        "date": "2026-05-26 22:10 +08:00",
+        "patch_id": "operations-quality-hardening",
+        "changes": [
+            "補齊維運安全門檻文件，安全修補、停用帳號與 rollback 仍需 phase_readonly_mode 與正式 approval。",
+            "整併 AP 帳號風險、資料品質、安裝驗證、UI 文案與拓撲可信度強化為可部署版本。",
+        ],
+    },
+    {
+        "version": "1.0.3.22",
+        "date": "2026-05-26 22:00 +08:00",
+        "patch_id": "topology-trust-source",
+        "changes": [
+            "核心影響圖新增 trust_summary 與 trust_note，標示 manual、auto、unknown 關係來源。",
+            "右側影響面板顯示可信度摘要，避免只看圖形卻不知道資料來源。",
+        ],
+    },
+    {
+        "version": "1.0.3.21",
+        "date": "2026-05-26 21:50 +08:00",
+        "patch_id": "ui-text-cleanup-map",
+        "changes": [
+            "新增 UI 文案整理基準，避免後續新功能繼續帶入亂碼或不清楚的操作語意。",
+            "AP 帳號風險語意使用可讀中文標籤。",
+        ],
+    },
+    {
+        "version": "1.0.3.20",
+        "date": "2026-05-26 21:40 +08:00",
+        "patch_id": "post-install-verification",
+        "changes": [
+            "新增 post_install_verify.sh，安裝後可檢查 health、ready、accounts、AP template、核心拓撲與資料品質 API。",
+            "驗證腳本支援 EXPECTED_VERSION，方便離線移植後確認版本一致。",
+        ],
+    },
+    {
+        "version": "1.0.3.19",
+        "date": "2026-05-26 21:30 +08:00",
+        "patch_id": "operations-data-quality",
+        "changes": [
+            "新增 operations data quality API，彙整 CMDB、AP 帳號與拓撲通知 owner 缺口。",
+            "新增資料品質 CSV，讓維運可匯出待修項目。",
+        ],
+    },
+    {
+        "version": "1.0.3.18",
+        "date": "2026-05-26 21:20 +08:00",
+        "patch_id": "ap-account-risk-rules",
+        "changes": [
+            "AP 帳號新增缺 owner、高權限未納 PAM、高權限未啟用 MFA、共用帳號與 180 天未登入風險。",
+            "AP 帳號頁新增風險分類表與中文 risk label。",
+        ],
+    },
+    {
+        "version": "1.0.3.17",
+        "date": "2026-05-26 18:20 +08:00",
+        "patch_id": "ap-account-cmdb-runner-readonly-roadmap",
+        "changes": [
+            "整併 v1.0.3.12 到 v1.0.3.17 的安全可落地項目，保留 phase_readonly_mode，不直接開放受監控主機寫入。",
+            "安全稽核、修補、停用帳號維持 dry-run / rollback plan / blocked-by-phase-readonly 語意，作為後續正式驗收入口。",
+            "RHEL 9.6 離線包可沿用 TARGET_OS_LABEL 產生 target package。",
+        ],
+    },
+    {
+        "version": "1.0.3.16",
+        "date": "2026-05-26 18:10 +08:00",
+        "patch_id": "batch-self-check-runner-guard",
+        "changes": [
+            "批次自檢支援 JSON body limit，並將單次上限收斂到 20 台，避免誤觸大量連線。",
+            "批次 runner 增加 timeout/error 結果列，單台失敗不阻斷整批結果。",
+        ],
+    },
+    {
+        "version": "1.0.3.15",
+        "date": "2026-05-26 18:00 +08:00",
+        "patch_id": "cmdb-csv-validation-governance",
+        "changes": [
+            "新增 CMDB CSV 預檢 API，檢查必要欄位、重複 asset_seq、數字欄位與 host_type warning。",
+            "新增 CSV 預檢錯誤匯出，方便匯入前先修資料。",
+        ],
+    },
+    {
+        "version": "1.0.3.14",
+        "date": "2026-05-26 17:50 +08:00",
+        "patch_id": "core-impact-readability-tune",
+        "changes": [
+            "核心系統影響圖右側面板補強內距與清單間距，提升三欄式與影響清單掃讀性。",
+            "延續 v1.0.3.10 的焦點系統範圍修正，選 SYS 時維持只看該系統直接關係。",
+        ],
+    },
+    {
+        "version": "1.0.3.13",
+        "date": "2026-05-26 17:40 +08:00",
+        "patch_id": "ap-account-report-ui",
+        "changes": [
+            "帳號盤點新增 AP 帳號頁籤，依 AP 系統、帳號數、高權限、缺 owner、PAM 與待複核彙整。",
+            "提供 AP 帳號清冊、差異清單、CSV 匯出，讓主管可直接看應用程式帳號風險。",
+        ],
+    },
+    {
+        "version": "1.0.3.12",
+        "date": "2026-05-26 17:30 +08:00",
+        "patch_id": "ap-account-import",
+        "changes": [
+            "新增 AP 帳號 CSV / Excel 模板與匯入流程，必填 app_id、system_name、account。",
+            "owner、PAM、權限、最後登入等欄位允許空白；缺 owner 或高權限未納 PAM 會列為 review 而不阻擋匯入。",
+            "新增 AP 帳號批次、明細與差異資料模型。",
+        ],
+    },
+    {
+        "version": "1.0.3.11",
+        "date": "2026-05-26 16:55 +08:00",
+        "patch_id": "rhel96-offline-target-package",
+        "changes": [
+            "完整離線包支援 TARGET_OS_LABEL，包名、README 與 prerequisite manifest 會標示目標 OS。",
+            "RHEL 9.6 新機移植可產生清楚標記的 target package，避免與 Rocky/RHEL 9.7 包混淆。",
+            "release note 明確記錄 build OS 與 target OS；若正式要求完全同版 RPM，請在 RHEL 9.6 build host 重建。",
+        ],
+    },
+    {
+        "version": "1.0.3.10",
+        "date": "2026-05-26 08:25 +08:00",
+        "patch_id": "core-impact-system-focus-scope",
+        "changes": [
+            "核心系統影響圖選取單一系統時，不再把同核心全部系統都畫出來。",
+            "右側影響面板新增檢視口徑，區分核心總覽與焦點系統。",
+            "補上焦點系統測試，確認選 SYS-DEBIAN 時不會帶出 SYS-ROCKY 與其主機。",
+        ],
+    },
+    {
+        "version": "1.0.3.9",
+        "date": "2026-05-26 08:15 +08:00",
+        "patch_id": "core-impact-notification-export",
+        "changes": [
+            "核心系統影響圖新增三欄背景與更明確的欄名，讓核心、關聯系統、主機 / IP 更容易掃讀。",
+            "右側影響面板新增待通知對象摘要，顯示系統 owner、主機數與聯絡狀態。",
+            "新增核心影響通知名單 CSV 匯出，避免匯出按鈕只回傳 JSON。",
+        ],
+    },
+    {
+        "version": "1.0.2.99",
+        "date": "2026-05-23 00:20 +08:00",
+        "patch_id": "offline-install-noninteractive",
+        "changes": [
+            "補強完整離線包非互動安裝模式，避免自動部署卡在密碼輸入。",
+            "支援 WEBITGPT_NONINTERACTIVE 與 WEBITGPT_SUPERADMIN_PASSWORD，讓固定安裝指令可完成部署。",
+            "保留 Phase 只讀模式，受監控主機寫入動作仍由 phase_readonly_mode 封鎖。",
+        ],
+    },
+    {
+        "version": "1.0.2.97",
+        "date": "2026-05-22 08:35 +08:00",
+        "patch_id": "full-system-validation-artifacts",
+        "changes": [
+            "修復 SuperAdmin、使用者、健康檢查、Backup/DR 與 Patch 回滾頁面模板，恢復可渲染 UI。",
+            "健康檢查 API 補上 host artifact 統計，功能驗證可透過遠端 API 確認 meta/self-check/debug snapshot 寫入。",
+            "Backup manifest 對目錄權限問題回傳可稽核 warning，不讓 DR dry-run 直接 500。",
+            "保留 Phase 只讀模式，受監控主機寫入動作仍由 phase_readonly_mode 封鎖。",
+        ],
+    },
     {
         "version": "1.0.2.96",
         "date": "2026-05-19 22:55 +08:00",
@@ -363,6 +710,7 @@ def admin_console_overview() -> dict[str, Any]:
     latest_logs = operation_logs(8)
     settings_count = db_count("settings")
     timer_text = job_schedule().get("timers", "")
+    token_cost = token_cost_report()
     return {
         "health": health,
         "metrics": {
@@ -374,11 +722,14 @@ def admin_console_overview() -> dict[str, Any]:
             "inventory_runs": db_count("inventory_runs"),
             "ipam_reports": db_count("network_scan_reports"),
             "patch_backups": len(patch_inventory().get("patches", [])),
+            "ai_tokens": token_cost["summary"].get("total_tokens", 0),
+            "ai_cost_usd": token_cost["summary"].get("estimated_cost_usd", 0),
         },
         "modules": [
             {"title": "功能開關", "desc": "依大模組啟用或關閉尚未開發完成的功能。", "endpoint": "api_superadmin.superadmin_page", "status": "可操作"},
             {"title": "使用者與權限", "desc": "建立帳號、鎖定、重設密碼與角色管理。", "endpoint": "api_superadmin.users_page", "status": "可操作"},
             {"title": "API Token", "desc": "核發對外 API 與 MCP 用 token。", "endpoint": "api_superadmin.tokens_page", "status": "可操作"},
+            {"title": "Token 成本", "desc": "追蹤本月 AI/API token、估算費用與最花 token 的動作。", "endpoint": "api_superadmin.token_costs_page", "status": f"${token_cost['summary'].get('estimated_cost_usd', 0)}"},
             {"title": "設定管理", "desc": "檢視 Mongo 設定與系統執行參數。", "endpoint": "api_superadmin.settings_page", "status": f"{settings_count} 筆設定"},
             {"title": "日誌檢視", "desc": "檢視 error、access、IPAM 排程日誌。", "endpoint": "api_superadmin.logs_page", "status": "可匯出"},
             {"title": "系統日誌例外", "desc": "管理開門檢查系統日誌白名單，避免已確認無害訊息每天亮橘燈。", "endpoint": "api_superadmin.log_exceptions_page", "status": "可管理"},
@@ -397,6 +748,22 @@ def admin_console_overview() -> dict[str, Any]:
 
 def health_dashboard() -> dict[str, Any]:
     db = get_db()
+    host_root = Path(config.HOSTS_DIR)
+    host_artifacts = {
+        "root": str(host_root),
+        "exists": host_root.exists(),
+        "meta_files": 0,
+        "self_check_files": 0,
+        "debug_snapshot_files": 0,
+    }
+    if host_root.exists():
+        host_artifacts.update(
+            {
+                "meta_files": len(list(host_root.glob("*/meta.json"))),
+                "self_check_files": len(list(host_root.glob("*/self_check/*.json"))),
+                "debug_snapshot_files": len(list(host_root.glob("*/debug_snapshots/*.json"))),
+            }
+        )
     return {
         "app": config.APP_NAME,
         "version": config.VERSION,
@@ -407,14 +774,15 @@ def health_dashboard() -> dict[str, Any]:
         "disk": disk_status(),
         "audit": verify_chain(),
         "collections": {name: db[name].count_documents({}) for name in ["hosts", "audit_logs", "users", "compliance_rules", "compliance_findings"]},
+        "host_artifacts": host_artifacts,
     }
 
 
 def create_backup_manifest(user: str = "system") -> dict[str, Any]:
     backup_dir = Path(config.BACKUP_DIR)
-    backup_dir.mkdir(parents=True, exist_ok=True)
     now = datetime.now(timezone.utc)
     manifest = {
+        "status": "ok",
         "app": config.APP_NAME,
         "version": config.VERSION,
         "patch_id": config.PATCH_ID,
@@ -425,10 +793,15 @@ def create_backup_manifest(user: str = "system") -> dict[str, Any]:
         "data_dir": config.DATA_DIR,
         "disk": disk_status(),
         "audit": verify_chain(),
+        "path": str(backup_dir / f"backup_manifest_{now.strftime('%Y%m%d_%H%M%S')}.json"),
     }
-    target = backup_dir / f"backup_manifest_{now.strftime('%Y%m%d_%H%M%S')}.json"
-    target.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
-    manifest["path"] = str(target)
+    try:
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        target = Path(manifest["path"])
+        target.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    except OSError as exc:
+        manifest["status"] = "warn"
+        manifest["error"] = str(exc)
     return manifest
 
 

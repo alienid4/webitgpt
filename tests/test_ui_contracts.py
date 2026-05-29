@@ -153,6 +153,8 @@ def test_dashboard_parity_and_legacy_pages_are_wired():
 def test_superadmin_full_system_surfaces_exist():
     routes = read("webapp/routes/api_superadmin.py")
     service = read("webapp/services/system_service.py")
+    base = read("webapp/templates/base.html")
+    admin_topnav = read("webapp/templates/_partials/admin_topnav.html")
     superadmin = read("webapp/templates/superadmin.html")
     users = read("webapp/templates/users.html")
     health = read("webapp/templates/system_health.html")
@@ -173,6 +175,8 @@ def test_superadmin_full_system_surfaces_exist():
         "audit_logs_api",
         "remote_tools_page",
         "dev_console_page",
+        "credentials_page",
+        "credentials_linux_bootstrap_script",
     ]:
         assert name in routes
     for name in [
@@ -187,8 +191,25 @@ def test_superadmin_full_system_surfaces_exist():
         assert f"def {name}(" in service
     assert "Hash chain：" in superadmin
     assert "effective_enabled" in superadmin
+    assert "admin-page-topnav" in superadmin
+    assert "admin-sidebar-grouped" in superadmin
+    assert "page-title-with-help" in superadmin
+    assert '<details class="inline-help">' in superadmin
+    assert 'aria-label="系統管理說明"' in superadmin
+    assert '<details class="admin-nav-section">' in superadmin
+    assert '<details class="admin-nav-section" open>' not in superadmin
+    assert 'include "_partials/admin_topnav.html"' in base
+    assert "admin-topnav-strip" in base
+    assert "api_superadmin.system_health_page" in admin_topnav
+    assert "api_superadmin.logs_page" in admin_topnav
+    assert "admin-nav-heading {% if endpoint in" in admin_topnav
+    assert '<summary class="admin-nav-heading">權限與憑證</summary>' in superadmin
+    assert "credentials_page" in superadmin
+    assert "API Token" in superadmin
+    assert "important_services_page" in superadmin
+    assert "backup_dr_page" in superadmin
     assert "重設密碼" in users
-    assert "備用碼" in users
+    assert "備援碼" in users
     assert "健康檢查" in health
     assert "備份 / DR" in backup
     assert "Patch / 回滾" in patches
@@ -198,12 +219,15 @@ def test_phase_readonly_guard_remains_enabled_and_blocks_writes():
     flags = read("webapp/services/feature_flags.py")
     decorators = read("webapp/decorators.py")
     admin_routes = read("webapp/routes/api_admin.py")
+    operations_routes = read("webapp/routes/api_operations.py")
 
     assert '_flag("phase_readonly_mode"' in flags
     assert "雙寫評比期間封鎖受監控主機寫入動作" in flags
     assert "default=True" in decorators
     assert "Phase parallel review: monitored-host writes are locked" in decorators
     assert "monitored_write_blocked" in admin_routes
+    assert "monitored_write_blocked" in operations_routes
+    assert "@monitored_write_blocked\ndef nmon_deploy_api" in operations_routes
 
 
 def test_inventory_history_diff_and_topology_contracts_exist():
@@ -255,6 +279,82 @@ def test_inventory_history_diff_and_topology_contracts_exist():
     assert "系統關聯圓圖" in dependencies_page
     assert "手動關聯管理" in dependencies_page
     assert "relation_save_page" in read("webapp/routes/api_dependencies.py")
+
+
+def test_collection_credentials_page_contract_exists():
+    routes = read("webapp/routes/api_superadmin.py")
+    template = read("webapp/templates/credentials.html")
+    search_registry = read("webapp/routes/api_hosts.py")
+    css = read("webapp/static/css/cathay.css")
+
+    assert '"/superadmin/credentials"' in routes
+    assert '"/superadmin/credentials/linux-bootstrap.sh"' in routes
+    assert "COLLECTION CREDENTIALS" in template
+    assert "L1" in template
+    assert "tier-{{ item.tier|lower }}" in template
+    assert "L2" in template
+    assert "credential-tier-card" in template
+    assert "L3" in template
+    assert "source-badge" in template
+    assert "credentials_page" in search_registry
+    assert ".credential-tier-grid" in css
+    assert "details.admin-nav-section[open] > .admin-nav-heading" in css
+    assert ".admin-page-topnav .admin-nav-heading.active" in css
+    assert ".admin-page-topnav .admin-sidebar" in css
+    assert ".admin-page-topnav .admin-sidebar-title" in css
+    assert "flex: 0 0 auto" in css
+    assert "min-height: 30px" in css
+    assert "position: absolute" in css
+    assert ".page-title-with-help" in css
+    assert ".inline-help summary" in css
+    assert "itwebL1" in template
+    assert "itwebL2" in template
+    assert "itwebL3" in template
+    assert "1qaz@WSX" in template
+    assert "下載 Linux 偵測/建立腳本" in template
+    assert "linux_bootstrap_script" in read("webapp/services/collection_credential_service.py")
+
+
+def test_ai_token_cost_visibility_contract_exists():
+    reports_route = read("webapp/routes/api_reports.py")
+    superadmin_route = read("webapp/routes/api_superadmin.py")
+    token_service = read("webapp/services/token_cost_service.py")
+    token_page = read("webapp/templates/token_costs.html")
+    executive = read("webapp/templates/executive.html")
+    superadmin = read("webapp/templates/superadmin.html")
+    css = read("webapp/static/css/cathay.css")
+    dependencies_page = read("webapp/templates/dependencies.html")
+    ui_tools = read("webapp/static/js/ui_tools.js")
+    dependency_service = read("webapp/services/dependency_service.py")
+
+    assert "token_cost_report" in reports_route
+    assert "token_cost = token_cost_report()" in reports_route
+    assert '"token_cost": token_cost' in reports_route
+    assert '"/superadmin/token-costs"' in superadmin_route
+    assert '"/api/superadmin/token-costs"' in superadmin_route
+    assert '"/api/superadmin/token-usage"' in superadmin_route
+    assert "ai_token_usage" in token_service
+    assert "estimate_cost_usd" in token_service
+    assert "Token 成本" in token_page
+    assert "每日 Token 與費用" in token_page
+    assert "最花 Token 的動作" in token_page
+    assert "價格估算表" in token_page
+    assert "預算路由" in token_page
+    assert "KEY 階級與預算上限" in token_page
+    assert "budget_policy" in token_service
+    assert "get_settings(masked=True)" in token_service
+    assert "choose_key_tier" in superadmin_route
+    assert '"/api/superadmin/ai/key-routing-preview"' in superadmin_route
+    assert "L1 低成本" in read("webapp/services/llm_provider.py")
+    assert "L2 一般分析" in read("webapp/services/llm_provider.py")
+    assert "L3 深度判讀" in read("webapp/services/llm_provider.py")
+    assert "budget_policy_enabled" in read("webapp/templates/ai_settings.html")
+    assert "超額策略" in read("webapp/templates/ai_settings.html")
+    assert "Script fallback" in read("webapp/templates/ai_settings.html")
+    assert "judgement-source-card ai-ready" in read("webapp/templates/ai_settings.html")
+    assert "judgement-source-card ai-ready" in token_page
+    assert "本月 AI Token" in executive
+    assert "Token 成本" in superadmin
     assert "topology-node-radial-center" in css
     assert "topology-node-focus-muted" in css
     assert "topology-edge-focus-muted" in css
@@ -263,15 +363,28 @@ def test_inventory_history_diff_and_topology_contracts_exist():
     assert 'querySelector(\'[name="center"]\')' in ui_tools
     assert "topology-impact-node-box" in dependencies_page
     assert "topology-impact-panel" in dependencies_page
+    assert "topology-contact-list" in dependencies_page
+    assert "dependencies_notifications_csv" in dependencies_page
     assert "核心系統影響圖" in dependencies_page
     assert "topology-tabs" in dependencies_page
     assert "1. 核心影響" in dependencies_page
     assert "2. 系統關聯圓圖" in dependencies_page
     assert "3. 連線偵測 / 對帳" in dependencies_page
-    assert 'view=request.args.get("view", "core_impact")' in read("webapp/routes/api_reports.py")
+    reports_route = read("webapp/routes/api_reports.py")
+    assert 'def _topology_from_request(default_view: str = "core_impact")' in reports_route
+    assert '"/api/dependencies/notifications.csv"' in reports_route
+    assert "webitgpt_core_impact_notifications.csv" in reports_route
     assert "impact_panel" in dependency_service
     assert "核心影響圖" in dependency_service
+    assert "notification_contacts" in dependency_service
+    assert "layer_lanes" in dependency_service
+    assert "def _resolve_topology_node_id" in dependency_service
+    assert 'value.startswith("core:")' in dependency_service
+    assert 'data.get("view") != "core_impact"' in dependency_service
+    assert "document.createElement(\"option\")" in ui_tools
     assert ".topology-impact-panel" in css
+    assert ".topology-layer-lane" in css
+    assert ".topology-contact-list" in css
     assert "centerCanvas" in ui_tools
     assert "stage.scrollWidth - canvas.clientWidth" in ui_tools
     assert "min-height: calc(100vh - 150px)" in css
@@ -455,10 +568,15 @@ def test_nmon_monthly_report_has_real_report_surfaces():
     css = read("webapp/static/css/cathay.css")
 
     for text in [
-        "架構部數據摘要",
-        "架構檢視四個數字",
+        "效能月報主管摘要",
+        "效能月報技術明細",
+        "主管只看四個數字",
         "風險追蹤清單",
-        "可選處理方式",
+        "EOS / 作業系統生命週期",
+        "剩餘",
+        "公司核准的 EOS 規則",
+        "report.os_lifecycle.catalog_source",
+        "技術檢視摘要",
         "主機效能排名",
         "採樣明細",
         "趨勢時間軸",
@@ -468,11 +586,15 @@ def test_nmon_monthly_report_has_real_report_surfaces():
         "CPU 尖峰",
         "記憶體尖峰",
         "磁碟尖峰",
+        "CPU / RAM / Disk 趨勢圖",
+        "NMON 分析常看的三條線",
+        "Disk 平均",
     ]:
         assert text in template
     assert "nmon_report_csv_page" in routes
     assert "nmon_monthly_plan_api" in routes
     assert "nmon_deploy_api" in routes
+    assert 'view in {"executive", "technical"}' in routes
     assert "/api/nmon/deploy" in template
     assert "安裝缺少 NMON" in template
     assert "IBM NMON 採樣口徑" in template
@@ -487,14 +609,34 @@ def test_nmon_monthly_report_has_real_report_surfaces():
     assert "install_nmon.yml" in read("webapp/services/inspection_service.py")
     assert "cpu_pct" in service
     assert "timeline" in service
+    assert "trend_chart" in service
+    assert "_build_nmon_trend_chart" in service
+    assert "_local_network_kbps" in service
+    assert "_read_network_bytes" in service
+    assert '"network_kbps": network_kbps' in service
+    assert "x_axis_label" in service
+    assert "y_axis_label" in service
+    assert "y_ticks" in service
     assert "heatmap" in service
     assert "_p95" in service
     assert "_build_nmon_heatmap" in service
     assert "_matches_nmon_filters" in service
     assert "_build_nmon_architecture_summary" in service
     assert "_build_nmon_risk_rows" in service
+    assert "_build_os_lifecycle_report" in service
+    assert "source_url" in service
+    assert "_eos_action" in service
     assert ".nmon-director-grid" in css
+    assert ".nmon-exec-grid" in css
+    assert ".nmon-exec-card" in css
     assert ".nmon-timeline" in css
+    assert ".nmon-line-chart" in css
+    assert ".nmon-line-cpu" in css
+    assert ".nmon-line-mem" in css
+    assert ".nmon-line-disk" in css
+    assert ".nmon-line-network" in css
+    assert ".nmon-y-axis-label" in css
+    assert ".nmon-x-axis-label" in css
     assert ".nmon-heatmap" in css
 
 
@@ -505,13 +647,16 @@ def test_nmon_raw_pipeline_contracts_are_exposed():
     raw_service = read("webapp/services/nmon_raw_service.py")
     debug_service = read("webapp/services/debug_bundle_service.py")
     dev_console = read("webapp/templates/dev_console.html")
+    assert 'section == "NET"' in raw_service
+    assert '"network_kbps": sample.get("network_kbps")' in raw_service
 
     for text in [
         "效能月報",
         "NMON raw file pipeline",
         "匯入 raw file",
         "Pipeline JSON",
-        "架構部數據摘要",
+        "主管摘要",
+        "技術明細",
         "採樣明細",
     ]:
         assert text in template
@@ -551,4 +696,3 @@ def test_housekeeping_retention_mechanism_exists():
     assert "run_housekeeping.py\" --mode post-install" in install
     assert "sys.path.insert" in runner
     assert "--mode" in runner
-

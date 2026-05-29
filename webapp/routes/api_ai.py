@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request
 from webapp.decorators import current_user, require_feature, require_role
 from webapp import config
 from webapp.services import audit_log_service
-from webapp.services.llm_provider import get_provider, get_settings, save_settings
+from webapp.services.llm_provider import choose_key_tier, get_provider, get_settings, save_settings
 
 bp = Blueprint("api_ai", __name__)
 
@@ -36,3 +36,15 @@ def ai_settings_update_api():
     settings = save_settings(payload, current_user()["username"])
     audit_log_service.append("ai.settings.update", current_user()["username"], {"provider": settings.get("provider"), "enabled": settings.get("enabled")})
     return jsonify(settings)
+
+
+@bp.get("/api/ai/key-routing/preview")
+@require_role("superadmin")
+def ai_key_routing_preview_api():
+    return jsonify(
+        choose_key_tier(
+            check_level=request.args.get("level", "L1"),
+            month_cost_usd=float(request.args.get("month_cost_usd") or 0),
+            estimated_cost_usd=float(request.args.get("estimated_cost_usd") or 0),
+        )
+    )

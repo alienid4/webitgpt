@@ -279,6 +279,66 @@ def bulk_delete_draft_hosts(keys: list[str], reason: str, user: str = "system") 
     return result
 
 
+def bulk_promote_draft_hosts(keys: list[str], reason: str, user: str = "system") -> dict[str, Any]:
+    reason = str(reason or "").strip() or "bulk promote draft to active"
+    unique_keys = [key.strip() for key in dict.fromkeys(keys) if str(key).strip()]
+    result = {"promoted": [], "skipped": [], "promoted_count": 0, "skipped_count": 0}
+    for key in unique_keys:
+        existing = get_collection("hosts").find_one(_identity_query(key))
+        if not existing:
+            result["skipped"].append({"asset_seq": key, "reason": "host not found"})
+            continue
+        normalized = normalize_host_doc(existing)
+        if normalized.get("status") != "draft":
+            result["skipped"].append(
+                {
+                    "asset_seq": existing.get("asset_seq") or key,
+                    "hostname": existing.get("hostname"),
+                    "status": normalized.get("status"),
+                    "reason": "not a draft host",
+                }
+            )
+            continue
+        record_lifecycle_event(existing, "bulk_promote_draft", reason, user)
+        updated = update_host(existing.get("hostname") or existing.get("asset_seq"), {"status": "active"}, user=user)
+        result["promoted"].append({"asset_seq": updated.get("asset_seq"), "hostname": updated.get("hostname")})
+    result["promoted_count"] = len(result["promoted"])
+    result["skipped_count"] = len(result["skipped"])
+    return result
+
+
+def bulk_update_draft_hosts(keys: list[str], changes: dict[str, Any], reason: str, user: str = "system") -> dict[str, Any]:
+    allowed = {"environment", "dc", "host_type", "owner", "custodian", "user_unit", "system_name", "note"}
+    clean_changes = {key: value for key, value in changes.items() if key in allowed and str(value or "").strip()}
+    if not clean_changes:
+        raise ValueError("no draft fields selected for update")
+    reason = str(reason or "").strip() or "bulk update draft fields"
+    unique_keys = [key.strip() for key in dict.fromkeys(keys) if str(key).strip()]
+    result = {"updated": [], "skipped": [], "updated_count": 0, "skipped_count": 0}
+    for key in unique_keys:
+        existing = get_collection("hosts").find_one(_identity_query(key))
+        if not existing:
+            result["skipped"].append({"asset_seq": key, "reason": "host not found"})
+            continue
+        normalized = normalize_host_doc(existing)
+        if normalized.get("status") != "draft":
+            result["skipped"].append(
+                {
+                    "asset_seq": existing.get("asset_seq") or key,
+                    "hostname": existing.get("hostname"),
+                    "status": normalized.get("status"),
+                    "reason": "not a draft host",
+                }
+            )
+            continue
+        record_lifecycle_event(existing, "bulk_update_draft", reason, user)
+        updated = update_host(existing.get("hostname") or existing.get("asset_seq"), clean_changes, user=user)
+        result["updated"].append({"asset_seq": updated.get("asset_seq"), "hostname": updated.get("hostname")})
+    result["updated_count"] = len(result["updated"])
+    result["skipped_count"] = len(result["skipped"])
+    return result
+
+
 def restore_host(asset_seq: str, user: str = "system") -> dict[str, Any]:
     existing = get_collection("hosts").find_one(_identity_query(asset_seq))
     if not existing:

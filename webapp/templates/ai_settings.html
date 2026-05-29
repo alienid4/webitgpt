@@ -3,6 +3,9 @@
 {% block content %}
 <section class="panel narrow">
   <h1>AI 供應商</h1>
+  <div class="notice">
+    API Key 只在後端保存；畫面只顯示遮罩。L1/L2/L3 可設定不同模型與月預算，超額時會降級或改用 Script fallback。
+  </div>
   <form class="form" method="post">
     <label>供應商
       <select name="provider">
@@ -15,6 +18,57 @@
     <label>模型<input name="model" value="{{ settings.model }}"></label>
     <label>API 金鑰<input name="api_key" type="password" placeholder="{{ settings.api_key }}"></label>
     <label class="toggle"><input type="checkbox" name="enabled" {% if settings.enabled %}checked{% endif %}> <span>啟用</span></label>
+    <section class="panel compact">
+      <h2>預算與 KEY 階級路由</h2>
+      <label class="toggle"><input type="checkbox" name="budget_policy_enabled" {% if settings.budget_policy_enabled %}checked{% endif %}> <span>啟用預算路由</span></label>
+      <label>全域月預算 USD
+        <input name="monthly_budget_usd" type="number" min="0" step="0.01" value="{{ settings.monthly_budget_usd }}">
+      </label>
+      <label>超額策略
+        <select name="fallback_strategy">
+          {% for value, label in {"script_fallback":"Script fallback","use_lowest_tier":"改用最低階 KEY","block_ai":"停用 AI 判讀"}.items() %}
+          <option value="{{ value }}" {% if settings.fallback_strategy == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div class="judgement-source-panel" aria-label="AI KEY 階級說明">
+        <article class="judgement-source-card script">
+          <strong><span class="source-badge script">L1</span>Script 優先</strong>
+          <p>服務存活、版本、連線、門檻這類明確檢查先用 Script，不浪費 KEY。</p>
+        </article>
+        <article class="judgement-source-card data">
+          <strong><span class="source-badge api">L2</span>低成本 KEY</strong>
+          <p>摘要、分類、簡單異常說明走一般 KEY，預算較低、可大量使用。</p>
+        </article>
+        <article class="judgement-source-card ai-ready">
+          <strong><span class="source-badge ai-ready">L3</span>深度 KEY</strong>
+          <p>跨 CMDB、NMON、帳號、log 與拓撲判讀才用高階 KEY，超額就降級。</p>
+        </article>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>階級</th><th>啟用</th><th>名稱</th><th>模型</th><th>月上限 USD</th><th>可支援檢查</th><th>API Key</th></tr></thead>
+        <tbody>
+          {% for tier in settings.key_tiers %}
+          <tr>
+            <td><strong>{{ tier.tier }}</strong></td>
+            <td><label class="toggle"><input type="checkbox" name="{{ tier.tier }}_enabled" {% if tier.enabled %}checked{% endif %}><span>啟用</span></label></td>
+            <td><input name="{{ tier.tier }}_label" value="{{ tier.label }}"></td>
+            <td><input name="{{ tier.tier }}_model" value="{{ tier.model }}"></td>
+            <td><input name="{{ tier.tier }}_monthly_limit_usd" type="number" min="0" step="0.01" value="{{ tier.monthly_limit_usd }}"></td>
+            <td>
+              <select name="{{ tier.tier }}_max_check_level">
+                {% for level in ["L1","L2","L3"] %}
+                <option value="{{ level }}" {% if tier.max_check_level == level %}selected{% endif %}>{{ level }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td><input name="{{ tier.tier }}_api_key" type="password" placeholder="{{ tier.api_key }}"></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="text-muted-sm">建議：L1 不一定要用 AI；L2 用低成本模型；L3 才用高階模型。超過預算後要清楚標示「Script 接手」，不能假裝仍是 AI 判斷。</p>
+    </section>
     <button class="btn primary" type="submit">儲存設定</button>
   </form>
 </section>

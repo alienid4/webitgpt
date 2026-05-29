@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}資料品質 - webitgpt{% endblock %}
+{% block content %}
+<section class="ops-hero">
+  <div>
+    <p class="eyebrow">DATA QUALITY</p>
+    <h1>資料品質工作台</h1>
+    <p class="text-muted-sm">維運判斷先看資料可信度。分數低時，先修 CMDB、AP owner/PAM、拓撲通知名單，再看報表結論。</p>
+  </div>
+  <div class="actions">
+    <a class="btn primary" href="{{ url_for('api_reports.data_quality_csv') }}">匯出 CSV</a>
+    <a class="btn secondary" href="{{ url_for('api_reports.data_quality_api') }}">JSON API</a>
+  </div>
+</section>
+
+<section class="judgement-source-legend" aria-label="資料品質判斷來源">
+  <strong>資料品質判斷來源</strong>
+  <span class="source-badge cmdb">CMDB 欄位</span>
+  <span class="source-badge rule">Rule 檢核</span>
+  <span class="source-badge script">Script 採證</span>
+  <span class="source-badge ai-ready">AI-ready 說明</span>
+  <span class="source-badge insufficient">證據不足會標紅</span>
+</section>
+
+<section class="quality-score-band {% if report.status != 'ok' %}warn{% endif %}">
+  <div>
+    <span>品質分數</span>
+    <strong>{{ report.score }}</strong>
+  </div>
+  <div>
+    <span>狀態</span>
+    <strong>{{ report.status }}</strong>
+  </div>
+  <div>
+    <span>CMDB 待修</span>
+    <strong>{{ report.summary.cmdb_issues }}</strong>
+  </div>
+  <div>
+    <span>AP 待複核</span>
+    <strong>{{ report.summary.ap_review }}</strong>
+  </div>
+</section>
+
+{% if report.warnings %}
+<section class="notice danger">
+  {{ report.warnings|join(" / ") }}
+</section>
+{% endif %}
+
+<section class="report-grid">
+  {% for item in report.checks %}
+  <article class="panel quality-check-card {% if item.status != 'ok' %}warn{% endif %}">
+    <div class="compact-title">
+      <h2>{{ item.domain }}</h2>
+      <span class="{% if item.status == 'ok' %}badge-ok{% else %}badge-warn{% endif %}">{{ item.status }}</span>
+    </div>
+    <div class="judgement-source-row">
+      <span class="source-badge cmdb">CMDB</span>
+      <span class="source-badge rule">Rule</span>
+    </div>
+    <strong class="quality-count">{{ item.count }}</strong>
+    <p class="text-muted-sm">{{ item.action }}</p>
+  </article>
+  {% endfor %}
+</section>
+{% endblock %}

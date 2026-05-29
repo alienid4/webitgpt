@@ -3,7 +3,7 @@ from __future__ import annotations
 from flask import Blueprint, Response, flash, jsonify, redirect, render_template, request, url_for
 from werkzeug.utils import secure_filename
 
-from webapp.decorators import current_user, require_feature, require_role
+from webapp.decorators import current_user, monitored_write_blocked, require_feature, require_role
 from webapp.services import audit_log_service
 from webapp.services.inspection_service import deploy_nmon_with_ansible, nmon_deploy_plan, nmon_status, run_daily_inspection, today_report
 from webapp.services.legacy_parity_service import collect_nmon_sample, daily_diagnostics, diagnostic_history, nmon_monthly_plan, nmon_report, nmon_report_csv, run_deep_diagnostic
@@ -71,6 +71,8 @@ def deep_diagnostic_history_api(asset_seq: str):
 @require_feature("perf")
 def nmon_page():
     period = request.args.get("period", "month")
+    view = request.args.get("view", "executive")
+    view = view if view in {"executive", "technical"} else "executive"
     filters = {
         "month": request.args.get("month", ""),
         "system": request.args.get("system", ""),
@@ -78,7 +80,7 @@ def nmon_page():
         "dc": request.args.get("dc", ""),
         "q": request.args.get("q", ""),
     }
-    return render_template("nmon.html", status=nmon_status(), report=nmon_report(period, filters))
+    return render_template("nmon.html", status=nmon_status(), report=nmon_report(period, filters), view=view)
 
 
 @bp.post("/nmon/raw-upload")
@@ -121,6 +123,7 @@ def nmon_deploy_plan_api():
 @bp.post("/api/nmon/deploy")
 @require_feature("perf")
 @require_role("admin")
+@monitored_write_blocked
 def nmon_deploy_api():
     limit = min(max(int((request.get_json(force=True, silent=True) or {}).get("limit", 100)), 1), 1000)
     result = deploy_nmon_with_ansible(limit=limit, user=current_user()["username"])

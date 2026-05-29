@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>webitgpt AI 維運平台案例故事簡報</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5f6b7a;
+      --paper: #fbfcfd;
+      --line: #d8e0e6;
+      --green: #006b4a;
+      --green-soft: #e7f4ed;
+      --gold: #9b6500;
+      --gold-soft: #fff8e8;
+      --gold-pale: #fffdf4;
+      --blue: #1f5f93;
+      --blue-soft: #edf5ff;
+      --red: #b42318;
+      --red-soft: #fff1f0;
+      --shadow: 0 20px 48px rgba(17, 24, 39, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #e8edf2;
+      font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif;
+      line-height: 1.55;
+    }
+
+    .deck {
+      width: min(1240px, calc(100vw - 32px));
+      margin: 24px auto 40px;
+    }
+
+    .slide {
+      position: relative;
+      min-height: 720px;
+      margin: 0 0 30px;
+      padding: 58px 68px 62px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 90% 10%, rgba(0, 107, 74, 0.08), transparent 34%),
+        var(--paper);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .slide::after {
+      content: "";
+      position: absolute;
+      left: 68px;
+      right: 68px;
+      bottom: 34px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--green), #94bd77, transparent);
+      border-radius: 99px;
+    }
+
+    .kicker {
+      margin-bottom: 12px;
+      color: var(--green);
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      max-width: 860px;
+      margin-bottom: 22px;
+      font-size: 52px;
+    }
+
+    h2 {
+      max-width: 900px;
+      margin-bottom: 18px;
+      font-size: 42px;
+    }
+
+    h3 {
+      margin-bottom: 8px;
+      font-size: 22px;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    .lead {
+      max-width: 860px;
+      margin-bottom: 34px;
+      color: var(--muted);
+      font-size: 20px;
+    }
+
+    .big-number {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--green);
+      font-size: 54px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .grid-2,
+    .grid-3 {
+      display: grid;
+      gap: 18px;
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .card {
+      min-height: 148px;
+      padding: 22px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    .card.green {
+      background: var(--green-soft);
+      border-color: #9acdb7;
+    }
+
+    .card.blue {
+      background: var(--blue-soft);
+      border-color: #b7d6f3;
+    }
+
+    .card.gold-ready {
+      background: var(--gold-pale);
+      border: 2px solid #f1d89a;
+    }
+
+    .card.gold-ai {
+      background: var(--gold-soft);
+      border: 3px solid var(--gold);
+      box-shadow: 0 0 0 5px rgba(155, 101, 0, 0.10);
+    }
+
+    .card.red {
+      background: var(--red-soft);
+      border-color: #f2b8b5;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .story-strip {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 20px;
+      align-items: start;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .story-strip:last-child {
+      border-bottom: 0;
+    }
+
+    .time {
+      color: var(--green);
+      font-size: 24px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 4px 11px;
+      color: var(--ink);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .tag.green {
+      color: var(--green);
+      background: var(--green-soft);
+      border-color: #9acdb7;
+    }
+
+    .tag.gold {
+      color: var(--gold);
+      background: var(--gold-soft);
+      border: 2px solid var(--gold);
+    }
+
+    .tag.pale {
+      color: var(--gold);
+      background: var(--gold-pale);
+      border: 2px solid #f1d89a;
+    }
+
+    .quote {
+      margin: 28px 0 0;
+      padding: 22px 26px;
+      color: var(--ink);
+      background: #fff;
+      border-left: 7px solid var(--green);
+      border-radius: 8px;
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .phase {
+      min-height: 220px;
+      padding: 22px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-top: 7px solid var(--green);
+      border-radius: 10px;
+    }
+
+    .phase .date {
+      display: inline-block;
+      margin-bottom: 10px;
+      color: var(--green);
+      font-weight: 900;
+    }
+
+    ul {
+      margin: 12px 0 0;
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 7px;
+    }
+
+    .footer {
+      position: absolute;
+      left: 68px;
+      bottom: 44px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .page {
+      position: absolute;
+      right: 68px;
+      bottom: 44px;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .deck {
+        width: 100%;
+        margin: 0;
+      }
+
+      .slide {
+        min-height: 0;
+        margin: 0;
+        page-break-after: always;
+        box-shadow: none;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .slide {
+        padding: 36px 26px 58px;
+      }
+
+      .slide::after,
+      .footer {
+        left: 26px;
+        right: 26px;
+      }
+
+      .page {
+        right: 26px;
+      }
+
+      h1 {
+        font-size: 38px;
+      }
+
+      h2 {
+        font-size: 32px;
+      }
+
+      .grid-2,
+      .grid-3,
+      .timeline {
+        grid-template-columns: 1fr;
+      }
+
+      .story-strip {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck">
+    <section class="slide">
+      <div class="kicker">A Day Before Market Open</div>
+      <h1>一次異常，從找資料開始卡住。</h1>
+      <p class="lead">
+        週一早上，核心交易相關服務出現連線不穩。主機、帳號、備份、拓撲與效能資料分散在不同地方，
+        維運團隊必須先花時間拼出「到底影響誰」。
+      </p>
+      <div class="grid-3">
+        <article class="card red">
+          <span class="big-number">1</span>
+          <h3>資料分散</h3>
+          <p>CMDB、掃描結果、帳號盤點、效能紀錄各自存在，欄位命名與完整度不一致。</p>
+        </article>
+        <article class="card red">
+          <span class="big-number">2</span>
+          <h3>判讀靠經驗</h3>
+          <p>Script 可以查出結果，但誰受影響、要通知誰、風險多高，仍仰賴人工判斷。</p>
+        </article>
+        <article class="card red">
+          <span class="big-number">3</span>
+          <h3>回報難成形</h3>
+          <p>主管需要一句話摘要與處置建議，現場卻常只有一串 log、CSV 或掃描文字。</p>
+        </article>
+      </div>
+      <div class="quote">導入前的主要痛點：不是沒有資料，而是資料太散、太慢、太難判讀。</div>
+      <div class="footer">webitgpt AI 維運平台案例故事</div>
+      <div class="page">1 / 4</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">The Platform Steps In</div>
+      <h2>平台先把事實收齊，再把風險說清楚。</h2>
+      <p class="lead">
+        webitgpt 將 CMDB、nmap、NMON、帳號盤點與核心系統影響圖集中到同一個工作台。
+        Script 負責採證，AI 負責判讀；AI 不可用時，既有 Script 規則仍可接手。
+      </p>
+      <div class="story-strip">
+        <div class="time">08:40</div>
+        <div>
+          <h3>系統先確認資產與關聯</h3>
+          <p>從核心影響圖選定疑似異常系統，立即看到關聯系統、主機/IP、通知對象與受影響範圍。</p>
+          <div class="tag-row">
+            <span class="tag green">CMDB</span>
+            <span class="tag green">核心影響圖</span>
+            <span class="tag green">通知名單</span>
+          </div>
+        </div>
+      </div>
+      <div class="story-strip">
+        <div class="time">08:45</div>
+        <div>
+          <h3>採證資料自動收斂</h3>
+          <p>nmap、NMON、巡檢結果、帳號與 PAM/owner 規則集中呈現，避免維運人員在多份檔案間切換。</p>
+          <div class="tag-row">
+            <span class="tag green">Shell 採證</span>
+            <span class="tag green">NMON raw</span>
+            <span class="tag green">帳號盤點</span>
+          </div>
+        </div>
+      </div>
+      <div class="story-strip">
+        <div class="time">08:50</div>
+        <div>
+          <h3>AI-ready 與 AI 判讀分清楚</h3>
+          <p>淡金框表示資料已可交給 AI 判讀；深金框才代表真正由 AI 參與判斷，避免使用者誤會來源。</p>
+          <div class="tag-row">
+            <span class="tag pale">AI-ready 淡金框</span>
+            <span class="tag gold">AI 判讀深金框</span>
+            <span class="tag green">Script fallback</span>
+          </div>
+        </div>
+      </div>
+      <div class="footer">application scenario and AI usage</div>
+      <div class="page">2 / 4</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">From Evidence To Decision</div>
+      <h2>AI 預期效益：讓現場少整理，讓主管快決策。</h2>
+      <p class="lead">
+        這套平台不是讓 AI 直接取代維運，而是把「採證」與「判讀」分工。
+        採證仍由可追溯的 Script、API 與資料來源完成，AI 協助整理脈絡、風險分級與建議行動。
+      </p>
+      <div class="grid-2">
+        <article class="card gold-ai">
+          <h3>L3 深度檢查</h3>
+          <p>AI 讀取巡檢、效能、拓撲與帳號證據，產出可讀摘要、可能原因、影響範圍與下一步建議。</p>
+          <ul>
+            <li>將多來源資料合併成一段可回報文字。</li>
+            <li>把「異常」轉成「風險等級與處置順序」。</li>
+            <li>保留證據來源，避免只靠直覺判斷。</li>
+          </ul>
+        </article>
+        <article class="card green">
+          <h3>不中斷的保底機制</h3>
+          <p>當 API Key、模型服務或預算不可用，系統退回既有 Script 規則與人工流程。</p>
+          <ul>
+            <li>L1 基礎檢查：Script-first。</li>
+            <li>L2 一般判讀：低成本模型或規則摘要。</li>
+            <li>L3 深度判讀：高階模型與預算控管。</li>
+          </ul>
+        </article>
+      </div>
+      <div class="grid-3" style="margin-top: 18px;">
+        <article class="card">
+          <h3>時間效益</h3>
+          <p>縮短資料收集、比對與回報文字整理時間。</p>
+        </article>
+        <article class="card">
+          <h3>品質效益</h3>
+          <p>降低漏看關聯系統、通知對象與帳號風險的機率。</p>
+        </article>
+        <article class="card">
+          <h3>治理效益</h3>
+          <p>透過來源標示、成本控管與 debug 模式，提高可稽核性。</p>
+        </article>
+      </div>
+      <div class="footer">AI expected benefit</div>
+      <div class="page">3 / 4</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Three-Month Introduction Plan</div>
+      <h2>從 4/15 開始，三個月完成可驗收導入。</h2>
+      <p class="lead">
+        導入時程以三個月計算，先完成資料與採證基礎，再導入可視化與離線部署，
+        最後補上 AI 判讀、API Key 治理與正式驗收。
+      </p>
+      <div class="timeline">
+        <article class="phase">
+          <span class="date">第 1 個月｜4/15 - 5/14</span>
+          <h3>建立基礎資料面</h3>
+          <ul>
+            <li>主機與 CMDB 欄位治理。</li>
+            <li>資產草稿區與匯入驗證。</li>
+            <li>今日巡檢與基礎 Script 採證。</li>
+            <li>版本規則與部署流程建立。</li>
+          </ul>
+        </article>
+        <article class="phase">
+          <span class="date">第 2 個月｜5/15 - 6/14</span>
+          <h3>完成營運可視化</h3>
+          <ul>
+            <li>NMON 效能月報與 EOS 摘要。</li>
+            <li>OS/AP 帳號盤點與異常彙整。</li>
+            <li>核心系統影響圖與通知名單。</li>
+            <li>離線安裝與 RHEL 9.6 移植驗證。</li>
+          </ul>
+        </article>
+        <article class="phase">
+          <span class="date">第 3 個月｜6/15 - 7/14</span>
+          <h3>導入 AI 判讀與治理</h3>
+          <ul>
+            <li>L1/L2/L3 判讀分級與 fallback。</li>
+            <li>API Key 設定、預算與成本控管。</li>
+            <li>AI-ready 淡金框與 AI 深金框辨識。</li>
+            <li>驗收文件、操作手冊與交接資料。</li>
+          </ul>
+        </article>
+      </div>
+      <div class="quote">最終目標：讓維運從「找資料」進化成「判斷、溝通與決策」。</div>
+      <div class="footer">introduction schedule from 2026/4/15</div>
+      <div class="page">4 / 4</div>
+    </section>
+  </main>
+</body>
+</html>

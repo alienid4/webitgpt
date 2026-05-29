@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}Token 成本 - webitgpt{% endblock %}
+{% block content %}
+<section class="admin-page">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-title">系統管理</div>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.superadmin_page') }}">總覽</a>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.tokens_page') }}">API Token</a>
+    <a class="admin-side-link active" href="{{ url_for('api_superadmin.token_costs_page') }}">Token 成本</a>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.ai_page') }}">AI 供應商</a>
+    <a class="admin-side-link" href="{{ url_for('api_superadmin.audit_logs_page') }}">操作紀錄</a>
+  </aside>
+
+  <div class="admin-content">
+    <section class="admin-hero">
+      <div>
+        <p class="eyebrow">AI COST GOVERNANCE</p>
+        <h1>Token 成本</h1>
+        <p class="muted">統計本月 AI/API token 用量、估算費用，並找出最花 token 的動作。</p>
+      </div>
+      <div class="actions">
+        <a class="btn" href="{{ url_for('api_superadmin.token_costs_api', month=report.month) }}">JSON API</a>
+      </div>
+    </section>
+
+    <form class="filter-bar" method="get">
+      <label>月份
+        <input class="input-field" type="month" name="month" value="{{ report.month }}">
+      </label>
+      <button class="btn btn-primary" type="submit">套用</button>
+    </form>
+
+    <section class="summary-grid">
+      <a class="metric" href="#token-daily"><strong>{{ report.summary.total_tokens }}</strong><span>本月 Token</span></a>
+      <a class="metric" href="#token-daily"><strong>${{ "%.4f"|format(report.summary.estimated_cost_usd) }}</strong><span>本月估算費用</span></a>
+      <a class="metric" href="#token-actions"><strong>{{ report.top_action.total_tokens }}</strong><span>最花 Token 動作</span></a>
+      <a class="metric" href="#token-recent"><strong>{{ report.summary.calls }}</strong><span>API 呼叫筆數</span></a>
+    </section>
+
+    <section class="panel">
+      <div class="page-header">
+        <div>
+          <h2>估算設定：{{ report.month }}</h2>
+          <p class="text-muted-sm">{{ report.note }}</p>
+        </div>
+      </div>
+      <div class="judgement-source-panel" aria-label="AI 預算路由狀態">
+        <article class="judgement-source-card data">
+          <strong><span class="source-badge {{ 'api' if report.budget_policy.enabled else 'fallback' }}">{{ "已啟用" if report.budget_policy.enabled else "未啟用" }}</span>預算路由</strong>
+          <p>月預算 ${{ "%.2f"|format(report.budget_policy.monthly_budget_usd) }}；目前估算 ${{ "%.4f"|format(report.summary.estimated_cost_usd) }}。</p>
+        </article>
+        <article class="judgement-source-card {{ 'fallback' if report.budget_policy.over_budget else 'script' }}">
+          <strong><span class="source-badge {{ 'insufficient' if report.budget_policy.over_budget else 'cmdb' }}">{{ "已超額" if report.budget_policy.over_budget else "預算內" }}</span>成本狀態</strong>
+          <p>超額策略：{{ report.budget_policy.fallback_strategy }}。超額時不會假裝仍是高階 AI。</p>
+        </article>
+        <article class="judgement-source-card ai-ready">
+          <strong><span class="source-badge ai-ready">AI KEY</span>階級決策</strong>
+          <p>L3 金框代表高成本深度判讀；L1/L2 先消化簡單任務，保留預算。</p>
+        </article>
+      </div>
+      <div class="token-cost-summary">
+        <div><span>Input token</span><strong>{{ report.summary.input_tokens }}</strong></div>
+        <div><span>Output token</span><strong>{{ report.summary.output_tokens }}</strong></div>
+        <div><span>最耗用動作</span><strong>{{ report.top_action.name }}</strong></div>
+        <div><span>該動作估算費用</span><strong>${{ "%.4f"|format(report.top_action.estimated_cost_usd) }}</strong></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>KEY 階級與預算上限</h2>
+      <p class="text-muted-sm">這裡只顯示階級、模型、上限與遮罩狀態；不顯示完整 API Key。</p>
+      <table class="data-table">
+        <thead><tr><th>階級</th><th>狀態</th><th>模型</th><th>月上限</th><th>支援檢查</th></tr></thead>
+        <tbody>
+          {% for tier in report.budget_policy.key_tiers %}
+          <tr>
+            <td><strong>{{ tier.tier }}</strong> {{ tier.label }}</td>
+            <td><span class="{{ 'badge-ok' if tier.enabled else 'badge-warn' }}">{{ "啟用" if tier.enabled else "停用" }}</span></td>
+            <td><code>{{ tier.model or "-" }}</code></td>
+            <td>${{ "%.2f"|format(tier.monthly_limit_usd) }}</td>
+            <td>{{ tier.max_check_level }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="no-data">尚未設定 KEY 階級。</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel" id="token-daily">
+      <h2>每日 Token 與費用</h2>
+      <table class="data-table">
+        <thead><tr><th>日期</th><th>Token</th><th>Input</th><th>Output</th><th>費用</th><th>呼叫筆數</th></tr></thead>
+        <tbody>
+          {% for row in report.by_day %}
+          <tr>
+            <td>{{ row.name }}</td>
+            <td><strong>{{ row.total_tokens }}</strong></td>
+            <td>{{ row.input_tokens }}</td>
+            <td>{{ row.output_tokens }}</td>
+            <td>${{ "%.4f"|format(row.estimated_cost_usd) }}</td>
+            <td>{{ row.calls }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="no-data">本月尚無 token 用量紀錄。未來 API 呼叫寫入 ai_token_usage 後會出現在這裡。</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="grid-2col">
+      <div class="panel" id="token-actions">
+        <h2>最花 Token 的動作</h2>
+        <table class="data-table">
+          <thead><tr><th>動作</th><th>Token</th><th>費用</th><th>呼叫筆數</th></tr></thead>
+          <tbody>
+            {% for row in report.by_action %}
+            <tr><td>{{ row.name }}</td><td>{{ row.total_tokens }}</td><td>${{ "%.4f"|format(row.estimated_cost_usd) }}</td><td>{{ row.calls }}</td></tr>
+            {% else %}
+            <tr><td colspan="4" class="no-data">尚無動作資料。</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h2>模型用量</h2>
+        <table class="data-table">
+          <thead><tr><th>模型</th><th>Token</th><th>費用</th><th>呼叫筆數</th></tr></thead>
+          <tbody>
+            {% for row in report.by_model %}
+            <tr><td>{{ row.name }}</td><td>{{ row.total_tokens }}</td><td>${{ "%.4f"|format(row.estimated_cost_usd) }}</td><td>{{ row.calls }}</td></tr>
+            {% else %}
+            <tr><td colspan="4" class="no-data">尚無模型資料。</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>價格估算表</h2>
+      <p class="text-muted-sm">這裡先放預設價格。正式接上供應商 API 後，只要調整價格表，就能重新估算本月成本。</p>
+      <table class="data-table">
+        <thead><tr><th>供應商</th><th>模型</th><th>Input / 100 萬 token</th><th>Output / 100 萬 token</th><th>備註</th></tr></thead>
+        <tbody>
+          {% for row in report.price_table %}
+          <tr>
+            <td>{{ row.provider }}</td>
+            <td><code>{{ row.model }}</code></td>
+            <td>${{ "%.4f"|format(row.input_per_1m_usd) }}</td>
+            <td>${{ "%.4f"|format(row.output_per_1m_usd) }}</td>
+            <td>{{ row.note }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel" id="token-recent">
+      <h2>最近 Token 紀錄</h2>
+      <table class="data-table">
+        <thead><tr><th>時間</th><th>動作</th><th>模型</th><th>Token</th><th>費用</th><th>使用者</th></tr></thead>
+        <tbody>
+          {% for row in report.recent %}
+          <tr>
+            <td>{{ (row.occurred_at|string)[:19]|replace("T", " ") }}</td>
+            <td>{{ row.action }}</td>
+            <td>{{ row.model }}</td>
+            <td>{{ row.total_tokens }}</td>
+            <td>${{ "%.4f"|format(row.estimated_cost_usd) }}</td>
+            <td>{{ row.actor or "-" }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="no-data">尚無近期紀錄。</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </div>
+</section>
+{% endblock %}

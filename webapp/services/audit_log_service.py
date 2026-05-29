@@ -42,13 +42,21 @@ def append(action: str, user: str, details: Optional[dict[str, Any]] = None) -> 
 def verify_chain() -> dict[str, Any]:
     expected_prev = "GENESIS"
     count = 0
+    skipped_legacy = 0
     for doc in get_collection("audit_logs").find({}).sort("seq", 1):
+        if not doc.get("hash") or not doc.get("prev_hash") or "seq" not in doc or "action" not in doc:
+            skipped_legacy += 1
+            if doc.get("hash"):
+                expected_prev = doc["hash"]
+            continue
+        user = doc.get("user", doc.get("actor", ""))
+        details = doc.get("details", doc.get("detail", {}))
         payload = json.dumps(
             {
                 "seq": doc["seq"],
-                "user": doc["user"],
+                "user": user,
                 "action": doc["action"],
-                "details": doc.get("details", {}),
+                "details": details,
                 "prev_hash": doc["prev_hash"],
             },
             ensure_ascii=False,
@@ -62,4 +70,4 @@ def verify_chain() -> dict[str, Any]:
             return {"ok": False, "count": count, "error": f"hash mismatch at seq {doc['seq']}"}
         expected_prev = doc["hash"]
         count += 1
-    return {"ok": True, "count": count}
+    return {"ok": True, "count": count, "skipped_legacy": skipped_legacy}

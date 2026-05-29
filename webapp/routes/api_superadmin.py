@@ -14,13 +14,14 @@ from webapp.services.asset_governance_status_service import list_statuses as lis
 from webapp.services.asset_governance_status_service import save_status as save_governance_status
 from webapp.services.asset_governance_status_service import set_status_enabled as set_governance_status_enabled
 from webapp.services.auth_service import generate_backup_codes, list_users, reset_password, set_user_locked, upsert_user
+from webapp.services.collection_credential_service import get_collection_credentials, linux_bootstrap_script, save_collection_credentials
 from webapp.services.debug_bundle_service import ai_runtime_manifest, collect_debug_bundle, create_ai_debug_loop, get_ai_debug_loop_prompt, list_debug_bundles
 from webapp.services.feature_flags import DEFAULT_FLAGS, is_enabled, set_enabled, snapshot
 from webapp.services.important_service_service import delete_rule as delete_service_rule
 from webapp.services.important_service_service import list_rules as list_service_rules
 from webapp.services.important_service_service import save_rule as save_service_rule
 from webapp.services.important_service_service import set_rule_enabled as set_service_rule_enabled
-from webapp.services.llm_provider import get_settings, save_settings
+from webapp.services.llm_provider import choose_key_tier, get_settings, save_settings
 from webapp.services.log_exception_service import delete_rule, list_rules, save_rule, set_rule_enabled
 from webapp.services.mongo_service import get_collection
 from webapp.services.system_service import (
@@ -42,6 +43,7 @@ from webapp.services.system_service import (
     save_dev_upload,
     settings_overview,
 )
+from webapp.services.token_cost_service import record_usage, token_cost_report
 
 bp = Blueprint("api_superadmin", __name__)
 
@@ -186,9 +188,54 @@ def ai_page():
     return render_template("ai_settings.html", settings=get_settings(masked=True))
 
 
+@bp.get("/superadmin/credentials")
+@require_role("superadmin")
+def credentials_page():
+    settings = get_collection_credentials()
+    return render_template("credentials.html", tiers=settings["tiers"], settings=settings, saved=False)
+
+
+@bp.post("/superadmin/credentials")
+@require_role("superadmin")
+def credentials_save_page():
+    settings = save_collection_credentials(request.form.to_dict(), current_user()["username"])
+    audit_log_service.append(
+        "collection_credentials.update",
+        current_user()["username"],
+        {"tiers": [tier["tier"] for tier in settings["tiers"] if tier.get("enabled")]},
+    )
+    flash("採集帳號設定已儲存")
+    return render_template("credentials.html", tiers=settings["tiers"], settings=settings, saved=True)
+
+
+@bp.get("/superadmin/credentials/linux-bootstrap.sh")
+@require_role("superadmin")
+def credentials_linux_bootstrap_script():
+    settings = get_collection_credentials()
+    script = linux_bootstrap_script(settings)
+    return Response(
+        script,
+        mimetype="text/x-shellscript",
+        headers={"Content-Disposition": "attachment; filename=webitgpt_collection_accounts.sh"},
+    )
+
+
 @bp.post("/superadmin/ai")
 @require_role("superadmin")
 def ai_update_page():
+    key_tiers = []
+    for tier in ["L1", "L2", "L3"]:
+        key_tiers.append(
+            {
+                "tier": tier,
+                "label": request.form.get(f"{tier}_label", ""),
+                "model": request.form.get(f"{tier}_model", ""),
+                "api_key": request.form.get(f"{tier}_api_key", ""),
+                "monthly_limit_usd": request.form.get(f"{tier}_monthly_limit_usd", "0"),
+                "max_check_level": request.form.get(f"{tier}_max_check_level", tier),
+                "enabled": request.form.get(f"{tier}_enabled") == "on",
+            }
+        )
     settings = save_settings(
         {
             "provider": request.form.get("provider", "disabled"),
@@ -196,12 +243,67 @@ def ai_update_page():
             "model": request.form.get("model", ""),
             "api_key": request.form.get("api_key", ""),
             "enabled": request.form.get("enabled") == "on",
+            "budget_policy_enabled": request.form.get("budget_policy_enabled") == "on",
+            "monthly_budget_usd": request.form.get("monthly_budget_usd", "0"),
+            "fallback_strategy": request.form.get("fallback_strategy", "script_fallback"),
+            "key_tiers": key_tiers,
         },
         current_user()["username"],
     )
-    audit_log_service.append("ai.settings.update", current_user()["username"], {"provider": settings.get("provider"), "enabled": settings.get("enabled")})
+    audit_log_service.append(
+        "ai.settings.update",
+        current_user()["username"],
+        {
+            "provider": settings.get("provider"),
+            "enabled": settings.get("enabled"),
+            "budget_policy_enabled": settings.get("budget_policy_enabled"),
+            "key_tiers": [tier.get("tier") for tier in settings.get("key_tiers", []) if tier.get("enabled")],
+        },
+    )
     flash("AI provider settings saved")
     return redirect(url_for("api_superadmin.ai_page"))
+
+
+@bp.get("/api/superadmin/ai/key-routing-preview")
+@require_role("superadmin")
+def ai_key_routing_preview_api():
+    decision = choose_key_tier(
+        check_level=request.args.get("level", "L1"),
+        month_cost_usd=float(request.args.get("month_cost_usd") or 0),
+        estimated_cost_usd=float(request.args.get("estimated_cost_usd") or 0),
+    )
+    return jsonify(decision)
+
+
+@bp.get("/superadmin/token-costs")
+@require_role("superadmin")
+def token_costs_page():
+    return render_template("token_costs.html", report=token_cost_report(request.args.get("month") or None))
+
+
+@bp.get("/api/superadmin/token-costs")
+@require_role("superadmin")
+def token_costs_api():
+    return jsonify(token_cost_report(request.args.get("month") or None))
+
+
+@bp.post("/api/superadmin/token-usage")
+@require_role("superadmin")
+def token_usage_create_api():
+    payload = request.get_json(force=True, silent=True) or {}
+    doc = record_usage(
+        action=payload.get("action", "manual_test"),
+        model=payload.get("model", "default"),
+        provider=payload.get("provider", "OpenAI"),
+        input_tokens=int(payload.get("input_tokens") or 0),
+        output_tokens=int(payload.get("output_tokens") or 0),
+        actor=current_user()["username"],
+        metadata={"source": "manual_api"},
+    )
+    audit_log_service.append("ai_token_usage.create", current_user()["username"], {"action": doc.get("action"), "total_tokens": doc.get("total_tokens")})
+    if hasattr(doc.get("occurred_at"), "isoformat"):
+        doc["occurred_at"] = doc["occurred_at"].isoformat()
+    return jsonify(doc)
 
 
 @bp.get("/superadmin/validation")

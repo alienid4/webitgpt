@@ -223,13 +223,12 @@ function setTopologyFullscreen(panel, enabled) {
 
 document.querySelectorAll("[data-topology-fullscreen-enter]").forEach((button) => {
   button.addEventListener("click", async () => {
-    const fallback = button.dataset.fullscreenUrl;
-    if (fallback) {
-      window.location.href = fallback;
-      return;
-    }
     const panel = document.querySelector("[data-topology-panel]");
     if (!panel) {
+      const fallback = button.dataset.fullscreenUrl;
+      if (fallback) {
+        window.location.href = fallback;
+      }
       return;
     }
     setTopologyFullscreen(panel, true);
@@ -321,7 +320,17 @@ document.querySelectorAll("[data-topology-canvas]").forEach((canvas) => {
       const form = document.querySelector("[data-topology-filter]");
       const input = form?.querySelector('[name="center"]');
       if (!form || !input) return;
-      input.value = node.dataset.topologyNodeId || "";
+      const nextValue = node.dataset.topologyNodeId || "";
+      if (input.tagName === "SELECT" && nextValue) {
+        const hasOption = Array.from(input.options || []).some((option) => option.value === nextValue);
+        if (!hasOption) {
+          const option = document.createElement("option");
+          option.value = nextValue;
+          option.textContent = nextValue;
+          input.appendChild(option);
+        }
+      }
+      input.value = nextValue;
       form.requestSubmit();
     });
   });

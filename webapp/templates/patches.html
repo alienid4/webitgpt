@@ -11,7 +11,7 @@
     <div class="actions">
       <a class="btn secondary" href="{{ url_for('api_superadmin.superadmin_page') }}">返回系統管理</a>
       <a class="btn" href="{{ url_for('api_superadmin.patches_api') }}">JSON API</a>
-      <button class="btn primary" type="button" data-busy-text="產生中" data-submit-message="正在產生回滾計畫，請稍候。" data-api-post="/api/superadmin/patches/rollback-plan" data-payload='{"target":"latest"}'>產生回滾計畫</button>
+      <button class="btn primary" type="button" data-busy-text="規劃中" data-submit-message="正在產生回滾計畫，請稍候。" data-api-post="/api/superadmin/patches/rollback-plan" data-payload='{"target":"latest"}'>產生回滾計畫</button>
     </div>
   </div>
   <div class="summary-grid">
@@ -36,4 +36,4 @@
   </table>
 </section>
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='js/admin_tools.js') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/admin_tools.js', v=asset_version) }}"></script>{% endblock %}

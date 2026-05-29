@@ -26,7 +26,7 @@
     <p class="eyebrow">TOPOLOGY</p>
     {% if topology.view == "core_impact" %}
     <h1>核心系統影響圖</h1>
-    <p class="muted">第一欄是六大核心，第二欄是關聯系統，第三欄是選取系統底下的主機 / IP。</p>
+    <p class="muted">先選核心或系統，再看關聯系統、主機 / IP 與需要通知的負責人。</p>
     {% else %}
     <h1>系統拓撲</h1>
     <p class="muted">整合 CMDB、主機連線關係、ss/nmap 對帳與故障節點影響分析。</p>
@@ -35,8 +35,9 @@
   <div class="actions">
     {% if not fullscreen %}
     {% if topology.view == "core_impact" %}
-    <a class="btn btn-fix" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=request.args.get('center', ''), depth=request.args.get('depth', '2'), failed_node=request.args.get('center', ''), focus_impact=1) }}">模擬維護</a>
-    <a class="btn primary" href="{{ url_for('api_reports.dependencies_api', view='core_impact', center=request.args.get('center', ''), depth=request.args.get('depth', '2')) }}">匯出通知名單</a>
+    <a class="btn btn-fix" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=request.args.get('center', ''), depth=request.args.get('depth', '2'), failed_node=request.args.get('center', topology.meta.center or ''), focus_impact=1) }}">模擬維護</a>
+    <a class="btn primary" href="{{ url_for('api_reports.dependencies_notifications_csv', view='core_impact', center=request.args.get('center', ''), depth=request.args.get('depth', '2')) }}">匯出通知名單 CSV</a>
+    <a class="btn" href="{{ url_for('api_hosts.cmdb_relationships_page', system=request.args.get('center', topology.meta.center or '')) }}">回 CMDB 總覽</a>
     {% else %}
     <form method="post" action="{{ url_for('api_dependencies.collect_trigger_page') }}" data-submit-status data-submit-message="正在執行 ss -tunp 採集，請稍候。">
       <input type="hidden" name="view" value="{{ topology.view }}">
@@ -163,8 +164,25 @@
     <form class="filter-bar" method="get" action="{{ url_for('api_dependencies.dependencies_fullscreen_page') if fullscreen else url_for('api_reports.dependencies_page') }}" data-topology-filter>
       {% if topology.view == "core_impact" %}
       <input type="hidden" name="view" value="core_impact">
-      <input name="center" value="{{ request.args.get('center', '') }}" list="topology-system-options" placeholder="搜尋系統名稱 / 核心 / 主機">
+      <select name="center" data-auto-submit>
+        <option value="">選擇核心 / 系統</option>
+        {% for node in topology.nodes or [] %}
+          {% if (node.id|string).startswith('core:') %}
+          <option value="{{ node.id }}" {% if request.args.get('center', '') == node.id %}selected{% endif %}>{{ node.label }} / 核心</option>
+          {% endif %}
+        {% endfor %}
+        {% for system in systems or [] %}
+        <option value="{{ system.system_id }}" {% if request.args.get('center', '') in [system.system_id, system.display_name] %}selected{% endif %}>{{ system.display_name }} / {{ system.system_id }}</option>
+        {% endfor %}
+      </select>
+      <input name="failed_node" value="{{ failed_node }}" list="topology-system-options" placeholder="模擬維護：輸入系統 / 主機 / IP">
       <datalist id="topology-system-options">
+        {% for node in topology.nodes or [] %}
+          {% if (node.id|string).startswith('core:') %}
+          <option value="{{ node.id }}">{{ node.label }}</option>
+          <option value="{{ node.label }}">{{ node.id }}</option>
+          {% endif %}
+        {% endfor %}
         {% for system in systems or [] %}
         <option value="{{ system.system_id }}">{{ system.display_name }}</option>
         <option value="{{ system.display_name }}">{{ system.system_id }}</option>
@@ -175,7 +193,6 @@
         <option value="2" {% if request.args.get('depth', '2')|int == 2 %}selected{% endif %}>二跳影響</option>
         <option value="3" {% if request.args.get('depth', '2')|int == 3 %}selected{% endif %}>三跳影響</option>
       </select>
-      <input name="failed_node" value="{{ failed_node }}" placeholder="模擬維護：輸入系統 / 主機 / IP">
       <label class="toggle-label"><input type="checkbox" name="focus_impact" value="1" {% if focus_impact %}checked{% endif %} data-auto-submit>只看直接影響</label>
       <button type="submit">套用</button>
       {% if fullscreen %}
@@ -194,7 +211,12 @@
         <option value="host" {% if topology.view == "host" %}selected{% endif %}>主機視圖</option>
         <option value="ip" {% if topology.view == "ip" %}selected{% endif %}>IP 視圖</option>
       </select>
-      <input name="center" value="{{ request.args.get('center', '') }}" list="topology-system-options" placeholder="選系統 / 輸入系統名稱">
+      <select name="center" data-auto-submit>
+        <option value="">選擇系統 / 主機視角</option>
+        {% for system in systems or [] %}
+        <option value="{{ system.system_id }}" {% if request.args.get('center', '') in [system.system_id, system.display_name] %}selected{% endif %}>{{ system.display_name }} / {{ system.system_id }}</option>
+        {% endfor %}
+      </select>
       <datalist id="topology-system-options">
         {% for system in systems or [] %}
         <option value="{{ system.system_id }}">{{ system.display_name }}</option>
@@ -251,6 +273,12 @@
             </marker>
           </defs>
 
+          {% for lane in topology.meta.layer_lanes or [] %}
+            <g class="topology-layer-lane topology-layer-lane-{{ lane.key }}">
+              <rect x="{{ lane.x }}" y="{{ lane.y }}" width="{{ lane.width }}" height="{{ lane.height }}" rx="14"></rect>
+            </g>
+          {% endfor %}
+
           {% for guide in topology.meta.layer_guides or [] %}
             <g class="topology-layer-guide">
               <line x1="{{ guide.x }}" y1="58" x2="{{ guide.x }}" y2="{{ graph_height - 24 }}"></line>
@@ -289,14 +317,56 @@
     <aside class="topology-impact-panel">
       <span class="badge-warn">影響檢視</span>
       <h2>{{ topology.meta.impact_panel.focus_label }}</h2>
-      <p class="muted">從核心「{{ topology.meta.impact_panel.core_label }}」展開，顯示關聯系統與主機 / IP。</p>
+      <p class="muted">
+        {% if topology.meta.scope == "system_focus" %}
+        以焦點系統為口徑，只顯示直接關聯與主機 / IP；所屬核心為「{{ topology.meta.impact_panel.core_label }}」。
+        {% else %}
+        從核心「{{ topology.meta.impact_panel.core_label }}」展開，顯示關聯系統與主機 / IP。
+        {% endif %}
+      </p>
       <dl>
+        <div><dt>檢視口徑</dt><dd>{{ topology.meta.impact_panel.scope_label }}</dd></div>
         <div><dt>所屬核心</dt><dd>{{ topology.meta.impact_panel.core_label }}</dd></div>
         <div><dt>關聯系統</dt><dd>{{ topology.meta.impact_panel.system_count }} 套</dd></div>
         <div><dt>主機 / IP</dt><dd>{{ topology.meta.impact_panel.host_count }} 台</dd></div>
         <div><dt>Loop</dt><dd>{{ topology.meta.impact_panel.loop_count }} 條</dd></div>
         <div><dt>通知對象</dt><dd>{{ topology.meta.impact_panel.notification_count }} 組</dd></div>
       </dl>
+      <h3>待通知對象</h3>
+      <div class="topology-trust-list">
+        <span>manual {{ topology.meta.impact_panel.trust_summary.manual }}</span>
+        <span>auto {{ topology.meta.impact_panel.trust_summary.auto }}</span>
+        <span>unknown {{ topology.meta.impact_panel.trust_summary.unknown }}</span>
+      </div>
+      <p class="text-muted-sm">{{ topology.meta.impact_panel.trust_note }}</p>
+      {% if cmdb_overview %}
+      <h3>CMDB 資料品質</h3>
+      <div class="topology-cmdb-quality">
+        {% for key in ["system", "owner", "notification", "service_port"] %}
+        {% set item = cmdb_overview.coverage[key] %}
+        <div class="topology-cmdb-quality-item">
+          <strong>{{ item.pct }}%</strong>
+          <span>{{ item.label }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <p class="text-muted-sm">
+        目前選取：{{ cmdb_overview.selected_system.display_name }}，
+        缺 owner {{ cmdb_overview.selected_system.missing_owner }}、
+        缺 Port {{ cmdb_overview.selected_system.missing_ports }}。
+        <a href="{{ url_for('api_hosts.cmdb_relationships_page', system=request.args.get('center', topology.meta.center or '')) }}">看 CMDB 關聯總覽</a>
+      </p>
+      {% endif %}
+      <div class="topology-contact-list">
+        {% for contact in topology.meta.impact_panel.notification_contacts[:4] %}
+        <div>
+          <strong>{{ contact.owner }}</strong>
+          <span>{{ contact.system_name }} / {{ contact.host_count }} 台 / {{ contact.status }}</span>
+        </div>
+        {% else %}
+        <div><strong>未指定</strong><span>請在 CMDB 系統 owner 欄位補上通知對象。</span></div>
+        {% endfor %}
+      </div>
       <h3>可能受影響</h3>
       <div class="topology-impact-list">
         {% for item in topology.meta.impact_panel.affected_items %}
@@ -414,9 +484,6 @@
       {% endfor %}
     </tbody>
   </table>
-</section>
-{% endif %}
-{% if fullscreen %}
 </section>
 {% endif %}
 {% endblock %}

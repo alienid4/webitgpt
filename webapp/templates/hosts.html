@@ -9,38 +9,45 @@
       <p class="text-muted-sm">以主機名稱作為唯一索引；資產編號保留為資產流水與對外識別。支援一台主機多 IP、多網段與完整資產明細。</p>
     </div>
     <div class="asset-actions">
-      {% if current_user.role in ["admin", "super", "superadmin"] %}
-      <form method="post" action="{{ url_for('api_hosts.hosts_refresh_identity_submit') }}" data-submit-status data-submit-message="正在重整本頁資產 Hostname / OS，請稍候。">
-        <input type="hidden" name="scope" value="page">
-        <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
-        <input type="hidden" name="status" value="{{ request.args.get('status','') }}">
-        <input type="hidden" name="group_name" value="{{ request.args.get('group_name','') }}">
-        <input type="hidden" name="environment" value="{{ request.args.get('environment','') }}">
-        <input type="hidden" name="host_type" value="{{ request.args.get('host_type','') }}">
-        <input type="hidden" name="dc" value="{{ request.args.get('dc','') }}">
-        <input type="hidden" name="page" value="{{ data.get('page', 1) }}">
-        <input type="hidden" name="page_size" value="{{ data.get('page_size', 25) }}">
-        <button class="btn secondary" type="submit">重整本頁資產</button>
-      </form>
-      <form method="post" action="{{ url_for('api_hosts.hosts_refresh_identity_submit') }}" data-submit-status data-submit-message="正在重整全部納管資產 Hostname / OS，請稍候。">
-        <input type="hidden" name="scope" value="all">
-        <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
-        <input type="hidden" name="status" value="{{ request.args.get('status','') }}">
-        <input type="hidden" name="group_name" value="{{ request.args.get('group_name','') }}">
-        <input type="hidden" name="environment" value="{{ request.args.get('environment','') }}">
-        <input type="hidden" name="host_type" value="{{ request.args.get('host_type','') }}">
-        <input type="hidden" name="dc" value="{{ request.args.get('dc','') }}">
-        <input type="hidden" name="page" value="{{ data.get('page', 1) }}">
-        <input type="hidden" name="page_size" value="{{ data.get('page_size', 25) }}">
-        <button class="btn secondary" type="submit">重整全部納管資產</button>
-      </form>
-      {% endif %}
-      <a class="btn secondary" href="{{ url_for('api_hosts.csv_export') }}">匯出 CSV</a>
-      <a class="btn secondary" href="{{ url_for('api_hosts.csv_template') }}">下載範本</a>
-      <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM</a>
-      <a class="btn secondary" href="{{ url_for('api_hosts.asset_quality_page') }}">異常清單</a>
-      <a class="btn secondary" href="{{ url_for('api_hosts.extension_fields_page') }}">擴充欄位</a>
-      <a class="btn primary" href="{{ url_for('api_hosts.host_new_page') }}">新增資產</a>
+      <a class="btn primary asset-add-main" href="{{ url_for('api_hosts.host_new_page') }}">新增 / 匯入主機</a>
+      <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM 網段管理</a>
+      <a class="btn secondary cmdb-relationship-entry" href="{{ url_for('api_hosts.cmdb_relationships_page') }}">CMDB 關聯總覽</a>
+      <details class="asset-action-menu">
+        <summary class="btn secondary">更多操作</summary>
+        <div class="asset-action-menu-panel">
+          {% if current_user.role in ["admin", "super", "superadmin"] %}
+          <form method="post" action="{{ url_for('api_hosts.hosts_refresh_identity_submit') }}" data-submit-status data-submit-message="正在重整本頁資產 Hostname / OS，請稍候。">
+            <input type="hidden" name="scope" value="page">
+            <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
+            <input type="hidden" name="status" value="{{ request.args.get('status','') }}">
+            <input type="hidden" name="group_name" value="{{ request.args.get('group_name','') }}">
+            <input type="hidden" name="environment" value="{{ request.args.get('environment','') }}">
+            <input type="hidden" name="host_type" value="{{ request.args.get('host_type','') }}">
+            <input type="hidden" name="dc" value="{{ request.args.get('dc','') }}">
+            <input type="hidden" name="page" value="{{ data.get('page', 1) }}">
+            <input type="hidden" name="page_size" value="{{ data.get('page_size', 25) }}">
+            <button type="submit">重整本頁資產</button>
+          </form>
+          <form method="post" action="{{ url_for('api_hosts.hosts_refresh_identity_submit') }}" data-submit-status data-submit-message="正在重整全部納管資產 Hostname / OS，請稍候。">
+            <input type="hidden" name="scope" value="all">
+            <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
+            <input type="hidden" name="status" value="{{ request.args.get('status','') }}">
+            <input type="hidden" name="group_name" value="{{ request.args.get('group_name','') }}">
+            <input type="hidden" name="environment" value="{{ request.args.get('environment','') }}">
+            <input type="hidden" name="host_type" value="{{ request.args.get('host_type','') }}">
+            <input type="hidden" name="dc" value="{{ request.args.get('dc','') }}">
+            <input type="hidden" name="page" value="{{ data.get('page', 1) }}">
+            <input type="hidden" name="page_size" value="{{ data.get('page_size', 25) }}">
+            <button type="submit">重整全部納管資產</button>
+          </form>
+          {% endif %}
+          <a href="{{ url_for('api_hosts.csv_export') }}">匯出 CSV</a>
+          <a href="{{ url_for('api_hosts.xlsx_export') }}">匯出 Excel</a>
+          <a href="{{ url_for('api_hosts.csv_template') }}">下載範本</a>
+          <a href="{{ url_for('api_hosts.asset_quality_page') }}">異常清單</a>
+          <a href="{{ url_for('api_hosts.extension_fields_page') }}">擴充欄位</a>
+        </div>
+      </details>
     </div>
     <form class="asset-filter-compact" method="get">
       <label class="asset-search-field">搜尋
@@ -100,13 +107,6 @@
   </section>
 
   <section class="panel compact">
-    <form class="asset-draft-form" method="post" action="{{ url_for('api_hosts.host_draft_submit') }}">
-      <strong>快速建立草稿</strong>
-      <input name="asset_name" placeholder="資產名稱 / 系統名稱" required>
-      <input name="ticket" placeholder="需求單號">
-      <button class="btn secondary" type="submit">建立草稿</button>
-      {% if request.args.get("draft_error") %}<span class="text-muted-sm">{{ request.args.get("draft_error") }}</span>{% endif %}
-    </form>
     <div class="saved-view-row">
       <strong>常用篩選</strong>
       {% if request.args.get("save_view_error") %}<span class="text-muted-sm">{{ request.args.get("save_view_error") }}</span>{% endif %}
@@ -162,21 +162,79 @@
   </div>
   {% endif %}
   {% if request.args.get("bulk_deleted") is not none %}
-  <div class="notice">批次刪除草稿：刪除 {{ request.args.get("bulk_deleted", 0) }} 筆，略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
+  <div class="notice">草稿刪除完成，共 {{ request.args.get("bulk_deleted", 0) }} 筆；略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
+  {% endif %}
+  {% if request.args.get("bulk_promoted") is not none %}
+  <div class="notice success">新增完成，共 {{ request.args.get("bulk_promoted", 0) }} 筆；略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
+  {% endif %}
+  {% if request.args.get("asset_saved") %}
+  <div class="notice success">
+    資產已儲存，已回到資產管理列表。畫面已用主機名稱篩選：{{ request.args.get("asset_saved") }}。
+    <a class="btn-sm" href="{{ url_for('api_hosts.hosts_page') }}">查看全部資產</a>
+  </div>
+  {% endif %}
+  {% if request.args.get("bulk_updated") is not none %}
+  <div class="notice">草稿欄位更新完成，共 {{ request.args.get("bulk_updated", 0) }} 筆；略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
   {% endif %}
   {% if request.args.get("bulk_error") %}<div class="notice danger">{{ request.args.get("bulk_error") }}</div>{% endif %}
 
   <section class="table-wrap asset-table-wrap" id="asset-details">
-    {% if current_user.role in ["admin", "super", "superadmin"] %}
-    <div class="asset-bulk-actions">
-      <strong>批次草稿處理</strong>
-      <label><input type="checkbox" data-select-drafts> 全選本頁草稿</label>
-      <input form="bulkDraftDeleteForm" name="reason" placeholder="刪除原因，例如：掃描誤建、測試草稿清理" required>
-      <input form="bulkDraftDeleteForm" type="hidden" name="return_status" value="{{ request.args.get('status','') }}">
-      <button form="bulkDraftDeleteForm" class="btn btn-danger" type="submit" onclick="return confirm('只會刪除已勾選的草稿；正式資產會略過。確定執行？')">刪除勾選草稿</button>
-      <span class="text-muted-sm">正式資產不允許批次硬刪，請走下線 / 封存流程。</span>
+    {% if request.args.get("status") == "draft" %}
+    <div class="draft-workflow-panel">
+      <div>
+        <p class="eyebrow">DRAFT WORKFLOW</p>
+        <h2>草稿區下一步</h2>
+        <p class="text-muted-sm">草稿是待補資料，不是完成新增。請先補欄位，再轉正式。</p>
+      </div>
+      <div class="draft-workflow-steps">
+        <span>1 勾選草稿</span>
+        <span>2 批次補欄位或逐筆補資料</span>
+        <span>3 驗證 / 確認資料</span>
+        <span>4 批次轉正式，完成新增</span>
+      </div>
+      <div class="draft-workflow-actions">
+        <a class="btn secondary" href="#asset-details">開始處理本頁草稿</a>
+        <a class="btn secondary" href="{{ url_for('api_hosts.host_new_page') }}">回新增工作台</a>
+      </div>
     </div>
-    <form id="bulkDraftDeleteForm" method="post" action="{{ url_for('api_hosts.host_bulk_delete_drafts_submit') }}" data-submit-status data-submit-message="正在批次刪除草稿，正式資產會自動略過。"></form>
+    {% endif %}
+    {% if current_user.role in ["admin", "super", "superadmin"] %}
+    <details class="asset-bulk-panel asset-optional-section">
+      <summary>
+        <div>
+          <h2>批次草稿處理 / 治理</h2>
+          <p class="text-muted-sm">低頻維運功能：用來清理掃描誤建草稿、批次補欄位，或確認後批次轉正式。</p>
+        </div>
+        <span class="btn secondary"><span class="step-expand-label">展開</span><span class="step-collapse-label">收合</span></span>
+      </summary>
+      <div class="asset-bulk-actions">
+        <label><input type="checkbox" data-select-drafts> 全選本頁草稿</label>
+        <input form="bulkDraftDeleteForm" name="reason" placeholder="刪除原因，例如：掃描誤建、測試草稿清理" required>
+        <input form="bulkDraftDeleteForm" type="hidden" name="return_status" value="{{ request.args.get('status','') }}">
+        <button form="bulkDraftDeleteForm" class="btn btn-danger" type="submit" onclick="return confirm('只會刪除已勾選的草稿；正式資產會略過。確定執行？')">刪除勾選草稿</button>
+        <input form="bulkDraftPromoteForm" name="reason" placeholder="轉正式原因，例如：CMDB 匯入確認完成">
+        <input form="bulkDraftPromoteForm" type="hidden" name="return_status" value="{{ request.args.get('status','') }}">
+        <button form="bulkDraftPromoteForm" class="btn secondary" type="submit" onclick="return confirm('只會將已勾選草稿轉成正式 active；正式資產會略過。確定執行？')">批次轉正式</button>
+        <select form="bulkDraftUpdateForm" name="environment">
+          <option value="">環境不變</option>
+          {% for value in ["OA","PROD","UAT","BACKUP","TEST","DEV"] %}<option value="{{ value }}">{{ value }}</option>{% endfor %}
+        </select>
+        <select form="bulkDraftUpdateForm" name="host_type">
+          <option value="">類型不變</option>
+          {% for value in ["linux","windows","aix","as400","vmware_host","vmware_vm","vmware_vcenter","network_device","end_device"] %}
+          <option value="{{ value }}">{{ host_type_labels.get(value, value) }}</option>
+          {% endfor %}
+        </select>
+        <input form="bulkDraftUpdateForm" name="owner" placeholder="擁有者/保管人">
+        <input form="bulkDraftUpdateForm" name="reason" placeholder="補欄位原因，例如：匯入後批次補正">
+        <input form="bulkDraftUpdateForm" type="hidden" name="return_status" value="{{ request.args.get('status','') }}">
+        <button form="bulkDraftUpdateForm" class="btn secondary" type="submit">批次補欄位</button>
+        <span class="text-muted-sm">正式資產不允許批次硬刪，請走下線 / 封存流程。</span>
+      </div>
+    </details>
+    <form id="bulkDraftDeleteForm" method="post" action="{{ url_for('api_hosts.host_bulk_delete_drafts_submit') }}" data-draft-bulk-form data-submit-status data-submit-message="正在批次刪除草稿，正式資產會自動略過。"></form>
+    <form id="bulkDraftPromoteForm" method="post" action="{{ url_for('api_hosts.host_bulk_promote_drafts_submit') }}" data-draft-bulk-form data-submit-status data-submit-message="正在批次轉正式，正式資產會自動略過。"></form>
+    <form id="bulkDraftUpdateForm" method="post" action="{{ url_for('api_hosts.host_bulk_update_drafts_submit') }}" data-draft-bulk-form data-submit-status data-submit-message="正在批次補草稿欄位，正式資產會自動略過。"></form>
     {% endif %}
     <table class="data-table asset-table asset-table-compact">
       <thead>
@@ -245,7 +303,7 @@
             {% if current_user.role in ["admin", "super", "superadmin"] %}
             <details class="asset-row-menu">
               <summary>動作</summary>
-              <a class="btn-sm btn-secondary" href="{{ url_for('api_hosts.host_edit_page', asset_seq=host.hostname or host.asset_seq) }}">編輯</a>
+              <a class="btn-sm btn-secondary" href="{{ url_for('api_hosts.host_edit_page', asset_seq=host.hostname or host.asset_seq) }}">{% if host.status == "draft" %}補資料{% else %}編輯{% endif %}</a>
               <form method="post" action="{{ url_for('api_hosts.host_verify_identity_submit', asset_seq=host.hostname or host.asset_seq) }}" data-submit-status data-submit-message="正在連線採集真實 Hostname / OS，請稍候。">
                 <button class="btn-sm btn-secondary" type="submit">驗證名稱/OS</button>
               </form>
@@ -309,5 +367,5 @@
     {% endif %}
   </div>
 </section>
-<script src="{{ url_for('static', filename='js/hosts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/hosts.js', v=asset_version) }}"></script>
 {% endblock %}
