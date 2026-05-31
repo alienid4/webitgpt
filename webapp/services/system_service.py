@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.58",
+        "date": "2026-05-31 11:55 +08:00",
+        "patch_id": "offline-pip-patch-install",
+        "changes": [
+            "Patch 安裝預設改為離線 pip 模式，避免無網路主機卡在 pip 外網 retry。",
+            "若 patch 包含 wheelhouse，安裝會使用本地 wheelhouse；若沒有 wheelhouse，會只檢查既有 venv 是否已滿足 requirements。",
+            "需要線上更新套件時可明確設定 WEBITGPT_PIP_MODE=online；既有環境也可用 WEBITGPT_PIP_MODE=skip 跳過 pip。",
+        ],
+    },
+    {
         "version": "1.0.3.57",
         "date": "2026-05-31 11:20 +08:00",
         "patch_id": "draft-partial-save-governance",

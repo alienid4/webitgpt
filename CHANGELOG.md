@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.58 - 2026-05-31 11:55 +08:00 - offline-pip-patch-install
+
+- Patch 安裝預設改為離線 pip 模式，避免無網路主機卡在 `pip install --upgrade pip` 外網 retry。
+- 若 patch 包含 `wheelhouse`，安裝會使用本地 wheelhouse；若沒有 wheelhouse，會以 `--no-index` 檢查既有 venv 是否已滿足 requirements。
+- 新增 `WEBITGPT_PIP_MODE=online|offline|skip`：正式離線移植用 `offline`，需要強制跳過 pip 時用 `skip`，有外網才用 `online`。
+
 ## v1.0.3.57 - 2026-05-31 11:20 +08:00 - draft-partial-save-governance
 
 - 草稿與待補資料狀態改為可部分儲存，避免使用者還沒補完整 CMDB 欄位就被正式資產必填規則擋住。

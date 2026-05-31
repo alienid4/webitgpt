@@ -16,6 +16,7 @@ STAMP="$(date +%Y%m%d_%H%M%S)"
 WEBITGPT_BUILD_TIME="${WEBITGPT_BUILD_TIME:-$(date '+%Y-%m-%d %H:%M:%S %:z')}"
 BACKUP_DIR="${BACKUP_ROOT}/preinstall_${STAMP}"
 SERVICE_NAME="webitgpt.service"
+WEBITGPT_PIP_MODE="${WEBITGPT_PIP_MODE:-offline}"
 
 ensure_system_tool() {
   local command_name="$1"
@@ -115,8 +116,30 @@ if [ ! -x "$APP_HOME/venv/bin/python" ]; then
   python3 -m venv "$APP_HOME/venv"
 fi
 
-"$APP_HOME/venv/bin/python" -m pip install --upgrade pip
-"$APP_HOME/venv/bin/pip" install -r "$APP_HOME/requirements.txt"
+install_python_requirements() {
+  local pip_args=()
+  if [ "$WEBITGPT_PIP_MODE" = "skip" ]; then
+    echo "Skipping Python dependency install because WEBITGPT_PIP_MODE=skip."
+    return 0
+  fi
+  if [ "$WEBITGPT_PIP_MODE" = "offline" ]; then
+    if [ -d "$SRC_DIR/wheelhouse" ]; then
+      pip_args=(--no-index --find-links "$SRC_DIR/wheelhouse")
+      echo "Installing Python dependencies from local wheelhouse."
+    else
+      pip_args=(--no-index)
+      echo "Installing Python dependencies in offline mode; existing venv must satisfy requirements."
+    fi
+  elif [ "$WEBITGPT_PIP_MODE" = "online" ]; then
+    "$APP_HOME/venv/bin/python" -m pip install --upgrade pip
+  else
+    echo "Unsupported WEBITGPT_PIP_MODE=${WEBITGPT_PIP_MODE}; use offline, online, or skip." >&2
+    return 1
+  fi
+  "$APP_HOME/venv/bin/pip" install "${pip_args[@]}" -r "$APP_HOME/requirements.txt"
+}
+
+install_python_requirements
 INSPECTION_HOME="$APP_HOME" MONGO_URI="${MONGO_URI:-mongodb://localhost:27017}" MONGO_DB="${MONGO_DB:-webitgpt}" WEBITGPT_SUPERADMIN_PASSWORD="${WEBITGPT_SUPERADMIN_PASSWORD:-}" WEBITGPT_BUILD_TIME="$WEBITGPT_BUILD_TIME" "$APP_HOME/venv/bin/python" "$APP_HOME/scripts/bootstrap.py"
 "$APP_HOME/venv/bin/python" "$APP_HOME/scripts/run_housekeeping.py" --mode post-install >>"$APP_HOME/logs/housekeeping_install.log" 2>&1 || true
 
