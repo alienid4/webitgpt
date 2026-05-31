@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.62",
+        "date": "2026-05-31 13:25 +08:00",
+        "patch_id": "asset-name-first-topology-labels",
+        "changes": [
+            "拓撲核心與系統選擇器改用「資產名稱 / 系統名稱」語意，資產名稱優先顯示。",
+            "資產同步到拓撲時保留 system_id 作為穩定識別，避免為了改顯示文字造成既有關聯斷裂。",
+            "資產管理、開門檢查與新增主機提示同步改成資產名稱 / 系統名稱，降低使用者理解成本。",
+        ],
+    },
+    {
         "version": "1.0.3.61",
         "date": "2026-05-31 13:05 +08:00",
         "patch_id": "topology-searchable-selector",

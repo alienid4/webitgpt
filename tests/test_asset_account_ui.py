@@ -462,7 +462,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.61"' in config
+    assert 'VERSION = "1.0.3.62"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -553,8 +553,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.61"' in config
-    assert "topology-searchable-selector" in config
+    assert 'VERSION = "1.0.3.62"' in config
+    assert "asset-name-first-topology-labels" in config
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -601,7 +601,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "topology-searchable-selector" in config
+    assert "asset-name-first-topology-labels" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog
@@ -809,7 +809,7 @@ def test_opening_check_is_system_scoped_and_deep_check_supports_aix():
     assert 'name="system"' in html
     assert "巡檢目前範圍" in html
     assert "全部系統" in html
-    assert "搜尋系統" in html
+    assert "搜尋資產名稱 / 系統名稱" in html
     assert "data-opening-system-search" in html
     assert "data-opening-system-select" in html
     assert "diagnostics.all_systems_value" in html

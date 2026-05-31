@@ -367,6 +367,8 @@ def test_ai_token_cost_visibility_contract_exists():
     assert 'list="topology-system-options"' in dependencies_page
     assert 'data-select-filter="topology-center-core"' in dependencies_page
     assert 'data-select-filter="topology-center-system"' in dependencies_page
+    assert "選擇資產名稱 / 系統名稱" in dependencies_page
+    assert "搜尋資產名稱 / 系統名稱" in dependencies_page
     assert "topology-searchable-select" in dependencies_page
     assert "data-select-filter-count" in dependencies_page
     assert "initSearchableSelectFilters" in ui_tools
@@ -527,6 +529,7 @@ def test_asset_governance_status_admin_contracts_exist():
         assert text in hosts_template
     for text in ["asset-table-compact", "資產名稱 *", "Hostname", "asset-row-menu"]:
         assert text in hosts_template
+    assert "資產名稱 / 系統名稱 / 主機名稱 / IP / 網段" in hosts_template
     for text in ["asset-col-expand", "data-asset-detail-toggle", "asset-detail-panel"]:
         assert text in hosts_template
     for text in ["設備類型", "機櫃", "備註", "asset-note-cell"]:

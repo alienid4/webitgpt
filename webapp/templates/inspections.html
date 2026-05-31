@@ -18,8 +18,8 @@
 <section class="panel compact">
   <form class="filter-bar" method="get" action="{{ url_for('api_operations.inspections_page') }}">
     <input type="hidden" name="platform" value="{{ diagnostics.platform }}">
-    <label>搜尋系統
-      <input type="search" data-opening-system-search placeholder="輸入系統名稱">
+    <label>搜尋資產名稱 / 系統名稱
+      <input type="search" data-opening-system-search placeholder="輸入資產名稱 / 系統名稱">
     </label>
     <label>開門檢查系統
       <select name="system" data-opening-system-select>

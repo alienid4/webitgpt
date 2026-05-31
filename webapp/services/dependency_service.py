@@ -321,24 +321,32 @@ def sync_systems_from_hosts(actor: str = "system") -> int:
     count = 0
     by_system: dict[str, dict[str, Any]] = {}
     for host in _hosts():
-        name = host.get("system_name") or host.get("asset_name") or host.get("hostname")
-        sid = _system_id(name)
+        system_name = str(host.get("system_name") or "").strip()
+        asset_name = str(host.get("asset_name") or "").strip()
+        hostname = str(host.get("hostname") or "").strip()
+        identity_name = system_name or host.get("group_name") or host.get("apid") or asset_name or hostname
+        display_name = asset_name or system_name or hostname
+        sid = _system_id(identity_name)
         item = by_system.setdefault(
             sid,
             {
                 "system_id": sid,
-                "display_name": name,
+                "display_name": display_name,
                 "tier": str(host.get("tier") or "C").upper()[:1] if host.get("tier") in {"A", "B", "C"} else "C",
                 "category": "AP",
                 "description": "由資產管理系統同步建立",
                 "owner": host.get("ap_owner") or host.get("custodian") or "",
                 "host_refs": [],
                 "external": False,
-                "metadata": {},
+                "metadata": {"asset_name": asset_name, "system_name": system_name},
                 "updated_at": now,
                 "updated_by": actor,
             },
         )
+        if asset_name and not item["metadata"].get("asset_name"):
+            item["metadata"]["asset_name"] = asset_name
+        if system_name and not item["metadata"].get("system_name"):
+            item["metadata"]["system_name"] = system_name
         if host.get("hostname") and host["hostname"] not in item["host_refs"]:
             item["host_refs"].append(host["hostname"])
     for item in by_system.values():
