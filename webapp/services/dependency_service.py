@@ -62,6 +62,7 @@ PORT_SERVICE_NAMES = {
 COMMON_EXPOSURE_PORTS = ["22", "80", "443", "445", "3389", "5432", "3306", "1521", "27017", "6379", "8080", "8443"]
 XLSX_NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 CORE_SYSTEM_NAMES = ["好麥證券", "交易核心", "帳務核心", "通路核心", "資料核心", "巡檢系統"]
+UNASSIGNED_CORE_NAME = "未歸屬核心"
 
 
 def _now() -> datetime:
@@ -1601,7 +1602,7 @@ def _core_name_for_system(system: dict[str, Any]) -> str:
             return name
     if any(token in display for token in ("巡檢", "受監控", "webitgpt", "secansible")):
         return "巡檢系統"
-    return "好麥證券"
+    return UNASSIGNED_CORE_NAME
 
 
 def _core_node(name: str) -> dict[str, Any]:
@@ -1745,10 +1746,14 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
     center_system_id = _match_system_id(center, systems)
     selected_core = core_by_system.get(center_system_id) if center_system_id else ""
     if not selected_core and str(center).startswith("core:"):
-        selected_core = next((name for name in CORE_SYSTEM_NAMES if _core_id(name) == center), "")
+        selected_core = next((name for name in list(CORE_SYSTEM_NAMES) + [UNASSIGNED_CORE_NAME] if _core_id(name) == center), "")
     if not selected_core:
-        selected_core = "巡檢系統" if any(_core_name_for_system(item) == "巡檢系統" for item in systems) else CORE_SYSTEM_NAMES[0]
-    core_nodes = [_core_node(name) for name in CORE_SYSTEM_NAMES]
+        selected_core = "巡檢系統" if any(_core_name_for_system(item) == "巡檢系統" for item in systems) else UNASSIGNED_CORE_NAME
+    core_names = list(CORE_SYSTEM_NAMES)
+    for name in sorted(set(core_by_system.values())):
+        if name not in core_names:
+            core_names.append(name)
+    core_nodes = [_core_node(name) for name in core_names]
     related_systems = [item for item in systems if core_by_system.get(item["system_id"]) == selected_core]
     scope = "core"
     if center_system_id:
@@ -1834,7 +1839,7 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
 
     height = max(720, max(len(core_nodes), len(related_systems), len(host_nodes), 1) * 92 + 130)
     lanes = [
-        {"key": "core", "label": "第一欄：六大核心", "x": 30, "y": 64, "width": 280, "height": int(height - 96)},
+        {"key": "core", "label": "第一欄：核心歸屬", "x": 30, "y": 64, "width": 280, "height": int(height - 96)},
         {"key": "system", "label": "第二欄：關聯系統", "x": 410, "y": 64, "width": 290, "height": int(height - 96)},
         {"key": "host", "label": "第三欄：主機 / IP", "x": 810, "y": 64, "width": 310, "height": int(height - 96)},
     ]

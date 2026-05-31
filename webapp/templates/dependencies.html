@@ -176,7 +176,8 @@
         {% for system in systems or [] %}
         {% set system_meta = system.metadata or {} %}
         {% set secondary_name = system_meta.system_name or system.system_id %}
-        <option value="{{ system.system_id }}" data-search="{{ system.display_name }} {{ secondary_name }} {{ system.system_id }} {{ system.owner or '' }} {{ (system.host_refs or [])|join(' ') }} {{ system.description or '' }}" {% if request.args.get('center', '') in [system.system_id, system.display_name] %}selected{% endif %}>{{ system.display_name }} / {{ secondary_name }}</option>
+        {% set visible_secondary = secondary_name if secondary_name and not (secondary_name|string).startswith('SYS-') and secondary_name != system.display_name else '' %}
+        <option value="{{ system.system_id }}" data-search="{{ system.display_name }} {{ secondary_name }} {{ system.system_id }} {{ system.owner or '' }} {{ (system.host_refs or [])|join(' ') }} {{ system.description or '' }}" {% if request.args.get('center', '') in [system.system_id, system.display_name] %}selected{% endif %}>{{ system.display_name }}{% if visible_secondary %} / {{ visible_secondary }}{% endif %}</option>
         {% endfor %}
         </select>
         <span class="topology-select-count" data-select-filter-count="topology-center-core"></span>
@@ -192,8 +193,9 @@
         {% for system in systems or [] %}
         {% set system_meta = system.metadata or {} %}
         {% set secondary_name = system_meta.system_name or system.system_id %}
-        <option value="{{ system.system_id }}">{{ system.display_name }} / {{ secondary_name }}</option>
-        <option value="{{ system.display_name }}">{{ secondary_name }}</option>
+        {% set visible_secondary = secondary_name if secondary_name and not (secondary_name|string).startswith('SYS-') and secondary_name != system.display_name else '' %}
+        <option value="{{ system.system_id }}">{{ system.display_name }}{% if visible_secondary %} / {{ visible_secondary }}{% endif %}</option>
+        <option value="{{ system.display_name }}">{{ visible_secondary or system.display_name }}</option>
         {% endfor %}
       </datalist>
       <select name="depth" data-auto-submit>
@@ -226,7 +228,8 @@
         {% for system in systems or [] %}
         {% set system_meta = system.metadata or {} %}
         {% set secondary_name = system_meta.system_name or system.system_id %}
-        <option value="{{ system.system_id }}" data-search="{{ system.display_name }} {{ secondary_name }} {{ system.system_id }} {{ system.owner or '' }} {{ (system.host_refs or [])|join(' ') }} {{ system.description or '' }}" {% if request.args.get('center', '') in [system.system_id, system.display_name] %}selected{% endif %}>{{ system.display_name }} / {{ secondary_name }}</option>
+        {% set visible_secondary = secondary_name if secondary_name and not (secondary_name|string).startswith('SYS-') and secondary_name != system.display_name else '' %}
+        <option value="{{ system.system_id }}" data-search="{{ system.display_name }} {{ secondary_name }} {{ system.system_id }} {{ system.owner or '' }} {{ (system.host_refs or [])|join(' ') }} {{ system.description or '' }}" {% if request.args.get('center', '') in [system.system_id, system.display_name] %}selected{% endif %}>{{ system.display_name }}{% if visible_secondary %} / {{ visible_secondary }}{% endif %}</option>
         {% endfor %}
         </select>
         <span class="topology-select-count" data-select-filter-count="topology-center-system"></span>
@@ -235,8 +238,9 @@
         {% for system in systems or [] %}
         {% set system_meta = system.metadata or {} %}
         {% set secondary_name = system_meta.system_name or system.system_id %}
-        <option value="{{ system.system_id }}">{{ system.display_name }} / {{ secondary_name }}</option>
-        <option value="{{ system.display_name }}">{{ secondary_name }}</option>
+        {% set visible_secondary = secondary_name if secondary_name and not (secondary_name|string).startswith('SYS-') and secondary_name != system.display_name else '' %}
+        <option value="{{ system.system_id }}">{{ system.display_name }}{% if visible_secondary %} / {{ visible_secondary }}{% endif %}</option>
+        <option value="{{ system.display_name }}">{{ visible_secondary or system.display_name }}</option>
         {% endfor %}
       </datalist>
       <select name="depth" data-auto-submit>

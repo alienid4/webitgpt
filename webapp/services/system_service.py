@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.66",
+        "date": "2026-06-01 09:15 +08:00",
+        "patch_id": "topology-unassigned-core-label",
+        "changes": [
+            "核心影響圖不再把未歸屬系統預設塞到好麥證券。",
+            "未指定核心的系統改顯示在未歸屬核心，避免第一欄誤導。",
+            "拓撲下拉選單隱藏內部 SYS-* ID，畫面以資產名稱 / 系統名稱為主。",
+        ],
+    },
+    {
         "version": "1.0.3.65",
         "date": "2026-05-31 14:45 +08:00",
         "patch_id": "topology-full-asset-master-scan",

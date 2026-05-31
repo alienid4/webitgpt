@@ -163,6 +163,37 @@ def test_core_impact_handles_custom_core_without_svg_position_gaps(monkeypatch):
     )
 
 
+def test_core_impact_unassigned_system_does_not_fallback_to_default_core(monkeypatch):
+    systems = [
+        {
+            "system_id": "SYS-WATERMARK",
+            "display_name": "浮水印系統",
+            "tier": "C",
+            "category": "AP",
+            "owner": "ops",
+            "host_refs": ["host-a"],
+            "metadata": {},
+        }
+    ]
+    hosts = [{"asset_seq": "HW-00000001", "asset_name": "浮水印系統", "hostname": "host-a", "ip": "10.0.0.1"}]
+
+    monkeypatch.setattr(dependency_service, "list_systems", lambda *_args, **_kwargs: systems)
+    monkeypatch.setattr(dependency_service, "_hosts", lambda: hosts)
+    monkeypatch.setattr(dependency_service, "list_relations", lambda *_args, **_kwargs: [])
+    monkeypatch.setattr(dependency_service, "latest_collect_run", lambda: None)
+
+    data = dependency_service.topology(view="core_impact", center="SYS-WATERMARK")
+    active_core_labels = {
+        node["label"]
+        for node in data["nodes"]
+        if str(node.get("id") or "").startswith("core:") and node.get("focus_state") == "active"
+    }
+
+    assert "未歸屬核心" in active_core_labels
+    assert "好麥證券" not in active_core_labels
+    assert data["meta"]["impact_panel"]["core_label"] == "未歸屬核心"
+
+
 def test_host_business_system_name_excludes_discovery_scan_drafts():
     assert dependency_service._host_business_system_name(
         {
