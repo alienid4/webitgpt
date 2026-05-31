@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.55",
+        "date": "2026-05-31 10:20 +08:00",
+        "patch_id": "global-search-data-results",
+        "changes": [
+            "上方全域搜尋改為分類資料結果頁。",
+            "同一個關鍵字可同時查正式資產、草稿 / 未納管、CMDB 資產池與功能入口。",
+            "搜尋結果顯示命中數、類型、摘要與負責人資訊，降低使用者不知道資料藏在哪裡的問題。",
+        ],
+    },
+    {
         "version": "1.0.3.54",
         "date": "2026-05-31 09:30 +08:00",
         "patch_id": "cumulative-cmdb-3-44-to-3-53",

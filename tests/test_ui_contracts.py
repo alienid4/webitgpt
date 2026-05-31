@@ -490,8 +490,18 @@ def test_asset_governance_status_admin_contracts_exist():
     assert '"日"' in host_routes
     assert '"誌"' in host_routes
     assert "search_results.html" in host_routes
+    assert "global_search_service.search_data" in host_routes
     assert "_keyword_related" in host_routes
     assert "_is_direct_search_code" in host_routes
+    search_template = read("webapp/templates/search_results.html")
+    search_service = read("webapp/services/global_search_service.py")
+    css = read("webapp/static/css/cathay.css")
+    for text in ["正式資產", "草稿 / 未納管", "CMDB 資產池", "功能入口"]:
+        assert text in search_template
+    for text in ["HOST_SEARCH_FIELDS", "ASSET_POOL_SEARCH_FIELDS", "cmdb_asset_pool"]:
+        assert text in search_service
+    for text in [".search-result-summary", ".search-result-row", ".search-result-badge"]:
+        assert text in css
     assert "asset_quality_page" in host_routes
     assert "status_counts" in host_routes
     assert "status_counts" in read("webapp/services/host_service.py")

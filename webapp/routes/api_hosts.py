@@ -5,7 +5,7 @@ import ipaddress
 from flask import Blueprint, Response, abort, current_app, jsonify, redirect, render_template, request, url_for
 
 from webapp.decorators import current_user, market_hours_protected, require_feature, require_role
-from webapp.services import audit_log_service, cmdb_relationship_service, cmdb_service, cmdb_workbook_service, host_service, ipam_schedule_service
+from webapp.services import audit_log_service, cmdb_relationship_service, cmdb_service, cmdb_workbook_service, global_search_service, host_service, ipam_schedule_service
 from webapp.services.csv_service import csv_template as build_csv_template
 from webapp.services.csv_service import export_hosts_csv, export_hosts_xlsx, import_csv, import_json, import_xlsx, validate_csv, validate_xlsx, validation_errors_csv, validation_errors_xlsx
 from webapp.services.host_schema import ASSET_FIELDS, REQUIRED_FIELDS, ValidationError
@@ -249,12 +249,16 @@ def global_search_page():
             if related:
                 break
 
-    if len(exact_matches) == 1 and _is_direct_search_code(normalized):
+    data_results = global_search_service.search_data(query)
+    for group_key in ("formal_hosts", "draft_hosts", "asset_pool"):
+        for item in data_results.get(group_key, []):
+            item["url"] = url_for(item["endpoint"], **item.get("params", {}))
+    if len(exact_matches) == 1 and _is_direct_search_code(normalized) and not data_results["total"]:
         return redirect(url_for(exact_matches[0]["endpoint"]))
-    if len(related_results) == 1 and len(normalized) > 1:
+    if len(related_results) == 1 and len(normalized) > 1 and not data_results["total"]:
         return redirect(related_results[0]["url"])
-    if related_results:
-        return render_template("search_results.html", query=query, results=related_results)
+    if related_results or data_results["total"]:
+        return render_template("search_results.html", query=query, results=related_results, data_results=data_results)
 
     return redirect(url_for("api_hosts.hosts_page", q=query))
 

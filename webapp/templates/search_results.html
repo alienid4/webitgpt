@@ -1,22 +1,75 @@
 {% extends "base.html" %}
 {% block title %}搜尋結果 - webitgpt{% endblock %}
 {% block content %}
-<section class="page-header">
+{% set data_results = data_results or {"formal_hosts": [], "draft_hosts": [], "asset_pool": [], "total": 0} %}
+<section class="page-header search-page-header">
   <div>
     <p class="card-title">GLOBAL SEARCH</p>
     <h1>搜尋結果</h1>
-    <p class="muted">「{{ query }}」找到 {{ results|length }} 個入口。</p>
+    <p class="muted">「{{ query }}」找到 {{ data_results.total + results|length }} 個可能位置。</p>
   </div>
+  <form class="search-page-form" method="get" action="{{ url_for('api_hosts.global_search_page') }}">
+    <input name="q" value="{{ query }}" placeholder="輸入資產名稱 / Hostname / IP / 人員 / AP">
+    <button class="btn primary" type="submit">重新搜尋</button>
+  </form>
 </section>
 
-<section class="admin-module-grid">
-  {% for item in results %}
-  <a class="admin-module-card" href="{{ item.url }}">
-    <em>{{ item.group }}</em>
-    <strong>{{ item.title }}</strong>
-    <span>符合：{{ item.matched_keyword }}</span>
-    <span class="text-muted-sm">角色：{{ item.role }}</span>
-  </a>
-  {% endfor %}
+<section class="search-result-summary">
+  <a href="#formal-assets"><strong>{{ data_results.formal_hosts|length }}</strong><span>正式資產</span></a>
+  <a href="#draft-assets"><strong>{{ data_results.draft_hosts|length }}</strong><span>草稿 / 未納管</span></a>
+  <a href="#asset-pool"><strong>{{ data_results.asset_pool|length }}</strong><span>CMDB 資產池</span></a>
+  <a href="#function-results"><strong>{{ results|length }}</strong><span>功能入口</span></a>
+</section>
+
+{% macro result_list(title, anchor, items, empty_text) %}
+<section class="panel search-result-section" id="{{ anchor }}">
+  <div class="search-section-title">
+    <h2>{{ title }}</h2>
+    <span>{{ items|length }} 筆</span>
+  </div>
+  {% if items %}
+  <div class="search-result-list">
+    {% for item in items %}
+    <a class="search-result-row" href="{{ item.url }}">
+      <span class="search-result-badge">{{ item.badge }}</span>
+      <span class="search-result-main">
+        <strong>{{ item.title }}</strong>
+        <small>{{ item.subtitle or "沒有補充資訊" }}</small>
+      </span>
+      {% if item.meta %}<span class="search-result-meta">{{ item.meta }}</span>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-muted-sm">{{ empty_text }}</p>
+  {% endif %}
+</section>
+{% endmacro %}
+
+{{ result_list("正式資產", "formal-assets", data_results.formal_hosts, "正式資產沒有符合資料。") }}
+{{ result_list("草稿 / 未納管", "draft-assets", data_results.draft_hosts, "草稿區沒有符合資料。") }}
+{{ result_list("CMDB 資產池", "asset-pool", data_results.asset_pool, "資產池、人員、軟體 / AP 沒有符合資料。") }}
+
+<section class="panel search-result-section" id="function-results">
+  <div class="search-section-title">
+    <h2>功能入口</h2>
+    <span>{{ results|length }} 筆</span>
+  </div>
+  {% if results %}
+  <div class="search-result-list">
+    {% for item in results %}
+    <a class="search-result-row" href="{{ item.url }}">
+      <span class="search-result-badge">{{ item.group }}</span>
+      <span class="search-result-main">
+        <strong>{{ item.title }}</strong>
+        <small>命中：{{ item.matched_keyword }}</small>
+      </span>
+      <span class="search-result-meta">{{ item.role }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-muted-sm">沒有符合的功能入口。</p>
+  {% endif %}
 </section>
 {% endblock %}

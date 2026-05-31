@@ -20,7 +20,7 @@
       {% if show_app_shell %}
       <form class="quick-search" method="get" action="{{ url_for('api_hosts.global_search_page') }}">
         <span aria-hidden="true">搜尋</span>
-        <input name="q" placeholder="搜尋資產 / 功能 / IP..." autocomplete="off">
+        <input name="q" placeholder="搜尋資產 / Hostname / IP / 人員 / AP" autocomplete="off">
       </form>
       {% endif %}
       <div class="build-chip" title="{{ patch_id }} / {{ release_note }}">v{{ app_version }} <span>|</span> {{ build_time }}</div>
