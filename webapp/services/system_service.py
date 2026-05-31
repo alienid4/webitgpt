@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.59",
+        "date": "2026-05-31 12:15 +08:00",
+        "patch_id": "saved-filter-nonblocking",
+        "changes": [
+            "常用篩選名稱改為選填，避免一般資產查詢被瀏覽器必填提示卡住。",
+            "使用者未填名稱但有篩選條件時，系統會自動用條件產生常用篩選名稱。",
+            "沒有任何篩選條件時仍不建立常用篩選，避免空條件垃圾資料。",
+        ],
+    },
+    {
         "version": "1.0.3.58",
         "date": "2026-05-31 11:55 +08:00",
         "patch_id": "offline-pip-patch-install",

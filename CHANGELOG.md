@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.59 - 2026-05-31 12:15 +08:00 - saved-filter-nonblocking
+
+- 常用篩選名稱改為選填，避免一般資產查詢被瀏覽器必填提示卡住。
+- 使用者未填名稱但有篩選條件時，系統會自動用條件產生常用篩選名稱。
+- 無任何篩選條件時仍不建立常用篩選，避免產生空條件垃圾資料。
+
 ## v1.0.3.58 - 2026-05-31 11:55 +08:00 - offline-pip-patch-install
 
 - Patch 安裝預設改為離線 pip 模式，避免無網路主機卡在 `pip install --upgrade pip` 外網 retry。

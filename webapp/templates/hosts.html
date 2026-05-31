@@ -139,7 +139,7 @@
           <span class="muted">尚無常用篩選。</span>
         {% endfor %}
         <form class="inline-form" method="post" action="{{ url_for('api_hosts.host_save_view_page') }}">
-          <input name="name" placeholder="篩選名稱" required>
+          <input name="name" placeholder="篩選名稱（可空白）">
           <select name="host_type" title="作業系統/平台">
             <option value="">全部作業系統/平台</option>
             {% for value in ["linux","windows","aix","as400","vmware_host","vmware_vm","vmware_vcenter","network_device","end_device"] %}

@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.3.58"
-PATCH_ID = "offline-pip-patch-install"
-RELEASE_NOTE = "Patch 安裝預設離線 pip 模式，避免無網路主機卡在 pip 外網 retry"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-31 11:55:00 +08:00")
+VERSION = "1.0.3.59"
+PATCH_ID = "saved-filter-nonblocking"
+RELEASE_NOTE = "常用篩選名稱改為選填，避免一般資產查詢被瀏覽器必填提示卡住"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-31 12:15:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

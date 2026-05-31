@@ -40,10 +40,15 @@ def test_base_shell_keeps_navigation_theme_and_shortcuts():
 
 def test_hosts_saved_view_form_has_visible_asset_filters():
     hosts_html = read("webapp/templates/hosts.html")
+    service = read("webapp/services/saved_view_service.py")
 
     assert 'select name="host_type"' in hosts_html
     assert 'select name="environment"' in hosts_html
     assert 'select name="dc"' in hosts_html
+    assert 'input name="name" placeholder="篩選名稱（可空白）"' in hosts_html
+    assert 'input name="name" placeholder="篩選名稱" required' not in hosts_html
+    assert "FILTER_LABELS" in service
+    assert "clean_name = \" / \".join(parts)" in service
 
 
 def test_ipam_reconcile_and_schedule_contracts_exist():

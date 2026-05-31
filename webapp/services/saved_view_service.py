@@ -10,6 +10,14 @@ from webapp.services.mongo_service import get_collection
 
 ALLOWED_PARAMS = {"q", "status", "group_name", "environment", "host_type", "dc", "page_size"}
 FILTER_PARAMS = {"q", "status", "group_name", "environment", "host_type", "dc"}
+FILTER_LABELS = {
+    "q": "search",
+    "status": "status",
+    "group_name": "group",
+    "environment": "environment",
+    "host_type": "type",
+    "dc": "dc",
+}
 
 
 def _now() -> datetime:
@@ -27,11 +35,16 @@ def list_views(owner: str) -> list[dict[str, Any]]:
 
 def save_view(owner: str, name: str, params: dict[str, Any]) -> dict[str, Any]:
     clean_name = name.strip()
-    if not clean_name:
-        raise ValueError("view name is required")
     cleaned = _clean_params(params)
     if not any(cleaned.get(key) for key in FILTER_PARAMS):
         raise ValueError("至少要先輸入搜尋字或選擇篩選條件，才能儲存常用篩選")
+    if not clean_name:
+        parts = [
+            f"{FILTER_LABELS.get(key, key)}={cleaned[key]}"
+            for key in ("q", "status", "group_name", "environment", "host_type", "dc")
+            if cleaned.get(key)
+        ]
+        clean_name = " / ".join(parts) or "saved-view"
     doc = {
         "owner": owner,
         "name": clean_name[:60],
