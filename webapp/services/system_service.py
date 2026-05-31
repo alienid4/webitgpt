@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.67",
+        "date": "2026-06-01 09:35 +08:00",
+        "patch_id": "cmdb-relationship-topology-center",
+        "changes": [
+            "CMDB 關聯總覽的看影響圖按鈕改用真正拓撲中心 ID。",
+            "系統列與目前選取系統都會先用系統名稱與主機參照比對 dependency_systems。",
+            "避免從 CMDB 關聯檢視跳入核心影響圖時落回預設系統或其他核心。",
+        ],
+    },
+    {
         "version": "1.0.3.66",
         "date": "2026-06-01 09:15 +08:00",
         "patch_id": "topology-unassigned-core-label",

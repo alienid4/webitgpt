@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.67 - 2026-06-01 09:35 +08:00 - cmdb-relationship-topology-center
+
+- CMDB 關聯總覽的「開核心影響圖 / 看這套系統影響圖 / 看影響圖」改用真正拓撲中心 ID。
+- 系統列會以系統名稱與主機參照比對 `dependency_systems`，不再直接把 CMDB 分組 key 當成拓撲中心。
+- 避免從 CMDB 關聯檢視跳入核心影響圖時落回預設系統或其他核心。
+
 ## v1.0.3.66 - 2026-06-01 09:15 +08:00 - topology-unassigned-core-label
 
 - 核心影響圖不再把沒有明確核心歸屬的系統預設放到「好麥證券」。

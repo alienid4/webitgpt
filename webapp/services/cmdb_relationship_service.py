@@ -42,6 +42,14 @@ def _host_identity(host: dict[str, Any]) -> str:
     return str(host.get("hostname") or host.get("asset_seq") or host.get("ip") or "").strip()
 
 
+def _host_identity_values(host: dict[str, Any]) -> set[str]:
+    return {
+        str(host.get(field) or "").strip()
+        for field in ("hostname", "asset_seq", "ip", "asset_name")
+        if str(host.get(field) or "").strip()
+    }
+
+
 def _host_system_key(host: dict[str, Any]) -> str:
     for field in ("system_name", "group_name", "apid"):
         value = str(host.get(field) or "").strip()
@@ -136,7 +144,34 @@ def _system_rows(hosts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(rows, key=lambda row: (not row["is_classified"], -row["host_count"], row["display_name"]))
 
 
-def _selected_system(rows: list[dict[str, Any]], selected: str = "") -> dict[str, Any]:
+def _topology_center_for_row(row: dict[str, Any], dependency_systems: list[dict[str, Any]]) -> str:
+    key = str(row.get("key") or "").strip()
+    display_name = str(row.get("display_name") or "").strip()
+    host_refs = {value for host in row.get("hosts", []) for value in _host_identity_values(host)}
+    if not key and not display_name and not host_refs:
+        return ""
+
+    for system in dependency_systems:
+        system_id = str(system.get("system_id") or "").strip()
+        if system_id and system_id == key:
+            return system_id
+
+    for system in dependency_systems:
+        system_id = str(system.get("system_id") or "").strip()
+        system_name = str(system.get("display_name") or "").strip()
+        if system_id and display_name and system_name == display_name:
+            return system_id
+
+    for system in dependency_systems:
+        system_id = str(system.get("system_id") or "").strip()
+        refs = {str(ref or "").strip() for ref in system.get("host_refs") or [] if str(ref or "").strip()}
+        if system_id and refs and refs.intersection(host_refs):
+            return system_id
+
+    return display_name or key
+
+
+def _selected_system(rows: list[dict[str, Any]], dependency_systems: list[dict[str, Any]], selected: str = "") -> dict[str, Any]:
     selected_text = (selected or "").strip().lower()
     current = None
     if selected_text:
@@ -151,6 +186,7 @@ def _selected_system(rows: list[dict[str, Any]], selected: str = "") -> dict[str
     owners = sorted({owner for host in hosts for owner in _owner_values(host)})
     return {
         "key": current.get("key", ""),
+        "topology_center": _topology_center_for_row(current, dependency_systems) if current else "",
         "display_name": current.get("display_name", "未選擇"),
         "host_count": current.get("host_count", 0),
         "formal_count": current.get("formal_count", 0),
@@ -180,6 +216,8 @@ def cmdb_relationship_overview(selected_system: str = "") -> dict[str, Any]:
     system_rows = _system_rows(hosts)
     dependency_systems = _safe_docs("dependency_systems", {"_id": 0, "system_id": 1, "display_name": 1, "owner": 1, "host_refs": 1})
     dependency_relations = _safe_docs("dependency_relations", {"_id": 0, "from_system": 1, "to_system": 1, "source": 1})
+    for row in system_rows:
+        row["topology_center"] = _topology_center_for_row(row, dependency_systems)
 
     gaps = [
         {
@@ -226,5 +264,5 @@ def cmdb_relationship_overview(selected_system: str = "") -> dict[str, Any]:
         },
         "gaps": gaps,
         "systems": system_rows[:12],
-        "selected_system": _selected_system(system_rows, selected_system),
+        "selected_system": _selected_system(system_rows, dependency_systems, selected_system),
     }

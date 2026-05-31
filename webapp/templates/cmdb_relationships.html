@@ -10,7 +10,7 @@
   <div class="actions">
     <a class="btn" href="{{ url_for('api_hosts.hosts_page') }}">回資產清單</a>
     <a class="btn" href="{{ url_for('api_hosts.asset_quality_page') }}">資料品質清單</a>
-    <a class="btn primary" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=selected_system.key, focus_impact=1) }}">開核心影響圖</a>
+    <a class="btn primary" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=selected_system.topology_center or selected_system.key, focus_impact=1) }}">開核心影響圖</a>
   </div>
 </section>
 
@@ -98,7 +98,7 @@
       <span><strong>{{ selected_system.draft_count }}</strong> 草稿</span>
       <span><strong>{{ selected_system.missing_owner }}</strong> 缺 owner</span>
       <span><strong>{{ selected_system.missing_ports }}</strong> 缺 Port</span>
-      <a class="btn primary" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=selected_system.key, focus_impact=1) }}">看這套系統影響圖</a>
+      <a class="btn primary" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=selected_system.topology_center or selected_system.key, focus_impact=1) }}">看這套系統影響圖</a>
     </div>
   </article>
 
@@ -154,7 +154,7 @@
           <td>{{ system.missing_owner }}</td>
           <td>{{ system.missing_notification }}</td>
           <td>{{ system.missing_ports }}</td>
-          <td><a class="btn-sm" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=system.key, focus_impact=1) }}">看影響圖</a></td>
+          <td><a class="btn-sm" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=system.topology_center or system.key, focus_impact=1) }}">看影響圖</a></td>
         </tr>
         {% else %}
         <tr><td colspan="9" class="no-data">目前沒有 CMDB 資產資料。</td></tr>

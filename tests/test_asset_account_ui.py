@@ -327,6 +327,10 @@ def test_cmdb_relationship_dashboard_contracts_exist():
         assert text in relationships
     for token in ["cmdb_relationship_overview", "DRAFT_STATUSES", "missing_owner", "service_port"]:
         assert token in service
+    assert "selected_system.topology_center" in relationships
+    assert "system.topology_center" in relationships
+    assert "center=selected_system.key" not in relationships
+    assert "center=system.key" not in relationships
     for token in [".cmdb-coverage-grid", ".cmdb-relation-map", ".cmdb-gap-item", ".cmdb-system-table"]:
         assert token in css
 
@@ -390,6 +394,8 @@ def test_cmdb_relationship_overview_summarizes_quality_and_relationships(monkeyp
     assert overview["coverage"]["owner"]["pct"] == 67
     assert overview["coverage"]["service_port"]["pct"] == 33
     assert overview["selected_system"]["display_name"] == "巡檢系統"
+    assert overview["selected_system"]["topology_center"] == "SYS-INSPECTION"
+    assert overview["systems"][0]["topology_center"] == "SYS-INSPECTION"
     assert overview["selected_system"]["host_count"] == 2
     assert overview["selected_system"]["missing_owner"] == 1
 
@@ -417,6 +423,7 @@ def test_cmdb_relationship_page_renders_with_overview(monkeypatch):
         "systems": [
             {
                 "key": "巡檢系統",
+                "topology_center": "SYS-INSPECTION",
                 "display_name": "巡檢系統",
                 "is_classified": True,
                 "host_count": 2,
@@ -430,6 +437,7 @@ def test_cmdb_relationship_page_renders_with_overview(monkeypatch):
         ],
         "selected_system": {
             "key": "巡檢系統",
+            "topology_center": "SYS-INSPECTION",
             "display_name": "巡檢系統",
             "host_count": 2,
             "formal_count": 1,
@@ -465,7 +473,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.66"' in config
+    assert 'VERSION = "1.0.3.67"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -556,8 +564,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.66"' in config
-    assert "topology-unassigned-core-label" in config
+    assert 'VERSION = "1.0.3.67"' in config
+    assert "cmdb-relationship-topology-center" in config
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -604,7 +612,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "topology-unassigned-core-label" in config
+    assert "cmdb-relationship-topology-center" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog
