@@ -211,6 +211,9 @@
       <div class="draft-workflow-actions">
         <a class="btn secondary" href="#asset-details">開始處理本頁草稿</a>
         <a class="btn secondary" href="{{ url_for('api_hosts.host_new_page') }}">回新增工作台</a>
+        {% if status_counts.get("draft", 0) > 0 and current_user.role in ["admin", "super", "superadmin"] %}
+        <button form="bulkDraftPromoteAllForm" class="btn primary" type="submit" onclick="return confirm('建置期動作：將全部草稿嘗試轉正式。資料不完整的會略過並回報數量，確定執行？')">全部草稿轉正式</button>
+        {% endif %}
       </div>
     </div>
     {% endif %}
@@ -250,6 +253,11 @@
     </details>
     <form id="bulkDraftDeleteForm" method="post" action="{{ url_for('api_hosts.host_bulk_delete_drafts_submit') }}" data-draft-bulk-form data-submit-status data-submit-message="正在批次刪除草稿，正式資產會自動略過。"></form>
     <form id="bulkDraftPromoteForm" method="post" action="{{ url_for('api_hosts.host_bulk_promote_drafts_submit') }}" data-draft-bulk-form data-submit-status data-submit-message="正在批次轉正式，正式資產會自動略過。"></form>
+    <form id="bulkDraftPromoteAllForm" method="post" action="{{ url_for('api_hosts.host_bulk_promote_drafts_submit') }}" data-submit-status data-submit-message="正在將全部草稿轉正式，資料不完整者會略過。">
+      <input type="hidden" name="scope" value="all_drafts">
+      <input type="hidden" name="return_status" value="draft">
+      <input type="hidden" name="reason" value="initial CMDB build promote all drafts">
+    </form>
     <form id="bulkDraftUpdateForm" method="post" action="{{ url_for('api_hosts.host_bulk_update_drafts_submit') }}" data-draft-bulk-form data-submit-status data-submit-message="正在批次補草稿欄位，正式資產會自動略過。"></form>
     {% endif %}
     <table class="data-table asset-table asset-table-compact">

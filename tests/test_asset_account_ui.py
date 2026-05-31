@@ -239,11 +239,13 @@ def test_cmdb_import_report_excel_and_draft_bulk_contracts_exist():
         assert text in host_new
     assert "錯誤明細只顯示前 10 筆" in host_new
     assert "{{ import_result.errors }}" not in host_new
-    for text in ["批次轉正式", "批次補欄位", "bulkDraftPromoteForm", "bulkDraftUpdateForm", "匯出 Excel"]:
+    for text in ["批次轉正式", "批次補欄位", "bulkDraftPromoteForm", "bulkDraftPromoteAllForm", "bulkDraftUpdateForm", "匯出 Excel"]:
         assert text in hosts
+    assert 'name="scope" value="all_drafts"' in hosts
     for text in ["host_bulk_promote_drafts_submit", "host_bulk_update_drafts_submit", "xlsx_export", "xlsx_import"]:
         assert text in host_routes
-    for text in ["bulk_promote_draft_hosts", "bulk_update_draft_hosts", "bulk_promote_draft", "bulk_update_draft"]:
+    assert "list_draft_host_keys" in host_routes
+    for text in ["bulk_promote_draft_hosts", "bulk_update_draft_hosts", "bulk_promote_draft", "bulk_update_draft", "list_draft_host_keys"]:
         assert text in host_service
     assert "data-draft-bulk-form" in hosts
     assert "data-draft-bulk-copy" in hosts_js
@@ -460,7 +462,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.59"' in config
+    assert 'VERSION = "1.0.3.60"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -551,8 +553,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.59"' in config
-    assert "saved-filter-nonblocking" in config
+    assert 'VERSION = "1.0.3.60"' in config
+    assert "initial-draft-promote-all" in config
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -599,7 +601,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "saved-filter-nonblocking" in config
+    assert "initial-draft-promote-all" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog

@@ -1034,8 +1034,9 @@ def host_bulk_delete_drafts_submit():
 @require_role("admin")
 def host_bulk_promote_drafts_submit():
     try:
+        keys = host_service.list_draft_host_keys() if request.form.get("scope") == "all_drafts" else request.form.getlist("asset_seq")
         result = host_service.bulk_promote_draft_hosts(
-            request.form.getlist("asset_seq"),
+            keys,
             request.form.get("reason", ""),
             user=current_user()["username"],
         )

@@ -122,6 +122,11 @@ def status_counts() -> dict[str, int]:
     return counts
 
 
+def list_draft_host_keys() -> list[str]:
+    docs = get_collection("hosts").find({"status": "draft"}, {"hostname": 1, "asset_seq": 1}).sort("hostname", ASCENDING)
+    return [str(doc.get("hostname") or doc.get("asset_seq")) for doc in docs if doc.get("hostname") or doc.get("asset_seq")]
+
+
 def _identity_query(key: str) -> dict[str, Any]:
     return {"$or": [{"hostname": key}, {"asset_seq": key}]}
 
@@ -328,7 +333,18 @@ def bulk_promote_draft_hosts(keys: list[str], reason: str, user: str = "system")
             )
             continue
         record_lifecycle_event(existing, "bulk_promote_draft", reason, user)
-        updated = update_host(existing.get("hostname") or existing.get("asset_seq"), {"status": "active"}, user=user)
+        try:
+            updated = update_host(existing.get("hostname") or existing.get("asset_seq"), {"status": "active"}, user=user)
+        except Exception as exc:
+            result["skipped"].append(
+                {
+                    "asset_seq": existing.get("asset_seq") or key,
+                    "hostname": existing.get("hostname"),
+                    "status": normalized.get("status"),
+                    "reason": str(exc),
+                }
+            )
+            continue
         result["promoted"].append({"asset_seq": updated.get("asset_seq"), "hostname": updated.get("hostname")})
     result["promoted_count"] = len(result["promoted"])
     result["skipped_count"] = len(result["skipped"])

@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.60",
+        "date": "2026-05-31 12:35 +08:00",
+        "patch_id": "initial-draft-promote-all",
+        "changes": [
+            "草稿檢視新增建置期「全部草稿轉正式」入口，適合第一次匯入後一次正式化。",
+            "後端支援全草稿批次轉正式，資料完整者轉 active，不完整者略過並回報數量。",
+            "批次轉正式改為逐筆容錯，避免單筆資料不完整造成整批失敗。",
+        ],
+    },
+    {
         "version": "1.0.3.59",
         "date": "2026-05-31 12:15 +08:00",
         "patch_id": "saved-filter-nonblocking",
