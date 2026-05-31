@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.63 - 2026-05-31 13:45 +08:00 - business-system-only-topology
+
+- 拓撲系統同步只接受真正的資產名稱或系統名稱，不再 fallback 到 hostname 建立系統節點。
+- 主機對系統的索引同樣只認資產名稱或系統名稱，避免一般主機被誤判成系統。
+- 同步時會清理先前由 hostname fallback 產生、且沒有資產名稱與系統名稱的同步節點。
+
 ## v1.0.3.62 - 2026-05-31 13:25 +08:00 - asset-name-first-topology-labels
 
 - 拓撲核心與系統選擇器改用「資產名稱 / 系統名稱」語意，畫面優先顯示資產名稱，系統名稱或代號放後面。

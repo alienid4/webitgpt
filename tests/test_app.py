@@ -126,3 +126,51 @@ def test_core_impact_system_center_limits_to_focused_system(monkeypatch):
     assert "host:sec9c2" in node_ids
     assert "SYS-ROCKY" not in node_ids
     assert "host:secclient1" not in node_ids
+    assert all("x" in node and "y" in node for node in data["nodes"])
+    assert all(
+        {"x1", "y1", "x2", "y2"}.issubset(edge.keys())
+        for edge in data["edges"]
+        if edge["source"] in node_ids and edge["target"] in node_ids
+    )
+
+
+def test_core_impact_handles_custom_core_without_svg_position_gaps(monkeypatch):
+    systems = [
+        {
+            "system_id": "SYS-ONLY",
+            "display_name": "證券阿發",
+            "tier": "C",
+            "category": "AP",
+            "owner": "ops",
+            "host_refs": [],
+            "metadata": {"core_name": "自訂核心"},
+        }
+    ]
+
+    monkeypatch.setattr(dependency_service, "list_systems", lambda *_args, **_kwargs: systems)
+    monkeypatch.setattr(dependency_service, "_hosts", lambda: [])
+    monkeypatch.setattr(dependency_service, "list_relations", lambda *_args, **_kwargs: [])
+    monkeypatch.setattr(dependency_service, "latest_collect_run", lambda: None)
+
+    data = dependency_service.topology(view="core_impact", center="SYS-ONLY")
+
+    assert all("x" in node and "y" in node for node in data["nodes"])
+    assert all(
+        {"x1", "y1", "x2", "y2"}.issubset(edge.keys())
+        for edge in data["edges"]
+        if edge["source"] in {node["id"] for node in data["nodes"]}
+        and edge["target"] in {node["id"] for node in data["nodes"]}
+    )
+
+
+def test_host_business_system_name_excludes_discovery_scan_drafts():
+    assert dependency_service._host_business_system_name(
+        {
+            "asset_seq": "DISC-20260531-192-168-1-230",
+            "asset_name": "掃描發現 192.168.1.230",
+            "hostname": "scan-192-168-1-230",
+        }
+    ) == ""
+    assert dependency_service._host_business_system_name(
+        {"asset_seq": "HW-1", "asset_name": "證券阿發", "hostname": "SECSVR002-011t"}
+    ) == "證券阿發"

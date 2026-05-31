@@ -315,6 +315,21 @@ def _hosts() -> list[dict[str, Any]]:
     return list_hosts(page=1, page_size=10000)["items"]
 
 
+def _host_business_system_name(host: dict[str, Any]) -> str:
+    """Return the human business system name; never promote hostname to system."""
+    system_name = str(host.get("system_name") or "").strip()
+    if system_name:
+        return system_name
+    asset_name = str(host.get("asset_name") or "").strip()
+    asset_seq = str(host.get("asset_seq") or "").strip().upper()
+    hostname = str(host.get("hostname") or "").strip().lower()
+    if not asset_name:
+        return ""
+    if asset_seq.startswith("DISC-") or hostname.startswith("scan-") or asset_name.startswith("掃描發現"):
+        return ""
+    return asset_name
+
+
 def sync_systems_from_hosts(actor: str = "system") -> int:
     now = _now()
     col = get_collection("dependency_systems")
@@ -323,9 +338,10 @@ def sync_systems_from_hosts(actor: str = "system") -> int:
     for host in _hosts():
         system_name = str(host.get("system_name") or "").strip()
         asset_name = str(host.get("asset_name") or "").strip()
-        hostname = str(host.get("hostname") or "").strip()
-        identity_name = system_name or host.get("group_name") or host.get("apid") or asset_name or hostname
-        display_name = asset_name or system_name or hostname
+        identity_name = _host_business_system_name(host)
+        if not identity_name:
+            continue
+        display_name = system_name or asset_name
         sid = _system_id(identity_name)
         item = by_system.setdefault(
             sid,
@@ -338,7 +354,7 @@ def sync_systems_from_hosts(actor: str = "system") -> int:
                 "owner": host.get("ap_owner") or host.get("custodian") or "",
                 "host_refs": [],
                 "external": False,
-                "metadata": {"asset_name": asset_name, "system_name": system_name},
+                "metadata": {"asset_name": asset_name, "system_name": system_name, "sync_source": "host_inventory"},
                 "updated_at": now,
                 "updated_by": actor,
             },
@@ -358,6 +374,23 @@ def sync_systems_from_hosts(actor: str = "system") -> int:
         count += int(bool(result.upserted_id or result.modified_count))
         if item["system_id"] != "SYS-UNKNOWN":
             col.delete_many({"system_id": "SYS-UNKNOWN", "display_name": item["display_name"]})
+    col.delete_many(
+        {
+            "description": "由資產管理系統同步建立",
+            "metadata.asset_name": "",
+            "metadata.system_name": "",
+            "host_refs.0": {"$exists": True},
+        }
+    )
+    col.delete_many(
+        {
+            "$or": [
+                {"display_name": {"$regex": r"^掃描發現"}},
+                {"system_id": {"$regex": r"^SYS-[0-9]+-[0-9]+-[0-9]+-[0-9]+$"}},
+                {"host_refs": {"$elemMatch": {"$regex": r"^scan-"}}},
+            ],
+        }
+    )
     return count
 
 
@@ -1576,6 +1609,8 @@ def _position_edge_labels(nodes: list[dict[str, Any]], edges: list[dict[str, Any
         target = by_id.get(edge.get("target"))
         if not source or not target:
             continue
+        if "x" not in source or "y" not in source or "x" not in target or "y" not in target:
+            continue
         x1, y1, x2, y2 = source["x"], source["y"], target["x"], target["y"]
         dx = x2 - x1
         dy = y2 - y1
@@ -1591,6 +1626,19 @@ def _position_edge_labels(nodes: list[dict[str, Any]], edges: list[dict[str, Any
                 "label_y": round((y1 + y2) / 2 + (dx / length) * label_offset, 1),
             }
         )
+
+
+def _ensure_node_positions(nodes: list[dict[str, Any]], width: int, height: int) -> None:
+    """Keep old or sparse topology data from breaking SVG rendering."""
+    missing_nodes = [node for node in nodes if "x" not in node or "y" not in node]
+    if not missing_nodes:
+        return
+    start_x = max(120, width - 180)
+    gap = max(64, (height - 120) / (len(missing_nodes) + 1))
+    for index, node in enumerate(missing_nodes):
+        node["x"] = start_x
+        node["y"] = round(70 + gap * (index + 1), 1)
+        node.setdefault("radial_role", "other")
 
 
 def _core_radial_topology(center: str = "", depth: int = 2, limit: int = 200, include_external: bool = False, include_unmanaged: bool = False) -> dict[str, Any]:
@@ -1677,6 +1725,7 @@ def _core_radial_topology(center: str = "", depth: int = 2, limit: int = 200, in
             node["focus_state"] = "normal"
         for edge in edges:
             edge["focus_state"] = "normal"
+    _ensure_node_positions(nodes, width, height)
     _position_edge_labels(nodes, edges)
     meta = _topology_meta("core_radial")
     meta.update({"width": width, "height": height, "layout_mode": "core_radial", "systems": len(selected_systems), "relations": len(edges), "center": center, "include_external": include_external, "include_unmanaged": include_unmanaged, "message": "CMDB 畫正式核心關聯；ss+nmap 用於補漏與驗證，覆核後才進正式圖。"})
@@ -1788,6 +1837,7 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
         trust = str(edge.get("trust") or edge.get("source") or "unknown").lower()
         trust_summary[trust if trust in trust_summary else "unknown"] += 1
         edge["focus_state"] = "active" if edge.get("source") in active_ids and edge.get("target") in active_ids else "muted"
+    _ensure_node_positions(nodes, 1220, int(height))
     _position_edge_labels(nodes, edges)
     focus_system = system_map.get(center_system_id or "")
     focus_label = (focus_system or {}).get("display_name") or selected_core
@@ -2215,7 +2265,9 @@ def _host_system_index() -> dict[str, str]:
         hostname = host.get("hostname")
         if not hostname:
             continue
-        name = host.get("system_name") or host.get("asset_name") or hostname
+        name = _host_business_system_name(host)
+        if not name:
+            continue
         items[hostname] = _system_id(name)
     return items
 

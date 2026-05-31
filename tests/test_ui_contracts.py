@@ -374,6 +374,11 @@ def test_ai_token_cost_visibility_contract_exists():
     assert "initSearchableSelectFilters" in ui_tools
     assert "originalOptions" in ui_tools
     assert ".topology-searchable-select" in css
+    assert "def _host_business_system_name" in dependency_service
+    assert "never promote hostname to system" in dependency_service
+    assert "sync_source\": \"host_inventory\"" in dependency_service
+    assert "metadata.asset_name" in dependency_service
+    assert "metadata.system_name" in dependency_service
     assert 'querySelector(\'[name="center"]\')' in ui_tools
     assert "topology-impact-node-box" in dependencies_page
     assert "topology-impact-panel" in dependencies_page

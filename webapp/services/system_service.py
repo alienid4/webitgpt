@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.63",
+        "date": "2026-05-31 13:45 +08:00",
+        "patch_id": "business-system-only-topology",
+        "changes": [
+            "拓撲系統同步只接受資產名稱或系統名稱，不再用 hostname fallback 建立系統節點。",
+            "主機對系統的索引同樣只認資產名稱或系統名稱，避免一般主機出現在系統選單。",
+            "清理先前由 hostname fallback 產生、且沒有資產名稱與系統名稱的同步系統節點。",
+        ],
+    },
+    {
         "version": "1.0.3.62",
         "date": "2026-05-31 13:25 +08:00",
         "patch_id": "asset-name-first-topology-labels",
