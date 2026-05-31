@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.57",
+        "date": "2026-05-31 11:20 +08:00",
+        "patch_id": "draft-partial-save-governance",
+        "changes": [
+            "草稿與待補資料狀態改為可部分儲存，避免還沒補完整 CMDB 欄位就被正式資產規則擋住。",
+            "正式資產與批次轉正式仍保留嚴格欄位檢查，防止垃圾資料直接進巡檢。",
+            "資產編輯頁只在正式資產顯示硬性必填，草稿階段改為先補資料、後轉正式的流程。",
+        ],
+    },
+    {
         "version": "1.0.3.56",
         "date": "2026-05-31 10:45 +08:00",
         "patch_id": "optional-global-search-entry",

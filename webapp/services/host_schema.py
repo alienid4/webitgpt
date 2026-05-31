@@ -136,6 +136,7 @@ ALIASES = {
 SERVER_TYPES = {"linux", "windows", "aix", "as400"}
 VMWARE_TYPES = {"vmware_host", "vmware_vm", "vmware_vcenter"}
 ASSET_SEQ_RE = re.compile(r"^HW-[A-Za-z0-9-]{4,32}$")
+DRAFT_LIKE_STATUSES = {"draft", "pending_ip", "pending_data", "pending_deploy"}
 
 
 class ValidationError(ValueError):
@@ -246,8 +247,8 @@ def validate_host_doc(doc: dict[str, Any], partial: bool = False) -> tuple[list[
                 errors.append(f"{cia_field} must be 0-3")
 
     host_type = doc.get("host_type")
-    is_draft = doc.get("status") == "draft"
-    if host_type in SERVER_TYPES and not is_draft:
+    is_draft_like = doc.get("status") in DRAFT_LIKE_STATUSES
+    if host_type in SERVER_TYPES and not is_draft_like:
         if not doc.get("connection"):
             errors.append("server hosts require connection")
         if not doc.get("os"):

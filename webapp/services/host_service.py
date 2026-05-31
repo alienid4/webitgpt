@@ -7,7 +7,7 @@ from typing import Any, Optional
 from pymongo import ASCENDING, DESCENDING
 
 from webapp.services.host_dir_service import archive_dir, init_dir, restore_dir, write_meta
-from webapp.services.host_schema import assert_valid_host_doc, normalize_host_doc
+from webapp.services.host_schema import DRAFT_LIKE_STATUSES, ValidationError, assert_valid_host_doc, normalize_host_doc
 from webapp.services.mongo_service import get_collection
 
 LOGGER = logging.getLogger(__name__)
@@ -132,7 +132,7 @@ def get_host(key: str) -> Optional[dict[str, Any]]:
 
 def create_host(doc: dict[str, Any], user: str = "system") -> dict[str, Any]:
     normalized = normalize_host_doc(doc)
-    warnings = assert_valid_host_doc(normalized)
+    warnings = assert_valid_host_doc(normalized, partial=normalized.get("status") in DRAFT_LIKE_STATUSES)
     now = _now()
     normalized.update(
         {
@@ -159,7 +159,7 @@ def update_host(asset_seq: str, changes: dict[str, Any], user: str = "system") -
         raise KeyError(f"host not found: {asset_seq}")
     original_asset_seq = existing.get("asset_seq", asset_seq)
     merged = normalize_host_doc({**existing, **changes, "asset_seq": changes.get("asset_seq", original_asset_seq)})
-    warnings = assert_valid_host_doc(merged)
+    warnings = assert_valid_host_doc(merged, partial=merged.get("status") in DRAFT_LIKE_STATUSES)
     conflict = get_collection("hosts").find_one({"hostname": merged["hostname"], "_id": {"$ne": existing["_id"]}})
     if conflict:
         raise ValidationError([f"hostname already exists: {merged['hostname']}"])

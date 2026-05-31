@@ -85,6 +85,8 @@
   {% endif %}
 
   <form class="panel asset-edit-form" method="post">
+    {% set draft_like_statuses = ["draft", "pending_ip", "pending_data", "pending_deploy"] %}
+    {% set is_draft_like = host.get("status") in draft_like_statuses %}
     <div class="asset-edit-section">
       <h2>資產主檔</h2>
       <div class="asset-edit-grid">
@@ -93,30 +95,30 @@
           {% set has_error = field in (error_fields or []) %}
           {% set has_warning = field in (warning_fields or []) %}
           <label class="{% if field in ['note','ip_addresses','network_segments'] %}span-2{% endif %} {% if has_error %}field-has-error{% elif has_warning %}field-has-warning{% endif %}" id="field-{{ field }}">
-            <span>{{ field_labels.get(field, field) }}{% if field in required_fields %}<b>*</b>{% endif %}</span>
+            <span>{{ field_labels.get(field, field) }}{% if field in required_fields and not is_draft_like %}<b>*</b>{% endif %}</span>
             {% if has_error %}<em class="field-help danger">這個欄位需要修正</em>{% elif has_warning %}<em class="field-help">請確認這個欄位</em>{% endif %}
             {% if field in ["note","ip_addresses","network_segments"] %}
-              <textarea name="{{ field }}" rows="3" {% if field in required_fields %}required{% endif %}>{{ value|join('\n') if value is iterable and value is not string else value }}</textarea>
+              <textarea name="{{ field }}" rows="3" {% if field in required_fields and not is_draft_like %}required{% endif %}>{{ value|join('\n') if value is iterable and value is not string else value }}</textarea>
             {% elif field == "status" %}
-              <select name="{{ field }}" {% if field in required_fields %}required{% endif %}>
+              <select name="{{ field }}" {% if field in required_fields and not is_draft_like %}required{% endif %}>
                 {% for option, label in {"draft":"草稿","pending_ip":"待分配 IP","pending_data":"待補資料","pending_deploy":"待部署","active":"使用中","disabled":"停用","retired":"已汰除","pending_retire":"待汰除"}.items() %}
                 <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
               </select>
             {% elif field == "environment" %}
-              <select name="{{ field }}" {% if field in required_fields %}required{% endif %}>
+              <select name="{{ field }}" {% if field in required_fields and not is_draft_like %}required{% endif %}>
                 {% for option in ["OA","PROD","UAT","BACKUP","TEST","DEV"] %}
                 <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ option }}</option>
                 {% endfor %}
               </select>
             {% elif field == "host_type" %}
-              <select name="{{ field }}" {% if field in required_fields %}required{% endif %}>
+              <select name="{{ field }}" {% if field in required_fields and not is_draft_like %}required{% endif %}>
                 {% for option, label in {"linux":"Linux","windows":"Windows","aix":"AIX","as400":"AS400","vmware_host":"VMware 主機","vmware_vm":"VMware VM","vmware_vcenter":"vCenter","network_device":"網路設備","end_device":"端點設備"}.items() %}
                 <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
               </select>
             {% elif field == "dc" %}
-              <select name="{{ field }}" {% if field in required_fields %}required{% endif %}>
+              <select name="{{ field }}" {% if field in required_fields and not is_draft_like %}required{% endif %}>
                 {% for option, label in {"dunan":"敦南","neihu":"內湖","banciao":"板橋"}.items() %}
                 <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
@@ -128,7 +130,7 @@
                 {% endfor %}
               </select>
             {% else %}
-              <input name="{{ field }}" value="{{ value }}" {% if field in required_fields %}required{% endif %}>
+              <input name="{{ field }}" value="{{ value }}" {% if field in required_fields and not is_draft_like %}required{% endif %}>
             {% endif %}
           </label>
         {% endfor %}
