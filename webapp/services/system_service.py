@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.54",
+        "date": "2026-05-31 09:30 +08:00",
+        "patch_id": "cumulative-cmdb-3-44-to-3-53",
+        "changes": [
+            "改為累積修補包，補齊 v1.0.3.44 到 v1.0.3.53 的所有可部署 CMDB/資產管理檔案。",
+            "避免現場直接套 v1.0.3.53 增量包後，版號相同但工具列缺少 CMDB 資產池等功能。",
+            "一併帶入主機資料目錄權限防護、CMDB 資產池、分類編輯、空狀態診斷與整份治理匯入。",
+        ],
+    },
+    {
         "version": "1.0.3.53",
         "date": "2026-05-30 09:15 +08:00",
         "patch_id": "cmdb-direct-governed-import",
