@@ -330,6 +330,10 @@ def _host_business_system_name(host: dict[str, Any]) -> str:
     return asset_name
 
 
+def _host_node_key(host: dict[str, Any]) -> str:
+    return str(host.get("asset_seq") or host.get("hostname") or host.get("ip") or "").strip()
+
+
 def sync_systems_from_hosts(actor: str = "system") -> int:
     now = _now()
     col = get_collection("dependency_systems")
@@ -1759,13 +1763,41 @@ def _core_impact_topology(center: str = "", depth: int = 2, limit: int = 200, in
     selected_ids = {item["system_id"] for item in related_systems}
 
     hosts = _hosts()
+    hosts_by_system: dict[str, list[dict[str, Any]]] = {}
+    for host in hosts:
+        business_name = _host_business_system_name(host)
+        if business_name:
+            hosts_by_system.setdefault(_system_id(business_name), []).append(host)
     host_nodes = []
     for system in related_systems:
+        seen_host_keys: set[str] = set()
         for host_ref in system.get("host_refs") or []:
             host = next((item for item in hosts if item.get("hostname") == host_ref or item.get("asset_seq") == host_ref), None)
             if not host:
                 continue
-            node_id = "host:" + str(host.get("hostname") or host.get("asset_seq"))
+            host_key = _host_node_key(host)
+            if not host_key or host_key in seen_host_keys:
+                continue
+            seen_host_keys.add(host_key)
+            node_id = "host:" + host_key
+            host_nodes.append(
+                {
+                    "id": node_id,
+                    "label": host.get("ip") or host.get("hostname") or host.get("asset_seq"),
+                    "kind": "主機",
+                    "system_id": system["system_id"],
+                    "hostname": host.get("hostname") or "",
+                    "ip": host.get("ip") or "",
+                    "category": "host",
+                    "tier": system.get("tier") or "C",
+                }
+            )
+        for host in hosts_by_system.get(system["system_id"], []):
+            host_key = _host_node_key(host)
+            if not host_key or host_key in seen_host_keys:
+                continue
+            seen_host_keys.add(host_key)
+            node_id = "host:" + host_key
             host_nodes.append(
                 {
                     "id": node_id,

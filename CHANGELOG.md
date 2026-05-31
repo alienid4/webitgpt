@@ -1,5 +1,12 @@
 # webitgpt Changelog
 
+## v1.0.3.64 - 2026-05-31 14:20 +08:00 - topology-hosts-from-asset-master
+
+- 修正核心影響圖選到系統時，第三欄主機只吃 `dependency_systems.host_refs`，造成資產主檔已匯入多台但拓撲少畫的問題。
+- 主機節點補齊來源改為 `host_refs` 加上資產主檔反查；同一資產名稱或系統名稱對應到焦點系統時會補進主機 / IP 欄。
+- 主機節點 key 改為 asset_seq 優先，避免 hostname 與 asset_seq 對不上時產生漏畫或重複。
+- 延續 v1.0.3.63 規則，掃描暫存資料不會升格成正式系統節點。
+
 ## v1.0.3.63 - 2026-05-31 13:45 +08:00 - business-system-only-topology
 
 - 拓撲系統同步只接受真正的資產名稱或系統名稱，不再 fallback 到 hostname 建立系統節點。

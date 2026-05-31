@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.64",
+        "date": "2026-05-31 14:20 +08:00",
+        "patch_id": "topology-hosts-from-asset-master",
+        "changes": [
+            "核心影響圖第三欄主機改由資產主檔反查補齊，不再只依賴 dependency_systems.host_refs。",
+            "host_refs 仍保留相容，但同一資產名稱或系統名稱下的主機會自動補進拓撲主機欄。",
+            "主機節點改以資產編號優先作為穩定 key，避免 hostname 與 asset_seq 比對造成缺漏。",
+        ],
+    },
+    {
         "version": "1.0.3.63",
         "date": "2026-05-31 13:45 +08:00",
         "patch_id": "business-system-only-topology",

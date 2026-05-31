@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.3.63"
-PATCH_ID = "business-system-only-topology"
-RELEASE_NOTE = "拓撲系統清單只用真正資產名稱或系統名稱建立系統節點，不再把 hostname 或一般主機誤當系統"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-31 13:45:00 +08:00")
+VERSION = "1.0.3.64"
+PATCH_ID = "topology-hosts-from-asset-master"
+RELEASE_NOTE = "核心影響圖主機欄改以資產主檔反查補齊，避免系統有多台主機但 host_refs 未同步時少畫"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-05-31 14:20:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")
