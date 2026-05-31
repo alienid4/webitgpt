@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 import ipaddress
 
 from flask import Blueprint, Response, abort, current_app, jsonify, redirect, render_template, request, url_for
@@ -168,6 +169,26 @@ def _translate_host_form_messages(messages: list[str], warning: bool = False) ->
             fields.append(field)
         translated.append(text)
     return translated, sorted(set(fields))
+
+
+def _summarize_bulk_skip_reasons(skipped: list[dict[str, object]]) -> str:
+    reasons: Counter[str] = Counter()
+    for item in skipped or []:
+        raw_reason = str(item.get("reason") or "未提供原因").strip()
+        parts = [part.strip() for part in raw_reason.split(";") if part.strip()] or [raw_reason]
+        translated, _ = _translate_host_form_messages(parts)
+        translated = [
+            "所有 IP 內有格式不正確的 IP：請修正格式。"
+            if text.startswith("所有 IP 內有格式不正確的 IP：")
+            else "網段格式不正確：請修正 CIDR。"
+            if text.startswith("網段格式不正確：")
+            else text
+            for text in translated
+        ]
+        reasons.update(translated or ["未提供原因"])
+    if not reasons:
+        return ""
+    return "；".join(f"{reason}（{count}）" for reason, count in reasons.most_common(5))
 
 
 def _normalize_search_text(value: str) -> str:
@@ -1047,6 +1068,7 @@ def host_bulk_promote_drafts_submit():
                 status=request.form.get("return_status", ""),
                 bulk_promoted=result["promoted_count"],
                 bulk_skipped=result["skipped_count"],
+                bulk_skip_reasons=_summarize_bulk_skip_reasons(result.get("skipped", [])),
             )
         )
     except Exception as exc:

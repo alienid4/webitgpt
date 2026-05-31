@@ -181,7 +181,14 @@
   <div class="notice">草稿刪除完成，共 {{ request.args.get("bulk_deleted", 0) }} 筆；略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
   {% endif %}
   {% if request.args.get("bulk_promoted") is not none %}
-  <div class="notice success">新增完成，共 {{ request.args.get("bulk_promoted", 0) }} 筆；略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
+  <div class="notice {{ 'success' if request.args.get('bulk_promoted', '0')|int > 0 else 'warning' }}">
+    草稿轉正式完成：成功 {{ request.args.get("bulk_promoted", 0) }} 筆，仍留草稿 {{ request.args.get("bulk_skipped", 0) }} 筆。
+    {% if request.args.get("bulk_skipped", "0")|int > 0 %}
+    <br>仍是草稿代表資料不完整或狀態不符合。原因：{{ request.args.get("bulk_skip_reasons") or "請展開該筆資料補齊必填欄位後再轉正式。" }}
+    {% endif %}
+    <a class="btn-sm" href="{{ url_for('api_hosts.hosts_page') }}">看正式資產</a>
+    <a class="btn-sm" href="{{ url_for('api_hosts.hosts_page', status='draft') }}">看剩餘草稿</a>
+  </div>
   {% endif %}
   {% if request.args.get("asset_saved") %}
   <div class="notice success">

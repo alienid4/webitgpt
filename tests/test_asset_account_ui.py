@@ -78,7 +78,7 @@ def test_asset_secondary_actions_are_grouped_and_scan_rows_are_expandable():
     assert "新增待補草稿完成，共" in host_new
     assert "進入草稿區處理" in host_new
     assert "草稿區下一步" in hosts
-    assert "新增完成，共" in hosts
+    assert "草稿轉正式完成" in hosts
     assert '<details class="asset-bulk-panel asset-optional-section">' in hosts
     assert "批次草稿處理 / 治理" in hosts
     assert "低頻維運功能：用來清理掃描誤建草稿" in hosts
@@ -241,9 +241,12 @@ def test_cmdb_import_report_excel_and_draft_bulk_contracts_exist():
     assert "{{ import_result.errors }}" not in host_new
     for text in ["批次轉正式", "批次補欄位", "bulkDraftPromoteForm", "bulkDraftPromoteAllForm", "bulkDraftUpdateForm", "匯出 Excel"]:
         assert text in hosts
+    for text in ["草稿轉正式完成", "仍留草稿", "bulk_skip_reasons", "看正式資產", "看剩餘草稿"]:
+        assert text in hosts
     assert 'name="scope" value="all_drafts"' in hosts
     for text in ["host_bulk_promote_drafts_submit", "host_bulk_update_drafts_submit", "xlsx_export", "xlsx_import"]:
         assert text in host_routes
+    assert "_summarize_bulk_skip_reasons" in host_routes
     assert "list_draft_host_keys" in host_routes
     for text in ["bulk_promote_draft_hosts", "bulk_update_draft_hosts", "bulk_promote_draft", "bulk_update_draft", "list_draft_host_keys"]:
         assert text in host_service
@@ -462,7 +465,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.64"' in config
+    assert 'VERSION = "1.0.3.65"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -553,8 +556,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.64"' in config
-    assert "topology-hosts-from-asset-master" in config
+    assert 'VERSION = "1.0.3.65"' in config
+    assert "topology-full-asset-master-scan" in config
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -601,7 +604,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "topology-hosts-from-asset-master" in config
+    assert "topology-full-asset-master-scan" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog

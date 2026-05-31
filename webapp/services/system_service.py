@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.65",
+        "date": "2026-05-31 14:45 +08:00",
+        "patch_id": "topology-full-asset-master-scan",
+        "changes": [
+            "核心影響圖補齊主機時改讀完整資產主檔，不再受資產清單頁每頁上限影響而少畫。",
+            "同一資產名稱或系統名稱底下的多台主機會穩定補進第三欄主機 / IP。",
+            "草稿轉正式完成後顯示成功、仍留草稿與略過原因，讓匯入後治理狀態更清楚。",
+        ],
+    },
+    {
         "version": "1.0.3.64",
         "date": "2026-05-31 14:20 +08:00",
         "patch_id": "topology-hosts-from-asset-master",

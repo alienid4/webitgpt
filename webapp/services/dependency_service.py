@@ -17,7 +17,6 @@ from zoneinfo import ZoneInfo
 from bson import ObjectId
 
 from webapp import config
-from webapp.services.host_service import list_hosts
 from webapp.services.mongo_service import get_collection
 
 
@@ -312,7 +311,10 @@ def cleanup_imported_system_relations(actor: str = "system", dry_run: bool = Fal
 
 
 def _hosts() -> list[dict[str, Any]]:
-    return list_hosts(page=1, page_size=10000)["items"]
+    return [
+        _public(doc) or {}
+        for doc in get_collection("hosts").find({}, {"ssh_key": 0}).sort("hostname", 1)
+    ]
 
 
 def _host_business_system_name(host: dict[str, Any]) -> str:

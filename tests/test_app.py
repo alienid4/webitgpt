@@ -176,6 +176,22 @@ def test_host_business_system_name_excludes_discovery_scan_drafts():
     ) == "證券阿發"
 
 
+def test_dependency_hosts_reads_full_collection_without_page_cap(monkeypatch):
+    docs = [{"hostname": f"host-{index:03d}", "asset_seq": f"HW-{index:08d}"} for index in range(150)]
+
+    class FakeCursor(list):
+        def sort(self, *_args, **_kwargs):
+            return self
+
+    class FakeCollection:
+        def find(self, *_args, **_kwargs):
+            return FakeCursor(docs)
+
+    monkeypatch.setattr(dependency_service, "get_collection", lambda _name: FakeCollection())
+
+    assert len(dependency_service._hosts()) == 150
+
+
 def test_core_impact_backfills_hosts_from_asset_master_when_host_refs_are_stale(monkeypatch):
     system_name = "證券阿發"
     system_id = dependency_service._system_id(system_name)
