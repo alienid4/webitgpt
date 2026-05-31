@@ -5,8 +5,14 @@
 <section class="page-header search-page-header">
   <div>
     <p class="card-title">GLOBAL SEARCH</p>
-    <h1>搜尋結果</h1>
-    <p class="muted">「{{ query }}」找到 {{ data_results.total + results|length }} 個可能位置。</p>
+    <h1>{% if is_empty_search %}搜尋入口{% else %}搜尋結果{% endif %}</h1>
+    <p class="muted">
+      {% if is_empty_search %}
+      不必先填完整條件；可直接點最近資料或常用入口，也可以輸入 IP、Hostname、人員、AP 再查。
+      {% else %}
+      「{{ query }}」找到 {{ data_results.total + results|length }} 個可能位置。
+      {% endif %}
+    </p>
   </div>
   <form class="search-page-form" method="get" action="{{ url_for('api_hosts.global_search_page') }}">
     <input name="q" value="{{ query }}" placeholder="輸入資產名稱 / Hostname / IP / 人員 / AP">

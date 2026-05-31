@@ -224,7 +224,32 @@ def global_search_page():
     query = request.args.get("q", "").strip()
     normalized = _normalize_search_text(query)
     if not normalized:
-        return redirect(url_for("api_hosts.hosts_page"))
+        data_results = global_search_service.recent_data()
+        for group_key in ("formal_hosts", "draft_hosts", "asset_pool"):
+            for item in data_results.get(group_key, []):
+                item["url"] = url_for(item["endpoint"], **item.get("params", {}))
+        quick_results = []
+        seen_endpoints = set()
+        for target in GLOBAL_SEARCH_TARGETS:
+            if not _role_allowed(target["role"]) or target["endpoint"] in seen_endpoints:
+                continue
+            seen_endpoints.add(target["endpoint"])
+            quick_results.append({
+                "title": _search_target_title(target, target["keywords"][0]),
+                "group": target.get("group", "功能"),
+                "role": target["role"],
+                "matched_keyword": "常用入口",
+                "url": url_for(target["endpoint"]),
+            })
+            if len(quick_results) >= 8:
+                break
+        return render_template(
+            "search_results.html",
+            query=query,
+            results=quick_results,
+            data_results=data_results,
+            is_empty_search=True,
+        )
 
     exact_matches = []
     related_results = []
@@ -258,7 +283,13 @@ def global_search_page():
     if len(related_results) == 1 and len(normalized) > 1 and not data_results["total"]:
         return redirect(related_results[0]["url"])
     if related_results or data_results["total"]:
-        return render_template("search_results.html", query=query, results=related_results, data_results=data_results)
+        return render_template(
+            "search_results.html",
+            query=query,
+            results=related_results,
+            data_results=data_results,
+            is_empty_search=False,
+        )
 
     return redirect(url_for("api_hosts.hosts_page", q=query))
 

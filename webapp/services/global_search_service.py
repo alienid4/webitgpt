@@ -185,6 +185,52 @@ def _find_asset_pool(query: str, limit: int) -> list[dict[str, Any]]:
     return [_asset_pool_item(doc) for doc in docs]
 
 
+def recent_data(limit: int = 6) -> dict[str, Any]:
+    host_projection = {field: 1 for field in HOST_SEARCH_FIELDS}
+    host_projection.update({"status": 1, "os": 1, "host_type": 1, "updated_at": 1})
+    hosts = list(
+        get_collection("hosts")
+        .find({}, host_projection)
+        .sort("updated_at", -1)
+        .limit(limit * 4)
+    )
+    formal: list[dict[str, Any]] = []
+    drafts: list[dict[str, Any]] = []
+    for host in hosts:
+        if _clean(host.get("status")) in DRAFT_STATUSES:
+            drafts.append(_host_item(host, "draft_hosts"))
+        else:
+            formal.append(_host_item(host, "formal_hosts"))
+
+    asset_pool = [
+        _asset_pool_item(doc)
+        for doc in get_collection("cmdb_asset_pool")
+        .find(
+            {},
+            {
+                "object_type": 1,
+                "asset_seq": 1,
+                "asset_name": 1,
+                "apid": 1,
+                "owner": 1,
+                "custodian": 1,
+                "host_link": 1,
+                "data": 1,
+                "updated_at": 1,
+            },
+        )
+        .sort("updated_at", -1)
+        .limit(limit)
+    ]
+    total = len(formal[:limit]) + len(drafts[:limit]) + len(asset_pool)
+    return {
+        "formal_hosts": formal[:limit],
+        "draft_hosts": drafts[:limit],
+        "asset_pool": asset_pool,
+        "total": total,
+    }
+
+
 def search_data(query: str, limit: int = 8) -> dict[str, Any]:
     query = query.strip()
     if not query:

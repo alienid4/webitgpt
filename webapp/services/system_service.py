@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.56",
+        "date": "2026-05-31 10:45 +08:00",
+        "patch_id": "optional-global-search-entry",
+        "changes": [
+            "全域搜尋允許空白送出，不再把使用者導回資產列表。",
+            "空白搜尋會顯示最近正式資產、最近草稿 / 未納管、最近 CMDB 資產池與常用功能入口。",
+            "搜尋頁文案改成入口式引導，避免使用者誤以為一定要先填完整條件。",
+        ],
+    },
+    {
         "version": "1.0.3.55",
         "date": "2026-05-31 10:20 +08:00",
         "patch_id": "global-search-data-results",
