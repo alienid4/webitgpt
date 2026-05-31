@@ -164,17 +164,21 @@
     <form class="filter-bar" method="get" action="{{ url_for('api_dependencies.dependencies_fullscreen_page') if fullscreen else url_for('api_reports.dependencies_page') }}" data-topology-filter>
       {% if topology.view == "core_impact" %}
       <input type="hidden" name="view" value="core_impact">
-      <select name="center" data-auto-submit>
+      <div class="topology-searchable-select">
+        <input type="search" data-select-filter="topology-center-core" placeholder="搜尋核心 / 系統 / 代號 / 主機" aria-label="搜尋核心或系統">
+        <select id="topology-center-core" name="center" data-auto-submit>
         <option value="">選擇核心 / 系統</option>
         {% for node in topology.nodes or [] %}
           {% if (node.id|string).startswith('core:') %}
-          <option value="{{ node.id }}" {% if request.args.get('center', '') == node.id %}selected{% endif %}>{{ node.label }} / 核心</option>
+          <option value="{{ node.id }}" data-search="{{ node.label }} {{ node.id }} core 核心" {% if request.args.get('center', '') == node.id %}selected{% endif %}>{{ node.label }} / 核心</option>
           {% endif %}
         {% endfor %}
         {% for system in systems or [] %}
-        <option value="{{ system.system_id }}" {% if request.args.get('center', '') in [system.system_id, system.display_name] %}selected{% endif %}>{{ system.display_name }} / {{ system.system_id }}</option>
+        <option value="{{ system.system_id }}" data-search="{{ system.display_name }} {{ system.system_id }} {{ system.owner or '' }} {{ (system.host_refs or [])|join(' ') }} {{ system.description or '' }}" {% if request.args.get('center', '') in [system.system_id, system.display_name] %}selected{% endif %}>{{ system.display_name }} / {{ system.system_id }}</option>
         {% endfor %}
-      </select>
+        </select>
+        <span class="topology-select-count" data-select-filter-count="topology-center-core"></span>
+      </div>
       <input name="failed_node" value="{{ failed_node }}" list="topology-system-options" placeholder="模擬維護：輸入系統 / 主機 / IP">
       <datalist id="topology-system-options">
         {% for node in topology.nodes or [] %}
@@ -211,12 +215,16 @@
         <option value="host" {% if topology.view == "host" %}selected{% endif %}>主機視圖</option>
         <option value="ip" {% if topology.view == "ip" %}selected{% endif %}>IP 視圖</option>
       </select>
-      <select name="center" data-auto-submit>
+      <div class="topology-searchable-select">
+        <input type="search" data-select-filter="topology-center-system" placeholder="搜尋系統 / 代號 / 主機" aria-label="搜尋系統或主機視角">
+        <select id="topology-center-system" name="center" data-auto-submit>
         <option value="">選擇系統 / 主機視角</option>
         {% for system in systems or [] %}
-        <option value="{{ system.system_id }}" {% if request.args.get('center', '') in [system.system_id, system.display_name] %}selected{% endif %}>{{ system.display_name }} / {{ system.system_id }}</option>
+        <option value="{{ system.system_id }}" data-search="{{ system.display_name }} {{ system.system_id }} {{ system.owner or '' }} {{ (system.host_refs or [])|join(' ') }} {{ system.description or '' }}" {% if request.args.get('center', '') in [system.system_id, system.display_name] %}selected{% endif %}>{{ system.display_name }} / {{ system.system_id }}</option>
         {% endfor %}
-      </select>
+        </select>
+        <span class="topology-select-count" data-select-filter-count="topology-center-system"></span>
+      </div>
       <datalist id="topology-system-options">
         {% for system in systems or [] %}
         <option value="{{ system.system_id }}">{{ system.display_name }}</option>

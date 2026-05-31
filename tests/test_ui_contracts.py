@@ -365,6 +365,13 @@ def test_ai_token_cost_visibility_contract_exists():
     assert "topology-edge-focus-muted" in css
     assert "topology-edge-focus-" in dependencies_page
     assert 'list="topology-system-options"' in dependencies_page
+    assert 'data-select-filter="topology-center-core"' in dependencies_page
+    assert 'data-select-filter="topology-center-system"' in dependencies_page
+    assert "topology-searchable-select" in dependencies_page
+    assert "data-select-filter-count" in dependencies_page
+    assert "initSearchableSelectFilters" in ui_tools
+    assert "originalOptions" in ui_tools
+    assert ".topology-searchable-select" in css
     assert 'querySelector(\'[name="center"]\')' in ui_tools
     assert "topology-impact-node-box" in dependencies_page
     assert "topology-impact-panel" in dependencies_page

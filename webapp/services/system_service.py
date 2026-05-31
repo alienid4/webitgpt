@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.61",
+        "date": "2026-05-31 13:05 +08:00",
+        "patch_id": "topology-searchable-selector",
+        "changes": [
+            "系統拓撲的核心影響與系統關聯選擇器新增可輸入篩選欄位，避免資料量大時只能滾動下拉尋找。",
+            "篩選索引納入系統名稱、系統代號、owner、主機參照與描述，方便用不同線索定位。",
+            "保留原本 center/view/depth 參數與表單提交方式，降低對既有連結、全螢幕與節點點選流程的影響。",
+        ],
+    },
+    {
         "version": "1.0.3.60",
         "date": "2026-05-31 12:35 +08:00",
         "patch_id": "initial-draft-promote-all",

@@ -261,6 +261,56 @@ document.addEventListener("fullscreenchange", () => {
   }
 });
 
+function initSearchableSelectFilters() {
+  document.querySelectorAll("[data-select-filter]").forEach((input) => {
+    const select = document.getElementById(input.dataset.selectFilter || "");
+    if (!select) return;
+    const count = document.querySelector(`[data-select-filter-count="${select.id}"]`);
+    const originalOptions = Array.from(select.options).map((option) => ({
+      value: option.value,
+      text: option.textContent || "",
+      search: `${option.textContent || ""} ${option.value || ""} ${option.dataset.search || ""}`.toLowerCase(),
+      selected: option.selected
+    }));
+
+    const rebuild = () => {
+      const query = (input.value || "").trim().toLowerCase();
+      const selectedValue = select.value;
+      const matches = originalOptions.filter((item, index) => {
+        return index === 0 || item.value === selectedValue || !query || item.search.includes(query);
+      });
+      select.replaceChildren(...matches.map((item) => {
+        const option = document.createElement("option");
+        option.value = item.value;
+        option.textContent = item.text;
+        option.dataset.search = item.search;
+        return option;
+      }));
+      if (matches.some((item) => item.value === selectedValue)) {
+        select.value = selectedValue;
+      }
+      if (count) {
+        const matchCount = Math.max(matches.length - 1, 0);
+        count.textContent = query ? `${matchCount} 筆` : "";
+      }
+    };
+
+    input.addEventListener("input", rebuild);
+    input.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      const firstValue = Array.from(select.options).find((option, index) => index > 0 && option.value)?.value;
+      if (firstValue) {
+        select.value = firstValue;
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+    rebuild();
+  });
+}
+
+initSearchableSelectFilters();
+
 document.querySelectorAll("[data-topology-canvas]").forEach((canvas) => {
   const stage = canvas.querySelector("[data-topology-stage]");
   const value = document.querySelector("[data-topology-zoom-value]");
