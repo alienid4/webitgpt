@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.79 - 2026-06-01 23:05 +08:00 - cmdb-default-connection-by-platform
+
+- CMDB CSV / Excel 匯入時依平台分類自動帶入預設連線方式：Linux=SSH、Windows=WinRM、AIX=SSH Raw。
+- 安裝 patch 時 bootstrap 會自動補齊既有資料缺少的連線方式，減少資料品質頁「缺少連線方式」待修項目。
+- 自動帶入的連線方式會標記 `connection_source=platform_default_rule`，日後仍可由人工、PAM 或憑證治理流程覆蓋。
+
 ## v1.0.3.78 - 2026-06-01 22:35 +08:00 - cmdb-import-os-platform-auto-classify
 
 - CMDB CSV / Excel 匯入時先依 OS 版本與發行版文字自動推論平台分類。

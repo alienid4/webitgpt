@@ -62,6 +62,17 @@ def infer_host_type_from_os(os_text: str) -> str:
     return ""
 
 
+def default_connection_for_host_type(host_type: str) -> str:
+    normalized = str(host_type or "").strip().lower()
+    if normalized == "linux":
+        return "ssh"
+    if normalized == "windows":
+        return "winrm"
+    if normalized == "aix":
+        return "ssh_raw"
+    return ""
+
+
 def platform_suggestion_for_host(host: dict[str, Any]) -> dict[str, Any]:
     suggested = infer_host_type_from_os(host.get("os") or host.get("os_version") or "")
     current = str(host.get("host_type") or "").strip()
@@ -530,6 +541,59 @@ def bulk_apply_platform_suggestions(user: str = "system", limit: int = 500) -> d
                     "to": suggested,
                 }
             )
+        else:
+            result["skipped"].append(
+                {
+                    "asset_seq": host.get("asset_seq"),
+                    "hostname": host.get("hostname"),
+                    "reason": "not modified",
+                }
+            )
+    result["updated_count"] = len(result["updated"])
+    result["skipped_count"] = len(result["skipped"])
+    return result
+
+
+def bulk_apply_default_connections(user: str = "system", limit: int = 500) -> dict[str, Any]:
+    result = {"updated": [], "skipped": [], "updated_count": 0, "skipped_count": 0}
+    docs = get_collection("hosts").find(
+        {
+            "status": {"$nin": ["retired", "disabled", "pending_retire"]},
+            "$or": [{"connection": {"$exists": False}}, {"connection": ""}, {"connection": None}],
+        },
+        {"ssh_key": 0},
+    ).limit(max(1, min(limit, 5000)))
+    for host in docs:
+        host_type = str(host.get("host_type") or "").strip()
+        if not host_type or host_type in {"end_device", "unknown"}:
+            host_type = infer_host_type_from_os(host.get("os") or host.get("os_version") or "")
+        connection = default_connection_for_host_type(host_type)
+        if not connection:
+            result["skipped"].append(
+                {
+                    "asset_seq": host.get("asset_seq"),
+                    "hostname": host.get("hostname"),
+                    "reason": "no default connection",
+                }
+            )
+            continue
+        now = _now()
+        record_lifecycle_event(host, "apply_default_connection", f"connection -> {connection}", user)
+        updated = get_collection("hosts").update_one(
+            {"_id": host["_id"]},
+            {
+                "$set": {
+                    "host_type": host_type or host.get("host_type") or "",
+                    "connection": connection,
+                    "connection_source": "platform_default_rule",
+                    "connection_reviewed_at": now,
+                    "updated_at": now,
+                    "updated_by": user,
+                }
+            },
+        )
+        if updated.modified_count:
+            result["updated"].append({"asset_seq": host.get("asset_seq"), "hostname": host.get("hostname")})
         else:
             result["skipped"].append(
                 {

@@ -323,12 +323,8 @@ def _infer_dc(row: dict[str, Any]) -> str:
 
 def _host_doc_from_hardware(row: dict[str, Any], user: str) -> dict[str, Any]:
     host_type = _infer_host_type(row)
-    connection = ""
-    if host_type in {"linux", "aix"}:
-        connection = "ssh"
-    elif host_type == "windows":
-        connection = "winrm"
-    elif host_type.startswith("vmware"):
+    connection = host_service.default_connection_for_host_type(host_type)
+    if host_type.startswith("vmware"):
         connection = "vcenter_api"
     doc = {
         "division": row.get("division") or row.get("owner") or "待補",
@@ -363,6 +359,7 @@ def _host_doc_from_hardware(row: dict[str, Any], user: str) -> dict[str, Any]:
         "host_type_source": "import_os_inference_rule" if host_service.infer_host_type_from_os(row.get("os") or "") else "import_rule",
         "dc": _infer_dc(row),
         "connection": connection,
+        "connection_source": "platform_default_rule" if connection else "",
         "ssh_port": 22,
         "import_source": "cmdb_workbook_hardware",
         "updated_by": user,

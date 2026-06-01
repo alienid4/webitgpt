@@ -473,7 +473,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.78"' in config
+    assert 'VERSION = "1.0.3.79"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -596,8 +596,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.78"' in config
-    assert "cmdb-import-os-platform-auto-classify" in config
+    assert 'VERSION = "1.0.3.79"' in config
+    assert "cmdb-default-connection-by-platform" in config
 
 
     assert "verification_source" in api_v1
@@ -634,10 +634,39 @@ def test_cmdb_import_infers_linux_platform_from_os_text():
     assert cmdb_workbook_service._infer_host_type({"os": "Ubuntu 22.04"}) == "linux"
     assert "repair_imported_platform_classification" in bootstrap
     assert "bulk_apply_platform_suggestions" in bootstrap
+    assert "repair_imported_connection_defaults" in bootstrap
+    assert "bulk_apply_default_connections" in bootstrap
 
     csv_doc = csv_service._apply_cmdb_defaults({"os": "CentOS 7.6 1810", "host_type": "end_device"})
     assert csv_doc["host_type"] == "linux"
     assert csv_doc["host_type_source"] == "import_os_inference_rule"
+    assert csv_doc["connection"] == "ssh"
+    assert csv_doc["connection_source"] == "platform_default_rule"
+
+
+def test_platform_default_connection_rules():
+    from webapp.services import cmdb_workbook_service, csv_service, host_service
+
+    assert host_service.default_connection_for_host_type("linux") == "ssh"
+    assert host_service.default_connection_for_host_type("windows") == "winrm"
+    assert host_service.default_connection_for_host_type("aix") == "ssh_raw"
+
+    aix_doc = cmdb_workbook_service._host_doc_from_hardware(
+        {
+            "asset_seq": "HW-00000001",
+            "asset_name": "unit-test",
+            "hostname": "unit-test",
+            "ip": "127.0.0.1",
+            "os": "AIX 7.3",
+        },
+        user="pytest",
+    )
+    assert aix_doc["host_type"] == "aix"
+    assert aix_doc["connection"] == "ssh_raw"
+
+    win_doc = csv_service._apply_cmdb_defaults({"os": "Windows Server 2019", "host_type": ""})
+    assert win_doc["host_type"] == "windows"
+    assert win_doc["connection"] == "winrm"
 
 
 def test_patch_installer_defaults_to_offline_pip():
@@ -662,7 +691,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "cmdb-import-os-platform-auto-classify" in config
+    assert "cmdb-default-connection-by-platform" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog

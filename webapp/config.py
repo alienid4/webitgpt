@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.3.78"
-PATCH_ID = "cmdb-import-os-platform-auto-classify"
-RELEASE_NOTE = "CMDB 匯入時依 OS 版本自動歸類平台分類，既有錯分資料安裝後自動修正"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-06-01 22:35:00 +08:00")
+VERSION = "1.0.3.79"
+PATCH_ID = "cmdb-default-connection-by-platform"
+RELEASE_NOTE = "依平台分類自動帶入預設連線方式，Linux=SSH、Windows=WinRM、AIX=SSH Raw"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-06-01 23:05:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

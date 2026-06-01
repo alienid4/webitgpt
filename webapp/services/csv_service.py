@@ -167,6 +167,11 @@ def _apply_cmdb_defaults(doc: dict[str, Any]) -> dict[str, Any]:
         if inferred_host_type:
             normalized["host_type_source"] = "import_os_inference_rule"
     normalized.setdefault("host_type", "end_device")
+    if not normalized.get("connection"):
+        connection = host_service.default_connection_for_host_type(normalized.get("host_type") or "")
+        if connection:
+            normalized["connection"] = connection
+            normalized["connection_source"] = "platform_default_rule"
     normalized.setdefault("dc", "dunan")
     normalized.setdefault("integrity", 0)
     normalized.setdefault("confidentiality", 0)

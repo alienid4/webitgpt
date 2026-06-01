@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.79",
+        "date": "2026-06-01 23:05 +08:00",
+        "patch_id": "cmdb-default-connection-by-platform",
+        "changes": [
+            "CMDB CSV / Excel 匯入時依平台分類自動帶入預設連線方式：Linux=SSH、Windows=WinRM、AIX=SSH Raw。",
+            "安裝 patch 時 bootstrap 會自動補齊既有資料缺少的連線方式，降低資料品質頁的人工修補量。",
+            "連線方式來源會標記為 platform_default_rule，後續仍可由人工或 PAM/憑證治理流程覆蓋。",
+        ],
+    },
+    {
         "version": "1.0.3.78",
         "date": "2026-06-01 22:35 +08:00",
         "patch_id": "cmdb-import-os-platform-auto-classify",

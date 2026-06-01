@@ -20,7 +20,7 @@ from webapp.services.compliance_service import ensure_default_rules
 from webapp.services.csv_service import import_csv
 from webapp.services.feature_flags import ensure_feature_flags
 from webapp.services.host_dir_service import init_dir
-from webapp.services.host_service import bulk_apply_platform_suggestions
+from webapp.services.host_service import bulk_apply_default_connections, bulk_apply_platform_suggestions
 from webapp.services.mongo_service import get_db
 
 
@@ -505,6 +505,17 @@ def repair_imported_platform_classification() -> dict:
     return bulk_apply_platform_suggestions(user="bootstrap_platform_repair", limit=5000)
 
 
+def repair_imported_connection_defaults() -> dict:
+    return bulk_apply_default_connections(user="bootstrap_connection_repair", limit=5000)
+
+
+def _summary_counts(result: dict) -> dict:
+    return {
+        "updated_count": int(result.get("updated_count") or 0),
+        "skipped_count": int(result.get("skipped_count") or 0),
+    }
+
+
 def main() -> None:
     ensure_collections()
     ensure_indexes()
@@ -518,6 +529,7 @@ def main() -> None:
     rule_count = ensure_default_rules()
     ensure_default_statuses()
     platform_repair = repair_imported_platform_classification()
+    connection_repair = repair_imported_connection_defaults()
     user_created = seed_superadmin()
     write_runtime_files()
     print(
@@ -534,7 +546,8 @@ def main() -> None:
                 "otp_disabled_users": otp_disabled_users,
                 "compliance_rules_inserted": rule_count,
                 "asset_governance_statuses_seeded": True,
-                "platform_repair": platform_repair,
+                "platform_repair": _summary_counts(platform_repair),
+                "connection_repair": _summary_counts(connection_repair),
                 "superadmin_created": user_created,
             },
             ensure_ascii=False,

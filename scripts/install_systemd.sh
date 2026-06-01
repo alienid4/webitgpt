@@ -106,4 +106,6 @@ if command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --state >/dev/null 2>
   firewall-cmd --reload >/dev/null
 fi
 
-systemctl --no-pager --full status webitgpt.service webitgpt-edge.service webitgpt-ipam-reconcile.timer
+echo "webitgpt.service=$(systemctl is-active webitgpt.service || true)"
+echo "webitgpt-edge.service=$(systemctl is-active webitgpt-edge.service || true)"
+echo "webitgpt-ipam-reconcile.timer=$(systemctl is-active webitgpt-ipam-reconcile.timer || true)"
