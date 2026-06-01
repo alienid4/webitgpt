@@ -473,7 +473,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.77"' in config
+    assert 'VERSION = "1.0.3.78"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -596,8 +596,10 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.77"' in config
-    assert "data-quality-entry-platform-wording" in config
+    assert 'VERSION = "1.0.3.78"' in config
+    assert "cmdb-import-os-platform-auto-classify" in config
+
+
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -622,6 +624,22 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     assert ".l3-panel.l3-ai-ready" in css
 
 
+def test_cmdb_import_infers_linux_platform_from_os_text():
+    from webapp.services import cmdb_workbook_service, csv_service
+
+    bootstrap = read("scripts/bootstrap.py")
+
+    assert cmdb_workbook_service._infer_host_type({"os": "CentOS 4.6 1810"}) == "linux"
+    assert cmdb_workbook_service._infer_host_type({"os": "RHLE 8.10"}) == "linux"
+    assert cmdb_workbook_service._infer_host_type({"os": "Ubuntu 22.04"}) == "linux"
+    assert "repair_imported_platform_classification" in bootstrap
+    assert "bulk_apply_platform_suggestions" in bootstrap
+
+    csv_doc = csv_service._apply_cmdb_defaults({"os": "CentOS 7.6 1810", "host_type": "end_device"})
+    assert csv_doc["host_type"] == "linux"
+    assert csv_doc["host_type_source"] == "import_os_inference_rule"
+
+
 def test_patch_installer_defaults_to_offline_pip():
     install_script = read("scripts/install.sh")
     changelog = read("CHANGELOG.md")
@@ -644,7 +662,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "data-quality-entry-platform-wording" in config
+    assert "cmdb-import-os-platform-auto-classify" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog

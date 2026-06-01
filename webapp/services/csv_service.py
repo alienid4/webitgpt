@@ -157,6 +157,15 @@ def _apply_cmdb_defaults(doc: dict[str, Any]) -> dict[str, Any]:
     normalized.setdefault("hostname", normalized.get("ip") or normalized.get("asset_seq") or "")
     normalized.setdefault("custodian", normalized.get("owner") or "未填")
     normalized.setdefault("company", normalized.get("division") or "未填")
+    inferred_host_type = host_service.infer_host_type_from_os(normalized.get("os") or "")
+    if not inferred_host_type:
+        inferred_host_type = host_service.infer_host_type_from_os(
+            " ".join(str(normalized.get(key) or "") for key in ("device_type", "asset_usage", "system_name"))
+        )
+    if not normalized.get("host_type") or normalized.get("host_type") in {"end_device", "unknown"}:
+        normalized["host_type"] = inferred_host_type or normalized.get("host_type") or "end_device"
+        if inferred_host_type:
+            normalized["host_type_source"] = "import_os_inference_rule"
     normalized.setdefault("host_type", "end_device")
     normalized.setdefault("dc", "dunan")
     normalized.setdefault("integrity", 0)

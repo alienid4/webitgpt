@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.78 - 2026-06-01 22:35 +08:00 - cmdb-import-os-platform-auto-classify
+
+- CMDB CSV / Excel 匯入時先依 OS 版本與發行版文字自動推論平台分類。
+- `CentOS`、`Red Hat`、`RHEL`、`RHLE`、`Ubuntu`、`Debian`、`Rocky` 等會直接歸類為 `linux`，不再先落到 `end_device` 再要求人工逐筆修正。
+- 安裝 patch 時會執行一次安全修正，把既有 `end_device` 但 OS 明確可判斷的平台資料改到正確平台分類，並保留稽核紀錄。
+
 ## v1.0.3.77 - 2026-06-01 19:35 +08:00 - data-quality-entry-platform-wording
 
 - 資產管理上方新增「資料品質」入口，方便直接進入平台分類與 CMDB 品質修正頁。

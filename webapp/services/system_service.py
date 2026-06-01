@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.78",
+        "date": "2026-06-01 22:35 +08:00",
+        "patch_id": "cmdb-import-os-platform-auto-classify",
+        "changes": [
+            "CMDB CSV / Excel 匯入時會先依 OS 版本與發行版文字推論平台分類，CentOS、Red Hat、RHEL、RHLE、Ubuntu、Debian 等會直接歸入 Linux。",
+            "安裝 patch 時 bootstrap 會自動套用平台分類建議，修正既有 end_device 但 OS 明確為 Linux/Windows/AIX 的資料。",
+            "資料品質頁保留人工檢視，但不再把可由 OS 明確判斷的資料留給使用者逐筆分類。",
+        ],
+    },
+    {
         "version": "1.0.3.77",
         "date": "2026-06-01 19:35 +08:00",
         "patch_id": "data-quality-entry-platform-wording",

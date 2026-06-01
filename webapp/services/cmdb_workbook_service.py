@@ -293,10 +293,13 @@ def normalize_sheet_row(row: dict[str, str], sheet_type: str) -> dict[str, Any]:
 
 
 def _infer_host_type(row: dict[str, Any]) -> str:
+    os_guess = host_service.infer_host_type_from_os(_clean(row.get("os")))
+    if os_guess:
+        return os_guess
     text = " ".join([_clean(row.get("os")), _clean(row.get("device_model")), _clean(row.get("asset_usage"))]).lower()
     if "windows" in text or "win" in text:
         return "windows"
-    if "linux" in text or "red hat" in text or "rocky" in text or "debian" in text:
+    if host_service.infer_host_type_from_os(text) == "linux":
         return "linux"
     if "aix" in text:
         return "aix"
@@ -357,6 +360,7 @@ def _host_doc_from_hardware(row: dict[str, Any], user: str) -> dict[str, Any]:
         "confidentiality": row.get("confidentiality", 0),
         "availability": row.get("availability", 0),
         "host_type": host_type,
+        "host_type_source": "import_os_inference_rule" if host_service.infer_host_type_from_os(row.get("os") or "") else "import_rule",
         "dc": _infer_dc(row),
         "connection": connection,
         "ssh_port": 22,
