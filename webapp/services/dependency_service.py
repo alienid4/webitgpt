@@ -634,7 +634,47 @@ def list_relations(filters: Optional[dict[str, Any]] = None) -> list[dict[str, A
         query["$or"] = [{"from_system": filters["system_id"]}, {"to_system": filters["system_id"]}]
     if filters.get("run_id"):
         query["evidence.run_id"] = filters["run_id"]
-    return [_public(item) or {} for item in get_collection("dependency_relations").find(query).sort("updated_at", -1)]
+    items = [_public(item) or {} for item in get_collection("dependency_relations").find(query).sort("updated_at", -1)]
+    q = str(filters.get("q") or filters.get("relation_q") or "").strip().lower()
+    if not q:
+        return _decorate_relation_labels(items)
+    return _decorate_relation_labels([item for item in items if _relation_matches_query(item, q)])
+
+
+def _decorate_relation_labels(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not items:
+        return items
+    system_ids = {str(item.get("from_system") or "") for item in items} | {str(item.get("to_system") or "") for item in items}
+    system_ids.discard("")
+    systems = {
+        item.get("system_id"): item
+        for item in get_collection("dependency_systems").find({"system_id": {"$in": sorted(system_ids)}})
+    }
+    for item in items:
+        from_doc = systems.get(item.get("from_system")) or {}
+        to_doc = systems.get(item.get("to_system")) or {}
+        item["from_label"] = from_doc.get("display_name") or item.get("from_system") or "-"
+        item["to_label"] = to_doc.get("display_name") or item.get("to_system") or "-"
+    return items
+
+
+def _relation_matches_query(item: dict[str, Any], q: str) -> bool:
+    values: list[str] = []
+    values.extend([str(item.get("from_system") or ""), str(item.get("to_system") or ""), str(item.get("rel_type") or ""), str(item.get("source") or ""), str(item.get("description") or "")])
+    evidence = item.get("evidence") or {}
+    metadata = item.get("metadata") or {}
+    for source in (evidence, metadata):
+        for value in source.values():
+            if isinstance(value, list):
+                values.extend(str(part) for part in value)
+            else:
+                values.append(str(value or ""))
+    system_ids = [str(item.get("from_system") or ""), str(item.get("to_system") or "")]
+    for system in get_collection("dependency_systems").find({"system_id": {"$in": system_ids}}):
+        values.extend([str(system.get("display_name") or ""), str(system.get("owner") or ""), str(system.get("description") or "")])
+        values.extend(str(part) for part in (system.get("host_refs") or []))
+        values.extend(str(part or "") for part in (system.get("metadata") or {}).values())
+    return q in " ".join(values).lower()
 
 
 def upsert_relation(data: dict[str, Any], actor: str = "system") -> dict[str, Any]:

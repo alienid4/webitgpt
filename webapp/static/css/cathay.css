@@ -641,6 +641,60 @@ a.metric:hover {
 .relation-upload-bar label {
   min-width: min(360px, 100%);
 }
+.relation-import-panel {
+  border-left: 4px solid var(--g1);
+}
+.relation-import-steps,
+.relation-import-result,
+.relation-local-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.relation-import-steps {
+  margin: 8px 0 12px;
+}
+.relation-import-steps div,
+.relation-import-result span,
+.relation-import-result strong {
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  background: var(--white);
+}
+.relation-import-steps div {
+  min-width: 220px;
+}
+.relation-import-steps strong,
+.relation-import-steps span {
+  display: block;
+}
+.relation-import-steps span {
+  color: var(--c3);
+  font-size: 12px;
+  margin-top: 3px;
+}
+.relation-import-result {
+  margin: 8px 0 10px;
+}
+.relation-import-result strong {
+  border-color: var(--g1);
+  color: var(--g1);
+}
+.relation-local-search {
+  margin: 14px 0 12px;
+  padding: 10px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+}
+.relation-local-search label {
+  display: grid;
+  gap: 4px;
+  min-width: min(420px, 100%);
+  font-weight: 700;
+}
 .relation-actions {
   min-width: 150px;
 }

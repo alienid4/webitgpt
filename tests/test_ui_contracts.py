@@ -290,8 +290,15 @@ def test_inventory_history_diff_and_topology_contracts_exist():
     assert 'value="radial"' in dependencies_page
     assert "系統關聯圓圖" in dependencies_page
     assert "手動關聯管理" in dependencies_page
-    assert "匯入第二層關聯 Excel" in dependencies_page
+    assert "第二層關聯表匯入" in dependencies_page
+    assert "relation-import-panel" in dependencies_page
+    assert "relation-local-search" in dependencies_page
+    assert "relation_q" in dependencies_page
+    assert "預檢數量" in dependencies_page
+    assert "正式匯入" in dependencies_page
     assert "relation_import_xlsx_page" in read("webapp/routes/api_dependencies.py")
+    assert "dry_run" in read("webapp/routes/api_dependencies.py")
+    assert "_relation_matches_query" in dependency_service
     assert "relation_update_page" in read("webapp/routes/api_dependencies.py")
     assert "relation_save_page" in read("webapp/routes/api_dependencies.py")
 

@@ -283,7 +283,7 @@ def data_quality_csv():
 def dependencies_page():
     collect_runs = dependency_service.collect_runs(limit=5)
     systems = dependency_service.list_systems()
-    relations = dependency_service.list_relations()
+    relations = dependency_service.list_relations({"q": request.args.get("relation_q", "")})
     data = _topology_from_request()
     cmdb_overview = cmdb_relationship_service.cmdb_relationship_overview(request.args.get("center", ""))
     return render_template(

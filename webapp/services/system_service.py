@@ -113,6 +113,17 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.71",
+        "date": "2026-06-01 11:55 +08:00",
+        "patch_id": "relation-import-search-ux",
+        "changes": [
+            "系統拓撲第一屏新增第二層關聯表匯入入口，避免使用者在手動關聯表格下方尋找匯入功能。",
+            "關聯表匯入支援預檢數量與正式匯入兩種動作，匯入後顯示格式、來源列、系統數與關聯數摘要。",
+            "手動關聯管理新增關聯表局部搜尋，可查來源、目標、APID/代號、Port、服務與備註；頁首搜尋維持全域搜尋。",
+            "關聯表顯示系統名稱並保留系統 ID，降低只看到 SYS 代號時的判讀成本。",
+        ],
+    },
+    {
         "version": "1.0.3.70",
         "date": "2026-06-01 11:25 +08:00",
         "patch_id": "second-layer-relation-matrix-import-edit",

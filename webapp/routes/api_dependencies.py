@@ -94,25 +94,47 @@ def relation_import_xlsx_page():
     upload = request.files.get("workbook_file")
     if not upload or not upload.filename:
         flash("請選擇系統關聯 Excel。")
-        return redirect(request.referrer or url_for("api_reports.dependencies_page", view="radial") + "#relation-editor")
+        return redirect((request.referrer or url_for("api_reports.dependencies_page", view="radial")) + "#relation-import-panel")
     suffix = Path(upload.filename).suffix.lower()
     if suffix != ".xlsx":
         flash("只支援 .xlsx 系統關聯表。")
-        return redirect(request.referrer or url_for("api_reports.dependencies_page", view="radial") + "#relation-editor")
+        return redirect((request.referrer or url_for("api_reports.dependencies_page", view="radial")) + "#relation-import-panel")
+    mode = (request.form.get("mode") or "import").strip()
+    dry_run = mode == "dry_run"
     with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
         tmp.write(upload.read())
         tmp_path = Path(tmp.name)
     try:
-        result = dependency_service.import_system_relations_xlsx(tmp_path, actor=current_user()["username"])
+        result = dependency_service.import_system_relations_xlsx(tmp_path, actor=current_user()["username"], dry_run=dry_run)
     finally:
         tmp_path.unlink(missing_ok=True)
     audit_log_service.append(
         "dependencies.relation.import_xlsx",
         current_user()["username"],
-        {"status": result.get("status"), "layout": result.get("layout"), "systems": result.get("systems"), "relations": result.get("relations")},
+        {
+            "status": result.get("status"),
+            "layout": result.get("layout"),
+            "systems": result.get("systems"),
+            "relations": result.get("relations"),
+            "dry_run": dry_run,
+        },
     )
-    flash(f"第二層關聯匯入完成：系統 {result.get('systems', 0)}，關聯 {result.get('relations', 0)}。")
-    return redirect(url_for("api_reports.dependencies_page", view="radial") + "#relation-editor")
+    if dry_run:
+        flash(f"第二層關聯預檢完成：系統 {result.get('systems', 0)}，關聯 {result.get('relations', 0)}，未寫入資料。")
+    else:
+        flash(f"第二層關聯匯入完成：系統 {result.get('systems', 0)}，關聯 {result.get('relations', 0)}。")
+    return redirect(
+        url_for(
+            "api_reports.dependencies_page",
+            view="radial",
+            relation_import_status=result.get("status", ""),
+            relation_import_layout=result.get("layout", ""),
+            relation_import_systems=result.get("systems", 0),
+            relation_import_relations=result.get("relations", 0),
+            relation_import_rows=result.get("rows", 0),
+        )
+        + "#relation-import-panel"
+    )
 
 
 @bp.post("/dependencies/relations/<relation_id>/update")

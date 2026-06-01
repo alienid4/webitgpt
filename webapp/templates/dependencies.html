@@ -38,6 +38,7 @@
     <a class="btn btn-fix" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=request.args.get('center', ''), depth=request.args.get('depth', '2'), failed_node=request.args.get('center', topology.meta.center or ''), focus_impact=1) }}">模擬維護</a>
     <a class="btn primary" href="{{ url_for('api_reports.dependencies_notifications_csv', view='core_impact', center=request.args.get('center', ''), depth=request.args.get('depth', '2')) }}">匯出通知名單 CSV</a>
     <a class="btn" href="{{ url_for('api_hosts.cmdb_relationships_page', system=request.args.get('center', topology.meta.center or '')) }}">回 CMDB 總覽</a>
+    <a class="btn secondary" href="#relation-import-panel">匯入第二層關聯表</a>
     {% else %}
     <form method="post" action="{{ url_for('api_dependencies.collect_trigger_page') }}" data-submit-status data-submit-message="正在執行 ss -tunp 採集，請稍候。">
       <input type="hidden" name="view" value="{{ topology.view }}">
@@ -47,6 +48,7 @@
       <input type="hidden" name="view" value="{{ topology.view }}">
       <button class="btn" type="submit" data-busy-text="對帳中">ss+nmap 對帳</button>
     </form>
+    <a class="btn secondary" href="#relation-import-panel">匯入第二層關聯表</a>
     <a class="btn" href="{{ url_for('api_reports.dependencies_api') }}">JSON API</a>
     {% endif %}
     {% else %}
@@ -71,6 +73,50 @@
     <span>ss+nmap、Ghost、Port 差異</span>
   </a>
 </nav>
+{% endif %}
+
+{% if not fullscreen %}
+<section class="panel relation-import-panel" id="relation-import-panel">
+  <div class="page-header">
+    <div>
+      <p class="eyebrow">SECOND LAYER RELATIONS</p>
+      <h2>第二層關聯表匯入</h2>
+      <p class="text-muted-sm">用 Excel 建立系統對系統的關係；第一層核心歸屬仍在「核心歸屬管理」維護。</p>
+    </div>
+    <a class="btn" href="#relation-editor">查看已匯入關聯</a>
+  </div>
+  <div class="relation-import-steps" aria-label="關聯表匯入流程">
+    <div><strong>1. 選 Excel</strong><span>支援矩陣式關聯表。</span></div>
+    <div><strong>2. 預檢數量</strong><span>先確認系統與關聯筆數。</span></div>
+    <div><strong>3. 正式匯入</strong><span>建立第二層關聯，可再編輯。</span></div>
+  </div>
+  {% if request.args.get('relation_import_status') %}
+  <div class="relation-import-result">
+    <strong>{{ "預檢完成" if request.args.get('relation_import_status') == "dry_run" else "匯入完成" }}</strong>
+    <span>格式 {{ request.args.get('relation_import_layout', '-') }}</span>
+    <span>來源列 {{ request.args.get('relation_import_rows', '0') }}</span>
+    <span>系統 {{ request.args.get('relation_import_systems', '0') }}</span>
+    <span>關聯 {{ request.args.get('relation_import_relations', '0') }}</span>
+  </div>
+  <div class="actions compact-actions">
+    <a class="btn primary" href="#relation-editor">查看匯入的關聯</a>
+    <a class="btn" href="{{ url_for('api_reports.dependencies_page', view='core_impact') }}">開啟系統影響圖</a>
+    <a class="btn" href="{{ url_for('api_hosts.cmdb_relationships_page') }}">前往 CMDB 關聯總覽</a>
+  </div>
+  {% endif %}
+  {% if current_user.role in ["admin", "super", "superadmin"] %}
+  <form class="relation-upload-bar" method="post" enctype="multipart/form-data" action="{{ url_for('api_dependencies.relation_import_xlsx_page') }}" data-submit-status data-submit-message="正在處理第二層關聯表，請稍候。">
+    <label>關聯表 Excel
+      <input type="file" name="workbook_file" accept=".xlsx" required>
+    </label>
+    <button class="btn secondary" name="mode" value="dry_run" type="submit">預檢數量</button>
+    <button class="btn primary" name="mode" value="import" type="submit">正式匯入</button>
+    <span class="text-muted-sm">預檢不寫入；正式匯入會合併同一組來源/目標關聯。</span>
+  </form>
+  {% else %}
+  <p class="no-data">目前帳號只能檢視；匯入第二層關聯需 admin 以上權限。</p>
+  {% endif %}
+</section>
 {% endif %}
 
 {% if topology.view != "core_impact" %}
@@ -413,13 +459,6 @@
     <a class="btn" href="{{ url_for('api_reports.dependencies_page', view='core_radial') }}">回核心關聯圓圖</a>
   </div>
   {% if current_user.role in ["admin", "super", "superadmin"] %}
-  <form class="relation-upload-bar" method="post" enctype="multipart/form-data" action="{{ url_for('api_dependencies.relation_import_xlsx_page') }}" data-submit-status data-submit-message="正在匯入第二層關聯，請稍候。">
-    <label>匯入第二層關聯 Excel
-      <input type="file" name="workbook_file" accept=".xlsx" required>
-    </label>
-    <button class="btn secondary" type="submit">匯入關聯表</button>
-    <span class="text-muted-sm">支援矩陣格式；第一層核心歸屬請到系統管理另行設定。</span>
-  </form>
   <form class="relation-editor-grid" method="post" action="{{ url_for('api_dependencies.relation_save_page') }}">
     <label>來源系統
       <select name="from_system" required>
@@ -459,14 +498,26 @@
   {% else %}
   <p class="no-data">目前帳號只能檢視關聯；新增、修改與刪除需 admin 以上權限。</p>
   {% endif %}
+  <form class="relation-local-search" method="get" action="{{ url_for('api_reports.dependencies_page') }}#relation-editor">
+    <input type="hidden" name="view" value="{{ topology.view }}">
+    <input type="hidden" name="center" value="{{ request.args.get('center', '') }}">
+    <label>關聯表搜尋
+      <input name="relation_q" value="{{ request.args.get('relation_q', '') }}" placeholder="來源 / 目標 / APID / Port / 服務 / 備註">
+    </label>
+    <button class="btn secondary" type="submit">搜尋關聯</button>
+    {% if request.args.get('relation_q') %}
+    <a class="btn" href="{{ url_for('api_reports.dependencies_page', view=topology.view, center=request.args.get('center', '')) }}#relation-editor">清除</a>
+    {% endif %}
+    <span class="text-muted-sm">這裡只搜尋下方關聯表；頁首搜尋仍是全域搜尋。</span>
+  </form>
   <table class="data-table">
     <thead><tr><th>來源</th><th>目標</th><th>類型</th><th>來源別</th><th>Port / 服務</th><th>備註</th><th>更新</th><th>操作</th></tr></thead>
     <tbody>
       {% for relation in relation_items or [] %}
       {% set ports = relation.evidence.remote_ports if relation.evidence and relation.evidence.remote_ports else [] %}
       <tr>
-        <td><code>{{ relation.from_system }}</code></td>
-        <td><code>{{ relation.to_system }}</code></td>
+        <td><strong>{{ relation.from_label or relation.from_system }}</strong><br><code>{{ relation.from_system }}</code></td>
+        <td><strong>{{ relation.to_label or relation.to_system }}</strong><br><code>{{ relation.to_system }}</code></td>
         <td>{{ relation.rel_type or "-" }}</td>
         <td>{{ "手動" if relation.source == "manual" else "自動" if relation.source == "auto" else relation.source or "-" }}</td>
         <td>{{ ports|join(", ") if ports else relation.evidence.service_name if relation.evidence and relation.evidence.service_name else "-" }}</td>
