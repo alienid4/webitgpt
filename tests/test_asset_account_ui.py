@@ -473,7 +473,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.79"' in config
+    assert 'VERSION = "1.0.3.80"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -539,6 +539,14 @@ def test_cmdb_quality_actionable_platform_fix_contracts_exist():
     assert "bulk_apply_platform_suggestions" in host_service
     assert "data_quality_apply_platform_suggestions" in reports
     assert "套用平台分類建議" in data_quality
+    assert "bulk_apply_default_connections" in host_service
+    assert "data_quality_apply_default_connections" in reports
+    assert "套用預設連線" in data_quality
+    assert "同類型：平台分類" in data_quality
+    assert "同類型：連線方式" in data_quality
+    assert "同類型：草稿流程" in data_quality
+    assert "cmdb_missing_connection" in quality_service
+    assert "cmdb_workflow_pending" in quality_service
     assert "host_type_source" in host_service
     assert '"rhle"' in host_service
     assert '"redhat"' in host_service
@@ -596,8 +604,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.79"' in config
-    assert "cmdb-default-connection-by-platform" in config
+    assert 'VERSION = "1.0.3.80"' in config
+    assert "data-quality-bulk-actions-by-issue-type" in config
 
 
     assert "verification_source" in api_v1
@@ -691,7 +699,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "cmdb-default-connection-by-platform" in config
+    assert "data-quality-bulk-actions-by-issue-type" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog

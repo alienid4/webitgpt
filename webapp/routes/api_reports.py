@@ -214,6 +214,23 @@ def data_quality_apply_platform_suggestions():
     return render_template("data_quality.html", report=operations_data_quality(), apply_result=result)
 
 
+@bp.post("/reports/data-quality/apply-default-connections")
+@require_feature("summary")
+@require_role("admin")
+def data_quality_apply_default_connections():
+    result = host_service.bulk_apply_default_connections(user=current_user()["username"])
+    result["action_label"] = "預設連線方式"
+    audit_log_service.append(
+        "cmdb.default_connection.apply",
+        current_user()["username"],
+        {
+            "updated_count": result["updated_count"],
+            "skipped_count": result["skipped_count"],
+        },
+    )
+    return render_template("data_quality.html", report=operations_data_quality(), apply_result=result)
+
+
 @bp.get("/reports/post-install")
 @require_feature("summary")
 def post_install_report_page():

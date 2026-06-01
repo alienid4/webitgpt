@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.80",
+        "date": "2026-06-01 23:45 +08:00",
+        "patch_id": "data-quality-bulk-actions-by-issue-type",
+        "changes": [
+            "資料品質工作台新增同類型批次處理入口，避免逐筆修相同問題。",
+            "缺少連線方式可直接批次套用平台預設規則：Linux=SSH、Windows=WinRM、AIX=SSH Raw。",
+            "流程尚未結案不自動轉正式，改導向資產草稿批次治理，保留人工確認關卡。",
+        ],
+    },
+    {
         "version": "1.0.3.79",
         "date": "2026-06-01 23:05 +08:00",
         "patch_id": "cmdb-default-connection-by-platform",

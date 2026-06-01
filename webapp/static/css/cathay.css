@@ -2578,6 +2578,13 @@ a.metric:hover {
   margin: 10px 0 12px;
 }
 
+.quality-bulk-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -4px 0 12px;
+}
+
 .pill-link {
   display: inline-flex;
   align-items: center;

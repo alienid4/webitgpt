@@ -14,6 +14,14 @@
       <button class="btn primary" type="submit">套用平台分類建議 {{ report.summary.cmdb_platform_mismatch }}</button>
     </form>
     {% endif %}
+    {% if report.summary.cmdb_missing_connection and current_user.role in ["admin", "super", "superadmin"] %}
+    <form method="post" action="{{ url_for('api_reports.data_quality_apply_default_connections') }}" onsubmit="return confirm('會依平台分類批次補預設連線方式：Linux=SSH、Windows=WinRM、AIX=SSH Raw。只會處理缺少連線方式的資產，確定執行？')">
+      <button class="btn primary" type="submit">套用預設連線 {{ report.summary.cmdb_missing_connection }}</button>
+    </form>
+    {% endif %}
+    {% if report.summary.cmdb_workflow_pending and current_user.role in ["admin", "super", "superadmin"] %}
+    <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page', status='draft') }}">處理草稿 {{ report.summary.cmdb_workflow_pending }}</a>
+    {% endif %}
     <a class="btn secondary" href="{{ url_for('api_reports.data_quality_csv') }}">匯出 CSV</a>
     <a class="btn secondary" href="{{ url_for('api_reports.data_quality_api') }}">JSON API</a>
   </div>
@@ -21,8 +29,8 @@
 
 {% if apply_result %}
 <section class="notice success">
-  平台分類建議已處理：更新 {{ apply_result.updated_count }} 筆，略過 {{ apply_result.skipped_count }} 筆。
-  請重新查看主管儀表板的平台分布與開門檢查範圍。
+  {{ apply_result.action_label or "批次修正" }}完成：成功 {{ apply_result.updated_count }} 筆，略過 {{ apply_result.skipped_count }} 筆。
+  請重新檢查資料品質統計。
 </section>
 {% endif %}
 
@@ -94,10 +102,25 @@
   </div>
   <div class="quality-breakdown-row">
     {% for item in report.cmdb_breakdown %}
-    <a class="pill-link" href="#cmdb-quality-details">{{ item.label }} {{ item.count }}</a>
+    <span class="pill-link">{{ item.label }} {{ item.count }}</span>
     {% else %}
     <span class="badge-ok">CMDB 無待處理項目</span>
     {% endfor %}
+  </div>
+  <div class="quality-bulk-action-row">
+    {% if report.summary.cmdb_platform_mismatch and current_user.role in ["admin", "super", "superadmin"] %}
+    <form method="post" action="{{ url_for('api_reports.data_quality_apply_platform_suggestions') }}" onsubmit="return confirm('同類型套用：依 OS 推論平台分類並批次修正。確定執行？')">
+      <button class="btn-sm" type="submit">同類型：平台分類</button>
+    </form>
+    {% endif %}
+    {% if report.summary.cmdb_missing_connection and current_user.role in ["admin", "super", "superadmin"] %}
+    <form method="post" action="{{ url_for('api_reports.data_quality_apply_default_connections') }}" onsubmit="return confirm('同類型套用：依平台分類補預設連線方式。確定執行？')">
+      <button class="btn-sm" type="submit">同類型：連線方式</button>
+    </form>
+    {% endif %}
+    {% if report.summary.cmdb_workflow_pending and current_user.role in ["admin", "super", "superadmin"] %}
+    <a class="btn-sm" href="{{ url_for('api_hosts.hosts_page', status='draft') }}">同類型：草稿流程</a>
+    {% endif %}
   </div>
   <div class="table-wrap admin-table-wrap">
     <table class="data-table compact-table">

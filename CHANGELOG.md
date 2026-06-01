@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.80 - 2026-06-01 23:45 +08:00 - data-quality-bulk-actions-by-issue-type
+
+- 資料品質工作台新增同類型批次處理入口，讓平台分類、缺少連線方式等重複問題不用逐筆編輯。
+- 缺少連線方式可一鍵套用平台預設規則：Linux=SSH、Windows=WinRM、AIX=SSH Raw。
+- 流程尚未結案屬於人工判斷項目，不自動批次轉正式，改導向資產草稿批次治理流程。
+
 ## v1.0.3.79 - 2026-06-01 23:05 +08:00 - cmdb-default-connection-by-platform
 
 - CMDB CSV / Excel 匯入時依平台分類自動帶入預設連線方式：Linux=SSH、Windows=WinRM、AIX=SSH Raw。

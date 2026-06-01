@@ -109,6 +109,8 @@ def operations_data_quality() -> dict[str, Any]:
     cmdb_issues = int(cmdb.get("issues_total", 0) or 0)
     cmdb_counts = cmdb.get("counts") or {}
     platform_mismatch = int(cmdb_counts.get("platform_mismatch", 0) or 0)
+    missing_connection = int(cmdb_counts.get("missing_connection", 0) or 0)
+    workflow_pending = int(cmdb_counts.get("workflow_pending", 0) or 0)
     ap_review = int(ap_summary.get("review", 0) or 0)
     owner_missing = int(ap_summary.get("no_owner", 0) or 0)
     topology_owner_missing = sum(
@@ -171,6 +173,8 @@ def operations_data_quality() -> dict[str, Any]:
         "summary": {
             "cmdb_issues": cmdb_issues,
             "cmdb_platform_mismatch": platform_mismatch,
+            "cmdb_missing_connection": missing_connection,
+            "cmdb_workflow_pending": workflow_pending,
             "ap_accounts": ap_summary.get("total", 0),
             "ap_review": ap_review,
             "ap_owner_missing": owner_missing,
