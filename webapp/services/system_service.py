@@ -113,6 +113,17 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.70",
+        "date": "2026-06-01 11:25 +08:00",
+        "patch_id": "second-layer-relation-matrix-import-edit",
+        "changes": [
+            "系統拓撲手動關聯管理新增第二層關聯 Excel 匯入入口，支援矩陣格式。",
+            "矩陣匯入會建立第二層系統節點與 dependency_relations，不設定第一層核心歸屬。",
+            "關聯清單新增展開編輯，可調整來源、目標、類型、Port、服務與備註。",
+            "匯入與編輯稽核只記錄狀態與數量，不記錄原始 Excel 內容。",
+        ],
+    },
+    {
         "version": "1.0.3.69",
         "date": "2026-06-01 10:45 +08:00",
         "patch_id": "inspection-platform-start-ux",

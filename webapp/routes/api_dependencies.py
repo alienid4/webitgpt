@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, redirect, render_template, request, url_for
+from pathlib import Path
+import tempfile
+
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 
 from webapp.decorators import current_user, require_feature, require_role
 from webapp.services import audit_log_service
@@ -82,6 +85,43 @@ def relation_save_page():
     )
     audit_log_service.append("dependencies.relation.page_save", current_user()["username"], {"from": doc.get("from_system"), "to": doc.get("to_system")})
     return redirect(request.referrer or url_for("api_reports.dependencies_page", view="core_radial", center=doc.get("from_system", "")))
+
+
+@bp.post("/dependencies/relations/import-xlsx")
+@require_feature("dependencies")
+@require_role("admin")
+def relation_import_xlsx_page():
+    upload = request.files.get("workbook_file")
+    if not upload or not upload.filename:
+        flash("請選擇系統關聯 Excel。")
+        return redirect(request.referrer or url_for("api_reports.dependencies_page", view="radial") + "#relation-editor")
+    suffix = Path(upload.filename).suffix.lower()
+    if suffix != ".xlsx":
+        flash("只支援 .xlsx 系統關聯表。")
+        return redirect(request.referrer or url_for("api_reports.dependencies_page", view="radial") + "#relation-editor")
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
+        tmp.write(upload.read())
+        tmp_path = Path(tmp.name)
+    try:
+        result = dependency_service.import_system_relations_xlsx(tmp_path, actor=current_user()["username"])
+    finally:
+        tmp_path.unlink(missing_ok=True)
+    audit_log_service.append(
+        "dependencies.relation.import_xlsx",
+        current_user()["username"],
+        {"status": result.get("status"), "layout": result.get("layout"), "systems": result.get("systems"), "relations": result.get("relations")},
+    )
+    flash(f"第二層關聯匯入完成：系統 {result.get('systems', 0)}，關聯 {result.get('relations', 0)}。")
+    return redirect(url_for("api_reports.dependencies_page", view="radial") + "#relation-editor")
+
+
+@bp.post("/dependencies/relations/<relation_id>/update")
+@require_feature("dependencies")
+@require_role("admin")
+def relation_update_page(relation_id: str):
+    doc = dependency_service.update_relation_by_id(relation_id, request.form.to_dict(), current_user()["username"])
+    audit_log_service.append("dependencies.relation.page_update", current_user()["username"], {"relation_id": relation_id})
+    return redirect(request.referrer or url_for("api_reports.dependencies_page", view="radial", center=doc.get("from_system", "")) + "#relation-editor")
 
 
 @bp.post("/dependencies/relations/<relation_id>/delete")

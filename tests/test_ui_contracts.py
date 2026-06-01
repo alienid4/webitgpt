@@ -269,6 +269,9 @@ def test_inventory_history_diff_and_topology_contracts_exist():
         assert name in dependency_service
     assert "system_relations_xlsx" in dependency_service
     assert "cmdb_import" in dependency_service
+    assert "def _xlsx_matrix_rows(" in dependency_service
+    assert "矩陣關聯" in dependency_service
+    assert "def update_relation_by_id(" in dependency_service
     assert "def cleanup_imported_system_relations(" in dependency_service
     import_script = read("scripts/import_system_relations.py")
     cleanup_script = read("scripts/cleanup_imported_system_relations.py")
@@ -287,6 +290,9 @@ def test_inventory_history_diff_and_topology_contracts_exist():
     assert 'value="radial"' in dependencies_page
     assert "系統關聯圓圖" in dependencies_page
     assert "手動關聯管理" in dependencies_page
+    assert "匯入第二層關聯 Excel" in dependencies_page
+    assert "relation_import_xlsx_page" in read("webapp/routes/api_dependencies.py")
+    assert "relation_update_page" in read("webapp/routes/api_dependencies.py")
     assert "relation_save_page" in read("webapp/routes/api_dependencies.py")
 
 

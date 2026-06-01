@@ -180,8 +180,82 @@ def _xlsx_rows(path: str | Path) -> list[dict[str, str]]:
     return []
 
 
+def _xlsx_matrix_rows(path: str | Path) -> list[dict[str, str]]:
+    """Read a relation matrix: source system rows, target system columns, V means related."""
+    with zipfile.ZipFile(path) as archive:
+        shared_strings = _xlsx_shared_strings(archive)
+        for _, sheet_path in _xlsx_sheet_paths(archive):
+            root = ET.fromstring(archive.read(sheet_path))
+            raw_rows: list[list[str]] = []
+            for row in root.findall(".//m:sheetData/m:row", XLSX_NS):
+                values: list[str] = []
+                for cell in row.findall("m:c", XLSX_NS):
+                    ref = cell.attrib.get("r", "")
+                    letters = "".join(ch for ch in ref if ch.isalpha()) or "A"
+                    idx = 0
+                    for ch in letters:
+                        idx = idx * 26 + ord(ch.upper()) - 64
+                    idx -= 1
+                    while len(values) <= idx:
+                        values.append("")
+                    value_node = cell.find("m:v", XLSX_NS)
+                    value = value_node.text if value_node is not None else ""
+                    if cell.attrib.get("t") == "s" and value and value.isdigit():
+                        value = shared_strings[int(value)] if int(value) < len(shared_strings) else ""
+                    values[idx] = (value or "").strip()
+                raw_rows.append(values)
+            if not raw_rows:
+                continue
+            header = raw_rows[0]
+            if "系統別" not in header:
+                continue
+            source_name_idx = header.index("系統別")
+            source_code_idx = header.index("APID") if "APID" in header else -1
+            source_category_idx = header.index("系統類別") if "系統類別" in header else -1
+            matrix_start = source_name_idx + 1
+            rows: list[dict[str, str]] = []
+            for row_idx, row in enumerate(raw_rows[1:], start=2):
+                source_name = row[source_name_idx].strip() if len(row) > source_name_idx else ""
+                if not source_name:
+                    continue
+                source_code = row[source_code_idx].strip() if source_code_idx >= 0 and len(row) > source_code_idx else ""
+                source_category = row[source_category_idx].strip() if source_category_idx >= 0 and len(row) > source_category_idx else ""
+                for col_idx, target_name in enumerate(header[matrix_start:], start=matrix_start):
+                    marker = row[col_idx].strip() if len(row) > col_idx else ""
+                    if not marker:
+                        continue
+                    target_name = (target_name or "").strip()
+                    if not target_name or target_name == source_name:
+                        continue
+                    rows.append(
+                        {
+                            "來源系統代號": source_code,
+                            "來源系統名稱": source_name,
+                            "目標系統代號": "",
+                            "目標系統名稱": target_name,
+                            "介接方式": "矩陣關聯",
+                            "方向": "來源到目標",
+                            "信心水準": "中",
+                            "覆核狀態": "待覆核",
+                            "備註": "由第二層系統關聯矩陣匯入，可由關聯管理頁再編輯。",
+                            "來源圖檔": "",
+                            "來源系統類別": source_category,
+                            "矩陣標記": marker,
+                            "矩陣列": str(row_idx),
+                            "矩陣欄": str(col_idx + 1),
+                        }
+                    )
+            if rows:
+                return rows
+    return []
+
+
 def import_system_relations_xlsx(path: str | Path, actor: str = "system", dry_run: bool = False) -> dict[str, Any]:
     rows = _xlsx_rows(path)
+    layout = "pair_rows"
+    if not rows:
+        rows = _xlsx_matrix_rows(path)
+        layout = "matrix"
     now = _now()
     systems: dict[str, dict[str, Any]] = {}
     relations: list[dict[str, Any]] = []
@@ -203,7 +277,13 @@ def import_system_relations_xlsx(path: str | Path, actor: str = "system", dry_ru
                 "owner": "",
                 "host_refs": [],
                 "external": False,
-                "metadata": {"import_source": "system_relations_xlsx", "source_code": row.get("來源系統代號", ""), "review_status": row.get("覆核狀態", "")},
+                "metadata": {
+                    "import_source": "system_relations_xlsx",
+                    "import_layout": layout,
+                    "source_code": row.get("來源系統代號", ""),
+                    "system_category": row.get("來源系統類別", ""),
+                    "review_status": row.get("覆核狀態", ""),
+                },
             },
         )
         systems.setdefault(
@@ -217,7 +297,7 @@ def import_system_relations_xlsx(path: str | Path, actor: str = "system", dry_ru
                 "owner": "",
                 "host_refs": [],
                 "external": False,
-                "metadata": {"import_source": "system_relations_xlsx", "source_code": row.get("目標系統代號", ""), "review_status": row.get("覆核狀態", "")},
+                "metadata": {"import_source": "system_relations_xlsx", "import_layout": layout, "source_code": row.get("目標系統代號", ""), "review_status": row.get("覆核狀態", "")},
             },
         )
         relations.append(
@@ -233,9 +313,13 @@ def import_system_relations_xlsx(path: str | Path, actor: str = "system", dry_ru
                     "direction": row.get("方向", ""),
                     "review_status": row.get("覆核狀態", ""),
                     "row": idx,
+                    "matrix_marker": row.get("矩陣標記", ""),
+                    "matrix_row": row.get("矩陣列", ""),
+                    "matrix_col": row.get("矩陣欄", ""),
                     "imported_at": now.isoformat(),
                 },
                 "metadata": {
+                    "import_layout": layout,
                     "source_name": source_name,
                     "target_name": target_name,
                     "source_code": row.get("來源系統代號", ""),
@@ -245,7 +329,7 @@ def import_system_relations_xlsx(path: str | Path, actor: str = "system", dry_ru
             }
         )
     if dry_run:
-        return {"status": "dry_run", "systems": len(systems), "relations": len(relations), "rows": len(rows)}
+        return {"status": "dry_run", "layout": layout, "systems": len(systems), "relations": len(relations), "rows": len(rows)}
 
     for item in systems.values():
         upsert_system(item, actor)
@@ -265,10 +349,10 @@ def import_system_relations_xlsx(path: str | Path, actor: str = "system", dry_ru
             "edge_count": imported,
             "snapshot_replaced": False,
             "errors": [],
-            "summary": {"systems": len(systems), "relations": imported, "rows": len(rows)},
+            "summary": {"layout": layout, "systems": len(systems), "relations": imported, "rows": len(rows)},
         }
     )
-    return {"status": "ok", "systems": len(systems), "relations": imported, "rows": len(rows)}
+    return {"status": "ok", "layout": layout, "systems": len(systems), "relations": imported, "rows": len(rows)}
 
 
 def cleanup_imported_system_relations(actor: str = "system", dry_run: bool = False) -> dict[str, Any]:
@@ -573,6 +657,42 @@ def upsert_relation(data: dict[str, Any], actor: str = "system") -> dict[str, An
         upsert=True,
     )
     return _public(get_collection("dependency_relations").find_one({"from_system": doc["from_system"], "to_system": doc["to_system"]})) or {}
+
+
+def update_relation_by_id(relation_id: str, data: dict[str, Any], actor: str = "system") -> dict[str, Any]:
+    now = _now()
+    existing = get_collection("dependency_relations").find_one({"_id": ObjectId(relation_id)})
+    if not existing:
+        raise KeyError("relation not found")
+    evidence = dict(existing.get("evidence") or {})
+    remote_port = str(data.get("remote_port") or "").strip()
+    service_name = str(data.get("service_name") or "").strip()
+    if remote_port:
+        evidence["remote_ports"] = [remote_port]
+        evidence["last_remote_port"] = remote_port
+    else:
+        evidence.pop("remote_ports", None)
+        evidence.pop("last_remote_port", None)
+    if service_name:
+        evidence["service_name"] = service_name
+        evidence["process_name"] = service_name
+    else:
+        evidence.pop("service_name", None)
+        evidence.pop("process_name", None)
+    doc = {
+        "from_system": data.get("from_system") or existing.get("from_system"),
+        "to_system": data.get("to_system") or existing.get("to_system"),
+        "rel_type": data.get("rel_type") or existing.get("rel_type") or "depends_on",
+        "source": data.get("source") or existing.get("source") or "manual",
+        "confidence": float(data.get("confidence") or existing.get("confidence") or 1.0),
+        "description": data.get("description") or "",
+        "evidence": evidence,
+        "metadata": {**(existing.get("metadata") or {}), "edited_from_ui": True},
+        "updated_at": now,
+        "updated_by": actor,
+    }
+    get_collection("dependency_relations").update_one({"_id": ObjectId(relation_id)}, {"$set": doc})
+    return _public(get_collection("dependency_relations").find_one({"_id": ObjectId(relation_id)})) or {}
 
 
 def delete_relation(relation_id: str) -> bool:

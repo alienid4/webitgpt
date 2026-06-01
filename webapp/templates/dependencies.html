@@ -413,6 +413,13 @@
     <a class="btn" href="{{ url_for('api_reports.dependencies_page', view='core_radial') }}">回核心關聯圓圖</a>
   </div>
   {% if current_user.role in ["admin", "super", "superadmin"] %}
+  <form class="relation-upload-bar" method="post" enctype="multipart/form-data" action="{{ url_for('api_dependencies.relation_import_xlsx_page') }}" data-submit-status data-submit-message="正在匯入第二層關聯，請稍候。">
+    <label>匯入第二層關聯 Excel
+      <input type="file" name="workbook_file" accept=".xlsx" required>
+    </label>
+    <button class="btn secondary" type="submit">匯入關聯表</button>
+    <span class="text-muted-sm">支援矩陣格式；第一層核心歸屬請到系統管理另行設定。</span>
+  </form>
   <form class="relation-editor-grid" method="post" action="{{ url_for('api_dependencies.relation_save_page') }}">
     <label>來源系統
       <select name="from_system" required>
@@ -465,8 +472,38 @@
         <td>{{ ports|join(", ") if ports else relation.evidence.service_name if relation.evidence and relation.evidence.service_name else "-" }}</td>
         <td>{{ relation.description or "-" }}</td>
         <td>{{ (relation.updated_at|string)[:19]|replace("T", " ") if relation.updated_at else "-" }}</td>
-        <td>
+        <td class="relation-actions">
           {% if current_user.role in ["admin", "super", "superadmin"] %}
+          <details class="relation-row-edit">
+            <summary class="btn-sm">編輯</summary>
+            <form method="post" action="{{ url_for('api_dependencies.relation_update_page', relation_id=relation._id) }}">
+              <label>來源
+                <select name="from_system" required>
+                  {% for system in systems or [] %}
+                  <option value="{{ system.system_id }}" {% if relation.from_system == system.system_id %}selected{% endif %}>{{ system.display_name }} / {{ system.system_id }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label>目標
+                <select name="to_system" required>
+                  {% for system in systems or [] %}
+                  <option value="{{ system.system_id }}" {% if relation.to_system == system.system_id %}selected{% endif %}>{{ system.display_name }} / {{ system.system_id }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label>類型
+                <select name="rel_type">
+                  {% for value, label in [("depends_on","依賴"),("connects_to","連線"),("same_system","同系統"),("backup_of","備援"),("矩陣關聯","矩陣關聯")] %}
+                  <option value="{{ value }}" {% if relation.rel_type == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label>Port<input name="remote_port" value="{{ ports[0] if ports else relation.evidence.last_remote_port if relation.evidence and relation.evidence.last_remote_port else '' }}"></label>
+              <label>服務<input name="service_name" value="{{ relation.evidence.service_name if relation.evidence and relation.evidence.service_name else '' }}"></label>
+              <label>備註<input name="description" value="{{ relation.description or '' }}"></label>
+              <button class="btn-sm btn-primary" type="submit">儲存</button>
+            </form>
+          </details>
           <form method="post" action="{{ url_for('api_dependencies.relation_delete_page', relation_id=relation._id) }}" onsubmit="return confirm('確認刪除此關聯？');">
             <button class="btn-sm danger" type="submit">刪除</button>
           </form>

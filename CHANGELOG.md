@@ -1,5 +1,12 @@
 # webitgpt Changelog
 
+## v1.0.3.70 - 2026-06-01 11:25 +08:00 - second-layer-relation-matrix-import-edit
+
+- 系統拓撲的手動關聯管理新增「匯入第二層關聯 Excel」入口，支援矩陣格式關聯表。
+- 匯入只建立第二層系統節點與 `dependency_relations`，不設定第一層核心歸屬，第一層仍由核心歸屬管理人工指定。
+- 關聯清單新增展開編輯，可調整來源、目標、類型、Port、服務與備註。
+- 匯入與稽核紀錄只保存狀態與數量，不保存原始 Excel 內容。
+
 ## v1.0.3.69 - 2026-06-01 10:45 +08:00 - inspection-platform-start-ux
 
 - 開門檢查的系統選單改為先依平台過濾，選 AIX 時只列 AIX 相關系統與主機，避免跨平台誤顯示。
