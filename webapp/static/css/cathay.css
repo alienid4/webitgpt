@@ -2571,6 +2571,30 @@ a.metric:hover {
   line-height: 1.2;
 }
 
+.quality-breakdown-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+
+.pill-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid var(--c4);
+  border-radius: 999px;
+  color: var(--ink);
+  text-decoration: none;
+  background: var(--white);
+}
+
+.pill-link:hover {
+  border-color: var(--g1);
+  color: var(--g0);
+}
+
 .code-block {
   overflow-x: auto;
   border: 1px solid var(--c4);

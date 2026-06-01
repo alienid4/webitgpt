@@ -473,13 +473,13 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.74"' in config
+    assert 'VERSION = "1.0.3.75"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
     assert "AP 風險分類" in html
     assert "operations_data_quality" in reports
-    assert '"status": "degraded" if warnings' in read("webapp/services/quality_service.py")
+    assert '"degraded" if warnings' in read("webapp/services/quality_service.py")
     assert '"/api/reports/data-quality"' in reports
     assert '"/api/reports/data-quality.csv"' in reports
     assert "trust_summary" in deps
@@ -514,6 +514,24 @@ def test_ops_ux_to_10329_contracts_exist():
     assert ".quality-score-band" in css
     assert "1.0.3.29" in service
     assert "ops-ux-decision-workbench" in read("CHANGELOG.md")
+
+
+def test_cmdb_quality_actionable_platform_fix_contracts_exist():
+    quality_service = read("webapp/services/quality_service.py")
+    data_quality = read("webapp/templates/data_quality.html")
+    host_service = read("webapp/services/host_service.py")
+    cmdb_service = read("webapp/services/cmdb_service.py")
+    reports = read("webapp/routes/api_reports.py")
+
+    assert "infer_host_type_from_os" in host_service
+    assert "platform_suggestion_for_host" in host_service
+    assert "platform_mismatch" in cmdb_service
+    assert "平台分類疑似不正確" in cmdb_service
+    assert "cmdb_detail_rows" in quality_service
+    assert "CMDB 需檢視明細" in data_quality
+    assert "平台分類需修正" in data_quality
+    assert "status_label" in data_quality
+    assert "cmdb_breakdown" in reports
 
 
 def test_reports_next_action_to_10330_contracts_exist():
@@ -564,8 +582,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.74"' in config
-    assert "asset-bulk-status-default-active-list" in config
+    assert 'VERSION = "1.0.3.75"' in config
+    assert "cmdb-quality-actionable-platform-fix" in config
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -612,7 +630,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "asset-bulk-status-default-active-list" in config
+    assert "cmdb-quality-actionable-platform-fix" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog

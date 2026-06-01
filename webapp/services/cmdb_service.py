@@ -335,6 +335,22 @@ def asset_quality_report() -> dict[str, Any]:
                 f"目前狀態為 {host.get('status')}，代表仍在申請、建置、補資料或下線流程中。",
                 "請確認是否等待 IP、表單資料、防火牆、弱掃、PAM 或下線核准，並更新治理狀態。",
             )
+        platform_suggestion = host_service.platform_suggestion_for_host(host)
+        if platform_suggestion.get("needed"):
+            add_issue(
+                host,
+                "platform_mismatch",
+                "平台分類疑似不正確",
+                "high",
+                (
+                    f"OS 顯示為 {host.get('os') or '-'}，目前類型是 "
+                    f"{platform_suggestion.get('current') or '-'}，建議改為 "
+                    f"{platform_suggestion.get('suggested') or '-'}。"
+                ),
+                "進入資產編輯頁確認後套用建議平台，修正後主管儀表板與開門檢查才會統計正確。",
+            )
+            issues[-1]["suggested_host_type"] = platform_suggestion.get("suggested", "")
+            issues[-1]["current_host_type"] = platform_suggestion.get("current", "")
         if not host.get("ip") and not host.get("ip_addresses"):
             add_issue(
                 host,

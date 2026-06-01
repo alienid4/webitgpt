@@ -5,21 +5,21 @@
   <div>
     <p class="eyebrow">DATA QUALITY</p>
     <h1>資料品質工作台</h1>
-    <p class="text-muted-sm">維運判斷先看資料可信度。分數低時，先修 CMDB、AP owner/PAM、拓撲通知名單，再看報表結論。</p>
+    <p class="text-muted-sm">先看哪一類資料會影響主管儀表板、巡檢與核心影響圖，再進明細逐筆修正。</p>
   </div>
   <div class="actions">
-    <a class="btn primary" href="{{ url_for('api_reports.data_quality_csv') }}">匯出 CSV</a>
+    <a class="btn primary" href="#cmdb-quality-details">看 CMDB 明細</a>
+    <a class="btn secondary" href="{{ url_for('api_reports.data_quality_csv') }}">匯出 CSV</a>
     <a class="btn secondary" href="{{ url_for('api_reports.data_quality_api') }}">JSON API</a>
   </div>
 </section>
 
 <section class="judgement-source-legend" aria-label="資料品質判斷來源">
   <strong>資料品質判斷來源</strong>
-  <span class="source-badge cmdb">CMDB 欄位</span>
-  <span class="source-badge rule">Rule 檢核</span>
-  <span class="source-badge script">Script 採證</span>
-  <span class="source-badge ai-ready">AI-ready 說明</span>
-  <span class="source-badge insufficient">證據不足會標紅</span>
+  <span class="source-badge cmdb">CMDB</span>
+  <span class="source-badge rule">Rule</span>
+  <span class="source-badge ai-ready">AI-ready</span>
+  <span class="source-badge insufficient">資料不足</span>
 </section>
 
 <section class="quality-score-band {% if report.status != 'ok' %}warn{% endif %}">
@@ -29,14 +29,18 @@
   </div>
   <div>
     <span>狀態</span>
-    <strong>{{ report.status }}</strong>
+    <strong>{{ report.status_label }}</strong>
   </div>
   <div>
-    <span>CMDB 待修</span>
+    <span>CMDB 需檢視</span>
     <strong>{{ report.summary.cmdb_issues }}</strong>
   </div>
   <div>
-    <span>AP 待複核</span>
+    <span>平台分類需修正</span>
+    <strong>{{ report.summary.cmdb_platform_mismatch }}</strong>
+  </div>
+  <div>
+    <span>AP 需複核</span>
     <strong>{{ report.summary.ap_review }}</strong>
   </div>
 </section>
@@ -52,15 +56,83 @@
   <article class="panel quality-check-card {% if item.status != 'ok' %}warn{% endif %}">
     <div class="compact-title">
       <h2>{{ item.domain }}</h2>
-      <span class="{% if item.status == 'ok' %}badge-ok{% else %}badge-warn{% endif %}">{{ item.status }}</span>
+      <span class="{% if item.status == 'ok' %}badge-ok{% else %}badge-warn{% endif %}">{{ item.status_label }}</span>
     </div>
     <div class="judgement-source-row">
       <span class="source-badge cmdb">CMDB</span>
       <span class="source-badge rule">Rule</span>
+      {% if item.domain in ["CMDB", "平台分類"] %}<span class="source-badge ai-ready">AI-ready</span>{% endif %}
     </div>
     <strong class="quality-count">{{ item.count }}</strong>
     <p class="text-muted-sm">{{ item.action }}</p>
+    {% if item.href %}
+    <a class="btn-sm" href="{{ item.href }}">查看明細</a>
+    {% endif %}
   </article>
   {% endfor %}
+</section>
+
+<section class="panel" id="cmdb-quality-details">
+  <div class="flex-between">
+    <div>
+      <h2>CMDB 需檢視明細</h2>
+      <p class="text-muted-sm">把抽象的 needs_review 拆成可處理項目：平台分類、必填欄位、流程狀態、IP 與掃描差異。</p>
+    </div>
+    <a class="btn secondary" href="{{ url_for('api_hosts.asset_quality_page') }}">完整資產異常清單</a>
+  </div>
+  <div class="quality-breakdown-row">
+    {% for item in report.cmdb_breakdown %}
+    <a class="pill-link" href="#cmdb-quality-details">{{ item.label }} {{ item.count }}</a>
+    {% else %}
+    <span class="badge-ok">CMDB 無待處理項目</span>
+    {% endfor %}
+  </div>
+  <div class="table-wrap admin-table-wrap">
+    <table class="data-table compact-table">
+      <thead>
+        <tr>
+          <th>類型</th>
+          <th>資產 / 主機</th>
+          <th>IP</th>
+          <th>狀態</th>
+          <th>問題說明</th>
+          <th>建議處理</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in report.cmdb_detail_rows %}
+        <tr>
+          <td>
+            <strong>{{ row.type_label }}</strong>
+            <div class="text-muted-sm">{{ row.severity }}</div>
+          </td>
+          <td>
+            <strong>{{ row.asset_name }}</strong>
+            <div class="text-muted-sm">{{ row.hostname }}</div>
+          </td>
+          <td><span class="code-inline">{{ row.ip }}</span></td>
+          <td>{{ row.status }}</td>
+          <td>
+            {{ row.detail }}
+            {% if row.suggested_host_type %}
+            <div class="text-muted-sm">目前 {{ row.current_host_type or "-" }}，建議 {{ row.suggested_host_type }}</div>
+            {% endif %}
+          </td>
+          <td>{{ row.action }}</td>
+          <td>
+            {% if row.edit_key and current_user.role in ["admin", "super", "superadmin"] %}
+            <a class="btn-sm" href="{{ url_for('api_hosts.host_edit_page', asset_seq=row.edit_key) }}">編輯</a>
+            {% else %}
+            <span class="text-muted-sm">檢視</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="no-data">目前沒有 CMDB 待處理項目。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </section>
 {% endblock %}

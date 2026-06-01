@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.75 - 2026-06-01 14:05 +08:00 - cmdb-quality-actionable-platform-fix
+
+- 資料品質工作台將 CMDB needs_review 拆成可讀的問題分類、數量與逐筆明細。
+- 新增 OS 與平台分類不一致偵測，讓 Linux / Windows / AIX 匯入錯類型時能被看見。
+- CMDB 明細提供資產、主機、IP、狀態、問題說明與編輯入口，方便修正後讓主管儀表板與巡檢統計回到正確分類。
+
 ## v1.0.3.74 - 2026-06-01 13:20 +08:00 - asset-bulk-status-default-active-list
 
 - 資產管理列表新增本頁勾選與批次改狀態，避免逐筆進入動作選單調整生命週期。

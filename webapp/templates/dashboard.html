@@ -28,7 +28,7 @@
   <article class="panel ops-decision-card {% if summary.quality.status != 'ok' %}warn{% endif %}">
     <div class="compact-title">
       <h2>資料品質</h2>
-      <span class="{% if summary.quality.status == 'ok' %}badge-ok{% elif summary.quality.status == 'degraded' %}badge-error{% else %}badge-warn{% endif %}">{{ summary.quality.status }}</span>
+      <span class="{% if summary.quality.status == 'ok' %}badge-ok{% elif summary.quality.status == 'degraded' %}badge-error{% else %}badge-warn{% endif %}">{{ summary.quality.status_label }}</span>
     </div>
     <div class="judgement-source-row">
       <span class="source-badge cmdb">CMDB</span>
@@ -40,7 +40,7 @@
       <thead><tr><th>項目</th><th>狀態</th><th>數量</th></tr></thead>
       <tbody>
         {% for item in summary.quality.checks %}
-        <tr><td>{{ item.domain }}</td><td>{{ item.status }}</td><td>{{ item.count }}</td></tr>
+        <tr><td>{{ item.domain }}</td><td>{{ item.status_label }}</td><td>{{ item.count }}</td></tr>
         {% endfor %}
       </tbody>
     </table>

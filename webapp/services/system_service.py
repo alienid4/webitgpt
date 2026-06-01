@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.75",
+        "date": "2026-06-01 14:05 +08:00",
+        "patch_id": "cmdb-quality-actionable-platform-fix",
+        "changes": [
+            "資料品質工作台將 CMDB needs_review 拆成可讀的問題分類、數量與逐筆明細。",
+            "新增 OS 與平台分類不一致偵測，例如 Red Hat / Debian / AIX 被匯入成端點設備時會列為平台分類需修正。",
+            "CMDB 明細提供資產、主機、IP、狀態、問題說明與編輯入口，方便把儀表板統計修正回正確分類。",
+        ],
+    },
+    {
         "version": "1.0.3.74",
         "date": "2026-06-01 13:20 +08:00",
         "patch_id": "asset-bulk-status-default-active-list",

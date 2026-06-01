@@ -272,9 +272,13 @@ def data_quality_csv():
     report = operations_data_quality()
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["domain", "status", "count", "action"])
+    writer.writerow(["domain", "status", "status_label", "count", "action"])
     for item in report["checks"]:
-        writer.writerow([item["domain"], item["status"], item["count"], item["action"]])
+        writer.writerow([item["domain"], item["status"], item.get("status_label", item["status"]), item["count"], item["action"]])
+    writer.writerow([])
+    writer.writerow(["cmdb_issue_type", "label", "count"])
+    for item in report.get("cmdb_breakdown", []):
+        writer.writerow([item["type"], item["label"], item["count"]])
     return Response(output.getvalue(), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=webitgpt_data_quality.csv"})
 
 

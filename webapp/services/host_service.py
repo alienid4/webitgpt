@@ -12,6 +12,25 @@ from webapp.services.mongo_service import get_collection
 
 LOGGER = logging.getLogger(__name__)
 INACTIVE_LIST_STATUSES = {"disabled", "retired", "pending_retire"}
+OS_HOST_TYPE_KEYWORDS = {
+    "aix": ("aix",),
+    "as400": ("as/400", "as400", "ibm i", "iseries"),
+    "windows": ("windows", "win server", "microsoft"),
+    "linux": (
+        "linux",
+        "red hat",
+        "rhel",
+        "centos",
+        "rocky",
+        "debian",
+        "ubuntu",
+        "oracle linux",
+        "suse",
+        "alma",
+        "fedora",
+    ),
+    "vmware_host": ("esxi", "vmware esx"),
+}
 
 
 def _now() -> datetime:
@@ -25,6 +44,29 @@ def _public(doc: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
     if "_id" in out:
         out["_id"] = str(out["_id"])
     return out
+
+
+def infer_host_type_from_os(os_text: str) -> str:
+    text = str(os_text or "").strip().lower()
+    if not text:
+        return ""
+    for host_type, keywords in OS_HOST_TYPE_KEYWORDS.items():
+        if any(keyword in text for keyword in keywords):
+            return host_type
+    return ""
+
+
+def platform_suggestion_for_host(host: dict[str, Any]) -> dict[str, Any]:
+    suggested = infer_host_type_from_os(host.get("os") or host.get("os_version") or "")
+    current = str(host.get("host_type") or "").strip()
+    if not suggested or suggested == current:
+        return {"needed": False, "current": current, "suggested": suggested}
+    return {
+        "needed": current in {"", "end_device", "network_device", "unknown"} or suggested in {"linux", "windows", "aix", "as400", "vmware_host"},
+        "current": current,
+        "suggested": suggested,
+        "reason": "OS text indicates a different managed platform",
+    }
 
 
 def _mark_host_dir_warning(asset_seq: str, exc: Exception) -> None:
