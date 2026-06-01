@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.74",
+        "date": "2026-06-01 13:20 +08:00",
+        "patch_id": "asset-bulk-status-default-active-list",
+        "changes": [
+            "資產管理列表新增本頁勾選與批次改狀態，可一次把多筆資產調整為使用中、草稿、待處理、停用、待刪除或汰除。",
+            "下線、待刪除與汰除資產預設不出現在日常清單，需明確勾選「顯示下線 / 待刪除」或指定狀態才會顯示。",
+            "批次狀態更新完成後會顯示成功、略過與目標狀態，方便確認操作是否完成。",
+        ],
+    },
+    {
         "version": "1.0.3.73",
         "date": "2026-06-01 12:45 +08:00",
         "patch_id": "asset-status-first-column",

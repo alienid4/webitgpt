@@ -77,6 +77,7 @@
           {% endfor %}
         </select>
       </label>
+      <label class="asset-inline-check"><input type="checkbox" name="include_inactive" value="1" {% if request.args.get("include_inactive") == "1" %}checked{% endif %}> 顯示下線 / 待刪除</label>
       <label>環境
         <select name="environment">
           <option value="">全部環境</option>
@@ -160,6 +161,7 @@
           </select>
           <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
           <input type="hidden" name="status" value="{{ request.args.get('status','') }}">
+          <input type="hidden" name="include_inactive" value="{{ request.args.get('include_inactive','') }}">
           <input type="hidden" name="group_name" value="{{ request.args.get('group_name','') }}">
           <input type="hidden" name="page_size" value="{{ data.get('page_size', 100) }}">
           <button class="btn" type="submit">儲存目前條件</button>
@@ -199,6 +201,9 @@
   {% if request.args.get("bulk_updated") is not none %}
   <div class="notice">草稿欄位更新完成，共 {{ request.args.get("bulk_updated", 0) }} 筆；略過 {{ request.args.get("bulk_skipped", 0) }} 筆。</div>
   {% endif %}
+  {% if request.args.get("bulk_status_updated") is not none %}
+  <div class="notice success">資產狀態批次更新完成：成功 {{ request.args.get("bulk_status_updated", 0) }} 筆，略過 {{ request.args.get("bulk_status_skipped", 0) }} 筆；目標狀態 {{ status_labels.get(request.args.get("bulk_status_target"), request.args.get("bulk_status_target")) }}。</div>
+  {% endif %}
   {% if request.args.get("bulk_error") %}<div class="notice danger">{{ request.args.get("bulk_error") }}</div>{% endif %}
 
   <section class="table-wrap asset-table-wrap" id="asset-details">
@@ -225,6 +230,20 @@
     </div>
     {% endif %}
     {% if current_user.role in ["admin", "super", "superadmin"] %}
+    <div class="asset-bulk-status-bar">
+      <label><input type="checkbox" data-select-assets> 全選本頁</label>
+      <select form="bulkStatusForm" name="target_status" required>
+        <option value="">批次改狀態</option>
+        {% for value in ["active","draft","pending_ip","pending_data","pending_deploy","disabled","pending_retire","retired"] %}
+        <option value="{{ value }}">{{ status_labels.get(value, value) }}</option>
+        {% endfor %}
+      </select>
+      <input form="bulkStatusForm" name="reason" placeholder="原因，可空白">
+      <input form="bulkStatusForm" type="hidden" name="return_status" value="{{ request.args.get('status','') }}">
+      <input form="bulkStatusForm" type="hidden" name="return_include_inactive" value="{{ request.args.get('include_inactive','') }}">
+      <button form="bulkStatusForm" class="btn secondary" type="submit" onclick="return confirm('會把已勾選資產改成指定狀態；資料不完整或已是目標狀態會略過。確定執行？')">套用到勾選資產</button>
+      <span class="text-muted-sm">下線 / 待刪除預設不顯示，需勾選上方「顯示下線 / 待刪除」。</span>
+    </div>
     <details class="asset-bulk-panel asset-optional-section">
       <summary>
         <div>
@@ -260,6 +279,7 @@
     </details>
     <form id="bulkDraftDeleteForm" method="post" action="{{ url_for('api_hosts.host_bulk_delete_drafts_submit') }}" data-draft-bulk-form data-submit-status data-submit-message="正在批次刪除草稿，正式資產會自動略過。"></form>
     <form id="bulkDraftPromoteForm" method="post" action="{{ url_for('api_hosts.host_bulk_promote_drafts_submit') }}" data-draft-bulk-form data-submit-status data-submit-message="正在批次轉正式，正式資產會自動略過。"></form>
+    <form id="bulkStatusForm" method="post" action="{{ url_for('api_hosts.host_bulk_update_status_submit') }}" data-asset-bulk-form data-submit-status data-submit-message="正在批次更新資產狀態，請稍候。"></form>
     <form id="bulkDraftPromoteAllForm" method="post" action="{{ url_for('api_hosts.host_bulk_promote_drafts_submit') }}" data-submit-status data-submit-message="正在將全部草稿轉正式，資料不完整者會略過。">
       <input type="hidden" name="scope" value="all_drafts">
       <input type="hidden" name="return_status" value="draft">
@@ -297,6 +317,7 @@
           </td>
           {% if current_user.role in ["admin", "super", "superadmin"] %}
           <td>
+            <input type="checkbox" name="asset_seq" value="{{ host.hostname or host.asset_seq }}" data-asset-checkbox>
             {% if host.status == "draft" %}
             <input form="bulkDraftDeleteForm" type="checkbox" name="asset_seq" value="{{ host.hostname or host.asset_seq }}" data-draft-checkbox>
             {% else %}
@@ -384,7 +405,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="{% if current_user.role in ["admin", "super", "superadmin"] %}12{% else %}11{% endif %}" class="no-data">尚無資產資料，請先從 CMDB 匯入或新增資產。</td></tr>
+        <tr><td colspan="{% if current_user.role in ["admin", "super", "superadmin"] %}13{% else %}12{% endif %}" class="no-data">尚無資產資料，請先從 CMDB 匯入或新增資產。</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -395,10 +416,10 @@
     {% set page_size = data.get("page_size", 100) %}
     <span>第 {{ page }} 頁 / 每頁 {{ page_size }} 筆</span>
     {% if page > 1 %}
-      <a class="btn" href="{{ url_for('api_hosts.hosts_page', q=q, page=page-1, page_size=page_size, status=request.args.get('status',''), environment=request.args.get('environment',''), host_type=request.args.get('host_type',''), dc=request.args.get('dc','')) }}">上一頁</a>
+      <a class="btn" href="{{ url_for('api_hosts.hosts_page', q=q, page=page-1, page_size=page_size, status=request.args.get('status',''), include_inactive=request.args.get('include_inactive',''), environment=request.args.get('environment',''), host_type=request.args.get('host_type',''), dc=request.args.get('dc','')) }}">上一頁</a>
     {% endif %}
     {% if data.get("total", 0) > page * page_size %}
-      <a class="btn" href="{{ url_for('api_hosts.hosts_page', q=q, page=page+1, page_size=page_size, status=request.args.get('status',''), environment=request.args.get('environment',''), host_type=request.args.get('host_type',''), dc=request.args.get('dc','')) }}">下一頁</a>
+      <a class="btn" href="{{ url_for('api_hosts.hosts_page', q=q, page=page+1, page_size=page_size, status=request.args.get('status',''), include_inactive=request.args.get('include_inactive',''), environment=request.args.get('environment',''), host_type=request.args.get('host_type',''), dc=request.args.get('dc','')) }}">下一頁</a>
     {% endif %}
   </div>
 </section>

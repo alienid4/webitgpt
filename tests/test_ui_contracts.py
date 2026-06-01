@@ -557,6 +557,10 @@ def test_asset_governance_status_admin_contracts_exist():
         assert text in hosts_template
     for text in ["asset-col-status", "asset-status-pill", "asset-status-active", "asset-status-draft", "asset-status-disabled", "asset-status-retired"]:
         assert text in (hosts_template + css)
+    for text in ["bulkStatusForm", "data-select-assets", "data-asset-checkbox", "host_bulk_update_status_submit", "bulk_update_host_statuses"]:
+        assert text in hosts_template or text in hosts_js or text in host_routes or text in host_service
+    for text in ["INACTIVE_LIST_STATUSES", '"$nin"', "include_inactive"]:
+        assert text in host_service or text in hosts_template or text in host_routes
     assert "資產名稱 / 系統名稱 / 主機名稱 / IP / 網段" in hosts_template
     for text in ["asset-col-expand", "data-asset-detail-toggle", "asset-detail-panel"]:
         assert text in hosts_template

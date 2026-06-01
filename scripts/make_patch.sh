@@ -23,6 +23,7 @@ if command -v rsync >/dev/null 2>&1; then
     --exclude 'debug/reports/' \
     --exclude 'tmp/' \
     --exclude 'backup/' \
+    --exclude '不可上傳/' \
     "$ROOT/" "$WORK/files/"
 else
   tar \
@@ -37,6 +38,7 @@ else
     --exclude './debug/reports' \
     --exclude './tmp' \
     --exclude './backup' \
+    --exclude './不可上傳' \
     -C "$ROOT" -cf - . | tar -C "$WORK/files" -xf -
 fi
 find "$WORK" -type f -name '*.sh' -exec sed -i 's/\r$//' {} +

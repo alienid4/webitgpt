@@ -11,6 +11,7 @@ from webapp.services.host_schema import DRAFT_LIKE_STATUSES, ValidationError, as
 from webapp.services.mongo_service import get_collection
 
 LOGGER = logging.getLogger(__name__)
+INACTIVE_LIST_STATUSES = {"disabled", "retired", "pending_retire"}
 
 
 def _now() -> datetime:
@@ -86,6 +87,8 @@ def build_host_filter(query: str = "", filters: Optional[dict[str, Any]] = None)
         value = filters.get(key)
         if value:
             mongo_filter[key] = normalize_host_doc({key: value}).get(key, value)
+    if not mongo_filter.get("status") and not filters.get("include_inactive"):
+        mongo_filter["status"] = {"$nin": sorted(INACTIVE_LIST_STATUSES)}
     if query:
         mongo_filter["$or"] = [
             {"asset_seq": {"$regex": query, "$options": "i"}},
@@ -377,6 +380,57 @@ def bulk_update_draft_hosts(keys: list[str], changes: dict[str, Any], reason: st
             continue
         record_lifecycle_event(existing, "bulk_update_draft", reason, user)
         updated = update_host(existing.get("hostname") or existing.get("asset_seq"), clean_changes, user=user)
+        result["updated"].append({"asset_seq": updated.get("asset_seq"), "hostname": updated.get("hostname")})
+    result["updated_count"] = len(result["updated"])
+    result["skipped_count"] = len(result["skipped"])
+    return result
+
+
+def bulk_update_host_statuses(keys: list[str], status: str, reason: str, user: str = "system") -> dict[str, Any]:
+    normalized_status = normalize_host_doc({"status": status}).get("status")
+    if normalized_status not in {
+        "draft",
+        "pending_ip",
+        "pending_data",
+        "pending_deploy",
+        "active",
+        "disabled",
+        "retired",
+        "pending_retire",
+    }:
+        raise ValueError("invalid asset status")
+    reason = str(reason or "").strip() or "bulk update asset status"
+    unique_keys = [key.strip() for key in dict.fromkeys(keys) if str(key).strip()]
+    result = {"updated": [], "skipped": [], "updated_count": 0, "skipped_count": 0, "target_status": normalized_status}
+    for key in unique_keys:
+        existing = get_collection("hosts").find_one(_identity_query(key))
+        if not existing:
+            result["skipped"].append({"asset_seq": key, "reason": "host not found"})
+            continue
+        current_status = normalize_host_doc(existing).get("status")
+        if current_status == normalized_status:
+            result["skipped"].append(
+                {
+                    "asset_seq": existing.get("asset_seq") or key,
+                    "hostname": existing.get("hostname"),
+                    "status": current_status,
+                    "reason": "already in target status",
+                }
+            )
+            continue
+        record_lifecycle_event(existing, "bulk_update_status", reason, user)
+        try:
+            updated = update_host(existing.get("hostname") or existing.get("asset_seq"), {"status": normalized_status}, user=user)
+        except Exception as exc:
+            result["skipped"].append(
+                {
+                    "asset_seq": existing.get("asset_seq") or key,
+                    "hostname": existing.get("hostname"),
+                    "status": current_status,
+                    "reason": str(exc),
+                }
+            )
+            continue
         result["updated"].append({"asset_seq": updated.get("asset_seq"), "hostname": updated.get("hostname")})
     result["updated_count"] = len(result["updated"])
     result["skipped_count"] = len(result["skipped"])

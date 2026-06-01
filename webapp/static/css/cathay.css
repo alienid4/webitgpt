@@ -1846,6 +1846,26 @@ a.metric:hover {
 .asset-bulk-actions input[name="reason"] {
   min-width: 300px;
 }
+.asset-bulk-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+.asset-bulk-status-bar input[name="reason"] {
+  min-width: 220px;
+}
+.asset-inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
 .asset-table th {
   position: sticky;
   top: 0;

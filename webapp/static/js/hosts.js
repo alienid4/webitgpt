@@ -7,6 +7,14 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
+  const selectAssets = event.target.closest("[data-select-assets]");
+  if (selectAssets) {
+    document.querySelectorAll("[data-asset-checkbox]").forEach((checkbox) => {
+      checkbox.checked = selectAssets.checked;
+    });
+    return;
+  }
+
   const detailToggle = event.target.closest("[data-asset-detail-toggle]");
   if (detailToggle) {
     const detailRow = document.getElementById(detailToggle.dataset.assetDetailToggle);
@@ -39,7 +47,20 @@ document.addEventListener("click", async (event) => {
 
 document.addEventListener("submit", (event) => {
   const form = event.target.closest("[data-draft-bulk-form]");
-  if (!form) return;
+  const assetForm = event.target.closest("[data-asset-bulk-form]");
+  if (!form && !assetForm) return;
+  if (assetForm) {
+    assetForm.querySelectorAll("input[data-asset-bulk-copy]").forEach((node) => node.remove());
+    document.querySelectorAll("[data-asset-checkbox]:checked").forEach((checkbox) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = "asset_seq";
+      input.value = checkbox.value;
+      input.dataset.assetBulkCopy = "1";
+      assetForm.appendChild(input);
+    });
+    return;
+  }
   form.querySelectorAll("input[data-draft-bulk-copy]").forEach((node) => node.remove());
   document.querySelectorAll("[data-draft-checkbox]:checked").forEach((checkbox) => {
     const input = document.createElement("input");

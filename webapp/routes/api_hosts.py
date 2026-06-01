@@ -411,6 +411,7 @@ def hosts_page():
             "environment": request.args.get("environment", ""),
             "host_type": request.args.get("host_type", ""),
             "dc": request.args.get("dc", ""),
+            "include_inactive": request.args.get("include_inactive") == "1",
         },
         "page": int(request.args.get("page", "1")),
         "page_size": int(request.args.get("page_size", "100")),
@@ -1107,6 +1108,47 @@ def host_bulk_update_drafts_submit():
         )
     except Exception as exc:
         return redirect(url_for("api_hosts.hosts_page", status=request.form.get("return_status", ""), bulk_error=str(exc)))
+
+
+@bp.post("/hosts/bulk-update-status")
+@require_feature("cmdb_manual_input")
+@require_role("admin")
+def host_bulk_update_status_submit():
+    try:
+        result = host_service.bulk_update_host_statuses(
+            request.form.getlist("asset_seq"),
+            request.form.get("target_status", ""),
+            request.form.get("reason", ""),
+            user=current_user()["username"],
+        )
+        audit_log_service.append(
+            "host.status.bulk_update",
+            current_user()["username"],
+            {
+                "target_status": result["target_status"],
+                "updated_count": result["updated_count"],
+                "skipped_count": result["skipped_count"],
+            },
+        )
+        return redirect(
+            url_for(
+                "api_hosts.hosts_page",
+                status=request.form.get("return_status", ""),
+                include_inactive=request.form.get("return_include_inactive", ""),
+                bulk_status_updated=result["updated_count"],
+                bulk_status_skipped=result["skipped_count"],
+                bulk_status_target=result["target_status"],
+            )
+        )
+    except Exception as exc:
+        return redirect(
+            url_for(
+                "api_hosts.hosts_page",
+                status=request.form.get("return_status", ""),
+                include_inactive=request.form.get("return_include_inactive", ""),
+                bulk_error=str(exc),
+            )
+        )
 
 
 @bp.get("/cmdb/ipam")
