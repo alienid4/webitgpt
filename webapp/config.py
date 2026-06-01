@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.3.71"
-PATCH_ID = "relation-import-search-ux"
-RELEASE_NOTE = "第二層關聯表匯入改為預檢與正式匯入流程，新增關聯表局部搜尋與匯入後摘要導引"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-06-01 11:55:00 +08:00")
+VERSION = "1.0.3.72"
+PATCH_ID = "core-assignment-deduplicate"
+RELEASE_NOTE = "核心歸屬管理合併同名系統列，避免關聯匯入與主機清冊建立不同系統 ID 時畫面重複"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-06-01 12:20:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

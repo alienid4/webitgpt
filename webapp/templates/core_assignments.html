@@ -66,7 +66,10 @@
               <tr>
                 <td>
                   <strong>{{ row.display_name }}</strong>
-                  <input type="hidden" name="system_id" value="{{ row.system_id }}">
+                  {% if row.duplicate_count and row.duplicate_count > 1 %}
+                  <br><span class="text-muted-sm">已合併 {{ row.duplicate_count }} 個同名系統 ID</span>
+                  {% endif %}
+                  <input type="hidden" name="system_ids" value="{{ (row.system_ids or [row.system_id])|join('|') }}">
                 </td>
                 <td>{{ row.core_name }}</td>
                 <td>

@@ -216,7 +216,11 @@ def test_superadmin_full_system_surfaces_exist():
     assert "core_assignments_page" in routes
     assert "核心歸屬管理" in admin_topnav
     assert "core_assignments_page" in read("webapp/routes/api_hosts.py")
-    assert "核心歸屬管理" in read("webapp/templates/core_assignments.html")
+    core_assignments = read("webapp/templates/core_assignments.html")
+    assert "核心歸屬管理" in core_assignments
+    assert "system_ids" in core_assignments
+    assert "已合併" in core_assignments
+    assert "duplicate_count" in read("webapp/services/dependency_service.py")
     assert "重設密碼" in users
     assert "備援碼" in users
     assert "健康檢查" in health

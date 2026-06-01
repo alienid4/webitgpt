@@ -163,11 +163,14 @@ def core_assignments_page():
 @bp.post("/superadmin/core-assignments")
 @require_role("superadmin")
 def core_assignments_save_page():
-    system_ids = request.form.getlist("system_id")
-    assignments = {
-        system_id: request.form.get(f"core_name_{index}", "")
-        for index, system_id in enumerate(system_ids)
-    }
+    system_groups = request.form.getlist("system_ids") or request.form.getlist("system_id")
+    assignments = {}
+    for index, group in enumerate(system_groups):
+        core_name = request.form.get(f"core_name_{index}", "")
+        for system_id in str(group or "").split("|"):
+            sid = system_id.strip()
+            if sid:
+                assignments[sid] = core_name
     result = dependency_service.update_core_assignments(assignments, current_user()["username"])
     audit_log_service.append("dependencies.core_assignment.update", current_user()["username"], {"updated": result["updated"], "total": result["total"]})
     rows = dependency_service.core_assignment_rows({"q": request.form.get("q", ""), "core": request.form.get("core", "")})

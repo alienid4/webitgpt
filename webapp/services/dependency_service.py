@@ -520,7 +520,7 @@ def core_assignment_rows(filters: Optional[dict[str, Any]] = None) -> dict[str, 
     systems = list_systems()
     query = str(filters.get("q") or "").strip().lower()
     core_filter = str(filters.get("core") or "").strip()
-    rows: list[dict[str, Any]] = []
+    grouped: dict[str, dict[str, Any]] = {}
     for system in systems:
         metadata = system.get("metadata") or {}
         core_name = _core_name_for_system(system)
@@ -540,24 +540,46 @@ def core_assignment_rows(filters: Optional[dict[str, Any]] = None) -> dict[str, 
         if query and query not in searchable:
             continue
         explicit = bool(metadata.get("core_name") or metadata.get("core") or system.get("core_name"))
-        rows.append(
+        display_name = system.get("display_name") or system.get("system_id") or ""
+        key = display_name.strip().lower() or str(system.get("system_id") or "")
+        host_count = len(system.get("host_refs") or [])
+        row = grouped.setdefault(
+            key,
             {
                 "system_id": system.get("system_id", ""),
-                "display_name": system.get("display_name") or system.get("system_id") or "",
-                "owner": system.get("owner") or "",
-                "host_count": len(system.get("host_refs") or []),
+                "system_ids": [],
+                "display_name": display_name,
+                "owner": "",
+                "host_count": 0,
                 "category": system.get("category") or "",
                 "core_name": core_name,
-                "explicit": explicit,
-                "source_label": "人工設定" if explicit else "系統推定",
-            }
+                "explicit": False,
+                "source_label": "系統推定",
+                "duplicate_count": 0,
+            },
         )
+        sid = str(system.get("system_id") or "").strip()
+        if sid and sid not in row["system_ids"]:
+            row["system_ids"].append(sid)
+        row["duplicate_count"] = len(row["system_ids"])
+        row["host_count"] += host_count
+        if system.get("owner") and not row["owner"]:
+            row["owner"] = system.get("owner")
+        if explicit:
+            row["explicit"] = True
+            row["source_label"] = "人工設定"
+            row["core_name"] = core_name
+        elif row["core_name"] == UNASSIGNED_CORE_NAME and core_name != UNASSIGNED_CORE_NAME:
+            row["core_name"] = core_name
+        if host_count > 0 and row["system_id"] != sid:
+            row["system_id"] = sid
     options = core_name_options(systems)
+    rows = list(grouped.values())
     return {
         "rows": sorted(rows, key=lambda row: (row["core_name"], row["display_name"])),
         "core_options": options,
         "summary": {
-            "total": len(systems),
+            "total": len(rows),
             "filtered": len(rows),
             "explicit": sum(1 for row in rows if row["explicit"]),
             "unassigned": sum(1 for row in rows if row["core_name"] == UNASSIGNED_CORE_NAME),

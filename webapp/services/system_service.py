@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.72",
+        "date": "2026-06-01 12:20 +08:00",
+        "patch_id": "core-assignment-deduplicate",
+        "changes": [
+            "核心歸屬管理改為依系統顯示名稱合併同名列，避免同一套系統因不同 system_id 顯示成多列。",
+            "同名合併列會提示底層 system_id 數量，保留治理透明度。",
+            "儲存核心歸屬時會同步套用到同名底下所有 system_id，不需要逐列重複設定。",
+        ],
+    },
+    {
         "version": "1.0.3.71",
         "date": "2026-06-01 11:55 +08:00",
         "patch_id": "relation-import-search-ux",
