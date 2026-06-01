@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.3.67"
-PATCH_ID = "cmdb-relationship-topology-center"
-RELEASE_NOTE = "CMDB 關聯總覽的看影響圖按鈕改解析真正拓撲中心，避免跳到預設或其他系統"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-06-01 09:35:00 +08:00")
+VERSION = "1.0.3.68"
+PATCH_ID = "topology-core-assignment-management"
+RELEASE_NOTE = "新增核心歸屬管理，可在系統管理中把第二層系統指派到第一層核心並立即套用核心影響圖"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-06-01 10:10:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

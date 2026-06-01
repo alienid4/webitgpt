@@ -1,5 +1,11 @@
 # webitgpt Changelog
 
+## v1.0.3.68 - 2026-06-01 10:10 +08:00 - topology-core-assignment-management
+
+- 新增「系統管理 > 規則與治理 > 核心歸屬管理」，可從 UI 批次設定第一層核心與第二層系統的歸屬。
+- 核心歸屬寫入 `dependency_systems.metadata.core_name`，核心影響圖會立即套用，不需要改程式常數。
+- 資產同步會保留人工核心歸屬，避免下一次同步把已設定的核心洗掉。
+
 ## v1.0.3.67 - 2026-06-01 09:35 +08:00 - cmdb-relationship-topology-center
 
 - CMDB 關聯總覽的「開核心影響圖 / 看這套系統影響圖 / 看影響圖」改用真正拓撲中心 ID。

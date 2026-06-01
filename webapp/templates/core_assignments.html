@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}核心歸屬管理 - webitgpt{% endblock %}
+{% block content %}
+<section class="admin-page">
+  <div class="admin-content full-width">
+    <section class="admin-hero">
+      <div>
+        <p class="eyebrow">TOPOLOGY GOVERNANCE</p>
+        <h1>核心歸屬管理</h1>
+        <p class="muted">把第二層系統指派到第一層核心；核心影響圖會直接套用這裡的設定。</p>
+      </div>
+      <div class="actions">
+        <a class="btn secondary" href="{{ url_for('api_reports.dependencies_page', view='core_impact') }}">回核心影響圖</a>
+        <a class="btn" href="{{ url_for('api_superadmin.superadmin_page') }}">回系統管理</a>
+      </div>
+    </section>
+
+    {% if saved %}
+    <div class="notice success">已儲存核心歸屬：更新 {{ saved.updated }} 筆，略過 {{ saved.skipped }} 筆。</div>
+    {% endif %}
+
+    <section class="metric-grid compact-metrics">
+      <a class="metric" href="{{ url_for('api_superadmin.core_assignments_page') }}"><strong>{{ assignments.summary.total }}</strong><span>系統總數</span></a>
+      <a class="metric" href="#core-assignment-list"><strong>{{ assignments.summary.filtered }}</strong><span>目前清單</span></a>
+      <a class="metric" href="#core-assignment-list"><strong>{{ assignments.summary.explicit }}</strong><span>人工設定</span></a>
+      <a class="metric" href="{{ url_for('api_superadmin.core_assignments_page', core='未歸屬核心') }}"><strong>{{ assignments.summary.unassigned }}</strong><span>未歸屬</span></a>
+    </section>
+
+    <section class="admin-section">
+      <form class="filter-bar" method="get" action="{{ url_for('api_superadmin.core_assignments_page') }}">
+        <input class="input-field" name="q" value="{{ assignments.filters.q }}" placeholder="搜尋系統名稱 / owner / 主機">
+        <select class="input-field" name="core">
+          <option value="">全部核心</option>
+          {% for core in assignments.core_options %}
+          <option value="{{ core }}" {% if assignments.filters.core == core %}selected{% endif %}>{{ core }}</option>
+          {% endfor %}
+        </select>
+        <button class="btn" type="submit">篩選</button>
+        <a class="btn secondary" href="{{ url_for('api_superadmin.core_assignments_page') }}">清除</a>
+      </form>
+    </section>
+
+    <form method="post" action="{{ url_for('api_superadmin.core_assignments_save_page') }}" data-submit-status data-submit-message="正在儲存核心歸屬，請稍候。">
+      <input type="hidden" name="q" value="{{ assignments.filters.q }}">
+      <input type="hidden" name="core" value="{{ assignments.filters.core }}">
+      <section class="admin-section" id="core-assignment-list">
+        <div class="section-toolbar">
+          <h2>系統歸屬清單</h2>
+          <button class="btn btn-primary" type="submit" data-busy-text="儲存中">儲存目前清單</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>系統名稱</th>
+                <th>目前核心</th>
+                <th>改到核心</th>
+                <th>來源</th>
+                <th>主機</th>
+                <th>owner</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in assignments.rows %}
+              <tr>
+                <td>
+                  <strong>{{ row.display_name }}</strong>
+                  <input type="hidden" name="system_id" value="{{ row.system_id }}">
+                </td>
+                <td>{{ row.core_name }}</td>
+                <td>
+                  <select class="input-field dense-select" name="core_name_{{ loop.index0 }}">
+                    <option value="">未指定，由系統推定</option>
+                    {% for core in assignments.core_options %}
+                    <option value="{{ core }}" {% if row.core_name == core %}selected{% endif %}>{{ core }}</option>
+                    {% endfor %}
+                  </select>
+                </td>
+                <td><span class="{{ 'badge-ok' if row.explicit else 'badge-warn' }}">{{ row.source_label }}</span></td>
+                <td>{{ row.host_count }}</td>
+                <td>{{ row.owner or "-" }}</td>
+                <td><a class="btn-sm" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=row.system_id, focus_impact=1) }}">看圖</a></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="7" class="no-data">目前沒有符合條件的系統。</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </form>
+  </div>
+</section>
+{% endblock %}

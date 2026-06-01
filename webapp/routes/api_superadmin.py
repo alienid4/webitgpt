@@ -9,6 +9,7 @@ from werkzeug.utils import secure_filename
 from webapp import config
 from webapp.decorators import current_user, require_role
 from webapp.services import audit_log_service
+from webapp.services import dependency_service
 from webapp.services.api_token_service import issue_token
 from webapp.services.asset_governance_status_service import list_statuses as list_governance_statuses
 from webapp.services.asset_governance_status_service import save_status as save_governance_status
@@ -150,6 +151,27 @@ def feature_update_api(key: str):
         return jsonify({"error": "feature not found"}), 404
     audit_log_service.append("feature_flag.update", current_user()["username"], {"key": key, "enabled": bool(payload.get("enabled"))})
     return jsonify({"key": key, "enabled": bool(payload.get("enabled"))})
+
+
+@bp.get("/superadmin/core-assignments")
+@require_role("superadmin")
+def core_assignments_page():
+    assignments = dependency_service.core_assignment_rows({"q": request.args.get("q", ""), "core": request.args.get("core", "")})
+    return render_template("core_assignments.html", assignments=assignments, saved=None)
+
+
+@bp.post("/superadmin/core-assignments")
+@require_role("superadmin")
+def core_assignments_save_page():
+    system_ids = request.form.getlist("system_id")
+    assignments = {
+        system_id: request.form.get(f"core_name_{index}", "")
+        for index, system_id in enumerate(system_ids)
+    }
+    result = dependency_service.update_core_assignments(assignments, current_user()["username"])
+    audit_log_service.append("dependencies.core_assignment.update", current_user()["username"], {"updated": result["updated"], "total": result["total"]})
+    rows = dependency_service.core_assignment_rows({"q": request.form.get("q", ""), "core": request.form.get("core", "")})
+    return render_template("core_assignments.html", assignments=rows, saved=result)
 
 
 @bp.get("/api/superadmin/audit/verify")

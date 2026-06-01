@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.68",
+        "date": "2026-06-01 10:10 +08:00",
+        "patch_id": "topology-core-assignment-management",
+        "changes": [
+            "新增系統管理 > 規則與治理 > 核心歸屬管理。",
+            "可批次把第二層系統指派到第一層核心，設定會寫入 dependency_systems.metadata.core_name。",
+            "資產同步會保留人工核心歸屬，避免下一次同步把設定洗掉。",
+        ],
+    },
+    {
         "version": "1.0.3.67",
         "date": "2026-06-01 09:35 +08:00",
         "patch_id": "cmdb-relationship-topology-center",
@@ -963,6 +973,7 @@ def admin_console_overview() -> dict[str, Any]:
             {"title": "系統日誌例外", "desc": "管理開門檢查系統日誌白名單，避免已確認無害訊息每天亮橘燈。", "endpoint": "api_superadmin.log_exceptions_page", "status": "可管理"},
             {"title": "重要服務設定", "desc": "設定開門檢查必須啟動的 sshd、cron、AP service 等服務。", "endpoint": "api_superadmin.important_services_page", "status": "可管理"},
             {"title": "資產治理狀態", "desc": "管理可信資產、未納管發現、等待防火牆、等待弱掃、等待 PAM 等治理狀態。", "endpoint": "api_superadmin.asset_governance_statuses_page", "status": "可設定"},
+            {"title": "核心歸屬管理", "desc": "設定拓撲第一層核心與第二層系統的歸屬關係。", "endpoint": "api_superadmin.core_assignments_page", "status": "可設定"},
             {"title": "工作排程", "desc": "檢視 systemd timer、Housekeeping 與 IPAM 對帳排程。", "endpoint": "api_superadmin.jobs_page", "status": "可檢視"},
             {"title": "操作紀錄", "desc": "稽核操作紀錄與 hash chain 狀態。", "endpoint": "api_superadmin.audit_logs_page", "status": "可匯出"},
             {"title": "備份 / DR", "desc": "產生備份 manifest 與 DR dry-run。", "endpoint": "api_superadmin.backup_dr_page", "status": "dry-run"},

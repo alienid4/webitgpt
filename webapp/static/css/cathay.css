@@ -325,6 +325,10 @@ th { color: var(--c3); font-weight: 600; background: var(--bg2); }
 .inline-form select { width: 180px; }
 .danger-zone { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--c4); }
 .flag-grid, .metric-grid, .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 12px 0 18px; }
+.compact-metrics { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin-bottom: 12px; }
+.section-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.section-toolbar h2 { margin: 0; }
+.dense-select { min-width: 180px; max-width: 260px; }
 .token-cost-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
 .token-cost-summary > div { border: 1px solid var(--c4); border-radius: var(--radius-sm); padding: 12px; background: var(--bg2); }
 .token-cost-summary span { display: block; color: var(--c3); font-size: 12px; }

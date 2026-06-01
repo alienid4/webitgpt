@@ -49,6 +49,7 @@ GLOBAL_SEARCH_TARGETS = [
     {"endpoint": "api_superadmin.log_exceptions_page", "title": "系統日誌白名單 / 例外管理", "group": "系統管理", "keywords": ["系統日誌白名單", "日誌白名單", "例外管理", "log exception", "系統日誌例外"], "role": "superadmin"},
     {"endpoint": "api_superadmin.important_services_page", "keywords": ["重要服務設定", "重要服務", "sshd", "cron", "rsyslog", "AP service", "服務白名單"], "role": "superadmin"},
     {"endpoint": "api_superadmin.asset_governance_statuses_page", "keywords": ["資產治理狀態", "治理狀態", "等待防火牆", "防火牆開通", "等待弱掃", "弱掃完成", "等待 PAM", "PAM 納管", "asset governance"], "role": "superadmin"},
+    {"endpoint": "api_superadmin.core_assignments_page", "keywords": ["核心歸屬", "核心歸屬管理", "第一層", "第二層", "核心分類", "拓撲治理", "topology governance"], "role": "superadmin"},
     {"endpoint": "api_superadmin.audit_logs_page", "title": "操作紀錄", "group": "系統管理", "keywords": ["操作紀錄", "稽核紀錄", "audit log", "hash chain", "操作日誌"], "role": "superadmin"},
     {"endpoint": "api_superadmin.backup_dr_page", "keywords": ["備份", "DR", "backup", "restore", "災難復原"], "role": "superadmin"},
     {"endpoint": "api_superadmin.patches_page", "keywords": ["Patch", "patch", "回滾", "版本", "release", "rollback"], "role": "superadmin"},

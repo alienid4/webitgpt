@@ -373,6 +373,13 @@ def sync_systems_from_hosts(actor: str = "system") -> int:
         if host.get("hostname") and host["hostname"] not in item["host_refs"]:
             item["host_refs"].append(host["hostname"])
     for item in by_system.values():
+        existing = col.find_one({"system_id": item["system_id"]}, {"metadata": 1, "core_name": 1}) or {}
+        existing_metadata = existing.get("metadata") or {}
+        for core_field in ("core_name", "core"):
+            if existing_metadata.get(core_field) and not item["metadata"].get(core_field):
+                item["metadata"][core_field] = existing_metadata.get(core_field)
+        if existing.get("core_name"):
+            item["core_name"] = existing.get("core_name")
         result = col.update_one(
             {"system_id": item["system_id"]},
             {"$set": item, "$setOnInsert": {"created_at": now, "created_by": actor}},
@@ -412,9 +419,101 @@ def list_systems(filters: Optional[dict[str, Any]] = None) -> list[dict[str, Any
     return [_public(item) or {} for item in get_collection("dependency_systems").find(query).sort("system_id", 1)]
 
 
+def core_name_options(systems: Optional[list[dict[str, Any]]] = None) -> list[str]:
+    systems = systems if systems is not None else list_systems()
+    names = list(CORE_SYSTEM_NAMES)
+    for system in systems:
+        name = _core_name_for_system(system)
+        if name and name not in names:
+            names.append(name)
+    if UNASSIGNED_CORE_NAME not in names:
+        names.append(UNASSIGNED_CORE_NAME)
+    return names
+
+
+def core_assignment_rows(filters: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+    filters = filters or {}
+    systems = list_systems()
+    query = str(filters.get("q") or "").strip().lower()
+    core_filter = str(filters.get("core") or "").strip()
+    rows: list[dict[str, Any]] = []
+    for system in systems:
+        metadata = system.get("metadata") or {}
+        core_name = _core_name_for_system(system)
+        if core_filter and core_name != core_filter:
+            continue
+        searchable = " ".join(
+            str(value or "")
+            for value in [
+                system.get("display_name"),
+                system.get("system_id"),
+                system.get("owner"),
+                metadata.get("asset_name"),
+                metadata.get("system_name"),
+                " ".join(str(ref) for ref in system.get("host_refs") or []),
+            ]
+        ).lower()
+        if query and query not in searchable:
+            continue
+        explicit = bool(metadata.get("core_name") or metadata.get("core") or system.get("core_name"))
+        rows.append(
+            {
+                "system_id": system.get("system_id", ""),
+                "display_name": system.get("display_name") or system.get("system_id") or "",
+                "owner": system.get("owner") or "",
+                "host_count": len(system.get("host_refs") or []),
+                "category": system.get("category") or "",
+                "core_name": core_name,
+                "explicit": explicit,
+                "source_label": "人工設定" if explicit else "系統推定",
+            }
+        )
+    options = core_name_options(systems)
+    return {
+        "rows": sorted(rows, key=lambda row: (row["core_name"], row["display_name"])),
+        "core_options": options,
+        "summary": {
+            "total": len(systems),
+            "filtered": len(rows),
+            "explicit": sum(1 for row in rows if row["explicit"]),
+            "unassigned": sum(1 for row in rows if row["core_name"] == UNASSIGNED_CORE_NAME),
+        },
+        "filters": {"q": filters.get("q") or "", "core": core_filter},
+    }
+
+
+def update_core_assignments(assignments: dict[str, str], actor: str = "system") -> dict[str, int]:
+    now = _now()
+    col = get_collection("dependency_systems")
+    updated = 0
+    skipped = 0
+    for system_id, core_name in assignments.items():
+        sid = str(system_id or "").strip()
+        core = str(core_name or "").strip()
+        if not sid:
+            skipped += 1
+            continue
+        if not core:
+            result = col.update_one(
+                {"system_id": sid},
+                {"$unset": {"metadata.core_name": "", "metadata.core": "", "core_name": ""}, "$set": {"updated_at": now, "updated_by": actor}},
+            )
+        else:
+            result = col.update_one(
+                {"system_id": sid},
+                {"$set": {"metadata.core_name": core, "updated_at": now, "updated_by": actor}},
+            )
+        updated += int(bool(result.modified_count))
+        if not result.matched_count:
+            skipped += 1
+    return {"updated": updated, "skipped": skipped, "total": len(assignments)}
+
+
 def upsert_system(data: dict[str, Any], actor: str = "system") -> dict[str, Any]:
     now = _now()
     system_id = data.get("system_id") or _system_id(data.get("display_name") or "")
+    existing = get_collection("dependency_systems").find_one({"system_id": system_id}, {"metadata": 1}) or {}
+    metadata = {**(existing.get("metadata") or {}), **(data.get("metadata") or {})}
     doc = {
         "system_id": system_id,
         "display_name": data.get("display_name") or system_id,
@@ -424,7 +523,7 @@ def upsert_system(data: dict[str, Any], actor: str = "system") -> dict[str, Any]
         "owner": data.get("owner") or "",
         "host_refs": data.get("host_refs") or [],
         "external": bool(data.get("external")),
-        "metadata": data.get("metadata") or {},
+        "metadata": metadata,
         "updated_at": now,
         "updated_by": actor,
     }

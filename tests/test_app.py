@@ -194,6 +194,61 @@ def test_core_impact_unassigned_system_does_not_fallback_to_default_core(monkeyp
     assert data["meta"]["impact_panel"]["core_label"] == "未歸屬核心"
 
 
+def test_core_assignment_rows_expose_manual_topology_governance(monkeypatch):
+    systems = [
+        {
+            "system_id": "SYS-APP",
+            "display_name": "應用系統",
+            "owner": "ops",
+            "host_refs": ["host-a", "host-b"],
+            "category": "AP",
+            "metadata": {"core_name": "管理核心"},
+        },
+        {
+            "system_id": "SYS-FLOAT",
+            "display_name": "浮水印系統",
+            "owner": "",
+            "host_refs": [],
+            "category": "AP",
+            "metadata": {},
+        },
+    ]
+
+    monkeypatch.setattr(dependency_service, "list_systems", lambda *_args, **_kwargs: systems)
+
+    data = dependency_service.core_assignment_rows()
+    rows = {row["system_id"]: row for row in data["rows"]}
+
+    assert "管理核心" in data["core_options"]
+    assert rows["SYS-APP"]["core_name"] == "管理核心"
+    assert rows["SYS-APP"]["explicit"] is True
+    assert rows["SYS-FLOAT"]["core_name"] == "未歸屬核心"
+    assert data["summary"]["explicit"] == 1
+    assert data["summary"]["unassigned"] == 1
+
+
+def test_update_core_assignments_sets_metadata_core_name(monkeypatch):
+    updates = []
+
+    class FakeCollection:
+        def update_one(self, query, update, **_kwargs):
+            updates.append((query, update))
+
+            class Result:
+                matched_count = 1
+                modified_count = 1
+
+            return Result()
+
+    monkeypatch.setattr(dependency_service, "get_collection", lambda _name: FakeCollection())
+
+    result = dependency_service.update_core_assignments({"SYS-APP": "管理核心"}, "tester")
+
+    assert result["updated"] == 1
+    assert updates[0][0] == {"system_id": "SYS-APP"}
+    assert updates[0][1]["$set"]["metadata.core_name"] == "管理核心"
+
+
 def test_host_business_system_name_excludes_discovery_scan_drafts():
     assert dependency_service._host_business_system_name(
         {

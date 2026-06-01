@@ -19,9 +19,10 @@
   </details>
 
   <details class="admin-nav-section">
-    <summary class="admin-nav-heading {% if endpoint in ['api_superadmin.important_services_page', 'api_superadmin.asset_governance_statuses_page', 'api_notifications.notifications_page'] %}active{% endif %}">規則與治理</summary>
+    <summary class="admin-nav-heading {% if endpoint in ['api_superadmin.important_services_page', 'api_superadmin.asset_governance_statuses_page', 'api_superadmin.core_assignments_page', 'api_notifications.notifications_page'] %}active{% endif %}">規則與治理</summary>
     <a class="admin-side-link {% if endpoint == 'api_superadmin.important_services_page' %}active{% endif %}" href="{{ url_for('api_superadmin.important_services_page') }}">重要服務規則</a>
     <a class="admin-side-link {% if endpoint == 'api_superadmin.asset_governance_statuses_page' %}active{% endif %}" href="{{ url_for('api_superadmin.asset_governance_statuses_page') }}">資產治理狀態</a>
+    <a class="admin-side-link {% if endpoint == 'api_superadmin.core_assignments_page' %}active{% endif %}" href="{{ url_for('api_superadmin.core_assignments_page') }}">核心歸屬管理</a>
     <a class="admin-side-link {% if endpoint == 'api_notifications.notifications_page' %}active{% endif %}" href="{{ url_for('api_notifications.notifications_page') }}">通知設定</a>
   </details>
 
