@@ -1,5 +1,12 @@
 # webitgpt Changelog
 
+## v1.0.3.77 - 2026-06-01 19:35 +08:00 - data-quality-entry-platform-wording
+
+- 資產管理上方新增「資料品質」入口，方便直接進入平台分類與 CMDB 品質修正頁。
+- 資產列表與資料品質頁明確區分「OS 版本」與「平台分類」：Red Hat、CentOS、RHEL、Ubuntu、Debian 等 OS 版本歸入 Linux 平台。
+- 平台推論規則納入 RHLE、redhat、cent os、ubantu 等常見誤植，避免 CMDB 手誤導致 Linux 數量漏算。
+- 掃描匯入不再把所有未知 OS 文字直接推成 Linux；不確定時保留端點 / 待分類，降低垃圾分類。
+
 ## v1.0.3.76 - 2026-06-01 19:10 +08:00 - cmdb-platform-suggestion-apply
 
 - 資料品質工作台新增「套用平台分類建議」，可依 OS 推論結果把 `end_device` 等錯誤類型修正為 `linux`、`windows`、`aix` 等平台。

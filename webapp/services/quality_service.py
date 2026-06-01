@@ -26,6 +26,18 @@ ISSUE_LABELS = {
     "reserved_but_alive": "保留 IP 卻有回應",
 }
 
+PLATFORM_LABELS = {
+    "linux": "Linux",
+    "windows": "Windows",
+    "aix": "AIX",
+    "as400": "AS400",
+    "vmware_host": "VMware 主機",
+    "vmware_vm": "VMware VM",
+    "vmware_vcenter": "vCenter",
+    "network_device": "網路設備",
+    "end_device": "端點設備",
+}
+
 
 def _status_label(status: str) -> str:
     return STATUS_LABELS.get(status, status or "未知")
@@ -33,6 +45,10 @@ def _status_label(status: str) -> str:
 
 def _issue_label(issue_type: str) -> str:
     return ISSUE_LABELS.get(issue_type, issue_type or "未分類")
+
+
+def _platform_label(value: str) -> str:
+    return PLATFORM_LABELS.get(str(value or ""), str(value or "-"))
 
 
 def _cmdb_detail_rows(cmdb: dict[str, Any], limit: int = 200) -> list[dict[str, Any]]:
@@ -55,6 +71,8 @@ def _cmdb_detail_rows(cmdb: dict[str, Any], limit: int = 200) -> list[dict[str, 
                 "edit_key": key,
                 "suggested_host_type": issue.get("suggested_host_type") or "",
                 "current_host_type": issue.get("current_host_type") or "",
+                "suggested_host_type_label": _platform_label(issue.get("suggested_host_type") or ""),
+                "current_host_type_label": _platform_label(issue.get("current_host_type") or ""),
             }
         )
     return rows
@@ -112,7 +130,7 @@ def operations_data_quality() -> dict[str, Any]:
             "status": "needs_review" if platform_mismatch else "ok",
             "status_label": "平台分類需修正" if platform_mismatch else "平台分類正常",
             "count": platform_mismatch,
-            "action": "OS 顯示 Linux / Windows / AIX，但主機類型仍是端點或錯誤類型時，會影響主管儀表板與巡檢範圍。",
+            "action": "OS 版本顯示 Red Hat、CentOS、Ubuntu、Debian 等時，平台分類應歸到 Linux；若仍是端點或錯誤分類，會影響主管儀表板與巡檢範圍。",
             "href": "#cmdb-quality-details",
         },
         {

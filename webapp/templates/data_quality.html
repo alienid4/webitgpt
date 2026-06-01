@@ -10,7 +10,7 @@
   <div class="actions">
     <a class="btn primary" href="#cmdb-quality-details">看 CMDB 明細</a>
     {% if report.summary.cmdb_platform_mismatch and current_user.role in ["admin", "super", "superadmin"] %}
-    <form method="post" action="{{ url_for('api_reports.data_quality_apply_platform_suggestions') }}" onsubmit="return confirm('將依 OS 推論結果修正平台分類，例如 end_device -> linux。確定執行？')">
+    <form method="post" action="{{ url_for('api_reports.data_quality_apply_platform_suggestions') }}" onsubmit="return confirm('將依 OS 版本推論平台分類，例如 CentOS / Red Hat / Ubuntu / Debian -> Linux。確定執行？')">
       <button class="btn primary" type="submit">套用平台分類建議 {{ report.summary.cmdb_platform_mismatch }}</button>
     </form>
     {% endif %}
@@ -128,7 +128,7 @@
           <td>
             {{ row.detail }}
             {% if row.suggested_host_type %}
-            <div class="text-muted-sm">目前 {{ row.current_host_type or "-" }}，建議 {{ row.suggested_host_type }}</div>
+            <div class="text-muted-sm">平台分類目前 {{ row.current_host_type_label or row.current_host_type or "-" }}，建議 {{ row.suggested_host_type_label or row.suggested_host_type }}</div>
             {% endif %}
           </td>
           <td>{{ row.action }}</td>

@@ -343,11 +343,12 @@ def asset_quality_report() -> dict[str, Any]:
                 "平台分類疑似不正確",
                 "high",
                 (
-                    f"OS 顯示為 {host.get('os') or '-'}，目前類型是 "
+                    f"OS 版本為 {host.get('os') or '-'}，可推論平台分類為 "
+                    f"{platform_suggestion.get('suggested') or '-'}；目前平台分類是 "
                     f"{platform_suggestion.get('current') or '-'}，建議改為 "
                     f"{platform_suggestion.get('suggested') or '-'}。"
                 ),
-                "進入資產編輯頁確認後套用建議平台，修正後主管儀表板與開門檢查才會統計正確。",
+                "OS 是版本與發行版資訊；平台分類才是 Linux、Windows、AIX 等統計口徑。確認後套用建議平台，主管儀表板與開門檢查才會統計正確。",
             )
             issues[-1]["suggested_host_type"] = platform_suggestion.get("suggested", "")
             issues[-1]["current_host_type"] = platform_suggestion.get("current", "")
@@ -498,18 +499,7 @@ def _scan_report_summary(rows: list[dict[str, Any]], discovered_count: int, cmdb
 
 
 def _infer_host_type_from_os(os_text: str) -> str:
-    value = str(os_text or "").lower()
-    if "windows" in value:
-        return "windows"
-    if "aix" in value:
-        return "aix"
-    if "as/400" in value or "as400" in value or "ibm i" in value:
-        return "as400"
-    if "vmware" in value or "esxi" in value:
-        return "vmware_host"
-    if value:
-        return "linux"
-    return "end_device"
+    return host_service.infer_host_type_from_os(os_text) or "end_device"
 
 
 def _parse_nmap_hosts(xml_text: str) -> list[dict[str, Any]]:

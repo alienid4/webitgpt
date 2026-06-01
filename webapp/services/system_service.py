@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.77",
+        "date": "2026-06-01 19:35 +08:00",
+        "patch_id": "data-quality-entry-platform-wording",
+        "changes": [
+            "資產管理上方新增「資料品質」入口，使用者不用手打 /reports/data-quality。",
+            "資料品質與資產列表明確區分 OS 版本與平台分類，CentOS、Red Hat、RHEL、Ubuntu、Debian 等 OS 會歸入 Linux 平台。",
+            "平台推論規則納入 RHLE、redhat、cent os、ubantu 等常見誤植，並避免未知 OS 文字直接被誤判為 Linux。",
+        ],
+    },
+    {
         "version": "1.0.3.76",
         "date": "2026-06-01 19:10 +08:00",
         "patch_id": "cmdb-platform-suggestion-apply",

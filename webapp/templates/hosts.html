@@ -12,6 +12,7 @@
       <a class="btn primary asset-add-main" href="{{ url_for('api_hosts.host_new_page') }}">新增 / 匯入主機</a>
       <a class="btn secondary" href="{{ url_for('api_hosts.ipam_page') }}">IPAM 網段管理</a>
       <a class="btn secondary cmdb-relationship-entry" href="{{ url_for('api_hosts.cmdb_relationships_page') }}">CMDB 關聯總覽</a>
+      <a class="btn secondary" href="{{ url_for('api_reports.data_quality_page') }}">資料品質</a>
       <details class="asset-action-menu">
         <summary class="btn secondary">CMDB 資產池</summary>
         <div class="asset-action-menu-panel">
@@ -86,9 +87,9 @@
           {% endfor %}
         </select>
       </label>
-      <label>類型
+      <label>平台分類
         <select name="host_type">
-          <option value="">全部類型</option>
+          <option value="">全部平台分類</option>
           {% for value in ["linux","windows","aix","as400","vmware_host","vmware_vm","vmware_vcenter","network_device","end_device"] %}
           <option value="{{ value }}" {% if request.args.get("host_type") == value %}selected{% endif %}>{{ host_type_labels.get(value, value) }}</option>
           {% endfor %}
@@ -345,10 +346,11 @@
             {% endif %}
           </td>
           <td>
-            <strong>{{ host.os or host_type_labels.get(host.host_type, host.host_type or "-") }}</strong>
+            <strong>{{ host.os or "-" }}</strong>
             <span class="asset-source-pill {% if host.os_source == 'actual_runner' %}verified{% else %}unverified{% endif %}" title="OS 來源：{{ host.os_source or host.import_source or 'manual' }}">
               {% if host.os_source == "actual_runner" %}實採{% else %}未驗證{% endif %}
             </span>
+            <div class="text-muted-sm">平台：{{ host_type_labels.get(host.host_type, host.host_type or "-") }}</div>
           </td>
           <td>{{ host.device_type or "-" }}</td>
           <td>{{ host.rack_no or "-" }}</td>
