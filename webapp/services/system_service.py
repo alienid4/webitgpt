@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.73",
+        "date": "2026-06-01 12:45 +08:00",
+        "patch_id": "asset-status-first-column",
+        "changes": [
+            "資產管理列表新增第一欄資產狀態，讓使用中、草稿、待處理、停用與汰除可一眼辨識。",
+            "資產狀態使用獨立色彩標籤，不再和 Hostname/OS 的未驗證採證狀態混在一起。",
+            "表格明細列 colspan 與寬度同步調整，避免展開資料錯位。",
+        ],
+    },
+    {
         "version": "1.0.3.72",
         "date": "2026-06-01 12:20 +08:00",
         "patch_id": "core-assignment-deduplicate",

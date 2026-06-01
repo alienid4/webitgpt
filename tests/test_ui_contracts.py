@@ -553,8 +553,10 @@ def test_asset_governance_status_admin_contracts_exist():
     host_edit = read("webapp/templates/host_edit.html")
     for text in ["批次草稿處理", "全選本頁草稿", "刪除勾選草稿", "bulkDraftDeleteForm"]:
         assert text in hosts_template
-    for text in ["asset-table-compact", "資產名稱 *", "Hostname", "asset-row-menu"]:
+    for text in ["asset-table-compact", "資產狀態", "資產名稱 *", "Hostname", "asset-row-menu"]:
         assert text in hosts_template
+    for text in ["asset-col-status", "asset-status-pill", "asset-status-active", "asset-status-draft", "asset-status-disabled", "asset-status-retired"]:
+        assert text in (hosts_template + css)
     assert "資產名稱 / 系統名稱 / 主機名稱 / IP / 網段" in hosts_template
     for text in ["asset-col-expand", "data-asset-detail-toggle", "asset-detail-panel"]:
         assert text in hosts_template

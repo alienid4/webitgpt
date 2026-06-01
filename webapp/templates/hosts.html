@@ -270,6 +270,7 @@
     <table class="data-table asset-table asset-table-compact">
       <thead>
         <tr>
+          <th class="asset-col-status">資產狀態</th>
           {% if current_user.role in ["admin", "super", "superadmin"] %}<th class="asset-col-select" data-sortable="false">選取</th>{% endif %}
           <th class="asset-col-name">資產名稱 *</th>
           <th class="asset-col-hostname">Hostname</th>
@@ -291,6 +292,9 @@
           {% if host.get(field) in [none, ""] %}{% set _ = missing.append(field) %}{% endif %}
         {% endfor %}
         <tr>
+          <td class="asset-status-cell">
+            <span class="asset-status-pill asset-status-{{ host.status or 'unknown' }}">{{ status_labels.get(host.status, host.status or "未知") }}</span>
+          </td>
           {% if current_user.role in ["admin", "super", "superadmin"] %}
           <td>
             {% if host.status == "draft" %}
@@ -357,7 +361,7 @@
           </td>
         </tr>
         <tr class="asset-detail-row" id="asset-detail-{{ loop.index }}" hidden>
-          <td colspan="{% if current_user.role in ["admin", "super", "superadmin"] %}12{% else %}11{% endif %}">
+          <td colspan="{% if current_user.role in ["admin", "super", "superadmin"] %}13{% else %}12{% endif %}">
             <div class="asset-detail-panel">
               <h3>資產明細：{{ host.hostname or host.asset_seq }}</h3>
               <div class="asset-detail-grid">
