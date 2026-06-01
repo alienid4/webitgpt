@@ -479,6 +479,64 @@ def bulk_update_host_statuses(keys: list[str], status: str, reason: str, user: s
     return result
 
 
+def bulk_apply_platform_suggestions(user: str = "system", limit: int = 500) -> dict[str, Any]:
+    result = {"updated": [], "skipped": [], "updated_count": 0, "skipped_count": 0}
+    docs = get_collection("hosts").find({"status": {"$ne": "retired"}}, {"ssh_key": 0}).limit(max(1, min(limit, 2000)))
+    for host in docs:
+        suggestion = platform_suggestion_for_host(host)
+        if not suggestion.get("needed"):
+            continue
+        suggested = str(suggestion.get("suggested") or "").strip()
+        if not suggested:
+            result["skipped"].append(
+                {
+                    "asset_seq": host.get("asset_seq"),
+                    "hostname": host.get("hostname"),
+                    "reason": "no suggested platform",
+                }
+            )
+            continue
+        now = _now()
+        record_lifecycle_event(
+            host,
+            "apply_platform_suggestion",
+            f"host_type {suggestion.get('current') or '-'} -> {suggested}",
+            user,
+        )
+        updated = get_collection("hosts").update_one(
+            {"_id": host["_id"]},
+            {
+                "$set": {
+                    "host_type": suggested,
+                    "host_type_source": "os_inference_rule",
+                    "host_type_reviewed_at": now,
+                    "updated_at": now,
+                    "updated_by": user,
+                }
+            },
+        )
+        if updated.modified_count:
+            result["updated"].append(
+                {
+                    "asset_seq": host.get("asset_seq"),
+                    "hostname": host.get("hostname"),
+                    "from": suggestion.get("current"),
+                    "to": suggested,
+                }
+            )
+        else:
+            result["skipped"].append(
+                {
+                    "asset_seq": host.get("asset_seq"),
+                    "hostname": host.get("hostname"),
+                    "reason": "not modified",
+                }
+            )
+    result["updated_count"] = len(result["updated"])
+    result["skipped_count"] = len(result["skipped"])
+    return result
+
+
 def restore_host(asset_seq: str, user: str = "system") -> dict[str, Any]:
     existing = get_collection("hosts").find_one(_identity_query(asset_seq))
     if not existing:

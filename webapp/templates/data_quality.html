@@ -9,10 +9,22 @@
   </div>
   <div class="actions">
     <a class="btn primary" href="#cmdb-quality-details">看 CMDB 明細</a>
+    {% if report.summary.cmdb_platform_mismatch and current_user.role in ["admin", "super", "superadmin"] %}
+    <form method="post" action="{{ url_for('api_reports.data_quality_apply_platform_suggestions') }}" onsubmit="return confirm('將依 OS 推論結果修正平台分類，例如 end_device -> linux。確定執行？')">
+      <button class="btn primary" type="submit">套用平台分類建議 {{ report.summary.cmdb_platform_mismatch }}</button>
+    </form>
+    {% endif %}
     <a class="btn secondary" href="{{ url_for('api_reports.data_quality_csv') }}">匯出 CSV</a>
     <a class="btn secondary" href="{{ url_for('api_reports.data_quality_api') }}">JSON API</a>
   </div>
 </section>
+
+{% if apply_result %}
+<section class="notice success">
+  平台分類建議已處理：更新 {{ apply_result.updated_count }} 筆，略過 {{ apply_result.skipped_count }} 筆。
+  請重新查看主管儀表板的平台分布與開門檢查範圍。
+</section>
+{% endif %}
 
 <section class="judgement-source-legend" aria-label="資料品質判斷來源">
   <strong>資料品質判斷來源</strong>

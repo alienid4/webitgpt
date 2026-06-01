@@ -3,9 +3,10 @@ from __future__ import annotations
 import csv
 import io
 
-from flask import Blueprint, Response, jsonify, render_template, request
+from flask import Blueprint, Response, jsonify, redirect, render_template, request, url_for
 
-from webapp.decorators import require_feature
+from webapp.decorators import current_user, require_feature, require_role
+from webapp.services import audit_log_service, host_service
 from webapp.services.compliance_service import dashboard as compliance_dashboard
 from webapp.services.feature_flags import is_enabled
 from webapp.services.host_service import list_hosts
@@ -194,7 +195,23 @@ def dashboard_page():
 @bp.get("/reports/data-quality")
 @require_feature("summary")
 def data_quality_page():
-    return render_template("data_quality.html", report=operations_data_quality())
+    return render_template("data_quality.html", report=operations_data_quality(), apply_result=None)
+
+
+@bp.post("/reports/data-quality/apply-platform-suggestions")
+@require_feature("summary")
+@require_role("admin")
+def data_quality_apply_platform_suggestions():
+    result = host_service.bulk_apply_platform_suggestions(user=current_user()["username"])
+    audit_log_service.append(
+        "cmdb.platform_suggestion.apply",
+        current_user()["username"],
+        {
+            "updated_count": result["updated_count"],
+            "skipped_count": result["skipped_count"],
+        },
+    )
+    return render_template("data_quality.html", report=operations_data_quality(), apply_result=result)
 
 
 @bp.get("/reports/post-install")

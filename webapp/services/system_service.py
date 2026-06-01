@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.76",
+        "date": "2026-06-01 19:10 +08:00",
+        "patch_id": "cmdb-platform-suggestion-apply",
+        "changes": [
+            "資料品質工作台新增「套用平台分類建議」，可依 OS 推論結果把 end_device 等錯誤類型修正為 linux、windows、aix 等平台。",
+            "平台分類修正會寫入稽核紀錄，並標記 host_type_source=os_inference_rule，方便日後追蹤來源。",
+            "修正後主管儀表板的平台分布與開門檢查範圍會使用更新後的 host_type。",
+        ],
+    },
+    {
         "version": "1.0.3.75",
         "date": "2026-06-01 14:05 +08:00",
         "patch_id": "cmdb-quality-actionable-platform-fix",
