@@ -26,7 +26,12 @@ def inspections_page():
 def run_inspection_api():
     payload = request.get_json(force=True, silent=True) or {}
     limit = min(max(int(payload.get("limit", 10)), 1), 100)
-    result = run_daily_inspection(limit=limit, user=current_user()["username"], system_name=str(payload.get("system") or ""))
+    result = run_daily_inspection(
+        limit=limit,
+        user=current_user()["username"],
+        system_name=str(payload.get("system") or ""),
+        platform=str(payload.get("platform") or ""),
+    )
     audit_log_service.append("inspection.run", current_user()["username"], {"count": result["count"]})
     return jsonify(result)
 

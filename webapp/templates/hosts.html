@@ -38,7 +38,7 @@
             <input type="hidden" name="host_type" value="{{ request.args.get('host_type','') }}">
             <input type="hidden" name="dc" value="{{ request.args.get('dc','') }}">
             <input type="hidden" name="page" value="{{ data.get('page', 1) }}">
-            <input type="hidden" name="page_size" value="{{ data.get('page_size', 25) }}">
+            <input type="hidden" name="page_size" value="{{ data.get('page_size', 100) }}">
             <button type="submit">重整本頁資產</button>
           </form>
           <form method="post" action="{{ url_for('api_hosts.hosts_refresh_identity_submit') }}" data-submit-status data-submit-message="正在重整全部納管資產 Hostname / OS，請稍候。">
@@ -50,7 +50,7 @@
             <input type="hidden" name="host_type" value="{{ request.args.get('host_type','') }}">
             <input type="hidden" name="dc" value="{{ request.args.get('dc','') }}">
             <input type="hidden" name="page" value="{{ data.get('page', 1) }}">
-            <input type="hidden" name="page_size" value="{{ data.get('page_size', 25) }}">
+            <input type="hidden" name="page_size" value="{{ data.get('page_size', 100) }}">
             <button type="submit">重整全部納管資產</button>
           </form>
           {% endif %}
@@ -104,7 +104,7 @@
       <label>每頁
         <select name="page_size">
           {% for value in [10,25,50,100] %}
-          <option value="{{ value }}" {% if request.args.get("page_size", data.get("page_size", 25)|string) == value|string %}selected{% endif %}>{{ value }}</option>
+          <option value="{{ value }}" {% if request.args.get("page_size", data.get("page_size", 100)|string) == value|string %}selected{% endif %}>{{ value }}</option>
           {% endfor %}
         </select>
       </label>
@@ -161,7 +161,7 @@
           <input type="hidden" name="q" value="{{ request.args.get('q','') }}">
           <input type="hidden" name="status" value="{{ request.args.get('status','') }}">
           <input type="hidden" name="group_name" value="{{ request.args.get('group_name','') }}">
-          <input type="hidden" name="page_size" value="{{ data.get('page_size', 25) }}">
+          <input type="hidden" name="page_size" value="{{ data.get('page_size', 100) }}">
           <button class="btn" type="submit">儲存目前條件</button>
         </form>
       {% endif %}
@@ -388,7 +388,7 @@
 
   <div class="pager">
     {% set page = data.get("page", 1) %}
-    {% set page_size = data.get("page_size", 25) %}
+    {% set page_size = data.get("page_size", 100) %}
     <span>第 {{ page }} 頁 / 每頁 {{ page_size }} 筆</span>
     {% if page > 1 %}
       <a class="btn" href="{{ url_for('api_hosts.hosts_page', q=q, page=page-1, page_size=page_size, status=request.args.get('status',''), environment=request.args.get('environment',''), host_type=request.args.get('host_type',''), dc=request.args.get('dc','')) }}">上一頁</a>

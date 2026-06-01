@@ -413,12 +413,12 @@ def hosts_page():
             "dc": request.args.get("dc", ""),
         },
         "page": int(request.args.get("page", "1")),
-        "page_size": int(request.args.get("page_size", "25")),
+        "page_size": int(request.args.get("page_size", "100")),
     }
     try:
         data = host_service.list_hosts(**params)
     except Exception as exc:
-        data = {"items": [], "total": 0, "page": 1, "page_size": 25, "error": str(exc)}
+        data = {"items": [], "total": 0, "page": 1, "page_size": 100, "error": str(exc)}
     user = current_user()
     saved_views = [] if user["username"] == "anonymous" else list_views(user["username"])
     return render_template(
@@ -451,7 +451,7 @@ def hosts_refresh_identity_submit():
         "dc": request.form.get("dc", ""),
     }
     page = int(request.form.get("page", "1") or 1)
-    page_size = int(request.form.get("page_size", "25") or 25)
+    page_size = int(request.form.get("page_size", "100") or 100)
     current_page_only = scope != "all"
     keys = host_service.list_matching_host_keys(
         query=request.form.get("q", ""),
@@ -1379,10 +1379,10 @@ def api_list_hosts():
         data = host_service.list_hosts(
             query=request.args.get("q", ""),
             page=int(request.args.get("page", "1")),
-            page_size=int(request.args.get("page_size", "25")),
+            page_size=int(request.args.get("page_size", "100")),
         )
     except Exception as exc:
-        data = {"items": [], "total": 0, "page": 1, "page_size": 25, "error": str(exc)}
+        data = {"items": [], "total": 0, "page": 1, "page_size": 100, "error": str(exc)}
     return jsonify(data)
 
 

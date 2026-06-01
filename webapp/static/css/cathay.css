@@ -594,6 +594,39 @@ a.metric:hover {
   font-size: 13px;
   line-height: 1.6;
 }
+.inspection-hero .inline-help summary.btn {
+  width: auto;
+  height: auto;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 700;
+}
+.inline-help-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  width: min(420px, calc(100vw - 32px));
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  box-shadow: var(--shadow);
+  color: var(--c3);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.opening-empty-state {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.opening-empty-state strong {
+  color: var(--ink);
+}
 .eyebrow {
   margin: 0 0 4px;
   color: var(--g-text);

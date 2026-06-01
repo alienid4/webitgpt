@@ -763,12 +763,13 @@ def _with_host_display_fields(row: dict[str, Any], host: dict[str, Any]) -> dict
 def daily_diagnostics(platform: str = "linux", system_name: str = "") -> dict[str, Any]:
     platform = platform or "linux"
     all_hosts = _hosts()
-    options = _system_options(all_hosts)
+    platform_hosts = [host for host in all_hosts if host.get("host_type") == platform]
+    options = _system_options(platform_hosts)
     selected_system = _selected_system(system_name, options)
     hosts = [
         host
-        for host in all_hosts
-        if host.get("host_type") == platform and (not selected_system or _system_name(host) == selected_system)
+        for host in platform_hosts
+        if not selected_system or _system_name(host) == selected_system
     ]
     if platform == "linux":
         rows = []
@@ -1884,4 +1885,3 @@ def topology_view() -> dict[str, Any]:
         )
 
     return {"nodes": nodes, "edges": enriched_edges, "hosts": hosts}
-

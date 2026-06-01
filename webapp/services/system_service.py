@@ -113,6 +113,17 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.69",
+        "date": "2026-06-01 10:45 +08:00",
+        "patch_id": "inspection-platform-start-ux",
+        "changes": [
+            "開門檢查系統選單改為先依平台過濾，選 AIX 時只列 AIX 相關系統與主機。",
+            "尚未巡檢的空狀態加入開始巡檢目前範圍按鈕，巡檢 API 會帶入平台與系統範圍。",
+            "JSON API、帳號需求與臨時密碼說明收進進階區，主畫面保持精簡。",
+            "資產管理列表預設每頁改為 100 筆，降低找資料時頻繁翻頁。",
+        ],
+    },
+    {
         "version": "1.0.3.68",
         "date": "2026-06-01 10:10 +08:00",
         "patch_id": "topology-core-assignment-management",

@@ -473,7 +473,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.68"' in config
+    assert 'VERSION = "1.0.3.69"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -564,8 +564,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.68"' in config
-    assert "topology-core-assignment-management" in config
+    assert 'VERSION = "1.0.3.69"' in config
+    assert "inspection-platform-start-ux" in config
     assert "verification_source" in api_v1
     assert "verification_label" in api_v1
     assert "required_scope" in api_v1
@@ -612,7 +612,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "topology-core-assignment-management" in config
+    assert "inspection-platform-start-ux" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog
@@ -819,6 +819,8 @@ def test_opening_check_is_system_scoped_and_deep_check_supports_aix():
     assert "開門檢查系統" in html
     assert 'name="system"' in html
     assert "巡檢目前範圍" in html
+    assert "開始巡檢目前範圍" in html
+    assert '"platform":"{{ diagnostics.platform }}"' in html
     assert "全部系統" in html
     assert "搜尋資產名稱 / 系統名稱" in html
     assert "data-opening-system-search" in html
@@ -826,7 +828,7 @@ def test_opening_check_is_system_scoped_and_deep_check_supports_aix():
     assert "diagnostics.all_systems_value" in html
     assert "diagnostics.all_systems_count" in html
     assert "diagnostics.selected_system_label" in html
-    assert "system=diagnostics.selected_system if diagnostics.selected_system else diagnostics.all_systems_value" in html
+    assert "system=diagnostics.all_systems_value" in html
     assert 'host.host_type in ["linux", "aix"]' in html
     assert "data-l3-filter" in html
     assert "data-l3-verdict" in html
@@ -847,14 +849,26 @@ def test_opening_check_is_system_scoped_and_deep_check_supports_aix():
     assert "form.requestSubmit()" in read("webapp/static/js/admin_tools.js")
     assert 'option.value === "__all__"' in read("webapp/static/js/admin_tools.js")
     assert "daily_diagnostics(platform, system_name)" in routes
+    assert "platform=str(payload.get(\"platform\") or \"\")" in routes
     assert "OPENING_DEFAULT_SYSTEM" in legacy
     assert "OPENING_ALL_SYSTEMS_VALUE" in legacy
+    assert "platform_hosts = [host for host in all_hosts if host.get(\"host_type\") == platform]" in legacy
     assert "_with_host_display_fields" in legacy
     assert "if requested == OPENING_ALL_SYSTEMS_VALUE:" in legacy
     assert '"all_systems_count": sum(item["count"] for item in options)' in legacy
     assert "selected_system" in legacy
     assert "AIX_COMMANDS" in deep
     assert 'host.get("host_type") not in {"linux", "aix"}' in deep
+
+
+def test_asset_management_defaults_to_100_rows_per_page():
+    routes = read("webapp/routes/api_hosts.py")
+    html = read("webapp/templates/hosts.html")
+
+    assert 'request.args.get("page_size", "100")' in routes
+    assert 'request.form.get("page_size", "100")' in routes
+    assert 'data = {"items": [], "total": 0, "page": 1, "page_size": 100' in routes
+    assert "data.get('page_size', 100)" in html
 
 
 def test_metric_cards_are_clickable_across_pages():
