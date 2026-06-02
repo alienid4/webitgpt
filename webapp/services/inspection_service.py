@@ -10,6 +10,7 @@ from webapp import config
 from webapp.services.collection_credential_service import account_for_tier
 from webapp.services.host_service import list_hosts
 from webapp.services.mongo_service import get_collection
+from webapp.services.system_alias_service import canonical_host_system_name, host_matches_system
 
 IBM_NMON_INTERVAL_SEC = 900
 IBM_NMON_SNAPSHOT_COUNT = 96
@@ -136,7 +137,7 @@ def _inspection_for(host: dict[str, Any]) -> dict[str, Any]:
 
 
 def _system_name(host: dict[str, Any]) -> str:
-    return str(host.get("asset_name") or host.get("system_name") or host.get("group_name") or "未分類系統").strip()
+    return canonical_host_system_name(host)
 
 
 def run_daily_inspection(limit: int = 20, user: str = "system", system_name: str = "", platform: str = "") -> dict[str, Any]:
@@ -146,7 +147,7 @@ def run_daily_inspection(limit: int = 20, user: str = "system", system_name: str
     if selected_platform:
         hosts = [host for host in hosts if host.get("host_type") == selected_platform]
     if selected_system:
-        hosts = [host for host in hosts if _system_name(host) == selected_system]
+        hosts = [host for host in hosts if host_matches_system(host, selected_system)]
     hosts = hosts[:limit]
     results = [_inspection_for(host) for host in hosts]
     now = datetime.now(timezone.utc)

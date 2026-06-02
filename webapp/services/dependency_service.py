@@ -18,6 +18,7 @@ from bson import ObjectId
 
 from webapp import config
 from webapp.services.mongo_service import get_collection
+from webapp.services.system_alias_service import canonical_host_system_name
 
 
 KNOWN_EXTERNAL = [
@@ -404,17 +405,12 @@ def _hosts() -> list[dict[str, Any]]:
 
 def _host_business_system_name(host: dict[str, Any]) -> str:
     """Return the human business system name; never promote hostname to system."""
-    system_name = str(host.get("system_name") or "").strip()
-    if system_name:
-        return system_name
     asset_name = str(host.get("asset_name") or "").strip()
     asset_seq = str(host.get("asset_seq") or "").strip().upper()
     hostname = str(host.get("hostname") or "").strip().lower()
-    if not asset_name:
-        return ""
     if asset_seq.startswith("DISC-") or hostname.startswith("scan-") or asset_name.startswith("掃描發現"):
         return ""
-    return asset_name
+    return canonical_host_system_name(host, default="")
 
 
 def _host_node_key(host: dict[str, Any]) -> str:
@@ -432,7 +428,7 @@ def sync_systems_from_hosts(actor: str = "system") -> int:
         identity_name = _host_business_system_name(host)
         if not identity_name:
             continue
-        display_name = system_name or asset_name
+        display_name = identity_name
         sid = _system_id(identity_name)
         item = by_system.setdefault(
             sid,

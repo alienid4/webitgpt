@@ -32,12 +32,20 @@
       <select name="system" data-opening-system-select>
         <option value="{{ diagnostics.all_systems_value }}" {% if not diagnostics.selected_system %}selected{% endif %}>全部系統（{{ diagnostics.all_systems_count }} 台）</option>
         {% for option in diagnostics.system_options %}
-        <option value="{{ option.name }}" {% if diagnostics.selected_system == option.name %}selected{% endif %}>{{ option.name }}（{{ option.count }} 台）</option>
+        <option value="{{ option.key }}" {% if diagnostics.selected_system == option.key %}selected{% endif %}>{{ option.name }}（{{ option.count }} 台）{% if option.alias_count and option.alias_count > 1 %} · 已合併別名{% endif %}</option>
         {% endfor %}
       </select>
     </label>
     <button class="btn-sm" type="submit">套用</button>
   </form>
+  <details class="inline-help opening-scope-help">
+    <summary class="btn-sm secondary">範圍說明</summary>
+    <div class="inline-help-panel">
+      <span>正式資產 {{ diagnostics.scope_summary.active_total }} 台。</span>
+      <span>開門檢查納入 {{ diagnostics.scope_summary.opening_candidate_total }} 台：Linux / Windows / AIX / AS400。</span>
+      <span>未納入 {{ diagnostics.scope_summary.excluded_total }} 台：端點、網路設備、VMware host 等仍在 CMDB，但不跑 L1 主機巡檢。</span>
+    </div>
+  </details>
   <div class="summary-grid">
     <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.hosts }}</strong><span>{{ diagnostics.selected_system_label }} / {{ diagnostics.platform|upper }}</span></a>
     <a class="metric" href="#opening-system-groups"><strong>{{ diagnostics.readiness_summary.systems }}</strong><span>系統分組</span></a>
@@ -81,7 +89,7 @@
       <tbody>
         {% for group in diagnostics.system_groups %}
         <tr>
-          <td><a href="{{ url_for('api_operations.inspections_page', platform=diagnostics.platform, system=group.name) }}">{{ group.name }}</a></td>
+          <td><a href="{{ url_for('api_operations.inspections_page', platform=diagnostics.platform, system=group.key) }}">{{ group.name }}</a></td>
           <td>{{ group.count }}</td>
           <td>{{ group.checked }}</td>
           <td>{{ group.ready }}</td>
@@ -89,7 +97,7 @@
           <td>{{ group.reason_text }}</td>
           <td>
             {% if group.ready %}
-            <a class="btn-sm" href="{{ url_for('api_operations.inspections_page', platform=diagnostics.platform, system=group.name) }}">看這套</a>
+            <a class="btn-sm" href="{{ url_for('api_operations.inspections_page', platform=diagnostics.platform, system=group.key) }}">看這套</a>
             {% elif group.blocked %}
             <a class="btn-sm" href="{{ url_for('api_reports.data_quality_page') }}">補條件</a>
             {% else %}

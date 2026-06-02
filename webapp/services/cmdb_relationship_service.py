@@ -4,6 +4,7 @@ from typing import Any
 
 from webapp.services import host_service
 from webapp.services.mongo_service import get_collection
+from webapp.services.system_alias_service import canonical_host_system_name, normalize_system_text, system_match_key
 
 
 DRAFT_STATUSES = {"draft", "pending_ip", "pending_data", "pending_deploy", "pending_retire"}
@@ -52,21 +53,14 @@ def _host_identity_values(host: dict[str, Any]) -> set[str]:
 
 def _host_system_key(host: dict[str, Any]) -> str:
     for field in ("system_name", "group_name", "apid"):
-        value = str(host.get(field) or "").strip()
+        value = normalize_system_text(host.get(field))
         if value:
-            return value
+            return system_match_key(value)
     return ""
 
 
 def _display_system_name(host: dict[str, Any]) -> str:
-    return (
-        str(host.get("system_name") or "").strip()
-        or str(host.get("group_name") or "").strip()
-        or str(host.get("apid") or "").strip()
-        or str(host.get("asset_name") or "").strip()
-        or str(host.get("hostname") or "").strip()
-        or "未分類"
-    )
+    return canonical_host_system_name(host, default=str(host.get("hostname") or "").strip() or "未分類")
 
 
 def _host_ports(host: dict[str, Any]) -> list[str]:

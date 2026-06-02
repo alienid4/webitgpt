@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.87",
+        "date": "2026-06-02 22:45 +08:00",
+        "patch_id": "system-name-alias-governance",
+        "changes": [
+            "今日巡檢系統下拉、篩選與巡檢執行改用系統名稱正規化，降低證券/證卷等別名造成的找不到資料問題。",
+            "拓撲同步與 CMDB 關聯總覽共用同一套系統名稱口徑，避免同一套系統被拆成多個節點。",
+            "開門檢查新增折疊式範圍說明，精簡說明正式資產、可巡檢主機與不跑 L1 主機巡檢的資產類型。",
+        ],
+    },
+    {
         "version": "1.0.3.86",
         "date": "2026-06-02 16:05 +08:00",
         "patch_id": "opening-check-readiness-workflow",

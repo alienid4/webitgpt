@@ -473,7 +473,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.86"' in config
+    assert 'VERSION = "1.0.3.87"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -616,8 +616,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     reports = read("webapp/routes/api_reports.py")
     data_quality = read("webapp/templates/data_quality.html")
 
-    assert 'VERSION = "1.0.3.86"' in config
-    assert "opening-check-readiness-workflow" in config
+    assert 'VERSION = "1.0.3.87"' in config
+    assert "system-name-alias-governance" in config
     assert "data_quality_retire_selected_assets" in reports
     assert "data-quality-bulk-form=\"retire\"" in data_quality
     assert "can_bulk_retire" in read("webapp/services/quality_service.py")
@@ -730,7 +730,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "opening-check-readiness-workflow" in config
+    assert "system-name-alias-governance" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog
@@ -985,7 +985,8 @@ def test_opening_check_is_system_scoped_and_deep_check_supports_aix():
     assert "_system_readiness_groups" in legacy
     assert "inspection_results" in legacy
     assert "account_for_tier('L1', 'sysinfra')" in legacy
-    assert "if requested == OPENING_ALL_SYSTEMS_VALUE:" in legacy
+    assert "resolve_selected_system(system_name, options, OPENING_ALL_SYSTEMS_VALUE)" in legacy
+    assert "host_matches_system(host, selected_system)" in legacy
     assert '"all_systems_count": sum(item["count"] for item in options)' in legacy
     assert '"readiness_summary": readiness_summary' in legacy
     assert "selected_system" in legacy
@@ -996,12 +997,51 @@ def test_opening_check_is_system_scoped_and_deep_check_supports_aix():
 def test_opening_check_defaults_to_all_systems_after_import():
     from webapp.services.legacy_parity_service import OPENING_ALL_SYSTEMS_VALUE, _selected_system
 
-    options = [{"name": "A system", "count": 1}, {"name": "Z system", "count": 2}]
+    options = [
+        {"key": "asystem", "name": "A system", "count": 1, "aliases": []},
+        {"key": "zsystem", "name": "Z system", "count": 2, "aliases": []},
+    ]
 
     assert _selected_system("", options) == ""
     assert _selected_system(OPENING_ALL_SYSTEMS_VALUE, options) == ""
-    assert _selected_system("Z system", options) == "Z system"
+    assert _selected_system("Z system", options) == "zsystem"
     assert _selected_system("missing", options) == ""
+
+
+def test_system_alias_governance_merges_common_name_typos():
+    from webapp.services.system_alias_service import grouped_system_options, host_matches_system, system_match_key
+
+    hosts = [
+        {"asset_name": "證券阿發", "host_type": "linux"},
+        {"asset_name": "證卷阿發", "host_type": "windows"},
+        {"system_name": "証券阿發", "host_type": "linux"},
+    ]
+    options = grouped_system_options(hosts)
+
+    assert len(options) == 1
+    assert options[0]["count"] == 3
+    assert options[0]["alias_count"] >= 1
+    assert system_match_key("證券阿發") == system_match_key("證卷阿發")
+    assert host_matches_system({"asset_name": "證券阿發"}, "證卷阿發")
+
+
+def test_opening_check_scope_explains_non_host_exclusions():
+    from webapp.services.system_alias_service import opening_scope_summary
+
+    summary = opening_scope_summary(
+        [
+            {"status": "active", "host_type": "linux"},
+            {"status": "active", "host_type": "windows"},
+            {"status": "active", "host_type": "end_device"},
+            {"status": "active", "host_type": "vmware_host"},
+            {"status": "draft", "host_type": "linux"},
+        ]
+    )
+
+    assert summary["active_total"] == 4
+    assert summary["opening_candidate_total"] == 2
+    assert summary["excluded_total"] == 2
+    assert summary["excluded_by_platform"] == {"end_device": 1, "vmware_host": 1}
 
 
 def test_asset_management_defaults_to_100_rows_per_page():

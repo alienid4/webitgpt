@@ -20,6 +20,15 @@ from webapp.services.inventory_service import DEFAULT_MIN_INTERVAL_MINUTES, inve
 from webapp.services.log_exception_service import assess_lines
 from webapp.services.mongo_service import get_collection
 from webapp.services.nmon_raw_service import nmon_raw_pipeline_status
+from webapp.services.system_alias_service import (
+    canonical_host_system_name,
+    grouped_system_options,
+    host_matches_system,
+    opening_scope_summary,
+    resolve_selected_system,
+    selected_system_label,
+    system_match_key,
+)
 
 
 PLATFORM_TABS = [
@@ -142,25 +151,15 @@ def _hosts() -> list[dict[str, Any]]:
 
 
 def _system_name(host: dict[str, Any]) -> str:
-    return str(host.get("asset_name") or host.get("system_name") or host.get("group_name") or "未分類系統").strip()
+    return canonical_host_system_name(host)
 
 
 def _system_options(hosts: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    counts: dict[str, int] = {}
-    for host in hosts:
-        name = _system_name(host)
-        counts[name] = counts.get(name, 0) + 1
-    return [{"name": name, "count": count} for name, count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))]
+    return grouped_system_options(hosts)
 
 
 def _selected_system(system_name: str, options: list[dict[str, Any]]) -> str:
-    names = {item["name"] for item in options}
-    requested = (system_name or "").strip()
-    if requested == OPENING_ALL_SYSTEMS_VALUE:
-        return ""
-    if requested and requested in names:
-        return requested
-    return ""
+    return resolve_selected_system(system_name, options, OPENING_ALL_SYSTEMS_VALUE)
 
 
 def _shell(cmd: str, timeout: int = 12) -> tuple[int, str, str]:
@@ -843,10 +842,13 @@ def _system_readiness_groups(hosts: list[dict[str, Any]]) -> list[dict[str, Any]
         latest = _latest_inspection_result(host)
         readiness = _host_readiness(host, bool(latest))
         name = _system_name(host)
+        key = system_match_key(name)
         group = groups.setdefault(
-            name,
-            {"name": name, "count": 0, "ready": 0, "checked": 0, "blocked": 0, "pending": 0, "reasons": {}},
+            key,
+            {"key": key, "name": name, "count": 0, "ready": 0, "checked": 0, "blocked": 0, "pending": 0, "reasons": {}},
         )
+        if name < group["name"]:
+            group["name"] = name
         group["count"] += 1
         if readiness["inspected"]:
             group["checked"] += 1
@@ -873,7 +875,7 @@ def daily_diagnostics(platform: str = "linux", system_name: str = "") -> dict[st
     hosts = [
         host
         for host in platform_hosts
-        if not selected_system or _system_name(host) == selected_system
+        if not selected_system or host_matches_system(host, selected_system)
     ]
     if platform == "linux":
         rows = []
@@ -936,7 +938,8 @@ def daily_diagnostics(platform: str = "linux", system_name: str = "") -> dict[st
         "selected_system": selected_system,
         "all_systems_value": OPENING_ALL_SYSTEMS_VALUE,
         "all_systems_count": sum(item["count"] for item in options),
-        "selected_system_label": selected_system or "全部系統",
+        "selected_system_label": selected_system_label(selected_system, options),
+        "scope_summary": opening_scope_summary(all_hosts),
     }
 
 
