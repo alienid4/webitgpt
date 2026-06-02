@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.81",
+        "date": "2026-06-02 00:25 +08:00",
+        "patch_id": "data-quality-selected-bulk-actions",
+        "changes": [
+            "資料品質明細新增勾選欄，可只套用選取的同類型問題。",
+            "平台分類與缺少連線方式分成「套用勾選」與「全部同類型」兩種入口，避免操作範圍不明。",
+            "不適合規則批次處理的問題不提供勾選，避免流程草稿或缺 IP 被誤認為能自動修正。",
+        ],
+    },
+    {
         "version": "1.0.3.80",
         "date": "2026-06-01 23:45 +08:00",
         "patch_id": "data-quality-bulk-actions-by-issue-type",

@@ -202,7 +202,18 @@ def data_quality_page():
 @require_feature("summary")
 @require_role("admin")
 def data_quality_apply_platform_suggestions():
-    result = host_service.bulk_apply_platform_suggestions(user=current_user()["username"])
+    selected_keys = [item for item in request.form.getlist("asset_key") if str(item or "").strip()]
+    if request.form.get("scope") == "selected" and not selected_keys:
+        return render_template(
+            "data_quality.html",
+            report=operations_data_quality(),
+            apply_result={"action_label": "平台分類", "updated_count": 0, "skipped_count": 0, "error": "請先勾選要套用的平台分類項目。"},
+        )
+    result = host_service.bulk_apply_platform_suggestions(
+        user=current_user()["username"],
+        keys=selected_keys if request.form.get("scope") == "selected" else None,
+    )
+    result["action_label"] = "平台分類"
     audit_log_service.append(
         "cmdb.platform_suggestion.apply",
         current_user()["username"],
@@ -218,7 +229,17 @@ def data_quality_apply_platform_suggestions():
 @require_feature("summary")
 @require_role("admin")
 def data_quality_apply_default_connections():
-    result = host_service.bulk_apply_default_connections(user=current_user()["username"])
+    selected_keys = [item for item in request.form.getlist("asset_key") if str(item or "").strip()]
+    if request.form.get("scope") == "selected" and not selected_keys:
+        return render_template(
+            "data_quality.html",
+            report=operations_data_quality(),
+            apply_result={"action_label": "預設連線方式", "updated_count": 0, "skipped_count": 0, "error": "請先勾選要套用預設連線方式的項目。"},
+        )
+    result = host_service.bulk_apply_default_connections(
+        user=current_user()["username"],
+        keys=selected_keys if request.form.get("scope") == "selected" else None,
+    )
     result["action_label"] = "預設連線方式"
     audit_log_service.append(
         "cmdb.default_connection.apply",

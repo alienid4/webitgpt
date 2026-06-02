@@ -473,7 +473,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.80"' in config
+    assert 'VERSION = "1.0.3.81"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -542,11 +542,21 @@ def test_cmdb_quality_actionable_platform_fix_contracts_exist():
     assert "bulk_apply_default_connections" in host_service
     assert "data_quality_apply_default_connections" in reports
     assert "套用預設連線" in data_quality
-    assert "同類型：平台分類" in data_quality
-    assert "同類型：連線方式" in data_quality
+    assert "套用勾選：平台分類" in data_quality
+    assert "全部同類型：平台分類" in data_quality
+    assert "套用勾選：連線方式" in data_quality
+    assert "全部同類型：連線方式" in data_quality
     assert "同類型：草稿流程" in data_quality
+    assert "data-quality-checkbox" in data_quality
+    assert "data-quality-select-all" in data_quality
+    assert "data-quality-bulk-form" in data_quality
+    assert "asset_key" in data_quality
+    assert 'name="scope" value="selected"' in data_quality
     assert "cmdb_missing_connection" in quality_service
     assert "cmdb_workflow_pending" in quality_service
+    assert "can_bulk_platform" in quality_service
+    assert "can_bulk_connection" in quality_service
+    assert "keys=selected_keys" in reports
     assert "host_type_source" in host_service
     assert '"rhle"' in host_service
     assert '"redhat"' in host_service
@@ -604,8 +614,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
 
-    assert 'VERSION = "1.0.3.80"' in config
-    assert "data-quality-bulk-actions-by-issue-type" in config
+    assert 'VERSION = "1.0.3.81"' in config
+    assert "data-quality-selected-bulk-actions" in config
 
 
     assert "verification_source" in api_v1
@@ -699,7 +709,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "data-quality-bulk-actions-by-issue-type" in config
+    assert "data-quality-selected-bulk-actions" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog

@@ -28,9 +28,13 @@
 </section>
 
 {% if apply_result %}
-<section class="notice success">
+<section class="notice {% if apply_result.error %}danger{% else %}success{% endif %}">
+  {% if apply_result.error %}
+  {{ apply_result.error }}
+  {% else %}
   {{ apply_result.action_label or "批次修正" }}完成：成功 {{ apply_result.updated_count }} 筆，略過 {{ apply_result.skipped_count }} 筆。
   請重新檢查資料品質統計。
+  {% endif %}
 </section>
 {% endif %}
 
@@ -109,13 +113,23 @@
   </div>
   <div class="quality-bulk-action-row">
     {% if report.summary.cmdb_platform_mismatch and current_user.role in ["admin", "super", "superadmin"] %}
-    <form method="post" action="{{ url_for('api_reports.data_quality_apply_platform_suggestions') }}" onsubmit="return confirm('同類型套用：依 OS 推論平台分類並批次修正。確定執行？')">
-      <button class="btn-sm" type="submit">同類型：平台分類</button>
+    <form method="post" action="{{ url_for('api_reports.data_quality_apply_platform_suggestions') }}" data-quality-bulk-form="platform" onsubmit="return confirm('只套用目前勾選的平台分類項目。確定執行？')">
+      <input type="hidden" name="scope" value="selected">
+      <button class="btn-sm" type="submit">套用勾選：平台分類</button>
+    </form>
+    <form method="post" action="{{ url_for('api_reports.data_quality_apply_platform_suggestions') }}" onsubmit="return confirm('套用全部同類型：依 OS 推論平台分類並批次修正。確定執行？')">
+      <input type="hidden" name="scope" value="all">
+      <button class="btn-sm" type="submit">全部同類型：平台分類</button>
     </form>
     {% endif %}
     {% if report.summary.cmdb_missing_connection and current_user.role in ["admin", "super", "superadmin"] %}
-    <form method="post" action="{{ url_for('api_reports.data_quality_apply_default_connections') }}" onsubmit="return confirm('同類型套用：依平台分類補預設連線方式。確定執行？')">
-      <button class="btn-sm" type="submit">同類型：連線方式</button>
+    <form method="post" action="{{ url_for('api_reports.data_quality_apply_default_connections') }}" data-quality-bulk-form="connection" onsubmit="return confirm('只套用目前勾選的缺少連線方式項目。確定執行？')">
+      <input type="hidden" name="scope" value="selected">
+      <button class="btn-sm" type="submit">套用勾選：連線方式</button>
+    </form>
+    <form method="post" action="{{ url_for('api_reports.data_quality_apply_default_connections') }}" onsubmit="return confirm('套用全部同類型：依平台分類補預設連線方式。確定執行？')">
+      <input type="hidden" name="scope" value="all">
+      <button class="btn-sm" type="submit">全部同類型：連線方式</button>
     </form>
     {% endif %}
     {% if report.summary.cmdb_workflow_pending and current_user.role in ["admin", "super", "superadmin"] %}
@@ -126,6 +140,7 @@
     <table class="data-table compact-table">
       <thead>
         <tr>
+          <th class="asset-col-select"><label><input type="checkbox" data-quality-select-all> 選取</label></th>
           <th>類型</th>
           <th>資產 / 主機</th>
           <th>IP</th>
@@ -138,6 +153,17 @@
       <tbody>
         {% for row in report.cmdb_detail_rows %}
         <tr>
+          <td>
+            {% if row.can_bulk_platform or row.can_bulk_connection %}
+            <input
+              type="checkbox"
+              value="{{ row.edit_key }}"
+              data-quality-checkbox
+              data-quality-type="{% if row.can_bulk_platform %}platform{% elif row.can_bulk_connection %}connection{% endif %}">
+            {% else %}
+            <span class="text-muted-sm">-</span>
+            {% endif %}
+          </td>
           <td>
             <strong>{{ row.type_label }}</strong>
             <div class="text-muted-sm">{{ row.severity }}</div>
@@ -164,10 +190,39 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="7" class="no-data">目前沒有 CMDB 待處理項目。</td></tr>
+        <tr><td colspan="8" class="no-data">目前沒有 CMDB 待處理項目。</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </section>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener("change", function (event) {
+  var selectAll = event.target.closest("[data-quality-select-all]");
+  if (!selectAll) return;
+  document.querySelectorAll("[data-quality-checkbox]").forEach(function (checkbox) {
+    checkbox.checked = selectAll.checked;
+  });
+});
+
+document.addEventListener("submit", function (event) {
+  var form = event.target.closest("[data-quality-bulk-form]");
+  if (!form) return;
+  form.querySelectorAll("[data-quality-bulk-copy]").forEach(function (node) {
+    node.remove();
+  });
+  var targetType = form.getAttribute("data-quality-bulk-form");
+  document.querySelectorAll("[data-quality-checkbox]:checked").forEach(function (checkbox) {
+    if (checkbox.getAttribute("data-quality-type") !== targetType) return;
+    var input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "asset_key";
+    input.value = checkbox.value;
+    input.dataset.qualityBulkCopy = "1";
+    form.appendChild(input);
+  });
+});
+</script>
 {% endblock %}

@@ -193,6 +193,20 @@ def _identity_query(key: str) -> dict[str, Any]:
     return {"$or": [{"hostname": key}, {"asset_seq": key}]}
 
 
+def _selected_host_docs(keys: list[str]) -> list[dict[str, Any]]:
+    seen: set[str] = set()
+    docs: list[dict[str, Any]] = []
+    for key in keys:
+        normalized = str(key or "").strip()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        doc = get_collection("hosts").find_one(_identity_query(normalized), {"ssh_key": 0})
+        if doc:
+            docs.append(doc)
+    return docs
+
+
 def get_host(key: str) -> Optional[dict[str, Any]]:
     return _public(get_collection("hosts").find_one(_identity_query(key), {"ssh_key": 0}))
 
@@ -496,9 +510,12 @@ def bulk_update_host_statuses(keys: list[str], status: str, reason: str, user: s
     return result
 
 
-def bulk_apply_platform_suggestions(user: str = "system", limit: int = 500) -> dict[str, Any]:
+def bulk_apply_platform_suggestions(user: str = "system", limit: int = 500, keys: Optional[list[str]] = None) -> dict[str, Any]:
     result = {"updated": [], "skipped": [], "updated_count": 0, "skipped_count": 0}
-    docs = get_collection("hosts").find({"status": {"$ne": "retired"}}, {"ssh_key": 0}).limit(max(1, min(limit, 2000)))
+    if keys is not None:
+        docs = _selected_host_docs(keys)
+    else:
+        docs = get_collection("hosts").find({"status": {"$ne": "retired"}}, {"ssh_key": 0}).limit(max(1, min(limit, 2000)))
     for host in docs:
         suggestion = platform_suggestion_for_host(host)
         if not suggestion.get("needed"):
@@ -554,16 +571,37 @@ def bulk_apply_platform_suggestions(user: str = "system", limit: int = 500) -> d
     return result
 
 
-def bulk_apply_default_connections(user: str = "system", limit: int = 500) -> dict[str, Any]:
+def bulk_apply_default_connections(user: str = "system", limit: int = 500, keys: Optional[list[str]] = None) -> dict[str, Any]:
     result = {"updated": [], "skipped": [], "updated_count": 0, "skipped_count": 0}
-    docs = get_collection("hosts").find(
-        {
-            "status": {"$nin": ["retired", "disabled", "pending_retire"]},
-            "$or": [{"connection": {"$exists": False}}, {"connection": ""}, {"connection": None}],
-        },
-        {"ssh_key": 0},
-    ).limit(max(1, min(limit, 5000)))
+    if keys is not None:
+        docs = _selected_host_docs(keys)
+    else:
+        docs = get_collection("hosts").find(
+            {
+                "status": {"$nin": ["retired", "disabled", "pending_retire"]},
+                "$or": [{"connection": {"$exists": False}}, {"connection": ""}, {"connection": None}],
+            },
+            {"ssh_key": 0},
+        ).limit(max(1, min(limit, 5000)))
     for host in docs:
+        if keys is not None and host.get("status") in {"retired", "disabled", "pending_retire"}:
+            result["skipped"].append(
+                {
+                    "asset_seq": host.get("asset_seq"),
+                    "hostname": host.get("hostname"),
+                    "reason": "inactive status",
+                }
+            )
+            continue
+        if keys is not None and str(host.get("connection") or "").strip():
+            result["skipped"].append(
+                {
+                    "asset_seq": host.get("asset_seq"),
+                    "hostname": host.get("hostname"),
+                    "reason": "connection already set",
+                }
+            )
+            continue
         host_type = str(host.get("host_type") or "").strip()
         if not host_type or host_type in {"end_device", "unknown"}:
             host_type = infer_host_type_from_os(host.get("os") or host.get("os_version") or "")
