@@ -74,6 +74,14 @@ def get_collection_credentials() -> dict[str, Any]:
     }
 
 
+def account_for_tier(tier: str, fallback: str = "") -> str:
+    requested = str(tier or "").upper()
+    for item in get_collection_credentials().get("tiers", []):
+        if item.get("tier") == requested and item.get("enabled"):
+            return str(item.get("account") or fallback).strip()
+    return fallback
+
+
 def save_collection_credentials(payload: dict[str, Any], user: str) -> dict[str, Any]:
     tiers = []
     for default in DEFAULT_TIERS:

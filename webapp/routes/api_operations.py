@@ -25,7 +25,7 @@ def inspections_page():
 @require_role("admin")
 def run_inspection_api():
     payload = request.get_json(force=True, silent=True) or {}
-    limit = min(max(int(payload.get("limit", 10)), 1), 100)
+    limit = min(max(int(payload.get("limit", 10)), 1), 500)
     result = run_daily_inspection(
         limit=limit,
         user=current_user()["username"],

@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from webapp.runners.base_runner import Runner
+from webapp.services.collection_credential_service import account_for_tier
 
 
 class AnsibleRunner(Runner):
@@ -23,7 +24,7 @@ class AnsibleRunner(Runner):
         if self.host.get("connection") == "local":
             completed = subprocess.run(script, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10)
         else:
-            ssh_user = self.host.get("ssh_user") or "sysinfra"
+            ssh_user = self.host.get("ssh_user") or account_for_tier("L1", "sysinfra")
             ssh_port = str(self.host.get("ssh_port") or 22)
             completed = subprocess.run(
                 [
@@ -299,7 +300,7 @@ PY"""
         return self._parse_probe_result(completed, "local")
 
     def _run_linux_probe_ssh(self, target: str) -> dict[str, Any]:
-        ssh_user = self.host.get("ssh_user") or "sysinfra"
+        ssh_user = self.host.get("ssh_user") or account_for_tier("L1", "sysinfra")
         ssh_port = str(self.host.get("ssh_port") or 22)
         completed = subprocess.run(
             [

@@ -4562,6 +4562,36 @@ textarea,
   overflow: hidden;
 }
 
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.section-title-row h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+
+.compact-table-wrap {
+  overflow-x: auto;
+}
+
+.compact-table th,
+.compact-table td {
+  padding: 7px 9px;
+  white-space: nowrap;
+}
+
+.opening-system-groups {
+  margin-top: 10px;
+}
+
+.opening-next-step {
+  margin-top: 3px;
+}
+
 .gauge-card {
   background: var(--white);
   border: 1px solid var(--c4);

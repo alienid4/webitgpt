@@ -8,7 +8,7 @@
     <p class="muted">先選平台與系統，再執行目前範圍；L1 探測不需高權帳號，L2 / L3 再使用採集帳號或 PAM。</p>
   </div>
   <div class="actions">
-    <button class="btn primary" type="button" data-submit-message="正在執行開門檢查，請稍候。" data-api-post="/api/inspections/run" data-payload='{"limit":100,"platform":"{{ diagnostics.platform }}","system":"{{ diagnostics.selected_system }}"}' data-reload-on-success="true" data-busy-text="巡檢中">開始巡檢目前範圍</button>
+    <button class="btn primary" type="button" data-submit-message="正在執行開門檢查，請稍候。" data-api-post="/api/inspections/run" data-payload='{"limit":500,"platform":"{{ diagnostics.platform }}","system":"{{ diagnostics.selected_system }}"}' data-reload-on-success="true" data-busy-text="巡檢中">開始巡檢目前範圍</button>
     <details class="inline-help">
       <summary class="btn secondary">進階</summary>
       <div class="inline-help-panel">
@@ -40,6 +40,9 @@
   </form>
   <div class="summary-grid">
     <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.hosts }}</strong><span>{{ diagnostics.selected_system_label }} / {{ diagnostics.platform|upper }}</span></a>
+    <a class="metric" href="#opening-system-groups"><strong>{{ diagnostics.readiness_summary.systems }}</strong><span>系統分組</span></a>
+    <a class="metric" href="#opening-system-groups"><strong>{{ diagnostics.readiness_summary.checked }}</strong><span>已巡檢主機</span></a>
+    <a class="metric" href="#opening-system-groups"><strong>{{ diagnostics.readiness_summary.ready }}</strong><span>可巡檢未執行</span></a>
     <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.ok }}</strong><span>正常項目</span></a>
     <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.warn }}</strong><span>警示項目</span></a>
     <a class="metric" href="#opening-hosts"><strong>{{ diagnostics.summary.pending }}</strong><span>待檢項目</span></a>
@@ -54,6 +57,54 @@
   </div>
 </section>
 
+<section class="panel compact opening-system-groups" id="opening-system-groups">
+  <div class="section-title-row">
+    <div>
+      <h2>系統巡檢分組</h2>
+      <p class="muted">匯入後先看這裡：已巡檢、可巡檢、待補條件分開，避免資料進來後不知道下一步。</p>
+    </div>
+    <button class="btn primary" type="button" data-submit-message="開始巡檢目前範圍，最多 500 台，完成後會回到本頁更新卡片。" data-api-post="/api/inspections/run" data-payload='{"limit":500,"platform":"{{ diagnostics.platform }}","system":"{{ diagnostics.selected_system }}"}' data-reload-on-success="true" data-busy-text="巡檢中">巡檢目前範圍</button>
+  </div>
+  <div class="compact-table-wrap">
+    <table class="data-table compact-table">
+      <thead>
+        <tr>
+          <th>系統</th>
+          <th>主機</th>
+          <th>已巡檢</th>
+          <th>可巡檢</th>
+          <th>待補</th>
+          <th>阻擋原因</th>
+          <th>下一步</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for group in diagnostics.system_groups %}
+        <tr>
+          <td><a href="{{ url_for('api_operations.inspections_page', platform=diagnostics.platform, system=group.name) }}">{{ group.name }}</a></td>
+          <td>{{ group.count }}</td>
+          <td>{{ group.checked }}</td>
+          <td>{{ group.ready }}</td>
+          <td>{{ group.blocked }}</td>
+          <td>{{ group.reason_text }}</td>
+          <td>
+            {% if group.ready %}
+            <a class="btn-sm" href="{{ url_for('api_operations.inspections_page', platform=diagnostics.platform, system=group.name) }}">看這套</a>
+            {% elif group.blocked %}
+            <a class="btn-sm" href="{{ url_for('api_reports.data_quality_page') }}">補條件</a>
+            {% else %}
+            <span class="badge-ok">已納入</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">目前沒有此平台的系統資料。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
 <section class="opening-dashboard" id="opening-hosts">
   {% for host in diagnostics["items"] %}
   <article class="gauge-card gauge-{{ host.overall or 'pending' }}" id="host-{{ host.asset_seq }}">
@@ -62,6 +113,9 @@
         <p class="eyebrow">HOST DASHBOARD</p>
         <h2>{{ host.asset_name or host.system_name or host.hostname }}</h2>
         <div class="text-muted-sm">{{ host.hostname or "-" }} / {{ host.ip or "-" }} / {{ host.os or host.host_type }}</div>
+        {% if host.readiness %}
+        <div class="text-muted-sm opening-next-step">狀態：{{ host.readiness.label }} / {{ host.readiness.next_action }}</div>
+        {% endif %}
       </div>
       <span class="gauge-state">{{ host.overall_label or "待檢" }}</span>
     </div>
@@ -240,7 +294,7 @@
   <div class="panel no-data opening-empty-state">
     <strong>這個平台 / 系統目前沒有可顯示的開門檢查結果。</strong>
     <span>先確認平台篩選是否正確；若主機已在 CMDB，請按「開始巡檢目前範圍」。</span>
-    <button class="btn primary" type="button" data-submit-message="正在執行開門檢查，請稍候。" data-api-post="/api/inspections/run" data-payload='{"limit":100,"platform":"{{ diagnostics.platform }}","system":"{{ diagnostics.selected_system }}"}' data-reload-on-success="true" data-busy-text="巡檢中">開始巡檢目前範圍</button>
+    <button class="btn primary" type="button" data-submit-message="正在執行開門檢查，請稍候。" data-api-post="/api/inspections/run" data-payload='{"limit":500,"platform":"{{ diagnostics.platform }}","system":"{{ diagnostics.selected_system }}"}' data-reload-on-success="true" data-busy-text="巡檢中">開始巡檢目前範圍</button>
   </div>
   {% endfor %}
 </section>

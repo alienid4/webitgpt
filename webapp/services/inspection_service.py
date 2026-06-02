@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from webapp import config
+from webapp.services.collection_credential_service import account_for_tier
 from webapp.services.host_service import list_hosts
 from webapp.services.mongo_service import get_collection
 
@@ -104,7 +105,7 @@ def _collect_metrics(host: dict[str, Any]) -> dict[str, Any]:
                 "ConnectTimeout=5",
                 "-p",
                 str(host.get("ssh_port") or 22),
-                f"{host.get('ssh_user') or 'sysinfra'}@{target}",
+                f"{host.get('ssh_user') or account_for_tier('L1', 'sysinfra')}@{target}",
                 _probe_script(),
             ],
             text=True,
@@ -307,7 +308,7 @@ def _nmon_host_status(host: dict[str, Any]) -> dict[str, Any]:
                 "ConnectTimeout=5",
                 "-p",
                 str(host.get("ssh_port") or 22),
-                f"{host.get('ssh_user') or 'sysinfra'}@{target}",
+                f"{host.get('ssh_user') or account_for_tier('L1', 'sysinfra')}@{target}",
                 _nmon_check_command(),
             ],
             text=True,
@@ -337,7 +338,7 @@ def _ansible_inventory_for(hosts: list[dict[str, Any]], target: Path) -> list[di
         if str(host.get("connection") or "").lower() == "local":
             lines.append(f"{hostname} ansible_connection=local")
         else:
-            user = host.get("ssh_user") or "sysinfra"
+            user = host.get("ssh_user") or account_for_tier("L1", "sysinfra")
             port = host.get("ssh_port") or 22
             lines.append(f"{hostname} ansible_host={address} ansible_user={user} ansible_port={port}")
         selected.append({**status, "inventory_name": hostname})

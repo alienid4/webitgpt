@@ -689,6 +689,10 @@ def test_nmon_monthly_report_has_real_report_surfaces():
     assert "_build_os_lifecycle_report" in service
     assert "source_url" in service
     assert "_eos_action" in service
+    assert "account_for_tier" in read("webapp/services/collection_credential_service.py")
+    assert 'account_for_tier("L1", "sysinfra")' in read("webapp/services/inspection_service.py")
+    assert 'account_for_tier("L1", "sysinfra")' in read("webapp/runners/ansible_runner.py")
+    assert 'account_for_tier("L1", "sysinfra")' in read("webapp/runners/ssh_raw_runner.py")
     assert ".nmon-director-grid" in css
     assert ".nmon-exec-grid" in css
     assert ".nmon-exec-card" in css

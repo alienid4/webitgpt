@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.86",
+        "date": "2026-06-02 16:05 +08:00",
+        "patch_id": "opening-check-readiness-workflow",
+        "changes": [
+            "今日巡檢新增系統分組，將已巡檢、可巡檢與待補條件分開顯示。",
+            "開始巡檢目前範圍改為最多 500 台，避免匯入超過 100 台後被截斷。",
+            "巡檢結果會回填到卡片，並改用 L1 採集帳號作為預設 runner 帳號。",
+        ],
+    },
+    {
         "version": "1.0.3.85",
         "date": "2026-06-02 15:20 +08:00",
         "patch_id": "hide-draft-governance-main-list",

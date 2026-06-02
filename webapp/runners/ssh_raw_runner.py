@@ -4,6 +4,7 @@ import subprocess
 from datetime import datetime, timezone
 
 from webapp.runners.base_runner import Runner
+from webapp.services.collection_credential_service import account_for_tier
 
 
 class SshRawRunner(Runner):
@@ -11,7 +12,7 @@ class SshRawRunner(Runner):
         target = self.host.get("ip") or self.host.get("hostname")
         if not target:
             return self._identity_error("missing host address")
-        ssh_user = self.host.get("ssh_user") or "sysinfra"
+        ssh_user = self.host.get("ssh_user") or account_for_tier("L1", "sysinfra")
         ssh_port = str(self.host.get("ssh_port") or 22)
         command = "printf 'HOSTNAME=%s\\n' \"$(uname -n)\"; printf 'OS=%s\\n' \"AIX $(oslevel -s 2>/dev/null)\"; printf 'MODEL=%s\\n' \"$(uname -M 2>/dev/null)\""
         completed = subprocess.run(

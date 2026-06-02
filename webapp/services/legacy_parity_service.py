@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from webapp import config
+from webapp.services.collection_credential_service import account_for_tier
 from webapp.services.host_service import get_host
 from webapp.services.host_service import list_hosts
 from webapp.services.deep_check_service import latest_report
@@ -149,7 +150,7 @@ def _system_options(hosts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for host in hosts:
         name = _system_name(host)
         counts[name] = counts.get(name, 0) + 1
-    return [{"name": name, "count": count} for name, count in sorted(counts.items())]
+    return [{"name": name, "count": count} for name, count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))]
 
 
 def _selected_system(system_name: str, options: list[dict[str, Any]]) -> str:
@@ -688,7 +689,7 @@ def _remote_linux_command(host: dict[str, Any], cmd: str, timeout: int = 18) -> 
         "ConnectTimeout=5",
         "-p",
         str(host.get("ssh_port") or 22),
-        f"{host.get('ssh_user') or 'sysinfra'}@{target}",
+        f"{host.get('ssh_user') or account_for_tier('L1', 'sysinfra')}@{target}",
         cmd,
     ]
     completed = subprocess.run(ssh_cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout + 8)
@@ -758,6 +759,111 @@ def _with_host_display_fields(row: dict[str, Any], host: dict[str, Any]) -> dict
     return row
 
 
+def _inspection_result_to_diagnostic_row(result: dict[str, Any], host: dict[str, Any]) -> dict[str, Any]:
+    status = str(result.get("status") or "unknown").lower()
+    error = str(result.get("metric_error") or "").strip()
+    metric_text = (
+        f"CPU={result.get('cpu_pct') if result.get('cpu_pct') is not None else '-'}%, "
+        f"MEM={result.get('mem_pct') if result.get('mem_pct') is not None else '-'}%, "
+        f"DISK={result.get('disk_pct') if result.get('disk_pct') is not None else '-'}%"
+    )
+    connectivity_status = "ok" if status in {"ok", "warn"} else "pending"
+    resource_status = "warn" if status == "warn" else "ok" if status == "ok" else "pending"
+    resource_detail = metric_text if status in {"ok", "warn"} else (error or "L1 尚未取得主機指標。")
+    checks = [
+        {"key": "connectivity", "label": "連線狀態", "status": connectivity_status, "detail": error or "L1 開門檢查已完成。"},
+        {"key": "resource", "label": "CPU / 記憶體 / 磁碟", "status": resource_status, "detail": resource_detail},
+    ]
+    for key, label in DIAGNOSTIC_ASPECTS[2:]:
+        checks.append(
+            {
+                "key": key,
+                "label": label,
+                "status": "pending",
+                "detail": "L1 已納入今日巡檢；此項目需 L2/L3 帳號或深度檢查才會產生完整證據。",
+            }
+        )
+    row = _with_diagnostic_summary(
+        {
+            "asset_seq": host.get("asset_seq"),
+            "hostname": host.get("hostname"),
+            "ip": host.get("ip"),
+            "host_type": host.get("host_type"),
+            "platform": host.get("host_type"),
+            "checked_at": result.get("checked_at") or result.get("run_at"),
+            "checks": checks,
+            "inspection_source": "inspection_results",
+        }
+    )
+    if status == "ok":
+        row["overall"] = "ok" if row["summary"]["pending"] == 0 else "pending"
+        row["overall_label"] = "L1完成"
+    elif status == "warn":
+        row["overall"] = "warn"
+        row["overall_label"] = "警示"
+    else:
+        row["overall"] = "pending"
+        row["overall_label"] = "待連線"
+    return row
+
+
+def _latest_inspection_result(host: dict[str, Any]) -> dict[str, Any] | None:
+    asset_seq = host.get("asset_seq")
+    if not asset_seq:
+        return None
+    return get_collection("inspection_results").find_one({"asset_seq": asset_seq}, {"_id": 0}, sort=[("run_at", -1)])
+
+
+def _host_readiness(host: dict[str, Any], inspected: bool = False) -> dict[str, Any]:
+    reasons: list[str] = []
+    host_type = str(host.get("host_type") or "").lower()
+    status = str(host.get("status") or "").lower()
+    if status != "active":
+        reasons.append("待轉正式")
+    if not str(host.get("ip") or "").strip() or str(host.get("ip") or "").strip() == "-":
+        reasons.append("缺 IP")
+    if host_type not in {"linux", "windows", "aix", "as400"}:
+        reasons.append("平台待分類")
+    if host_type == "as400":
+        reasons.append("AS400 採集待協定")
+    ready = not reasons or reasons == ["AS400 採集待協定"]
+    if inspected:
+        label = "已巡檢"
+    elif ready:
+        label = "可巡檢"
+    else:
+        label = "待補條件"
+    next_action = "可按開始巡檢目前範圍" if ready and not inspected else "檢視卡片結果" if inspected else "、".join(reasons)
+    return {"ready": ready, "inspected": inspected, "label": label, "reasons": reasons, "next_action": next_action}
+
+
+def _system_readiness_groups(hosts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    groups: dict[str, dict[str, Any]] = {}
+    for host in hosts:
+        latest = _latest_inspection_result(host)
+        readiness = _host_readiness(host, bool(latest))
+        name = _system_name(host)
+        group = groups.setdefault(
+            name,
+            {"name": name, "count": 0, "ready": 0, "checked": 0, "blocked": 0, "pending": 0, "reasons": {}},
+        )
+        group["count"] += 1
+        if readiness["inspected"]:
+            group["checked"] += 1
+        elif readiness["ready"]:
+            group["ready"] += 1
+        else:
+            group["blocked"] += 1
+        if not readiness["inspected"]:
+            group["pending"] += 1
+        for reason in readiness["reasons"]:
+            group["reasons"][reason] = group["reasons"].get(reason, 0) + 1
+    rows = list(groups.values())
+    for row in rows:
+        row["reason_text"] = "、".join(f"{key} {value}" for key, value in sorted(row["reasons"].items())) or "-"
+    return sorted(rows, key=lambda item: (-item["pending"], -item["count"], item["name"]))
+
+
 def daily_diagnostics(platform: str = "linux", system_name: str = "") -> dict[str, Any]:
     platform = platform or "linux"
     all_hosts = _hosts()
@@ -776,26 +882,32 @@ def daily_diagnostics(platform: str = "linux", system_name: str = "") -> dict[st
             if latest:
                 latest = _normalize_diagnostic_row(latest)
                 latest = _with_host_display_fields(latest, host)
+                latest["readiness"] = _host_readiness(host, True)
                 latest["recent"] = diagnostic_history(host.get("asset_seq"), days=7, limit=6)
                 latest["latest_deep_check"] = latest_report(host.get("hostname"))
                 rows.append(latest)
             elif host.get("connection") == "local":
                 row = _local_linux_diagnostics(host)
                 row = _with_host_display_fields(row, host)
+                row["readiness"] = _host_readiness(host, True)
                 row["recent"] = diagnostic_history(host.get("asset_seq"), days=7, limit=6)
                 row["latest_deep_check"] = latest_report(host.get("hostname"))
                 rows.append(row)
             else:
-                row = _ssh_placeholder_diagnostics(host)
+                latest_inspection = _latest_inspection_result(host)
+                row = _inspection_result_to_diagnostic_row(latest_inspection, host) if latest_inspection else _ssh_placeholder_diagnostics(host)
                 row = _with_host_display_fields(row, host)
+                row["readiness"] = _host_readiness(host, bool(latest_inspection))
                 row["recent"] = diagnostic_history(host.get("asset_seq"), days=7, limit=6)
                 row["latest_deep_check"] = latest_report(host.get("hostname"))
                 rows.append(row)
     else:
         rows = []
         for host in hosts:
-            row = _ssh_placeholder_diagnostics(host)
+            latest_inspection = _latest_inspection_result(host)
+            row = _inspection_result_to_diagnostic_row(latest_inspection, host) if latest_inspection else _ssh_placeholder_diagnostics(host)
             row = _with_host_display_fields(row, host)
+            row["readiness"] = _host_readiness(host, bool(latest_inspection))
             row["latest_deep_check"] = latest_report(host.get("hostname"))
             rows.append(row)
     summary = {
@@ -804,11 +916,21 @@ def daily_diagnostics(platform: str = "linux", system_name: str = "") -> dict[st
         "warn": sum(1 for row in rows for check in row["checks"] if check["status"] == "warn"),
         "pending": sum(1 for row in rows for check in row["checks"] if check["status"] == "pending"),
     }
+    system_groups = _system_readiness_groups(platform_hosts)
+    readiness_summary = {
+        "systems": len(system_groups),
+        "ready": sum(item["ready"] for item in system_groups),
+        "checked": sum(item["checked"] for item in system_groups),
+        "pending": sum(item["pending"] for item in system_groups),
+        "blocked": sum(item["blocked"] for item in system_groups),
+    }
     return {
         "platform": platform,
         "tabs": PLATFORM_TABS,
         "aspects": DIAGNOSTIC_ASPECTS,
         "summary": summary,
+        "readiness_summary": readiness_summary,
+        "system_groups": system_groups,
         "items": rows,
         "system_options": options,
         "selected_system": selected_system,
