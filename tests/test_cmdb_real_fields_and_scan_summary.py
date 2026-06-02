@@ -69,3 +69,75 @@ def test_combined_scan_falls_back_to_default_nmap_when_targeted_scans_find_nothi
     assert report["discovered_count"] == 1
     assert report["summary"]["scan_not_in_cmdb"] == 1
     assert any(command[:2] == ["nmap", "-R"] for command in calls)
+
+
+def test_asset_quality_ignores_stale_scan_not_in_cmdb_when_ip_now_exists(monkeypatch):
+    host = {
+        "division": "unit",
+        "department": "unit",
+        "hostname": "unit-host",
+        "status": "active",
+        "group_name": "unit",
+        "asset_name": "unit-asset",
+        "device_type": "server",
+        "quantity": 1,
+        "owner": "unit",
+        "environment": "TEST",
+        "custodian": "unit",
+        "company": "unit",
+        "host_type": "linux",
+        "connection": "ssh",
+        "os": "CentOS 7",
+        "dc": "unit",
+        "integrity": 3,
+        "confidentiality": 3,
+        "availability": 3,
+        "ip": "10.0.0.1",
+    }
+    reports = [
+        {
+            "started_at": "2026-06-02T00:00:00Z",
+            "cidr": "10.0.0.0/24",
+            "rows": [
+                {"type": "scan_not_in_cmdb", "severity": "high", "ip": "10.0.0.1"},
+                {"type": "scan_not_in_cmdb", "severity": "high", "ip": "10.0.0.2"},
+            ],
+        },
+        {
+            "started_at": "2026-06-01T00:00:00Z",
+            "cidr": "10.0.0.0/24",
+            "rows": [
+                {"type": "scan_not_in_cmdb", "severity": "high", "ip": "10.0.0.2"},
+            ],
+        },
+    ]
+
+    class FakeQuery(list):
+        def sort(self, *_args, **_kwargs):
+            return self
+
+        def limit(self, count):
+            return FakeQuery(self[:count])
+
+    class FakeCollection:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def find(self, *_args, **_kwargs):
+            return FakeQuery(self.rows)
+
+    def fake_get_collection(name):
+        if name == "hosts":
+            return FakeCollection([host])
+        if name == "network_scan_reports":
+            return FakeCollection(reports)
+        return FakeCollection([])
+
+    monkeypatch.setattr(cmdb_service, "get_collection", fake_get_collection)
+
+    report = cmdb_service.asset_quality_report()
+    scan_not_rows = [row for row in report["issues"] if row["type"] == "scan_not_in_cmdb"]
+
+    assert len(scan_not_rows) == 1
+    assert scan_not_rows[0]["ip"] == "10.0.0.2"
+    assert report["counts"]["scan_not_in_cmdb"] == 1

@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.82",
+        "date": "2026-06-02 11:20 +08:00",
+        "patch_id": "data-quality-stale-scan-reconcile",
+        "changes": [
+            "資料品質匯入舊掃描結果前，先用目前 CMDB 主檔 IP 重新覆核。",
+            "已納管的正式資產不再因舊 network_scan_reports 殘留而誤報為掃描到但 CMDB 無。",
+            "同一份品質報告會去除重複的舊掃描異常，讓需要處理的幽靈主機更清楚。",
+        ],
+    },
+    {
         "version": "1.0.3.81",
         "date": "2026-06-02 00:25 +08:00",
         "patch_id": "data-quality-selected-bulk-actions",

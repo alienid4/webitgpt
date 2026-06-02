@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.3.81"
-PATCH_ID = "data-quality-selected-bulk-actions"
-RELEASE_NOTE = "資料品質工作台新增勾選式批次套用，可只處理選取的同類型項目並保留全部套用入口"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-06-02 00:25:00 +08:00")
+VERSION = "1.0.3.82"
+PATCH_ID = "data-quality-stale-scan-reconcile"
+RELEASE_NOTE = "資料品質匯入舊掃描結果前會以目前 CMDB 主檔 IP 重新覆核，已納管資產不再誤報為掃描到但 CMDB 無"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-06-02 11:20:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

@@ -387,13 +387,22 @@ def asset_quality_report() -> dict[str, Any]:
                 "請確認是否為多網卡/VIP/BIG-IP；若不是，需修正 CMDB 或重新分配 IP。",
             )
 
+    seen_scan_issue_keys: set[tuple[str, str]] = set()
     for report in get_collection("network_scan_reports").find({}).sort("started_at", -1).limit(5):
         for row in report.get("rows") or []:
             if row.get("type") not in {"scan_not_in_cmdb", "cmdb_not_seen", "reserved_but_alive"}:
                 continue
+            row_type = str(row.get("type", ""))
+            row_ip = str(row.get("ip", "")).strip()
+            if row_type == "scan_not_in_cmdb" and row_ip in ip_map:
+                continue
+            scan_issue_key = (row_type, row_ip)
+            if scan_issue_key in seen_scan_issue_keys:
+                continue
+            seen_scan_issue_keys.add(scan_issue_key)
             issues.append(
                 {
-                    "type": row.get("type", ""),
+                    "type": row_type,
                     "title": row.get("type_label") or ("掃描與資產清冊不一致"),
                     "severity": row.get("severity", "medium"),
                     "hostname": row.get("hostname", ""),
