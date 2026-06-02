@@ -75,6 +75,7 @@ def test_asset_quality_ignores_stale_scan_not_in_cmdb_when_ip_now_exists(monkeyp
     host = {
         "division": "unit",
         "department": "unit",
+        "asset_seq": "HW-UNIT-001",
         "hostname": "unit-host",
         "status": "active",
         "group_name": "unit",
@@ -101,6 +102,7 @@ def test_asset_quality_ignores_stale_scan_not_in_cmdb_when_ip_now_exists(monkeyp
             "rows": [
                 {"type": "scan_not_in_cmdb", "severity": "high", "ip": "10.0.0.1"},
                 {"type": "scan_not_in_cmdb", "severity": "high", "ip": "10.0.0.2"},
+                {"type": "cmdb_not_seen", "severity": "medium", "ip": "10.0.0.1"},
             ],
         },
         {
@@ -141,3 +143,6 @@ def test_asset_quality_ignores_stale_scan_not_in_cmdb_when_ip_now_exists(monkeyp
     assert len(scan_not_rows) == 1
     assert scan_not_rows[0]["ip"] == "10.0.0.2"
     assert report["counts"]["scan_not_in_cmdb"] == 1
+    cmdb_not_seen_rows = [row for row in report["issues"] if row["type"] == "cmdb_not_seen"]
+    assert len(cmdb_not_seen_rows) == 1
+    assert cmdb_not_seen_rows[0]["asset_seq"] == "HW-UNIT-001"

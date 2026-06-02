@@ -135,6 +135,11 @@
     {% if report.summary.cmdb_workflow_pending and current_user.role in ["admin", "super", "superadmin"] %}
     <a class="btn-sm" href="{{ url_for('api_hosts.hosts_page', status='draft') }}">同類型：草稿流程</a>
     {% endif %}
+    {% if current_user.role in ["admin", "super", "superadmin"] %}
+    <form method="post" action="{{ url_for('api_reports.data_quality_retire_selected_assets') }}" data-quality-bulk-form="retire" onsubmit="return confirm('只將目前勾選的資產標為已汰除，適用 Lab、測試、舊資料或不再納管項目。確定執行？')">
+      <button class="btn-sm danger" type="submit">勾選標為已汰除</button>
+    </form>
+    {% endif %}
   </div>
   <div class="table-wrap admin-table-wrap">
     <table class="data-table compact-table">
@@ -154,12 +159,12 @@
         {% for row in report.cmdb_detail_rows %}
         <tr>
           <td>
-            {% if row.can_bulk_platform or row.can_bulk_connection %}
+            {% if row.can_bulk_platform or row.can_bulk_connection or row.can_bulk_retire %}
             <input
               type="checkbox"
               value="{{ row.edit_key }}"
               data-quality-checkbox
-              data-quality-type="{% if row.can_bulk_platform %}platform{% elif row.can_bulk_connection %}connection{% endif %}">
+              data-quality-type="{% if row.can_bulk_platform %}platform{% elif row.can_bulk_connection %}connection{% elif row.can_bulk_retire %}retire{% endif %}">
             {% else %}
             <span class="text-muted-sm">-</span>
             {% endif %}

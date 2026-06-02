@@ -473,7 +473,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.82"' in config
+    assert 'VERSION = "1.0.3.83"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -613,9 +613,14 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     service = read("webapp/services/system_service.py")
     changelog = read("CHANGELOG.md")
+    reports = read("webapp/routes/api_reports.py")
+    data_quality = read("webapp/templates/data_quality.html")
 
-    assert 'VERSION = "1.0.3.82"' in config
-    assert "data-quality-stale-scan-reconcile" in config
+    assert 'VERSION = "1.0.3.83"' in config
+    assert "data-quality-lab-row-governance" in config
+    assert "data_quality_retire_selected_assets" in reports
+    assert "data-quality-bulk-form=\"retire\"" in data_quality
+    assert "can_bulk_retire" in read("webapp/services/quality_service.py")
 
 
     assert "verification_source" in api_v1
@@ -709,7 +714,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "data-quality-stale-scan-reconcile" in config
+    assert "data-quality-lab-row-governance" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog

@@ -55,7 +55,7 @@ def _cmdb_detail_rows(cmdb: dict[str, Any], limit: int = 200) -> list[dict[str, 
     rows: list[dict[str, Any]] = []
     for issue in cmdb.get("issues", [])[:limit]:
         issue_type = str(issue.get("type") or "")
-        key = str(issue.get("hostname") or issue.get("asset_seq") or issue.get("ip") or "")
+        key = str(issue.get("asset_seq") or issue.get("hostname") or "")
         rows.append(
             {
                 "domain": "CMDB",
@@ -71,6 +71,7 @@ def _cmdb_detail_rows(cmdb: dict[str, Any], limit: int = 200) -> list[dict[str, 
                 "edit_key": key,
                 "can_bulk_platform": bool(issue_type == "platform_mismatch" and key),
                 "can_bulk_connection": bool(issue_type == "missing_connection" and key),
+                "can_bulk_retire": bool(issue_type in {"cmdb_not_seen", "missing_ip"} and key),
                 "suggested_host_type": issue.get("suggested_host_type") or "",
                 "current_host_type": issue.get("current_host_type") or "",
                 "suggested_host_type_label": _platform_label(issue.get("suggested_host_type") or ""),

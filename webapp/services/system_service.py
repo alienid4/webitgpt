@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.83",
+        "date": "2026-06-02 12:05 +08:00",
+        "patch_id": "data-quality-lab-row-governance",
+        "changes": [
+            "資料品質的 CMDB 有但掃描未見列會反查目前資產主檔，帶出可編輯的資產識別。",
+            "Lab、測試、舊資料或不再納管項目可在資料品質頁勾選後標為已汰除，從品質檢查排除。",
+            "資料品質檢查排除停用、待汰除與已汰除資產，避免狀態變更後仍反覆出現。",
+        ],
+    },
+    {
         "version": "1.0.3.82",
         "date": "2026-06-02 11:20 +08:00",
         "patch_id": "data-quality-stale-scan-reconcile",

@@ -252,6 +252,35 @@ def data_quality_apply_default_connections():
     return render_template("data_quality.html", report=operations_data_quality(), apply_result=result)
 
 
+@bp.post("/reports/data-quality/retire-selected")
+@require_feature("summary")
+@require_role("admin")
+def data_quality_retire_selected_assets():
+    selected_keys = [item for item in request.form.getlist("asset_key") if str(item or "").strip()]
+    if not selected_keys:
+        return render_template(
+            "data_quality.html",
+            report=operations_data_quality(),
+            apply_result={"action_label": "標記已汰除", "updated_count": 0, "skipped_count": 0, "error": "請先勾選要排除的資產。"},
+        )
+    result = host_service.bulk_update_host_statuses(
+        selected_keys,
+        "retired",
+        "資料品質治理：確認為測試、Lab、舊資料或不再納管，從品質檢查排除。",
+        user=current_user()["username"],
+    )
+    result["action_label"] = "標記已汰除"
+    audit_log_service.append(
+        "cmdb.data_quality.retire_selected",
+        current_user()["username"],
+        {
+            "updated_count": result["updated_count"],
+            "skipped_count": result["skipped_count"],
+        },
+    )
+    return render_template("data_quality.html", report=operations_data_quality(), apply_result=result)
+
+
 @bp.get("/reports/post-install")
 @require_feature("summary")
 def post_install_report_page():

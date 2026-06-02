@@ -272,7 +272,11 @@ def list_reservations() -> list[dict[str, Any]]:
 
 
 def asset_quality_report() -> dict[str, Any]:
-    hosts = [_public(row) or {} for row in get_collection("hosts").find({"status": {"$ne": "retired"}}, {"ssh_key": 0}).sort("hostname", 1)]
+    inactive_statuses = ["disabled", "retired", "pending_retire"]
+    hosts = [
+        _public(row) or {}
+        for row in get_collection("hosts").find({"status": {"$nin": inactive_statuses}}, {"ssh_key": 0}).sort("hostname", 1)
+    ]
     issues: list[dict[str, Any]] = []
     ip_map: dict[str, list[dict[str, Any]]] = {}
     server_types = {"linux", "windows", "aix", "as400"}
@@ -396,6 +400,9 @@ def asset_quality_report() -> dict[str, Any]:
             row_ip = str(row.get("ip", "")).strip()
             if row_type == "scan_not_in_cmdb" and row_ip in ip_map:
                 continue
+            matched_host = (ip_map.get(row_ip) or [{}])[0] if row_ip else {}
+            if row_type == "cmdb_not_seen" and not matched_host:
+                continue
             scan_issue_key = (row_type, row_ip)
             if scan_issue_key in seen_scan_issue_keys:
                 continue
@@ -405,13 +412,13 @@ def asset_quality_report() -> dict[str, Any]:
                     "type": row_type,
                     "title": row.get("type_label") or ("掃描與資產清冊不一致"),
                     "severity": row.get("severity", "medium"),
-                    "hostname": row.get("hostname", ""),
-                    "asset_seq": "",
-                    "asset_name": row.get("asset_name", ""),
+                    "hostname": matched_host.get("hostname") or row.get("hostname", ""),
+                    "asset_seq": matched_host.get("asset_seq", ""),
+                    "asset_name": matched_host.get("asset_name") or row.get("asset_name", ""),
                     "ip": row.get("ip", ""),
-                    "status": row.get("status", ""),
-                    "owner": "",
-                    "department": "",
+                    "status": matched_host.get("status") or row.get("status", ""),
+                    "owner": matched_host.get("owner", ""),
+                    "department": matched_host.get("department", ""),
                     "detail": f"{row.get('ip', '')} / {row.get('hostname', '')} / {row.get('os', '')}".strip(" /"),
                     "action": row.get("suggestion") or "請確認是否需要建立草稿、補申請、或標示下線。",
                     "source": f"scan:{report.get('cidr', '')}",
