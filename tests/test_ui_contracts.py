@@ -551,7 +551,11 @@ def test_asset_governance_status_admin_contracts_exist():
     host_service = read("webapp/services/host_service.py")
     hosts_js = read("webapp/static/js/hosts.js")
     host_edit = read("webapp/templates/host_edit.html")
-    for text in ["批次草稿處理", "全選本頁草稿", "刪除勾選草稿", "bulkDraftDeleteForm"]:
+    for text in [
+        "hide_draft_governance = true",
+        'request.args.get("status") == "draft" and not hide_draft_governance',
+        'host.status == "draft" and not hide_draft_governance',
+    ]:
         assert text in hosts_template
     for text in ["asset-table-compact", "資產狀態", "資產名稱 *", "Hostname", "asset-row-menu"]:
         assert text in hosts_template

@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.85",
+        "date": "2026-06-02 15:20 +08:00",
+        "patch_id": "hide-draft-governance-main-list",
+        "changes": [
+            "資產管理主清單暫停顯示批次草稿處理 / 治理，避免匯入完成後仍誤以為要回草稿區處理。",
+            "表格列只保留正式資產勾選框，草稿專用勾選框與全草稿轉正式入口不再出現在日常畫面。",
+            "後端草稿治理能力暫時保留，未來若要恢復會改放到低頻治理或系統管理入口。",
+        ],
+    },
+    {
         "version": "1.0.3.84",
         "date": "2026-06-02 14:35 +08:00",
         "patch_id": "imported-assets-opening-check-default",

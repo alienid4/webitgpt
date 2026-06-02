@@ -207,8 +207,9 @@
   {% endif %}
   {% if request.args.get("bulk_error") %}<div class="notice danger">{{ request.args.get("bulk_error") }}</div>{% endif %}
 
+  {% set hide_draft_governance = true %}
   <section class="table-wrap asset-table-wrap" id="asset-details">
-    {% if request.args.get("status") == "draft" %}
+    {% if request.args.get("status") == "draft" and not hide_draft_governance %}
     <div class="draft-workflow-panel">
       <div>
         <p class="eyebrow">DRAFT WORKFLOW</p>
@@ -245,6 +246,7 @@
       <button form="bulkStatusForm" class="btn secondary" type="submit" onclick="return confirm('會把已勾選資產改成指定狀態；資料不完整或已是目標狀態會略過。確定執行？')">套用到勾選資產</button>
       <span class="text-muted-sm">下線 / 待刪除預設不顯示，需勾選上方「顯示下線 / 待刪除」。</span>
     </div>
+    {% if not hide_draft_governance %}
     <details class="asset-bulk-panel asset-optional-section">
       <summary>
         <div>
@@ -278,15 +280,18 @@
         <span class="text-muted-sm">正式資產不允許批次硬刪，請走下線 / 封存流程。</span>
       </div>
     </details>
+    {% endif %}
+    <form id="bulkStatusForm" method="post" action="{{ url_for('api_hosts.host_bulk_update_status_submit') }}" data-asset-bulk-form data-submit-status data-submit-message="正在批次更新資產狀態，請稍候。"></form>
+    {% if not hide_draft_governance %}
     <form id="bulkDraftDeleteForm" method="post" action="{{ url_for('api_hosts.host_bulk_delete_drafts_submit') }}" data-draft-bulk-form data-submit-status data-submit-message="正在批次刪除草稿，正式資產會自動略過。"></form>
     <form id="bulkDraftPromoteForm" method="post" action="{{ url_for('api_hosts.host_bulk_promote_drafts_submit') }}" data-draft-bulk-form data-submit-status data-submit-message="正在批次轉正式，正式資產會自動略過。"></form>
-    <form id="bulkStatusForm" method="post" action="{{ url_for('api_hosts.host_bulk_update_status_submit') }}" data-asset-bulk-form data-submit-status data-submit-message="正在批次更新資產狀態，請稍候。"></form>
     <form id="bulkDraftPromoteAllForm" method="post" action="{{ url_for('api_hosts.host_bulk_promote_drafts_submit') }}" data-submit-status data-submit-message="正在將全部草稿轉正式，資料不完整者會略過。">
       <input type="hidden" name="scope" value="all_drafts">
       <input type="hidden" name="return_status" value="draft">
       <input type="hidden" name="reason" value="initial CMDB build promote all drafts">
     </form>
     <form id="bulkDraftUpdateForm" method="post" action="{{ url_for('api_hosts.host_bulk_update_drafts_submit') }}" data-draft-bulk-form data-submit-status data-submit-message="正在批次補草稿欄位，正式資產會自動略過。"></form>
+    {% endif %}
     {% endif %}
     <table class="data-table asset-table asset-table-compact">
       <thead>
@@ -319,7 +324,7 @@
           {% if current_user.role in ["admin", "super", "superadmin"] %}
           <td>
             <input type="checkbox" name="asset_seq" value="{{ host.hostname or host.asset_seq }}" data-asset-checkbox>
-            {% if host.status == "draft" %}
+            {% if host.status == "draft" and not hide_draft_governance %}
             <input form="bulkDraftDeleteForm" type="checkbox" name="asset_seq" value="{{ host.hostname or host.asset_seq }}" data-draft-checkbox>
             {% else %}
             <span class="text-muted-sm">-</span>

@@ -77,11 +77,11 @@ def test_asset_secondary_actions_are_grouped_and_scan_rows_are_expandable():
     assert "批次轉正式，才算完成主機新增" in host_new
     assert "新增待補草稿完成，共" in host_new
     assert "進入草稿區處理" in host_new
-    assert "草稿區下一步" in hosts
+    assert "hide_draft_governance = true" in hosts
+    assert 'request.args.get("status") == "draft" and not hide_draft_governance' in hosts
     assert "草稿轉正式完成" in hosts
     assert '<details class="asset-bulk-panel asset-optional-section">' in hosts
-    assert "批次草稿處理 / 治理" in hosts
-    assert "低頻維運功能：用來清理掃描誤建草稿" in hosts
+    assert "host.status == \"draft\" and not hide_draft_governance" in hosts
     assert "asset-bulk-panel[open]" in css
     assert "資產已儲存，已回到資產管理列表" in hosts
     host_edit = read("webapp/templates/host_edit.html")
@@ -473,7 +473,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.84"' in config
+    assert 'VERSION = "1.0.3.85"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -616,8 +616,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     reports = read("webapp/routes/api_reports.py")
     data_quality = read("webapp/templates/data_quality.html")
 
-    assert 'VERSION = "1.0.3.84"' in config
-    assert "imported-assets-opening-check-default" in config
+    assert 'VERSION = "1.0.3.85"' in config
+    assert "hide-draft-governance-main-list" in config
     assert "data_quality_retire_selected_assets" in reports
     assert "data-quality-bulk-form=\"retire\"" in data_quality
     assert "can_bulk_retire" in read("webapp/services/quality_service.py")
@@ -730,7 +730,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "imported-assets-opening-check-default" in config
+    assert "hide-draft-governance-main-list" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog
