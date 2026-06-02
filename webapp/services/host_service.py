@@ -14,7 +14,7 @@ LOGGER = logging.getLogger(__name__)
 INACTIVE_LIST_STATUSES = {"disabled", "retired", "pending_retire"}
 OS_HOST_TYPE_KEYWORDS = {
     "aix": ("aix",),
-    "as400": ("as/400", "as400", "ibm i", "iseries"),
+    "as400": ("as/400", "as400", "ibm i", "ibmi", "ibm-i", "iseries"),
     "windows": ("windows", "win server", "microsoft"),
     "linux": (
         "linux",
@@ -68,7 +68,7 @@ def default_connection_for_host_type(host_type: str) -> str:
         return "ssh"
     if normalized == "windows":
         return "winrm"
-    if normalized == "aix":
+    if normalized in {"aix", "as400"}:
         return "ssh_raw"
     return ""
 

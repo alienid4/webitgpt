@@ -673,6 +673,9 @@ def test_platform_default_connection_rules():
     assert host_service.default_connection_for_host_type("linux") == "ssh"
     assert host_service.default_connection_for_host_type("windows") == "winrm"
     assert host_service.default_connection_for_host_type("aix") == "ssh_raw"
+    assert host_service.default_connection_for_host_type("as400") == "ssh_raw"
+    assert host_service.infer_host_type_from_os("IBM i 7.4") == "as400"
+    assert host_service.infer_host_type_from_os("IBMi V7R4") == "as400"
 
     aix_doc = cmdb_workbook_service._host_doc_from_hardware(
         {
@@ -686,6 +689,19 @@ def test_platform_default_connection_rules():
     )
     assert aix_doc["host_type"] == "aix"
     assert aix_doc["connection"] == "ssh_raw"
+
+    as400_doc = cmdb_workbook_service._host_doc_from_hardware(
+        {
+            "asset_seq": "HW-00000002",
+            "asset_name": "unit-test-as400",
+            "hostname": "unit-test-as400",
+            "ip": "127.0.0.2",
+            "os": "IBM i 7.4",
+        },
+        user="pytest",
+    )
+    assert as400_doc["host_type"] == "as400"
+    assert as400_doc["connection"] == "ssh_raw"
 
     win_doc = csv_service._apply_cmdb_defaults({"os": "Windows Server 2019", "host_type": ""})
     assert win_doc["host_type"] == "windows"

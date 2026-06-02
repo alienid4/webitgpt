@@ -10,12 +10,12 @@
   <div class="actions">
     <a class="btn primary" href="#cmdb-quality-details">看 CMDB 明細</a>
     {% if report.summary.cmdb_platform_mismatch and current_user.role in ["admin", "super", "superadmin"] %}
-    <form method="post" action="{{ url_for('api_reports.data_quality_apply_platform_suggestions') }}" onsubmit="return confirm('將依 OS 版本推論平台分類，例如 CentOS / Red Hat / Ubuntu / Debian -> Linux。確定執行？')">
+    <form method="post" action="{{ url_for('api_reports.data_quality_apply_platform_suggestions') }}" onsubmit="return confirm('將依 OS 版本推論平台分類，例如 CentOS / Red Hat / Ubuntu / Debian -> Linux，IBM i / iSeries -> AS400。確定執行？')">
       <button class="btn primary" type="submit">套用平台分類建議 {{ report.summary.cmdb_platform_mismatch }}</button>
     </form>
     {% endif %}
     {% if report.summary.cmdb_missing_connection and current_user.role in ["admin", "super", "superadmin"] %}
-    <form method="post" action="{{ url_for('api_reports.data_quality_apply_default_connections') }}" onsubmit="return confirm('會依平台分類批次補預設連線方式：Linux=SSH、Windows=WinRM、AIX=SSH Raw。只會處理缺少連線方式的資產，確定執行？')">
+    <form method="post" action="{{ url_for('api_reports.data_quality_apply_default_connections') }}" onsubmit="return confirm('會依平台分類批次補預設連線方式：Linux=SSH、Windows=WinRM、AIX/AS400=SSH Raw。只會處理缺少連線方式的資產，確定執行？')">
       <button class="btn primary" type="submit">套用預設連線 {{ report.summary.cmdb_missing_connection }}</button>
     </form>
     {% endif %}
