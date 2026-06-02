@@ -159,9 +159,7 @@ def _selected_system(system_name: str, options: list[dict[str, Any]]) -> str:
         return ""
     if requested and requested in names:
         return requested
-    if OPENING_DEFAULT_SYSTEM in names:
-        return OPENING_DEFAULT_SYSTEM
-    return sorted(names)[0] if names else ""
+    return ""
 
 
 def _shell(cmd: str, timeout: int = 12) -> tuple[int, str, str]:

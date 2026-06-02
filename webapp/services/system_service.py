@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.84",
+        "date": "2026-06-02 14:35 +08:00",
+        "patch_id": "imported-assets-opening-check-default",
+        "changes": [
+            "今日巡檢沒有指定系統時預設顯示全部系統，匯入後的正式資產可直接在對應平台巡檢候選中看見。",
+            "AS400 / IBM i / iSeries 納入平台自動分類規則。",
+            "AS400 預設連線方式補為 SSH Raw，與 AIX 一樣先建立盤點入口，後續再接實際 runner。",
+        ],
+    },
+    {
         "version": "1.0.3.83",
         "date": "2026-06-02 12:05 +08:00",
         "patch_id": "data-quality-lab-row-governance",
