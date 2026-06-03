@@ -113,6 +113,15 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.91",
+        "date": "2026-06-03 10:25 +08:00",
+        "patch_id": "asset-list-row-number-first-column",
+        "changes": [
+            "資產管理清單第一欄改為 1、2、3 這類簡單序號，降低掃讀負擔。",
+            "資產流水號不再佔用主清單第一欄，但仍保留在資料、詳情與編輯流程中供追溯。",
+        ],
+    },
+    {
         "version": "1.0.3.90",
         "date": "2026-06-03 10:05 +08:00",
         "patch_id": "asset-list-sn-first-column",

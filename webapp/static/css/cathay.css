@@ -1678,7 +1678,7 @@ a.metric:hover {
   padding: 5px 8px;
   vertical-align: middle;
 }
-.asset-table-compact .asset-col-sn { width: 110px; }
+.asset-table-compact .asset-col-row-number { width: 54px; }
 .asset-table-compact .asset-col-select { width: 42px; }
 .asset-table-compact .asset-col-status { width: 96px; }
 .asset-table-compact .asset-col-name { width: 210px; }
@@ -1692,9 +1692,9 @@ a.metric:hover {
 .asset-table-compact .asset-col-note { width: 180px; }
 .asset-table-compact .asset-col-actions { width: 78px; }
 .asset-table-compact .asset-col-expand { width: 62px; }
-.asset-sn-cell .code-inline {
+.asset-row-number-cell .code-inline {
   display: inline-block;
-  max-width: 96px;
+  max-width: 44px;
   overflow: hidden;
   text-overflow: ellipsis;
   vertical-align: middle;
