@@ -63,7 +63,7 @@ def test_passwd_account_log_warning_lists_accounts_compactly():
             "4月 17 20:23:21 sec9c2 passwd[3861]: can't view or modify password information for systemd-network",
             "4月 17 20:23:21 sec9c2 passwd[3906]: can't view or modify password information for systemd-timesync",
             "4月 17 20:23:21 sec9c2 passwd[3951]: can't view or modify password information for messagebus",
-            "4月 17 20:23:21 sec9c2 passwd[3996]: can't view or modify password information for alien",
+            "4月 17 20:23:21 sec9c2 passwd[3996]: can't view or modify password information for sampleuser",
             "4月 17 20:23:21 sec9c2 passwd[4041]: can't view or modify password information for sshd",
         ]
     )
@@ -72,7 +72,7 @@ def test_passwd_account_log_warning_lists_accounts_compactly():
     assert check["status"] == "warn"
     assert check["detail"].startswith("警示:passwd 訊息")
     assert "systemd-network, systemd-timesync, messagebus, sshd" in check["detail"]
-    assert "需確認:alien" in check["detail"]
+    assert "需確認:sampleuser" in check["detail"]
     assert "建議處置" not in check["detail"]
 
 

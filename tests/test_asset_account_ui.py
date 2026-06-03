@@ -11,7 +11,7 @@ def read(path: str) -> str:
 
 
 def test_never_login_is_information_not_abnormal_risk():
-    risk = normalize_account_risk("alien", {"risk": "從未登入", "can_login": True}, system_default=False)
+    risk = normalize_account_risk("sampleuser", {"risk": "從未登入", "can_login": True}, system_default=False)
 
     assert risk == "正常"
 
