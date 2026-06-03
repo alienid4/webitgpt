@@ -113,6 +113,12 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.4.4",
+        "date": "2026-06-03",
+        "patch_id": "cmdb-relationship-system-auto-classify",
+        "summary": "CMDB 系統關聯覆蓋明細改用可信系統欄位自動分類，避免設備類型或群組名被誤當成系統總數。",
+    },
+    {
         "version": "1.0.4.3",
         "date": "2026-06-03 20:25 +08:00",
         "patch_id": "cmdb-relationship-owner-count-menu",

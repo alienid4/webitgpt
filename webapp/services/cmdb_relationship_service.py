@@ -4,13 +4,30 @@ from typing import Any
 
 from webapp.services import host_service
 from webapp.services.mongo_service import get_collection
-from webapp.services.system_alias_service import canonical_host_system_name, normalize_system_text, system_match_key
+from webapp.services.system_alias_service import normalize_system_text, system_match_key
 
 
 DRAFT_STATUSES = {"draft", "pending_ip", "pending_data", "pending_deploy", "pending_retire"}
 RETIRED_STATUSES = {"retired"}
 PLACEHOLDER_SYSTEM_PREFIXES = ("掃描發現", "未分類", "待分類", "待補")
 PLACEHOLDER_SYSTEM_VALUES = {"-", "n/a", "na", "unknown", "none"}
+GENERIC_SYSTEM_VALUES = {
+    "end_device",
+    "linux",
+    "network_device",
+    "storage",
+    "vm",
+    "vmware_host",
+    "windows",
+    "伺服器",
+    "交換器",
+    "儲存設備",
+    "實體伺服器",
+    "待分類",
+    "端點設備",
+    "網路設備",
+    "防火牆",
+}
 
 
 def _filled(value: Any) -> bool:
@@ -34,6 +51,42 @@ def _is_placeholder_system_name(value: Any) -> bool:
     if text.casefold() in PLACEHOLDER_SYSTEM_VALUES:
         return True
     return any(text.startswith(prefix) for prefix in PLACEHOLDER_SYSTEM_PREFIXES)
+
+
+def _looks_like_device_category(value: Any, host: dict[str, Any]) -> bool:
+    """Return true when an imported asset name is only a type or group bucket."""
+    text = normalize_system_text(value)
+    if not text:
+        return True
+    text_key = system_match_key(text)
+    if text_key in {system_match_key(item) for item in GENERIC_SYSTEM_VALUES}:
+        return True
+    for field in ("device_type", "group_name", "host_type", "platform"):
+        other = normalize_system_text(host.get(field))
+        if other and text_key == system_match_key(other):
+            return True
+    return False
+
+
+def _system_name_candidate(host: dict[str, Any]) -> tuple[str, str]:
+    """Pick the field that is trustworthy enough to represent a system."""
+    system_name = normalize_system_text(host.get("system_name"))
+    if system_name and not _is_placeholder_system_name(system_name):
+        return system_name, "system_name"
+
+    asset_name = normalize_system_text(host.get("asset_name"))
+    if (
+        asset_name
+        and not _is_placeholder_system_name(asset_name)
+        and not _looks_like_device_category(asset_name, host)
+    ):
+        return asset_name, "asset_name"
+
+    apid = normalize_system_text(host.get("apid"))
+    if apid and not _is_placeholder_system_name(apid):
+        return apid, "apid"
+
+    return "", ""
 
 
 def _pct(count: int, total: int) -> int:
@@ -76,15 +129,15 @@ def _host_identity_values(host: dict[str, Any]) -> set[str]:
 
 
 def _host_system_key(host: dict[str, Any]) -> str:
-    for field in ("system_name", "asset_name", "apid"):
-        value = normalize_system_text(host.get(field))
-        if value and not _is_placeholder_system_name(value):
-            return system_match_key(value)
-    return ""
+    value, _source = _system_name_candidate(host)
+    return system_match_key(value) if value else ""
 
 
 def _display_system_name(host: dict[str, Any]) -> str:
-    return canonical_host_system_name(host, default=str(host.get("hostname") or "").strip() or "未分類")
+    value, _source = _system_name_candidate(host)
+    if value:
+        return value
+    return "待補系統關聯"
 
 
 def _host_ports(host: dict[str, Any]) -> list[str]:

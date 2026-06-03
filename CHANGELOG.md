@@ -1,5 +1,12 @@
 ﻿# webitgpt Changelog
 
+## v1.0.4.4 - 2026-06-03 21:10 +08:00 - cmdb-relationship-system-auto-classify
+
+- CMDB 系統關聯覆蓋明細改用可信系統欄位自動分類。
+- `system_name` 優先，可信 `asset_name` 次之，`APID` 作為最後 fallback。
+- 當 `asset_name` 只是設備類型、群組名或平台分類時，不再誤當成系統列，改歸入待補系統關聯。
+- 新增回歸測試，避免虛擬化平台、端點設備、網路設備等分類值撐大系統覆蓋總數。
+
 ## v1.0.4.3 - 2026-06-03 20:25 +08:00 - cmdb-relationship-owner-count-menu
 
 - CMDB 系統關聯覆蓋明細的 owner 欄改為固定短標籤下拉。

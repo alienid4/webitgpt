@@ -497,8 +497,69 @@ def test_cmdb_relationship_overview_does_not_group_by_asset_group_name(monkeypat
 
     assert counts["虛擬化平台"] == 1
     assert counts["中菲期貨系統"] == 1
-    assert counts["防火牆"] == 1
+    assert counts["待補系統關聯"] == 1
+    assert "防火牆" not in counts
     assert "shared-infra-group" not in counts
+
+
+def test_cmdb_relationship_overview_ignores_device_category_asset_names(monkeypatch):
+    from webapp.services import cmdb_relationship_service
+
+    hosts = [
+        {
+            "hostname": "generic-vm-1",
+            "asset_name": "vmware_host",
+            "device_type": "vmware_host",
+            "group_name": "vmware_host",
+            "ip": "10.0.0.1",
+            "status": "active",
+            "owner": "ops",
+        },
+        {
+            "hostname": "ocp-1",
+            "asset_name": "tech-ocp",
+            "device_type": "vm",
+            "ip": "10.0.0.2",
+            "status": "active",
+            "owner": "ops",
+        },
+        {
+            "hostname": "explicit-vm-1",
+            "system_name": "virtual-platform",
+            "asset_name": "vmware_host",
+            "device_type": "vmware_host",
+            "ip": "10.0.0.3",
+            "status": "active",
+            "owner": "ops",
+        },
+    ]
+
+    class FakeCursor(list):
+        def limit(self, _limit):
+            return self
+
+    class FakeCollection:
+        def find(self, *_args, **_kwargs):
+            return FakeCursor([])
+
+    monkeypatch.setattr(
+        cmdb_relationship_service.host_service,
+        "list_hosts",
+        lambda **_kwargs: {"items": hosts, "total": len(hosts), "page_size": 100},
+    )
+    monkeypatch.setattr(cmdb_relationship_service, "get_collection", lambda _name: FakeCollection())
+
+    overview = cmdb_relationship_service.cmdb_relationship_overview()
+    counts = {row["display_name"]: row["host_count"] for row in overview["systems"]}
+    classified_counts = {
+        row["display_name"]: row["host_count"]
+        for row in overview["systems"]
+        if row["is_classified"]
+    }
+
+    assert classified_counts == {"tech-ocp": 1, "virtual-platform": 1}
+    assert counts["待補系統關聯"] == 1
+    assert overview["coverage"]["system"]["count"] == 2
 
 
 def test_cmdb_relationship_page_renders_with_overview(monkeypatch):
@@ -574,7 +635,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.4.3"' in config
+    assert 'VERSION = "1.0.4.4"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -717,8 +778,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     reports = read("webapp/routes/api_reports.py")
     data_quality = read("webapp/templates/data_quality.html")
 
-    assert 'VERSION = "1.0.4.3"' in config
-    assert "cmdb-relationship-owner-count-menu" in config
+    assert 'VERSION = "1.0.4.4"' in config
+    assert "cmdb-relationship-system-auto-classify" in config
     assert "data_quality_retire_selected_assets" in reports
     assert "data-quality-bulk-form=\"retire\"" in data_quality
     assert "can_bulk_retire" in read("webapp/services/quality_service.py")
@@ -831,7 +892,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "cmdb-relationship-owner-count-menu" in config
+    assert "cmdb-relationship-system-auto-classify" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog
