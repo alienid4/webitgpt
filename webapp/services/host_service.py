@@ -143,7 +143,6 @@ def asset_scope_summary(query: str = "", filters: Optional[dict[str, Any]] = Non
     mongo_filter = build_host_filter(query, filters)
     projection = {"status": 1, "environment": 1, "host_type": 1, **{field: 1 for field in REQUIRED_FIELDS}}
     total = 0
-    complete_assets = 0
     missing_required_assets = 0
     review_assets = 0
     environments: set[str] = set()
@@ -154,8 +153,6 @@ def asset_scope_summary(query: str = "", filters: Optional[dict[str, Any]] = Non
         missing = [field for field in REQUIRED_FIELDS if item.get(field) in (None, "")]
         if missing:
             missing_required_assets += 1
-        else:
-            complete_assets += 1
         if status in DRAFT_LIKE_STATUSES or missing:
             review_assets += 1
         if item.get("environment"):
@@ -165,12 +162,43 @@ def asset_scope_summary(query: str = "", filters: Optional[dict[str, Any]] = Non
     return {
         "total": total,
         "auto_ingested": total,
-        "complete_assets": complete_assets,
+        "complete_assets": max(total - review_assets, 0),
         "missing_required_assets": missing_required_assets,
         "review_assets": review_assets,
         "environments": len(environments),
         "types": len(types),
     }
+
+
+def _missing_required_filter() -> dict[str, Any]:
+    checks: list[dict[str, Any]] = []
+    for field in REQUIRED_FIELDS:
+        checks.extend([{field: {"$exists": False}}, {field: None}, {field: ""}])
+    return {"$or": checks}
+
+
+def _governance_filter(value: str) -> dict[str, Any]:
+    missing = _missing_required_filter()
+    if value == "missing":
+        return missing
+    if value == "review":
+        return {"$or": [{"status": {"$in": sorted(DRAFT_LIKE_STATUSES)}}, missing]}
+    if value == "auto":
+        return {
+            "$and": [
+                {"status": {"$nin": sorted(DRAFT_LIKE_STATUSES)}},
+                {"$nor": missing["$or"]},
+            ]
+        }
+    return {}
+
+
+def _and_filter(base: dict[str, Any], extra: dict[str, Any]) -> dict[str, Any]:
+    if not extra:
+        return base
+    if not base:
+        return extra
+    return {"$and": [base, extra]}
 
 
 def build_host_filter(query: str = "", filters: Optional[dict[str, Any]] = None) -> dict[str, Any]:
@@ -192,6 +220,7 @@ def build_host_filter(query: str = "", filters: Optional[dict[str, Any]] = None)
             {"asset_name": {"$regex": query, "$options": "i"}},
             {"system_name": {"$regex": query, "$options": "i"}},
         ]
+    mongo_filter = _and_filter(mongo_filter, _governance_filter(str(filters.get("governance") or "")))
     return mongo_filter
 
 

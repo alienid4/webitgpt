@@ -411,6 +411,7 @@ def hosts_page():
             "environment": request.args.get("environment", ""),
             "host_type": request.args.get("host_type", ""),
             "dc": request.args.get("dc", ""),
+            "governance": request.args.get("governance", ""),
             "include_inactive": request.args.get("include_inactive") == "1",
         },
         "page": int(request.args.get("page", "1")),

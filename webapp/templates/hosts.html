@@ -117,9 +117,9 @@
 
   <section class="summary-grid asset-summary">
     <a class="metric" href="#asset-details"><strong>{{ asset_summary.auto_ingested }}</strong><span>已納入資產池</span></a>
-    <a class="metric" href="#asset-details"><strong>{{ asset_summary.complete_assets }}</strong><span>可自動彙整</span></a>
-    <a class="metric" href="#asset-details"><strong>{{ asset_summary.review_assets }}</strong><span>人工待判斷</span></a>
-    <a class="metric" href="#asset-details"><strong>{{ asset_summary.missing_required_assets }}</strong><span>需補關鍵資料</span></a>
+    <a class="metric" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100), governance='auto') }}#asset-details"><strong>{{ asset_summary.complete_assets }}</strong><span>可自動彙整</span></a>
+    <a class="metric" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100), governance='review') }}#asset-details"><strong>{{ asset_summary.review_assets }}</strong><span>人工待判斷</span></a>
+    <a class="metric" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100), governance='missing') }}#asset-details"><strong>{{ asset_summary.missing_required_assets }}</strong><span>需補關鍵資料</span></a>
     <a class="metric" href="#asset-details"><strong>{{ asset_summary.environments }}</strong><span>環境種類</span></a>
     <a class="metric" href="#asset-details"><strong>{{ asset_summary.types }}</strong><span>平台種類</span></a>
   </section>

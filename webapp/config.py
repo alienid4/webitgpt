@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.3.96"
-PATCH_ID = "asset-pool-kpi-auto-ingest"
-RELEASE_NOTE = "資產管理 KPI 改為資產池治理口徑：匯入資料先全部自動納入，只有草稿、缺關鍵欄位或衝突資料列為人工待判斷，避免把完整度數字誤解為匯入總數。"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-06-03 13:45:00 +08:00")
+VERSION = "1.0.3.97"
+PATCH_ID = "asset-pool-kpi-clickable-governance"
+RELEASE_NOTE = "資產管理 KPI 改為可點擊治理篩選：可自動彙整會扣除人工待判斷資料，點選人工待判斷或需補關鍵資料可直接過濾到對應明細。"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-06-03 14:30:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

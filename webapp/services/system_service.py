@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.97",
+        "date": "2026-06-03 14:30 +08:00",
+        "patch_id": "asset-pool-kpi-clickable-governance",
+        "changes": [
+            "可自動彙整改為總數扣除人工待判斷，避免 592 被解讀成 592 + 2。",
+            "資產管理 KPI 卡片加入治理篩選連結，可直接點人工待判斷或需補關鍵資料查看明細。",
+            "新增 governance=auto/review/missing 查詢條件，讓 KPI 與清單資料使用同一套後端篩選口徑。",
+        ],
+    },
+    {
         "version": "1.0.3.96",
         "date": "2026-06-03 13:45 +08:00",
         "patch_id": "asset-pool-kpi-auto-ingest",
