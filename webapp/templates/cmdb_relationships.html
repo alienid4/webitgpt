@@ -143,9 +143,10 @@
       {% endfor %}
       {% endfor %}
     </datalist>
-    <span id="cmdbSystemFilterCount" class="status-pill">全部 {{ overview.systems|length }}</span>
+    <button type="button" id="cmdbSystemShowAll" class="btn-sm btn-secondary">顯示全部</button>
+    <span id="cmdbSystemFilterCount" class="status-pill">搜尋後顯示</span>
   </div>
-  <div class="table-wrap">
+  <div class="table-wrap cmdb-system-results" id="cmdbSystemResults" hidden>
     <table class="data-table cmdb-system-table">
       <thead>
         <tr>
@@ -202,6 +203,8 @@
 (function () {
   var input = document.getElementById("cmdbSystemFilter");
   var count = document.getElementById("cmdbSystemFilterCount");
+  var results = document.getElementById("cmdbSystemResults");
+  var showAll = document.getElementById("cmdbSystemShowAll");
   var rows = Array.prototype.slice.call(document.querySelectorAll("[data-cmdb-system-row]"));
   if (!input || !rows.length) {
     return;
@@ -212,19 +215,33 @@
   function applyFilter() {
     var query = normalize(input.value);
     var visible = 0;
+    var shouldShowAll = input.getAttribute("data-show-all") === "1";
     rows.forEach(function (row) {
       var text = normalize(row.getAttribute("data-filter-text"));
-      var match = !query || text.indexOf(query) !== -1;
+      var match = shouldShowAll || (query && text.indexOf(query) !== -1);
       row.hidden = !match;
       if (match) {
         visible += 1;
       }
     });
+    if (results) {
+      results.hidden = !query && !shouldShowAll;
+    }
     if (count) {
-      count.textContent = query ? "符合 " + visible : "全部 " + rows.length;
+      count.textContent = query || shouldShowAll ? "符合 " + visible : "搜尋後顯示";
     }
   }
-  input.addEventListener("input", applyFilter);
+  input.addEventListener("input", function () {
+    input.removeAttribute("data-show-all");
+    applyFilter();
+  });
+  if (showAll) {
+    showAll.addEventListener("click", function () {
+      input.value = "";
+      input.setAttribute("data-show-all", "1");
+      applyFilter();
+    });
+  }
   applyFilter();
 })();
 </script>

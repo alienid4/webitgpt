@@ -1,5 +1,10 @@
-# webitgpt Changelog
+﻿# webitgpt Changelog
 
+## v1.0.4.6 - 2026-06-03 23:20 +08:00 - cmdb-relationship-compact-search-results
+
+- CMDB 系統關聯覆蓋明細預設只顯示搜尋列與符合數量，避免完整表格佔用版面。
+- 輸入系統/資產名稱後才展開符合列；需要全看時可按「顯示全部」。
+- 補 UI contract test，固定預設收合與搜尋後顯示的互動合約。
 ## v1.0.4.5 - 2026-06-03 22:45 +08:00 - cmdb-relationship-searchable-system-filter
 
 - CMDB 系統關聯覆蓋明細新增可搜尋系統篩選，可輸入系統/資產名稱快速縮小清單。
@@ -916,4 +921,5 @@
 ## v1.0.0.1 - 2026-05-10 - phase1-ui-and-account-inventory
 
 - 撱箇? Phase 1 ?箇???董?暺極雿???Ｘ??柴瑼Ｕebug??閬?stub?蝵脰?祈? 221 ?函蔡瘚???
+
 

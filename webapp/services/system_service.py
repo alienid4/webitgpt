@@ -113,6 +113,12 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.4.6",
+        "date": "2026-06-03 23:20 +08:00",
+        "patch_id": "cmdb-relationship-compact-search-results",
+        "summary": "CMDB 系統關聯覆蓋明細預設收合，只在搜尋或顯示全部時展開結果。",
+    },
+    {
         "version": "1.0.4.5",
         "date": "2026-06-03 22:45 +08:00",
         "patch_id": "cmdb-relationship-searchable-system-filter",

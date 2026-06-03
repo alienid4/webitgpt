@@ -333,11 +333,15 @@ def test_cmdb_relationship_dashboard_contracts_exist():
     assert "cmdb-owner-menu" in relationships
     assert "owner {{ system.owners|length }}" in relationships
     assert "cmdbSystemFilter" in relationships
+    assert "cmdbSystemShowAll" in relationships
+    assert "cmdbSystemResults" in relationships
+    assert "搜尋後顯示" in relationships
     assert "data-cmdb-system-row" in relationships
     assert "data-filter-text" in relationships
+    assert "data-show-all" in relationships
     assert "center=selected_system.key" not in relationships
     assert "center=system.key" not in relationships
-    for token in [".cmdb-coverage-grid", ".cmdb-relation-map", ".cmdb-gap-item", ".cmdb-system-table", ".cmdb-row-menu", ".cmdb-owner-menu", ".cmdb-system-filter"]:
+    for token in [".cmdb-coverage-grid", ".cmdb-relation-map", ".cmdb-gap-item", ".cmdb-system-table", ".cmdb-row-menu", ".cmdb-owner-menu", ".cmdb-system-filter", ".cmdb-system-results[hidden]"]:
         assert token in css
 
 
@@ -687,7 +691,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.4.5"' in config
+    assert 'VERSION = "1.0.4.6"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -830,8 +834,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     reports = read("webapp/routes/api_reports.py")
     data_quality = read("webapp/templates/data_quality.html")
 
-    assert 'VERSION = "1.0.4.5"' in config
-    assert "cmdb-relationship-searchable-system-filter" in config
+    assert 'VERSION = "1.0.4.6"' in config
+    assert "cmdb-relationship-compact-search-results" in config
     assert "data_quality_retire_selected_assets" in reports
     assert "data-quality-bulk-form=\"retire\"" in data_quality
     assert "can_bulk_retire" in read("webapp/services/quality_service.py")
@@ -944,7 +948,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "cmdb-relationship-searchable-system-filter" in config
+    assert "cmdb-relationship-compact-search-results" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog
