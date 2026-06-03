@@ -150,7 +150,20 @@
           <td>{{ system.host_count }}</td>
           <td>{{ system.formal_count }}</td>
           <td>{{ system.draft_count }}</td>
-          <td>{{ system.owners|join(" / ") if system.owners else "-" }}</td>
+          <td>
+            {% if system.owners %}
+            <details class="cmdb-owner-menu">
+              <summary>{{ system.owners[0] }}{% if system.owners|length > 1 %} / 共 {{ system.owners|length }} 組{% endif %}</summary>
+              <div class="cmdb-owner-menu-panel">
+                {% for owner in system.owners %}
+                <span>{{ owner }}</span>
+                {% endfor %}
+              </div>
+            </details>
+            {% else %}
+            -
+            {% endif %}
+          </td>
           <td>{{ system.missing_owner }}</td>
           <td>{{ system.missing_notification }}</td>
           <td>{{ system.missing_ports }}</td>

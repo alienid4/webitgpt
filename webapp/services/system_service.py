@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.4.2",
+        "date": "2026-06-03 19:55 +08:00",
+        "patch_id": "cmdb-relationship-compact-owner-menu",
+        "changes": [
+            "CMDB 系統關聯覆蓋明細的 owner 欄改為摘要下拉。",
+            "多位 owner 不再直接以斜線全部攤開，避免表格列高被長名單撐開。",
+            "新增 UI contract test，確認 owner 欄維持單行摘要與可展開完整名單。",
+        ],
+    },
+    {
         "version": "1.0.4.1",
         "date": "2026-06-03 17:35 +08:00",
         "patch_id": "cmdb-relationship-row-action-menu",
