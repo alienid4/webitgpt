@@ -113,6 +113,17 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.96",
+        "date": "2026-06-03 13:45 +08:00",
+        "patch_id": "asset-pool-kpi-auto-ingest",
+        "changes": [
+            "資產管理 KPI 改成資產池治理口徑，已匯入資料會先顯示為已納入資產池。",
+            "人工待判斷改為例外集合，包含草稿與缺關鍵欄位，不再被誤解為匯入失敗。",
+            "完整度、環境與平台改為治理維度說明，明確標示不需要與資產總數相加。",
+            "KPI 摘要改用目前篩選條件的全量資料計算，不再只算本頁 100 筆。",
+        ],
+    },
+    {
         "version": "1.0.3.95",
         "date": "2026-06-03 11:45 +08:00",
         "patch_id": "cumulative-ui-parity-release",

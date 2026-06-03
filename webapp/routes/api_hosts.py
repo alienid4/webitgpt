@@ -433,7 +433,7 @@ def hosts_page():
         status_labels=ASSET_STATUS_LABELS,
         host_type_labels=HOST_TYPE_LABELS,
         dc_labels=DC_LABELS,
-        asset_summary=_asset_page_summary(data.get("items", [])),
+        asset_summary=host_service.asset_scope_summary(params["query"], params["filters"]),
         status_counts=host_service.status_counts(),
         refresh_result=None,
     )

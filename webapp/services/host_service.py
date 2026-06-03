@@ -7,7 +7,7 @@ from typing import Any, Optional
 from pymongo import ASCENDING, DESCENDING
 
 from webapp.services.host_dir_service import archive_dir, init_dir, restore_dir, write_meta
-from webapp.services.host_schema import DRAFT_LIKE_STATUSES, ValidationError, assert_valid_host_doc, normalize_host_doc
+from webapp.services.host_schema import DRAFT_LIKE_STATUSES, REQUIRED_FIELDS, ValidationError, assert_valid_host_doc, normalize_host_doc
 from webapp.services.mongo_service import get_collection
 
 LOGGER = logging.getLogger(__name__)
@@ -136,6 +136,40 @@ def list_hosts(
         "total": total,
         "page": page,
         "page_size": page_size,
+    }
+
+
+def asset_scope_summary(query: str = "", filters: Optional[dict[str, Any]] = None) -> dict[str, int]:
+    mongo_filter = build_host_filter(query, filters)
+    projection = {"status": 1, "environment": 1, "host_type": 1, **{field: 1 for field in REQUIRED_FIELDS}}
+    total = 0
+    complete_assets = 0
+    missing_required_assets = 0
+    review_assets = 0
+    environments: set[str] = set()
+    types: set[str] = set()
+    for item in get_collection("hosts").find(mongo_filter, projection):
+        total += 1
+        status = str(item.get("status") or "")
+        missing = [field for field in REQUIRED_FIELDS if item.get(field) in (None, "")]
+        if missing:
+            missing_required_assets += 1
+        else:
+            complete_assets += 1
+        if status in DRAFT_LIKE_STATUSES or missing:
+            review_assets += 1
+        if item.get("environment"):
+            environments.add(str(item["environment"]))
+        if item.get("host_type"):
+            types.add(str(item["host_type"]))
+    return {
+        "total": total,
+        "auto_ingested": total,
+        "complete_assets": complete_assets,
+        "missing_required_assets": missing_required_assets,
+        "review_assets": review_assets,
+        "environments": len(environments),
+        "types": len(types),
     }
 
 

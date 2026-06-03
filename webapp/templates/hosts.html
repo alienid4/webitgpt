@@ -116,13 +116,14 @@
   </div>
 
   <section class="summary-grid asset-summary">
-    <a class="metric" href="#asset-details"><strong>{{ data.get("total", 0) }}</strong><span>資產總數</span></a>
-    <a class="metric" href="{{ url_for('api_hosts.hosts_page', status='draft') }}"><strong>{{ status_counts.get("draft", 0) }}</strong><span>草稿</span></a>
-    <a class="metric" href="#asset-details"><strong>{{ asset_summary.complete_assets }}</strong><span>必填完整</span></a>
-    <a class="metric" href="#asset-details"><strong>{{ asset_summary.missing_required }}</strong><span>缺漏必填欄位</span></a>
-    <a class="metric" href="#asset-details"><strong>{{ asset_summary.environments }}</strong><span>環境數</span></a>
-    <a class="metric" href="#asset-details"><strong>{{ asset_summary.types }}</strong><span>平台類型數</span></a>
+    <a class="metric" href="#asset-details"><strong>{{ asset_summary.auto_ingested }}</strong><span>已納入資產池</span></a>
+    <a class="metric" href="#asset-details"><strong>{{ asset_summary.complete_assets }}</strong><span>可自動彙整</span></a>
+    <a class="metric" href="#asset-details"><strong>{{ asset_summary.review_assets }}</strong><span>人工待判斷</span></a>
+    <a class="metric" href="#asset-details"><strong>{{ asset_summary.missing_required_assets }}</strong><span>需補關鍵資料</span></a>
+    <a class="metric" href="#asset-details"><strong>{{ asset_summary.environments }}</strong><span>環境種類</span></a>
+    <a class="metric" href="#asset-details"><strong>{{ asset_summary.types }}</strong><span>平台種類</span></a>
   </section>
+  <p class="asset-summary-note text-muted-sm">已匯入資料會先自動納入資產池；只有草稿、缺關鍵欄位或衝突資料才需要人工判斷。完整度與環境 / 平台是治理維度，不會與資產總數相加。</p>
 
   <section class="panel compact">
     <div class="saved-view-row">

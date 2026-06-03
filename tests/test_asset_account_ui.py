@@ -473,7 +473,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.95"' in config
+    assert 'VERSION = "1.0.3.96"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -616,8 +616,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     reports = read("webapp/routes/api_reports.py")
     data_quality = read("webapp/templates/data_quality.html")
 
-    assert 'VERSION = "1.0.3.95"' in config
-    assert "cumulative-ui-parity-release" in config
+    assert 'VERSION = "1.0.3.96"' in config
+    assert "asset-pool-kpi-auto-ingest" in config
     assert "data_quality_retire_selected_assets" in reports
     assert "data-quality-bulk-form=\"retire\"" in data_quality
     assert "can_bulk_retire" in read("webapp/services/quality_service.py")
@@ -730,7 +730,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "cumulative-ui-parity-release" in config
+    assert "asset-pool-kpi-auto-ingest" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog
@@ -1052,6 +1052,58 @@ def test_asset_management_defaults_to_100_rows_per_page():
     assert 'request.form.get("page_size", "100")' in routes
     assert 'data = {"items": [], "total": 0, "page": 1, "page_size": 100' in routes
     assert "data.get('page_size', 100)" in html
+
+
+def test_asset_management_summary_uses_ingestion_governance_language():
+    hosts = read("webapp/templates/hosts.html")
+    routes = read("webapp/routes/api_hosts.py")
+
+    for text in ["已納入資產池", "可自動彙整", "人工待判斷", "需補關鍵資料", "環境種類", "平台種類"]:
+        assert text in hosts
+    assert "已匯入資料會先自動納入資產池" in hosts
+    assert "不會與資產總數相加" in hosts
+    assert 'asset_summary=host_service.asset_scope_summary(params["query"], params["filters"])' in routes
+    assert "_asset_page_summary(data.get(\"items\", []))" not in routes
+
+
+def test_asset_scope_summary_counts_full_filtered_scope(monkeypatch):
+    from webapp.services import host_service
+
+    class FakeCollection:
+        def find(self, *_args, **_kwargs):
+            return iter([
+                {
+                    "status": "active",
+                    "division": "A",
+                    "department": "B",
+                    "hostname": "h1",
+                    "group_name": "H1",
+                    "asset_name": "s1",
+                    "device_type": "server",
+                    "quantity": "1",
+                    "owner": "owner",
+                    "environment": "PROD",
+                    "custodian": "cust",
+                    "company": "company",
+                    "host_type": "linux",
+                    "dc": "dunan",
+                    "integrity": "3",
+                    "confidentiality": "3",
+                    "availability": "3",
+                },
+                {"status": "draft", "hostname": "h2", "environment": "TEST", "host_type": "windows"},
+                {"status": "active", "hostname": "h3", "environment": "PROD", "host_type": "linux"},
+            ])
+
+    monkeypatch.setattr(host_service, "get_collection", lambda _name: FakeCollection())
+    summary = host_service.asset_scope_summary()
+
+    assert summary["auto_ingested"] == 3
+    assert summary["complete_assets"] == 1
+    assert summary["missing_required_assets"] == 2
+    assert summary["review_assets"] == 2
+    assert summary["environments"] == 2
+    assert summary["types"] == 2
 
 
 def test_metric_cards_are_clickable_across_pages():

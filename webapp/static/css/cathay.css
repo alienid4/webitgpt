@@ -1667,6 +1667,7 @@ a.metric:hover {
 .asset-filter-compact .btn,
 .asset-filter-compact button { min-height: 34px; padding: 8px 14px; }
 .asset-summary { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.asset-summary-note { margin: -8px 12px 14px; }
 .asset-table-wrap { padding: 12px; overflow-x: auto; }
 .asset-table { min-width: 1260px; }
 .asset-table-compact {

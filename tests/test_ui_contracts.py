@@ -578,7 +578,7 @@ def test_asset_governance_status_admin_contracts_exist():
         assert text in hosts_template or text in host_routes or text in host_service or text in read("webapp/services/cmdb_service.py")
     for text in ["主機名稱 / OS 可信度", "Hostname 來源", "OS 來源", "verifyIdentityForm"]:
         assert text in host_edit
-    assert '<span>草稿</span>' in hosts_template
+    assert '<span>人工待判斷</span>' in hosts_template
     assert "host_bulk_delete_drafts_submit" in host_routes
     assert "bulk_delete_draft_hosts" in host_service
     assert "不是草稿；正式資產請走下線或汰除流程" in host_service
