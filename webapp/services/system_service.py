@@ -113,6 +113,15 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.93",
+        "date": "2026-06-03 11:05 +08:00",
+        "patch_id": "release-tar-89-compatible-layout",
+        "changes": [
+            "Release patch tar 恢復與 v1.0.3.89 相同的版本資料夾結構。",
+            "保留既有現場 shell 的 cd 套件目錄後執行 install.sh 流程。",
+        ],
+    },
+    {
         "version": "1.0.3.92",
         "date": "2026-06-03 10:45 +08:00",
         "patch_id": "release-tar-root-install-layout",
