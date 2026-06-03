@@ -154,7 +154,12 @@
           <td>{{ system.missing_owner }}</td>
           <td>{{ system.missing_notification }}</td>
           <td>{{ system.missing_ports }}</td>
-          <td><a class="btn-sm" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=system.topology_center or system.key, focus_impact=1) }}">看影響圖</a></td>
+          <td>
+            <details class="cmdb-row-menu">
+              <summary>動作</summary>
+              <a class="btn-sm btn-secondary" href="{{ url_for('api_reports.dependencies_page', view='core_impact', center=system.topology_center or system.key, focus_impact=1) }}">看影響圖</a>
+            </details>
+          </td>
         </tr>
         {% else %}
         <tr><td colspan="9" class="no-data">目前沒有 CMDB 資產資料。</td></tr>

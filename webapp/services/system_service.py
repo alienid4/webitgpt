@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.4.1",
+        "date": "2026-06-03 17:35 +08:00",
+        "patch_id": "cmdb-relationship-row-action-menu",
+        "changes": [
+            "CMDB 系統關聯覆蓋明細的關聯圖操作改為每列下拉選單。",
+            "操作欄保留看影響圖入口，但不再用文字連結撐高表格列。",
+            "新增 UI contract test，避免關聯覆蓋明細操作欄回退成佔版面的連結。",
+        ],
+    },
+    {
         "version": "1.0.4.0",
         "date": "2026-06-03 17:05 +08:00",
         "patch_id": "relationship-coverage-system-key-fix",

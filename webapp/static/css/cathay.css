@@ -1849,6 +1849,49 @@ a.metric:hover {
   width: 132px;
   margin: 5px 8px 0 auto;
 }
+.cmdb-row-menu {
+  position: relative;
+  display: inline-block;
+}
+.cmdb-row-menu summary {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 3px 8px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-xs);
+  background: var(--bg);
+  font-weight: 800;
+  white-space: nowrap;
+}
+.cmdb-row-menu[open] {
+  z-index: 8;
+}
+.cmdb-row-menu[open] summary {
+  border-color: var(--g1);
+  color: var(--g-text);
+}
+.cmdb-row-menu[open]::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 34px;
+  width: 128px;
+  min-height: 38px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .08);
+}
+.cmdb-row-menu[open] > .btn-sm {
+  position: relative;
+  z-index: 9;
+  display: flex;
+  width: 110px;
+  margin: 5px 8px 0 auto;
+  white-space: nowrap;
+}
 .asset-detail-row[hidden] {
   display: none;
 }

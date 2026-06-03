@@ -329,9 +329,10 @@ def test_cmdb_relationship_dashboard_contracts_exist():
         assert token in service
     assert "selected_system.topology_center" in relationships
     assert "system.topology_center" in relationships
+    assert "cmdb-row-menu" in relationships
     assert "center=selected_system.key" not in relationships
     assert "center=system.key" not in relationships
-    for token in [".cmdb-coverage-grid", ".cmdb-relation-map", ".cmdb-gap-item", ".cmdb-system-table"]:
+    for token in [".cmdb-coverage-grid", ".cmdb-relation-map", ".cmdb-gap-item", ".cmdb-system-table", ".cmdb-row-menu"]:
         assert token in css
 
 
@@ -571,7 +572,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.4.0"' in config
+    assert 'VERSION = "1.0.4.1"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -714,8 +715,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     reports = read("webapp/routes/api_reports.py")
     data_quality = read("webapp/templates/data_quality.html")
 
-    assert 'VERSION = "1.0.4.0"' in config
-    assert "relationship-coverage-system-key-fix" in config
+    assert 'VERSION = "1.0.4.1"' in config
+    assert "cmdb-relationship-row-action-menu" in config
     assert "data_quality_retire_selected_assets" in reports
     assert "data-quality-bulk-form=\"retire\"" in data_quality
     assert "can_bulk_retire" in read("webapp/services/quality_service.py")
@@ -828,7 +829,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "relationship-coverage-system-key-fix" in config
+    assert "cmdb-relationship-row-action-menu" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog
