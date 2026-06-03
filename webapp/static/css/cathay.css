@@ -1895,14 +1895,16 @@ a.metric:hover {
 .cmdb-owner-menu {
   position: relative;
   display: inline-block;
-  max-width: 220px;
 }
 .cmdb-owner-menu summary {
   cursor: pointer;
-  display: block;
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 3px 8px;
+  border: 1px solid var(--c4);
+  border-radius: var(--radius-xs);
+  background: var(--bg);
   white-space: nowrap;
   font-weight: 800;
 }

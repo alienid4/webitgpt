@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.4.3",
+        "date": "2026-06-03 20:25 +08:00",
+        "patch_id": "cmdb-relationship-owner-count-menu",
+        "changes": [
+            "CMDB 系統關聯覆蓋明細的 owner 欄改為固定短標籤下拉。",
+            "表格主列只顯示 owner 數量，完整 owner 名單點開查看。",
+            "避免第一位 owner 名稱過長時仍造成欄位換行與列高膨脹。",
+        ],
+    },
+    {
         "version": "1.0.4.2",
         "date": "2026-06-03 19:55 +08:00",
         "patch_id": "cmdb-relationship-compact-owner-menu",
