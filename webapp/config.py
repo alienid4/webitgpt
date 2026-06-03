@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.3.93"
-PATCH_ID = "release-tar-89-compatible-layout"
-RELEASE_NOTE = "修正 Release patch tar 結構，恢復與 v1.0.3.89 相同的版本資料夾格式，保留既有現場安裝 shell 相容性。"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-06-03 11:05:00 +08:00")
+VERSION = "1.0.3.94"
+PATCH_ID = "release-installer-sh-wrapper"
+RELEASE_NOTE = "修正 Release patch installer 相容性，外層腳本即使用 sh 呼叫 install.sh 也會自動切回 bash，避免 pipefail 失敗。"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-06-03 11:20:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

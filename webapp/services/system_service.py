@@ -113,6 +113,15 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.94",
+        "date": "2026-06-03 11:20 +08:00",
+        "patch_id": "release-installer-sh-wrapper",
+        "changes": [
+            "Release patch install.sh 增加 sh wrapper，外層腳本即使用 sh 呼叫也會自動切回 bash。",
+            "套件結構維持 v1.0.3.89 版本資料夾格式，保留現場 shell 相容性。",
+        ],
+    },
+    {
         "version": "1.0.3.93",
         "date": "2026-06-03 11:05 +08:00",
         "patch_id": "release-tar-89-compatible-layout",
