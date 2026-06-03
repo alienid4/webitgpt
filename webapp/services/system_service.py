@@ -113,6 +113,15 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.95",
+        "date": "2026-06-03 11:45 +08:00",
+        "patch_id": "cumulative-ui-parity-release",
+        "changes": [
+            "Release patch 改為帶完整 webapp 應用檔，避免公司主機升版後仍保留舊 UI template。",
+            "資產管理清單第一欄維持 1、2、3 類序號，不再顯示 HW 資產流水號。",
+        ],
+    },
+    {
         "version": "1.0.3.94",
         "date": "2026-06-03 11:20 +08:00",
         "patch_id": "release-installer-sh-wrapper",
