@@ -9,6 +9,8 @@ from webapp.services.system_alias_service import canonical_host_system_name, nor
 
 DRAFT_STATUSES = {"draft", "pending_ip", "pending_data", "pending_deploy", "pending_retire"}
 RETIRED_STATUSES = {"retired"}
+PLACEHOLDER_SYSTEM_PREFIXES = ("掃描發現", "未分類", "待分類", "待補")
+PLACEHOLDER_SYSTEM_VALUES = {"-", "n/a", "na", "unknown", "none"}
 
 
 def _filled(value: Any) -> bool:
@@ -23,6 +25,15 @@ def _filled(value: Any) -> bool:
 
 def _has_any(host: dict[str, Any], fields: list[str]) -> bool:
     return any(_filled(host.get(field)) for field in fields)
+
+
+def _is_placeholder_system_name(value: Any) -> bool:
+    text = normalize_system_text(value)
+    if not text:
+        return True
+    if text.casefold() in PLACEHOLDER_SYSTEM_VALUES:
+        return True
+    return any(text.startswith(prefix) for prefix in PLACEHOLDER_SYSTEM_PREFIXES)
 
 
 def _pct(count: int, total: int) -> int:
@@ -65,9 +76,9 @@ def _host_identity_values(host: dict[str, Any]) -> set[str]:
 
 
 def _host_system_key(host: dict[str, Any]) -> str:
-    for field in ("system_name", "group_name", "apid"):
+    for field in ("system_name", "asset_name", "apid"):
         value = normalize_system_text(host.get(field))
-        if value:
+        if value and not _is_placeholder_system_name(value):
             return system_match_key(value)
     return ""
 
@@ -237,7 +248,7 @@ def cmdb_relationship_overview(selected_system: str = "") -> dict[str, Any]:
             "key": "missing_system",
             "label": "缺系統關聯",
             "count": max(total - system_count, 0),
-            "action": "補 system_name、group_name 或 APID，才能納入核心影響圖。",
+            "action": "補 system_name、asset_name 或 APID，才能納入核心影響圖。",
         },
         {
             "key": "missing_notification",

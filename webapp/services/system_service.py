@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.4.0",
+        "date": "2026-06-03 17:05 +08:00",
+        "patch_id": "relationship-coverage-system-key-fix",
+        "changes": [
+            "CMDB 系統關聯覆蓋明細改用 system_name、asset_name 或 APID 分組。",
+            "不再用 group_name 當系統分組 key，避免資產群組被誤算成單一系統數量。",
+            "新增 regression test，確認相同 group_name 下的不同系統不會被合併。",
+        ],
+    },
+    {
         "version": "1.0.3.99",
         "date": "2026-06-03 16:20 +08:00",
         "patch_id": "relationship-coverage-full-asset-scope",
