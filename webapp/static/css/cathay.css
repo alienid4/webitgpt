@@ -551,6 +551,12 @@ a.metric:hover {
   gap: 8px;
   min-width: 0;
 }
+.label-with-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
 .inline-help {
   position: relative;
   display: inline-flex;
@@ -617,6 +623,10 @@ a.metric:hover {
   color: var(--c3);
   font-size: 13px;
   line-height: 1.5;
+}
+.opening-scope-help .inline-help-panel {
+  left: 0;
+  right: auto;
 }
 .opening-empty-state {
   display: flex;

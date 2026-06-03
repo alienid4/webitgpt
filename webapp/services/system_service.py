@@ -113,6 +113,15 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.88",
+        "date": "2026-06-03 09:20 +08:00",
+        "patch_id": "opening-scope-help-compact-ui",
+        "changes": [
+            "開門檢查範圍說明改為問號提示，保留正式資產與可巡檢主機差異說明，但不再佔用篩選列空間。",
+            "修正遠端桌面或窄版解析度下，範圍說明文字跑成直排並擠壓統計卡片的問題。",
+        ],
+    },
+    {
         "version": "1.0.3.87",
         "date": "2026-06-02 22:45 +08:00",
         "patch_id": "system-name-alias-governance",
