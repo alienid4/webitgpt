@@ -1,5 +1,12 @@
 ﻿# webitgpt Changelog
 
+## v1.0.4.7 - 2026-06-04 06:45 +08:00 - asset-list-on-demand-results
+
+- 資產管理頁的資產明細預設收合，只保留精簡入口，避免大量資料表佔滿首頁。
+- 搜尋、篩選、點擊資產總數或按「顯示全部」後才展開資產清單。
+- 環境分類與平台分類維持點擊數字卡後才顯示，與 CMDB 系統關聯覆蓋明細的按需顯示規則一致。
+- 補 UI contract test，固定 `show_assets` 與 `asset-list-gate` 的顯示合約。
+
 ## v1.0.4.6 - 2026-06-03 23:20 +08:00 - cmdb-relationship-compact-search-results
 
 - CMDB 系統關聯覆蓋明細預設只顯示搜尋列與符合數量，避免完整表格佔用版面。

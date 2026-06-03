@@ -1971,6 +1971,23 @@ a.metric:hover {
   margin: 0 0 10px;
   font-size: 16px;
 }
+.asset-list-gate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.asset-list-gate > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.asset-list-gate .text-muted-sm {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .asset-detail-toggle {
   min-width: 48px;
   justify-content: center;

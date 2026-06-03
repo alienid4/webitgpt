@@ -691,7 +691,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.4.6"' in config
+    assert 'VERSION = "1.0.4.7"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -834,8 +834,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     reports = read("webapp/routes/api_reports.py")
     data_quality = read("webapp/templates/data_quality.html")
 
-    assert 'VERSION = "1.0.4.6"' in config
-    assert "cmdb-relationship-compact-search-results" in config
+    assert 'VERSION = "1.0.4.7"' in config
+    assert "asset-list-on-demand-results" in config
     assert "data_quality_retire_selected_assets" in reports
     assert "data-quality-bulk-form=\"retire\"" in data_quality
     assert "can_bulk_retire" in read("webapp/services/quality_service.py")
@@ -948,7 +948,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "cmdb-relationship-compact-search-results" in config
+    assert "asset-list-on-demand-results" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog
@@ -1275,6 +1275,7 @@ def test_asset_management_defaults_to_100_rows_per_page():
 def test_asset_management_summary_uses_ingestion_governance_language():
     hosts = read("webapp/templates/hosts.html")
     routes = read("webapp/routes/api_hosts.py")
+    css = read("webapp/static/css/cathay.css")
 
     for text in ["已納入資產池", "可自動彙整", "人工待判斷", "需補關鍵資料", "環境種類", "平台種類"]:
         assert text in hosts
@@ -1285,6 +1286,11 @@ def test_asset_management_summary_uses_ingestion_governance_language():
     assert "governance='missing'" in hosts
     assert "summary_group='environment'" in hosts
     assert "summary_group='platform'" in hosts
+    assert 'name="show_assets" value="1"' in hosts
+    assert "asset_list_visible" in hosts
+    assert "asset-list-gate" in hosts
+    assert "show_assets='1'" in hosts
+    assert ".asset-list-gate" in css
     assert "環境分類" in hosts
     assert "平台分類" in hosts
     assert "asset_summary.environment_breakdown" in hosts

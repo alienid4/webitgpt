@@ -67,6 +67,7 @@
       </details>
     </div>
     <form class="asset-filter-compact" method="get">
+      <input type="hidden" name="show_assets" value="1">
       <label class="asset-search-field">搜尋
         <input name="q" value="{{ q }}" placeholder="資產名稱 / 系統名稱 / 主機名稱 / IP / 網段">
       </label>
@@ -116,7 +117,7 @@
   </div>
 
   <section class="summary-grid asset-summary">
-    <a class="metric" href="#asset-details"><strong>{{ asset_summary.auto_ingested }}</strong><span>已納入資產池</span></a>
+    <a class="metric" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100), show_assets='1') }}#asset-details"><strong>{{ asset_summary.auto_ingested }}</strong><span>已納入資產池</span></a>
     <a class="metric" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100), governance='auto') }}#asset-details"><strong>{{ asset_summary.complete_assets }}</strong><span>可自動彙整</span></a>
     <a class="metric" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100), governance='review') }}#asset-details"><strong>{{ asset_summary.review_assets }}</strong><span>人工待判斷</span></a>
     <a class="metric" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100), governance='missing') }}#asset-details"><strong>{{ asset_summary.missing_required_assets }}</strong><span>需補關鍵資料</span></a>
@@ -239,6 +240,8 @@
   {% if request.args.get("bulk_error") %}<div class="notice danger">{{ request.args.get("bulk_error") }}</div>{% endif %}
 
   {% set hide_draft_governance = true %}
+  {% set asset_list_visible = request.args.get("show_assets") == "1" or request.args.get("q") or request.args.get("status") or request.args.get("group_name") or request.args.get("environment") or request.args.get("host_type") or request.args.get("dc") or request.args.get("governance") %}
+  {% if asset_list_visible %}
   <section class="table-wrap asset-table-wrap" id="asset-details">
     {% if request.args.get("status") == "draft" and not hide_draft_governance %}
     <div class="draft-workflow-panel">
@@ -457,12 +460,21 @@
     {% set page_size = data.get("page_size", 100) %}
     <span>第 {{ page }} 頁 / 每頁 {{ page_size }} 筆</span>
     {% if page > 1 %}
-      <a class="btn" href="{{ url_for('api_hosts.hosts_page', q=q, page=page-1, page_size=page_size, status=request.args.get('status',''), include_inactive=request.args.get('include_inactive',''), environment=request.args.get('environment',''), host_type=request.args.get('host_type',''), dc=request.args.get('dc','')) }}">上一頁</a>
+      <a class="btn" href="{{ url_for('api_hosts.hosts_page', q=q, page=page-1, page_size=page_size, status=request.args.get('status',''), include_inactive=request.args.get('include_inactive',''), environment=request.args.get('environment',''), host_type=request.args.get('host_type',''), dc=request.args.get('dc',''), governance=request.args.get('governance',''), show_assets='1') }}">上一頁</a>
     {% endif %}
     {% if data.get("total", 0) > page * page_size %}
-      <a class="btn" href="{{ url_for('api_hosts.hosts_page', q=q, page=page+1, page_size=page_size, status=request.args.get('status',''), include_inactive=request.args.get('include_inactive',''), environment=request.args.get('environment',''), host_type=request.args.get('host_type',''), dc=request.args.get('dc','')) }}">下一頁</a>
+      <a class="btn" href="{{ url_for('api_hosts.hosts_page', q=q, page=page+1, page_size=page_size, status=request.args.get('status',''), include_inactive=request.args.get('include_inactive',''), environment=request.args.get('environment',''), host_type=request.args.get('host_type',''), dc=request.args.get('dc',''), governance=request.args.get('governance',''), show_assets='1') }}">下一頁</a>
     {% endif %}
   </div>
+  {% else %}
+  <section class="panel compact asset-list-gate" id="asset-details">
+    <div>
+      <strong>資產明細</strong>
+      <span class="text-muted-sm">輸入搜尋、套用篩選或按顯示全部後才展開清單。</span>
+    </div>
+    <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100), show_assets='1') }}#asset-details">顯示全部</a>
+  </section>
+  {% endif %}
 </section>
 <script src="{{ url_for('static', filename='js/hosts.js', v=asset_version) }}"></script>
 {% endblock %}

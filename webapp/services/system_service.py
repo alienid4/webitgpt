@@ -113,6 +113,12 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.4.7",
+        "date": "2026-06-04 06:45 +08:00",
+        "patch_id": "asset-list-on-demand-results",
+        "summary": "資產管理明細預設收合，搜尋、篩選或顯示全部後才展開清單。",
+    },
+    {
         "version": "1.0.4.6",
         "date": "2026-06-03 23:20 +08:00",
         "patch_id": "cmdb-relationship-compact-search-results",
