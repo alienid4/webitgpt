@@ -113,6 +113,15 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.92",
+        "date": "2026-06-03 10:45 +08:00",
+        "patch_id": "release-tar-root-install-layout",
+        "changes": [
+            "修正 Release patch tar 結構，解開後第一層固定是 install.sh 與 payload。",
+            "沿用 v1.0.3.91 的資產清單序號欄位修正，避免現場安裝入口不一致。",
+        ],
+    },
+    {
         "version": "1.0.3.91",
         "date": "2026-06-03 10:25 +08:00",
         "patch_id": "asset-list-row-number-first-column",
