@@ -557,9 +557,11 @@ def test_asset_governance_status_admin_contracts_exist():
         'host.status == "draft" and not hide_draft_governance',
     ]:
         assert text in hosts_template
-    for text in ["asset-table-compact", "資產狀態", "資產名稱 *", "Hostname", "asset-row-menu"]:
+    for text in ["asset-table-compact", "SN", "資產狀態", "資產名稱 *", "Hostname", "asset-row-menu"]:
         assert text in hosts_template
-    for text in ["asset-col-status", "asset-status-pill", "asset-status-active", "asset-status-draft", "asset-status-disabled", "asset-status-retired"]:
+    assert hosts_template.index('class="asset-col-sn"') < hosts_template.index('class="asset-col-status"')
+    assert "{{ host.asset_seq or \"-\" }}" in hosts_template
+    for text in ["asset-col-sn", "asset-sn-cell", "asset-col-status", "asset-status-pill", "asset-status-active", "asset-status-draft", "asset-status-disabled", "asset-status-retired"]:
         assert text in (hosts_template + css)
     for text in ["bulkStatusForm", "data-select-assets", "data-asset-checkbox", "host_bulk_update_status_submit", "bulk_update_host_statuses"]:
         assert text in hosts_template or text in hosts_js or text in host_routes or text in host_service

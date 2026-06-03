@@ -296,6 +296,7 @@
     <table class="data-table asset-table asset-table-compact">
       <thead>
         <tr>
+          <th class="asset-col-sn">SN</th>
           <th class="asset-col-status">資產狀態</th>
           {% if current_user.role in ["admin", "super", "superadmin"] %}<th class="asset-col-select" data-sortable="false">選取</th>{% endif %}
           <th class="asset-col-name">資產名稱 *</th>
@@ -318,6 +319,7 @@
           {% if host.get(field) in [none, ""] %}{% set _ = missing.append(field) %}{% endif %}
         {% endfor %}
         <tr>
+          <td class="asset-sn-cell"><span class="code-inline">{{ host.asset_seq or "-" }}</span></td>
           <td class="asset-status-cell">
             <span class="asset-status-pill asset-status-{{ host.status or 'unknown' }}">{{ status_labels.get(host.status, host.status or "未知") }}</span>
           </td>
@@ -342,7 +344,6 @@
             <span class="asset-source-pill {% if host.hostname_source == 'actual_runner' %}verified{% else %}unverified{% endif %}" title="Hostname 來源：{{ host.hostname_source or host.import_source or 'manual' }}">
               {% if host.hostname_source == "actual_runner" %}實採{% else %}未驗證{% endif %}
             </span>
-            <div class="text-muted-sm">{{ host.asset_seq or "-" }}</div>
           </td>
           <td>
             <span class="code-inline">{{ host.ip or "-" }}</span>

@@ -113,6 +113,15 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.90",
+        "date": "2026-06-03 10:05 +08:00",
+        "patch_id": "asset-list-sn-first-column",
+        "changes": [
+            "資產管理清單新增 SN 第一欄，資產編號不再藏在 Hostname 欄位底下。",
+            "Hostname 欄位只顯示主機名稱與驗證狀態，提升大量資產清冊掃讀效率。",
+        ],
+    },
+    {
         "version": "1.0.3.89",
         "date": "2026-06-03 09:55 +08:00",
         "patch_id": "topology-host-alias-backfill",
