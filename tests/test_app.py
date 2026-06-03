@@ -327,3 +327,56 @@ def test_core_impact_backfills_hosts_from_asset_master_when_host_refs_are_stale(
         "host:HW-00012046",
         "host:HW-00012047",
     }
+
+
+def test_core_impact_backfills_hosts_when_system_name_field_differs(monkeypatch):
+    system_id = dependency_service._system_id("證券阿發")
+    systems = [
+        {
+            "system_id": system_id,
+            "display_name": "證券阿發",
+            "tier": "C",
+            "category": "AP",
+            "owner": "ops",
+            "host_refs": ["SECSVR002-011t"],
+            "metadata": {"core_name": "好麥證券", "asset_name": "證券阿發", "system_name": "好麥證券"},
+        }
+    ]
+    hosts = [
+        {
+            "asset_seq": "HW-00012045",
+            "system_name": "好麥證券",
+            "asset_name": "證券阿發",
+            "hostname": "SECSVR002-011t",
+            "ip": "10.0.0.11",
+        },
+        {
+            "asset_seq": "HW-00012046",
+            "system_name": "好麥證券",
+            "asset_name": "證卷阿發",
+            "hostname": "SECSVR002-012t",
+            "ip": "10.0.0.12",
+        },
+        {
+            "asset_seq": "HW-00012047",
+            "system_name": "其他欄位",
+            "device_type": "證券阿發",
+            "hostname": "SECSVR002-040T",
+            "ip": "10.0.0.40",
+        },
+    ]
+
+    monkeypatch.setattr(dependency_service, "list_systems", lambda *_args, **_kwargs: systems)
+    monkeypatch.setattr(dependency_service, "_hosts", lambda: hosts)
+    monkeypatch.setattr(dependency_service, "list_relations", lambda *_args, **_kwargs: [])
+    monkeypatch.setattr(dependency_service, "latest_collect_run", lambda: None)
+
+    data = dependency_service.topology(view="core_impact", center=system_id)
+    host_nodes = [node for node in data["nodes"] if str(node.get("id") or "").startswith("host:")]
+
+    assert data["meta"]["impact_panel"]["host_count"] == 3
+    assert {node["id"] for node in host_nodes} == {
+        "host:HW-00012045",
+        "host:HW-00012046",
+        "host:HW-00012047",
+    }

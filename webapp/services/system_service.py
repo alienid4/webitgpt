@@ -113,6 +113,15 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.89",
+        "date": "2026-06-03 09:55 +08:00",
+        "patch_id": "topology-host-alias-backfill",
+        "changes": [
+            "核心系統影響圖補主機時，不再只依賴 dependency_systems.host_refs 或主機第一個系統候選名稱。",
+            "同一套系統會用 display_name、metadata.asset_name、metadata.system_name 與主機所有候選欄位比對，讓證券/證卷等別名與欄位落點不一致時仍可補齊主機。",
+        ],
+    },
+    {
         "version": "1.0.3.88",
         "date": "2026-06-03 09:20 +08:00",
         "patch_id": "opening-scope-help-compact-ui",
