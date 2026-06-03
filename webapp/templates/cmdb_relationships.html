@@ -52,11 +52,15 @@
         <p class="muted">選一個系統，先看它關聯到哪些主機、owner、Port 與待補資料。</p>
       </div>
       <form class="cmdb-system-picker" method="get">
-        <select name="system">
+        <input name="system" list="cmdbSystemPickerOptions" value="{{ selected_system.display_name }}" placeholder="輸入或選擇系統 / 資產名稱">
+        <datalist id="cmdbSystemPickerOptions">
           {% for system in overview.systems %}
-          <option value="{{ system.key }}" {% if system.key == selected_system.key %}selected{% endif %}>{{ system.display_name }} ({{ system.host_count }})</option>
+          <option value="{{ system.display_name }}">{{ system.display_name }} ({{ system.host_count }})</option>
+          {% for alias in system.aliases[:4] %}
+          <option value="{{ alias }}">{{ system.display_name }} / {{ alias }}</option>
           {% endfor %}
-        </select>
+          {% endfor %}
+        </datalist>
         <button class="btn" type="submit">查看</button>
       </form>
     </div>
@@ -128,6 +132,19 @@
       <p class="muted">用來決定下一批要補哪個系統的 owner、通知對象與服務 Port。</p>
     </div>
   </div>
+  <div class="cmdb-system-filter">
+    <label for="cmdbSystemFilter">搜尋系統</label>
+    <input id="cmdbSystemFilter" list="cmdbSystemFilterOptions" placeholder="輸入系統 / 資產名稱，例如：證券阿發">
+    <datalist id="cmdbSystemFilterOptions">
+      {% for system in overview.systems %}
+      <option value="{{ system.display_name }}"></option>
+      {% for alias in system.aliases[:6] %}
+      <option value="{{ alias }}"></option>
+      {% endfor %}
+      {% endfor %}
+    </datalist>
+    <span id="cmdbSystemFilterCount" class="status-pill">全部 {{ overview.systems|length }}</span>
+  </div>
   <div class="table-wrap">
     <table class="data-table cmdb-system-table">
       <thead>
@@ -145,7 +162,7 @@
       </thead>
       <tbody>
         {% for system in overview.systems %}
-        <tr>
+        <tr data-cmdb-system-row data-filter-text="{{ system.search_text|e }}">
           <td><strong>{{ system.display_name }}</strong>{% if not system.is_classified %}<span class="status-pill status-pill-warn">未分類</span>{% endif %}</td>
           <td>{{ system.host_count }}</td>
           <td>{{ system.formal_count }}</td>
@@ -181,4 +198,34 @@
     </table>
   </div>
 </section>
+<script>
+(function () {
+  var input = document.getElementById("cmdbSystemFilter");
+  var count = document.getElementById("cmdbSystemFilterCount");
+  var rows = Array.prototype.slice.call(document.querySelectorAll("[data-cmdb-system-row]"));
+  if (!input || !rows.length) {
+    return;
+  }
+  function normalize(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+  function applyFilter() {
+    var query = normalize(input.value);
+    var visible = 0;
+    rows.forEach(function (row) {
+      var text = normalize(row.getAttribute("data-filter-text"));
+      var match = !query || text.indexOf(query) !== -1;
+      row.hidden = !match;
+      if (match) {
+        visible += 1;
+      }
+    });
+    if (count) {
+      count.textContent = query ? "符合 " + visible : "全部 " + rows.length;
+    }
+  }
+  input.addEventListener("input", applyFilter);
+  applyFilter();
+})();
+</script>
 {% endblock %}

@@ -1936,6 +1936,25 @@ a.metric:hover {
 .cmdb-owner-menu-panel span:last-child {
   border-bottom: 0;
 }
+.cmdb-system-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 10px;
+  flex-wrap: nowrap;
+}
+.cmdb-system-filter label {
+  flex: 0 0 auto;
+  font-weight: 800;
+}
+.cmdb-system-filter input {
+  width: min(520px, 55vw);
+  min-height: 34px;
+}
+.cmdb-system-picker input {
+  width: min(380px, 42vw);
+  min-height: 34px;
+}
 .asset-detail-row[hidden] {
   display: none;
 }

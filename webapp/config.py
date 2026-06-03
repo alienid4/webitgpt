@@ -6,10 +6,10 @@ from pathlib import Path
 
 
 APP_NAME = "webitgpt"
-VERSION = "1.0.4.4"
-PATCH_ID = "cmdb-relationship-system-auto-classify"
-RELEASE_NOTE = "CMDB 系統關聯覆蓋明細改用可信系統欄位自動分類，避免設備類型或群組名被誤當成系統總數。"
-BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-06-03 21:10:00 +08:00")
+VERSION = "1.0.4.5"
+PATCH_ID = "cmdb-relationship-searchable-system-filter"
+RELEASE_NOTE = "CMDB 系統關聯覆蓋明細新增可搜尋系統篩選，並以友善系統/資產名稱優先於 APID 顯示。"
+BUILD_TIME = os.environ.get("WEBITGPT_BUILD_TIME", "2026-06-03 22:45:00 +08:00")
 
 if not re.match(r"^1\.\d+\.\d+\.\d+$", VERSION):
     raise RuntimeError("webitgpt version must stay in 1.X.X.X format")

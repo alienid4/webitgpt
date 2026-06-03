@@ -113,6 +113,12 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.4.5",
+        "date": "2026-06-03 22:45 +08:00",
+        "patch_id": "cmdb-relationship-searchable-system-filter",
+        "summary": "CMDB 系統關聯覆蓋明細新增可搜尋系統篩選，友善系統/資產名稱優先於 APID 顯示。",
+    },
+    {
         "version": "1.0.4.4",
         "date": "2026-06-03",
         "patch_id": "cmdb-relationship-system-auto-classify",

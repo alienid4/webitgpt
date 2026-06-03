@@ -332,9 +332,12 @@ def test_cmdb_relationship_dashboard_contracts_exist():
     assert "cmdb-row-menu" in relationships
     assert "cmdb-owner-menu" in relationships
     assert "owner {{ system.owners|length }}" in relationships
+    assert "cmdbSystemFilter" in relationships
+    assert "data-cmdb-system-row" in relationships
+    assert "data-filter-text" in relationships
     assert "center=selected_system.key" not in relationships
     assert "center=system.key" not in relationships
-    for token in [".cmdb-coverage-grid", ".cmdb-relation-map", ".cmdb-gap-item", ".cmdb-system-table", ".cmdb-row-menu", ".cmdb-owner-menu"]:
+    for token in [".cmdb-coverage-grid", ".cmdb-relation-map", ".cmdb-gap-item", ".cmdb-system-table", ".cmdb-row-menu", ".cmdb-owner-menu", ".cmdb-system-filter"]:
         assert token in css
 
 
@@ -562,6 +565,53 @@ def test_cmdb_relationship_overview_ignores_device_category_asset_names(monkeypa
     assert overview["coverage"]["system"]["count"] == 2
 
 
+def test_cmdb_relationship_overview_uses_friendly_device_label_before_apid(monkeypatch):
+    from webapp.services import cmdb_relationship_service
+
+    hosts = [
+        {
+            "hostname": "app-a",
+            "asset_name": "待分類",
+            "device_type": "證券阿發",
+            "apid": "N-113",
+            "ip": "10.0.0.11",
+            "status": "active",
+            "owner": "ops",
+        },
+        {
+            "hostname": "app-b",
+            "asset_name": "待分類",
+            "device_type": "證券阿發",
+            "apid": "N-113",
+            "ip": "10.0.0.12",
+            "status": "active",
+            "owner": "ops",
+        },
+    ]
+
+    class FakeCursor(list):
+        def limit(self, _limit):
+            return self
+
+    class FakeCollection:
+        def find(self, *_args, **_kwargs):
+            return FakeCursor([])
+
+    monkeypatch.setattr(
+        cmdb_relationship_service.host_service,
+        "list_hosts",
+        lambda **_kwargs: {"items": hosts, "total": len(hosts), "page_size": 100},
+    )
+    monkeypatch.setattr(cmdb_relationship_service, "get_collection", lambda _name: FakeCollection())
+
+    overview = cmdb_relationship_service.cmdb_relationship_overview("證券阿發")
+
+    assert overview["systems"][0]["display_name"] == "證券阿發"
+    assert overview["systems"][0]["host_count"] == 2
+    assert "N-113" in overview["systems"][0]["search_text"]
+    assert overview["selected_system"]["display_name"] == "證券阿發"
+
+
 def test_cmdb_relationship_page_renders_with_overview(monkeypatch):
     from webapp.app import create_app
     from webapp.routes import api_hosts
@@ -592,6 +642,8 @@ def test_cmdb_relationship_page_renders_with_overview(monkeypatch):
                 "formal_count": 1,
                 "draft_count": 1,
                 "owners": ["ops"],
+                "aliases": ["N-113"],
+                "search_text": "撌⊥炎蝟餌絞 N-113 app1 app2 ops",
                 "missing_owner": 1,
                 "missing_notification": 0,
                 "missing_ports": 1,
@@ -635,7 +687,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.4.4"' in config
+    assert 'VERSION = "1.0.4.5"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -778,8 +830,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     reports = read("webapp/routes/api_reports.py")
     data_quality = read("webapp/templates/data_quality.html")
 
-    assert 'VERSION = "1.0.4.4"' in config
-    assert "cmdb-relationship-system-auto-classify" in config
+    assert 'VERSION = "1.0.4.5"' in config
+    assert "cmdb-relationship-searchable-system-filter" in config
     assert "data_quality_retire_selected_assets" in reports
     assert "data-quality-bulk-form=\"retire\"" in data_quality
     assert "can_bulk_retire" in read("webapp/services/quality_service.py")
@@ -892,7 +944,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "cmdb-relationship-system-auto-classify" in config
+    assert "cmdb-relationship-searchable-system-filter" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog

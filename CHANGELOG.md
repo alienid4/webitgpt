@@ -1,5 +1,11 @@
-﻿# webitgpt Changelog
+# webitgpt Changelog
 
+## v1.0.4.5 - 2026-06-03 22:45 +08:00 - cmdb-relationship-searchable-system-filter
+
+- CMDB 系統關聯覆蓋明細新增可搜尋系統篩選，可輸入系統/資產名稱快速縮小清單。
+- 上方系統選擇改為可搜尋 datalist，避免在超長下拉清單中尋找目標系統。
+- 系統關聯覆蓋列優先使用友善系統/資產名稱，APID 改為搜尋輔助，不再直接當主要顯示。
+- 新增回歸測試，確認匯入資料若在 `device_type` 帶有真正系統名稱，會顯示系統名稱而不是退回 `N-xxx`。
 ## v1.0.4.4 - 2026-06-03 21:10 +08:00 - cmdb-relationship-system-auto-classify
 
 - CMDB 系統關聯覆蓋明細改用可信系統欄位自動分類。

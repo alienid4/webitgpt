@@ -68,6 +68,23 @@ def _looks_like_device_category(value: Any, host: dict[str, Any]) -> bool:
     return False
 
 
+def _looks_like_system_label(value: Any, host: dict[str, Any], *, compare_self_field: str = "") -> bool:
+    """Return true when a value is useful as a human-facing system label."""
+    text = normalize_system_text(value)
+    if not text or _is_placeholder_system_name(text):
+        return False
+    text_key = system_match_key(text)
+    if text_key in {system_match_key(item) for item in GENERIC_SYSTEM_VALUES}:
+        return False
+    for field in ("device_type", "group_name", "host_type", "platform"):
+        if field == compare_self_field:
+            continue
+        other = normalize_system_text(host.get(field))
+        if other and text_key == system_match_key(other):
+            return False
+    return True
+
+
 def _system_name_candidate(host: dict[str, Any]) -> tuple[str, str]:
     """Pick the field that is trustworthy enough to represent a system."""
     system_name = normalize_system_text(host.get("system_name"))
@@ -82,11 +99,39 @@ def _system_name_candidate(host: dict[str, Any]) -> tuple[str, str]:
     ):
         return asset_name, "asset_name"
 
+    device_type = normalize_system_text(host.get("device_type"))
+    if _looks_like_system_label(device_type, host, compare_self_field="device_type"):
+        return device_type, "device_type"
+
     apid = normalize_system_text(host.get("apid"))
     if apid and not _is_placeholder_system_name(apid):
         return apid, "apid"
 
     return "", ""
+
+
+def _system_search_terms(host: dict[str, Any]) -> set[str]:
+    terms = set()
+    for field in (
+        "system_name",
+        "asset_name",
+        "device_type",
+        "group_name",
+        "host_type",
+        "platform",
+        "apid",
+        "hostname",
+        "asset_seq",
+        "ip",
+    ):
+        value = normalize_system_text(host.get(field))
+        if value:
+            terms.add(value)
+    terms.update(_owner_values(host))
+    value, source = _system_name_candidate(host)
+    if value and source == "apid":
+        terms.add(f"APID {value}")
+    return terms
 
 
 def _pct(count: int, total: int) -> int:
@@ -186,6 +231,7 @@ def _system_rows(hosts: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "missing_ports": 0,
                 "owners": set(),
                 "hosts": [],
+                "search_terms": set(),
             },
         )
         item["host_count"] += 1
@@ -202,14 +248,19 @@ def _system_rows(hosts: list[dict[str, Any]]) -> list[dict[str, Any]]:
             item["missing_ports"] += 1
         item["owners"].update(_owner_values(host))
         item["hosts"].append(host)
+        item["search_terms"].update(_system_search_terms(host))
 
     rows = []
     for item in grouped.values():
+        search_terms = sorted(str(value) for value in item["search_terms"] if str(value).strip())
+        aliases = [value for value in search_terms if value != item["display_name"]]
         rows.append(
             {
-                **{key: value for key, value in item.items() if key not in {"owners", "hosts"}},
+                **{key: value for key, value in item.items() if key not in {"owners", "hosts", "search_terms"}},
                 "owners": sorted(item["owners"])[:5],
                 "hosts": item["hosts"][:12],
+                "aliases": aliases[:12],
+                "search_text": " ".join([item["display_name"], item["key"], *search_terms]),
             }
         )
     return sorted(rows, key=lambda row: (not row["is_classified"], -row["host_count"], row["display_name"]))
@@ -247,7 +298,11 @@ def _selected_system(rows: list[dict[str, Any]], dependency_systems: list[dict[s
     current = None
     if selected_text:
         for row in rows:
-            if selected_text in str(row["key"]).lower() or selected_text in str(row["display_name"]).lower():
+            if (
+                selected_text in str(row["key"]).lower()
+                or selected_text in str(row["display_name"]).lower()
+                or selected_text in str(row.get("search_text") or "").lower()
+            ):
                 current = row
                 break
     if current is None:
