@@ -1668,6 +1668,28 @@ a.metric:hover {
 .asset-filter-compact button { min-height: 34px; padding: 8px 14px; }
 .asset-summary { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .asset-summary-note { margin: -8px 12px 14px; }
+.asset-summary-breakdown { margin-top: -4px; }
+.asset-breakdown-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.breakdown-row:hover {
+  border-color: var(--accent);
+  background: var(--soft);
+}
 .asset-table-wrap { padding: 12px; overflow-x: auto; }
 .asset-table { min-width: 1260px; }
 .asset-table-compact {

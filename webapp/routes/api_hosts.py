@@ -412,6 +412,7 @@ def hosts_page():
             "host_type": request.args.get("host_type", ""),
             "dc": request.args.get("dc", ""),
             "governance": request.args.get("governance", ""),
+            "summary_group": request.args.get("summary_group", ""),
             "include_inactive": request.args.get("include_inactive") == "1",
         },
         "page": int(request.args.get("page", "1")),

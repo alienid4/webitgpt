@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.98",
+        "date": "2026-06-03 15:05 +08:00",
+        "patch_id": "asset-kpi-category-breakdown",
+        "changes": [
+            "環境種類與平台種類 KPI 改為分類入口，點選後顯示各分類筆數。",
+            "分類列可再點擊套用環境或平台篩選，從摘要一路追到明細。",
+            "分類摘要沿用目前搜尋與篩選條件，不會切到無關資料範圍。",
+        ],
+    },
+    {
         "version": "1.0.3.97",
         "date": "2026-06-03 14:30 +08:00",
         "patch_id": "asset-pool-kpi-clickable-governance",

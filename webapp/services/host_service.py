@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -139,7 +140,7 @@ def list_hosts(
     }
 
 
-def asset_scope_summary(query: str = "", filters: Optional[dict[str, Any]] = None) -> dict[str, int]:
+def asset_scope_summary(query: str = "", filters: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     mongo_filter = build_host_filter(query, filters)
     projection = {"status": 1, "environment": 1, "host_type": 1, **{field: 1 for field in REQUIRED_FIELDS}}
     total = 0
@@ -147,6 +148,8 @@ def asset_scope_summary(query: str = "", filters: Optional[dict[str, Any]] = Non
     review_assets = 0
     environments: set[str] = set()
     types: set[str] = set()
+    environment_counts: Counter[str] = Counter()
+    type_counts: Counter[str] = Counter()
     for item in get_collection("hosts").find(mongo_filter, projection):
         total += 1
         status = str(item.get("status") or "")
@@ -156,9 +159,13 @@ def asset_scope_summary(query: str = "", filters: Optional[dict[str, Any]] = Non
         if status in DRAFT_LIKE_STATUSES or missing:
             review_assets += 1
         if item.get("environment"):
-            environments.add(str(item["environment"]))
+            environment = str(item["environment"])
+            environments.add(environment)
+            environment_counts[environment] += 1
         if item.get("host_type"):
-            types.add(str(item["host_type"]))
+            host_type = str(item["host_type"])
+            types.add(host_type)
+            type_counts[host_type] += 1
     return {
         "total": total,
         "auto_ingested": total,
@@ -167,6 +174,14 @@ def asset_scope_summary(query: str = "", filters: Optional[dict[str, Any]] = Non
         "review_assets": review_assets,
         "environments": len(environments),
         "types": len(types),
+        "environment_breakdown": [
+            {"name": name, "count": count}
+            for name, count in sorted(environment_counts.items(), key=lambda item: (-item[1], item[0]))
+        ],
+        "type_breakdown": [
+            {"name": name, "count": count}
+            for name, count in sorted(type_counts.items(), key=lambda item: (-item[1], item[0]))
+        ],
     }
 
 

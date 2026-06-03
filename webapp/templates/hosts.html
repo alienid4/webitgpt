@@ -120,10 +120,40 @@
     <a class="metric" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100), governance='auto') }}#asset-details"><strong>{{ asset_summary.complete_assets }}</strong><span>可自動彙整</span></a>
     <a class="metric" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100), governance='review') }}#asset-details"><strong>{{ asset_summary.review_assets }}</strong><span>人工待判斷</span></a>
     <a class="metric" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100), governance='missing') }}#asset-details"><strong>{{ asset_summary.missing_required_assets }}</strong><span>需補關鍵資料</span></a>
-    <a class="metric" href="#asset-details"><strong>{{ asset_summary.environments }}</strong><span>環境種類</span></a>
-    <a class="metric" href="#asset-details"><strong>{{ asset_summary.types }}</strong><span>平台種類</span></a>
+    <a class="metric" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100), summary_group='environment') }}#asset-summary-breakdown"><strong>{{ asset_summary.environments }}</strong><span>環境種類</span></a>
+    <a class="metric" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100), summary_group='platform') }}#asset-summary-breakdown"><strong>{{ asset_summary.types }}</strong><span>平台種類</span></a>
   </section>
   <p class="asset-summary-note text-muted-sm">已匯入資料會先自動納入資產池；只有草稿、缺關鍵欄位或衝突資料才需要人工判斷。完整度與環境 / 平台是治理維度，不會與資產總數相加。</p>
+  {% if request.args.get("summary_group") in ["environment", "platform"] %}
+  <section id="asset-summary-breakdown" class="panel compact asset-summary-breakdown">
+    <div class="section-title-row">
+      <div>
+        <p class="eyebrow">{% if request.args.get("summary_group") == "environment" %}ENVIRONMENT{% else %}PLATFORM{% endif %}</p>
+        <h2>{% if request.args.get("summary_group") == "environment" %}環境分類{% else %}平台分類{% endif %}</h2>
+      </div>
+      <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100)) }}">收起</a>
+    </div>
+    <div class="asset-breakdown-list">
+      {% if request.args.get("summary_group") == "environment" %}
+        {% for item in asset_summary.environment_breakdown %}
+        <a class="breakdown-row" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=item.name, host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100)) }}#asset-details">
+          <span>{{ item.name }}</span><strong>{{ item.count }}</strong>
+        </a>
+        {% else %}
+        <span class="text-muted-sm">目前沒有環境分類資料。</span>
+        {% endfor %}
+      {% else %}
+        {% for item in asset_summary.type_breakdown %}
+        <a class="breakdown-row" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=item.name, dc=request.args.get('dc', ''), page_size=data.get('page_size', 100)) }}#asset-details">
+          <span>{{ host_type_labels.get(item.name, item.name) }}</span><strong>{{ item.count }}</strong>
+        </a>
+        {% else %}
+        <span class="text-muted-sm">目前沒有平台分類資料。</span>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
 
   <section class="panel compact">
     <div class="saved-view-row">

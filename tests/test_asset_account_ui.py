@@ -473,7 +473,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.97"' in config
+    assert 'VERSION = "1.0.3.98"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -616,8 +616,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     reports = read("webapp/routes/api_reports.py")
     data_quality = read("webapp/templates/data_quality.html")
 
-    assert 'VERSION = "1.0.3.97"' in config
-    assert "asset-pool-kpi-clickable-governance" in config
+    assert 'VERSION = "1.0.3.98"' in config
+    assert "asset-kpi-category-breakdown" in config
     assert "data_quality_retire_selected_assets" in reports
     assert "data-quality-bulk-form=\"retire\"" in data_quality
     assert "can_bulk_retire" in read("webapp/services/quality_service.py")
@@ -730,7 +730,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "asset-pool-kpi-clickable-governance" in config
+    assert "asset-kpi-category-breakdown" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog
@@ -1065,8 +1065,15 @@ def test_asset_management_summary_uses_ingestion_governance_language():
     assert "governance='auto'" in hosts
     assert "governance='review'" in hosts
     assert "governance='missing'" in hosts
+    assert "summary_group='environment'" in hosts
+    assert "summary_group='platform'" in hosts
+    assert "環境分類" in hosts
+    assert "平台分類" in hosts
+    assert "asset_summary.environment_breakdown" in hosts
+    assert "asset_summary.type_breakdown" in hosts
     assert 'asset_summary=host_service.asset_scope_summary(params["query"], params["filters"])' in routes
     assert '"governance": request.args.get("governance", "")' in routes
+    assert '"summary_group": request.args.get("summary_group", "")' in routes
     assert "_asset_page_summary(data.get(\"items\", []))" not in routes
 
 
@@ -1126,6 +1133,8 @@ def test_asset_scope_summary_counts_full_filtered_scope(monkeypatch):
     assert summary["review_assets"] == 2
     assert summary["environments"] == 1
     assert summary["types"] == 1
+    assert summary["environment_breakdown"] == [{"name": "PROD", "count": 3}]
+    assert summary["type_breakdown"] == [{"name": "linux", "count": 3}]
 
 
 def test_metric_cards_are_clickable_across_pages():
