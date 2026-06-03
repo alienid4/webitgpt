@@ -400,6 +400,54 @@ def test_cmdb_relationship_overview_summarizes_quality_and_relationships(monkeyp
     assert overview["selected_system"]["missing_owner"] == 1
 
 
+def test_cmdb_relationship_overview_reads_all_host_pages(monkeypatch):
+    from webapp.services import cmdb_relationship_service
+
+    hosts = [
+        {
+            "hostname": f"app{i:03d}",
+            "asset_name": "paged-system",
+            "ip": f"10.0.0.{i}",
+            "status": "active",
+            "system_name": "paged-system",
+            "owner": "ops",
+            "open_ports": [{"port": "22"}],
+        }
+        for i in range(1, 206)
+    ]
+
+    def fake_list_hosts(**kwargs):
+        page = int(kwargs.get("page") or 1)
+        page_size = min(max(int(kwargs.get("page_size") or 25), 1), 100)
+        start = (page - 1) * page_size
+        return {
+            "items": hosts[start : start + page_size],
+            "total": len(hosts),
+            "page": page,
+            "page_size": page_size,
+        }
+
+    class FakeCursor(list):
+        def limit(self, _limit):
+            return self
+
+    class FakeCollection:
+        def find(self, *_args, **_kwargs):
+            return FakeCursor([])
+
+    monkeypatch.setattr(cmdb_relationship_service.host_service, "list_hosts", fake_list_hosts)
+    monkeypatch.setattr(cmdb_relationship_service, "get_collection", lambda _name: FakeCollection())
+
+    overview = cmdb_relationship_service.cmdb_relationship_overview("paged")
+
+    assert overview["summary"]["total"] == 205
+    assert overview["summary"]["formal_count"] == 205
+    assert overview["summary"]["system_row_count"] == 1
+    assert overview["systems"][0]["host_count"] == 205
+    assert overview["coverage"]["system"]["count"] == 205
+    assert overview["coverage"]["service_port"]["count"] == 205
+
+
 def test_cmdb_relationship_page_renders_with_overview(monkeypatch):
     from webapp.app import create_app
     from webapp.routes import api_hosts
@@ -473,7 +521,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.3.98"' in config
+    assert 'VERSION = "1.0.3.99"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -616,8 +664,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     reports = read("webapp/routes/api_reports.py")
     data_quality = read("webapp/templates/data_quality.html")
 
-    assert 'VERSION = "1.0.3.98"' in config
-    assert "asset-kpi-category-breakdown" in config
+    assert 'VERSION = "1.0.3.99"' in config
+    assert "relationship-coverage-full-asset-scope" in config
     assert "data_quality_retire_selected_assets" in reports
     assert "data-quality-bulk-form=\"retire\"" in data_quality
     assert "can_bulk_retire" in read("webapp/services/quality_service.py")
@@ -730,7 +778,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "asset-kpi-category-breakdown" in config
+    assert "relationship-coverage-full-asset-scope" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog

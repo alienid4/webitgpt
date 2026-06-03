@@ -113,6 +113,16 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.3.99",
+        "date": "2026-06-03 16:20 +08:00",
+        "patch_id": "relationship-coverage-full-asset-scope",
+        "changes": [
+            "CMDB 系統關聯覆蓋明細改為讀完整資產分頁，不再只統計前 100 筆。",
+            "系統關聯覆蓋明細完整顯示全部系統分組，避免總數與明細看起來不一致。",
+            "新增分頁統計 regression test，確保 100 筆以上資產仍會全部納入關聯覆蓋率。",
+        ],
+    },
+    {
         "version": "1.0.3.98",
         "date": "2026-06-03 15:05 +08:00",
         "patch_id": "asset-kpi-category-breakdown",

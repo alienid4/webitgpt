@@ -39,6 +39,19 @@ def _safe_docs(collection_name: str, projection: dict[str, int] | None = None, l
         return []
 
 
+def _all_visible_hosts() -> list[dict[str, Any]]:
+    """Read all host rows through the public host listing contract."""
+    first_page = host_service.list_hosts(page=1, page_size=100)
+    items = list(first_page.get("items") or [])
+    total = int(first_page.get("total") or len(items))
+    page_size = int(first_page.get("page_size") or 100)
+    if page_size <= 0:
+        page_size = 100
+    for page in range(2, (total + page_size - 1) // page_size + 1):
+        items.extend(host_service.list_hosts(page=page, page_size=page_size).get("items") or [])
+    return items
+
+
 def _host_identity(host: dict[str, Any]) -> str:
     return str(host.get("hostname") or host.get("asset_seq") or host.get("ip") or "").strip()
 
@@ -196,7 +209,7 @@ def _selected_system(rows: list[dict[str, Any]], dependency_systems: list[dict[s
 
 def cmdb_relationship_overview(selected_system: str = "") -> dict[str, Any]:
     """Build an executive CMDB quality and relationship coverage summary."""
-    hosts = host_service.list_hosts(page=1, page_size=10000)["items"]
+    hosts = _all_visible_hosts()
     hosts = [host for host in hosts if str(host.get("status") or "") not in RETIRED_STATUSES]
     total = len(hosts)
     formal_count = sum(1 for host in hosts if str(host.get("status") or "") not in DRAFT_STATUSES)
@@ -246,6 +259,7 @@ def cmdb_relationship_overview(selected_system: str = "") -> dict[str, Any]:
             "formal_count": formal_count,
             "draft_count": draft_count,
             "ip_count": ip_count,
+            "system_row_count": len(system_rows),
             "dependency_system_count": len(dependency_systems),
             "dependency_relation_count": len(dependency_relations),
             "status_counts": _status_summary(hosts),
@@ -257,6 +271,6 @@ def cmdb_relationship_overview(selected_system: str = "") -> dict[str, Any]:
             "service_port": {"label": "服務 / Port 完整率", "count": port_count, "total": total, "pct": _pct(port_count, total)},
         },
         "gaps": gaps,
-        "systems": system_rows[:12],
+        "systems": system_rows,
         "selected_system": _selected_system(system_rows, dependency_systems, selected_system),
     }
