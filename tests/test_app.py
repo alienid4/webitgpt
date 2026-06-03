@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 from webapp.app import create_app
 from webapp import config
 from webapp.routes import api_v1
@@ -380,3 +382,23 @@ def test_core_impact_backfills_hosts_when_system_name_field_differs(monkeypatch)
         "host:HW-00012046",
         "host:HW-00012047",
     }
+
+
+def test_ss_tunp_local_probe_targets_are_env_configured(monkeypatch):
+    calls = []
+
+    def fake_run(cmd, **_kwargs):
+        calls.append(cmd)
+        return SimpleNamespace(returncode=0, stdout="ok", stderr="")
+
+    monkeypatch.setenv("WEBITGPT_LOCAL_PROBE_HOSTS", "local-probe")
+    monkeypatch.setattr(dependency_service.subprocess, "run", fake_run)
+
+    dependency_service._run_ss_tunp({"hostname": "local-probe", "ip": "10.0.0.10"})
+
+    assert calls[-1] == ["bash", "-lc", "ss -tunp || netstat -tunp"]
+
+    dependency_service._run_ss_tunp({"hostname": "remote-probe", "ip": "10.0.0.11"})
+
+    assert calls[-1][0] == "ssh"
+    assert "remote-probe" not in {"127.0.0.1", "localhost"}

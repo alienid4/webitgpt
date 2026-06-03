@@ -3,6 +3,7 @@ from __future__ import annotations
 import ipaddress
 import hashlib
 import math
+import os
 import re
 import shutil
 import subprocess
@@ -1064,7 +1065,12 @@ def _run_nmap_port_scan(ip: str, ports: list[str]) -> dict[str, Any]:
 
 def _run_ss_tunp(host: dict[str, Any]) -> str:
     hostname = host.get("hostname") or host.get("ip")
-    if host.get("ip") in {"127.0.0.1", "localhost", "192.168.1.221"} or hostname in {"localhost", "secansible"}:
+    local_probe_hosts = {
+        item.strip()
+        for item in os.environ.get("WEBITGPT_LOCAL_PROBE_HOSTS", "127.0.0.1,localhost").split(",")
+        if item.strip()
+    }
+    if host.get("ip") in local_probe_hosts or hostname in local_probe_hosts:
         cmd = ["bash", "-lc", "ss -tunp || netstat -tunp"]
     else:
         ssh_user = host.get("ssh_user") or "sysinfra"
@@ -1895,7 +1901,7 @@ def _core_name_for_system(system: dict[str, Any]) -> str:
     for name in CORE_SYSTEM_NAMES:
         if name in display:
             return name
-    if any(token in display for token in ("巡檢", "受監控", "webitgpt", "secansible")):
+    if any(token in display for token in ("巡檢", "受監控")):
         return "巡檢系統"
     return UNASSIGNED_CORE_NAME
 
