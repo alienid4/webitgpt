@@ -691,7 +691,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.4.8"' in config
+    assert 'VERSION = "1.0.4.9"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -768,6 +768,13 @@ def test_cmdb_quality_actionable_platform_fix_contracts_exist():
     assert "data-quality-checkbox" in data_quality
     assert "data-quality-select-all" in data_quality
     assert "data-quality-bulk-form" in data_quality
+    assert "qualityDetailFilter" in data_quality
+    assert "qualityDetailShowAll" in data_quality
+    assert 'id="qualityDetailResults" hidden' in data_quality
+    assert "data-quality-detail-row" in data_quality
+    assert "<thead>\n        <tr data-quality-detail-row" not in data_quality
+    assert "{% for row in report.cmdb_detail_rows %}\n        <tr data-quality-detail-row" in data_quality
+    assert "data-filter-text" in data_quality
     assert "asset_key" in data_quality
     assert 'name="scope" value="selected"' in data_quality
     assert "cmdb_missing_connection" in quality_service
@@ -834,8 +841,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     reports = read("webapp/routes/api_reports.py")
     data_quality = read("webapp/templates/data_quality.html")
 
-    assert 'VERSION = "1.0.4.8"' in config
-    assert "asset-breakdown-on-demand-results" in config
+    assert 'VERSION = "1.0.4.9"' in config
+    assert "data-quality-detail-on-demand-results" in config
     assert "data_quality_retire_selected_assets" in reports
     assert "data-quality-bulk-form=\"retire\"" in data_quality
     assert "can_bulk_retire" in read("webapp/services/quality_service.py")
@@ -948,7 +955,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "asset-breakdown-on-demand-results" in config
+    assert "data-quality-detail-on-demand-results" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog
@@ -1302,6 +1309,7 @@ def test_asset_management_summary_uses_ingestion_governance_language():
     assert ".asset-breakdown-list[hidden]" in css
     assert "assetBreakdownFilterCount" in js
     assert "dataset.showAll" in js
+    assert "data-quality-detail-on-demand-results" in read("CHANGELOG.md")
     assert "環境分類" in hosts
     assert "平台分類" in hosts
     assert "asset_summary.environment_breakdown" in hosts

@@ -113,6 +113,12 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.4.9",
+        "date": "2026-06-04 08:20 +08:00",
+        "patch_id": "data-quality-detail-on-demand-results",
+        "summary": "資料品質 CMDB 明細改為搜尋或顯示全部後才展開，避免大量異常列預設佔滿版面。",
+    },
+    {
         "version": "1.0.4.8",
         "date": "2026-06-04 07:40 +08:00",
         "patch_id": "asset-breakdown-on-demand-results",

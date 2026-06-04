@@ -111,6 +111,20 @@
     <span class="badge-ok">CMDB 無待處理項目</span>
     {% endfor %}
   </div>
+  <div class="cmdb-system-filter quality-detail-filter">
+    <label for="qualityDetailFilter">搜尋異常</label>
+    <input id="qualityDetailFilter" list="qualityDetailFilterOptions" placeholder="輸入類型 / 資產名稱 / 主機 / IP / 狀態 / 建議">
+    <datalist id="qualityDetailFilterOptions">
+      {% for row in report.cmdb_detail_rows %}
+      <option value="{{ row.type_label }}"></option>
+      <option value="{{ row.asset_name }}"></option>
+      <option value="{{ row.hostname }}"></option>
+      <option value="{{ row.ip }}"></option>
+      {% endfor %}
+    </datalist>
+    <button type="button" id="qualityDetailShowAll" class="btn-sm btn-secondary">顯示全部</button>
+    <span id="qualityDetailFilterCount" class="status-pill">輸入搜尋後顯示</span>
+  </div>
   <div class="quality-bulk-action-row">
     {% if report.summary.cmdb_platform_mismatch and current_user.role in ["admin", "super", "superadmin"] %}
     <form method="post" action="{{ url_for('api_reports.data_quality_apply_platform_suggestions') }}" data-quality-bulk-form="platform" onsubmit="return confirm('只套用目前勾選的平台分類項目。確定執行？')">
@@ -141,7 +155,7 @@
     </form>
     {% endif %}
   </div>
-  <div class="table-wrap admin-table-wrap">
+  <div class="table-wrap admin-table-wrap quality-detail-results" id="qualityDetailResults" hidden>
     <table class="data-table compact-table">
       <thead>
         <tr>
@@ -157,7 +171,7 @@
       </thead>
       <tbody>
         {% for row in report.cmdb_detail_rows %}
-        <tr>
+        <tr data-quality-detail-row data-filter-text="{{ row.type_label|e }} {{ row.severity|e }} {{ row.asset_name|e }} {{ row.hostname|e }} {{ row.ip|e }} {{ row.status|e }} {{ row.detail|e }} {{ row.action|e }} {{ row.suggested_host_type_label|e }} {{ row.suggested_host_type|e }} {{ row.current_host_type_label|e }} {{ row.current_host_type|e }}">
           <td>
             {% if row.can_bulk_platform or row.can_bulk_connection or row.can_bulk_retire %}
             <input
@@ -211,6 +225,50 @@ document.addEventListener("change", function (event) {
     checkbox.checked = selectAll.checked;
   });
 });
+
+var qualityDetailInput = document.getElementById("qualityDetailFilter");
+var qualityDetailShowAll = document.getElementById("qualityDetailShowAll");
+var qualityDetailCount = document.getElementById("qualityDetailFilterCount");
+var qualityDetailResults = document.getElementById("qualityDetailResults");
+var qualityDetailRows = Array.prototype.slice.call(document.querySelectorAll("[data-quality-detail-row]"));
+
+function normalizeQualityText(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function applyQualityDetailFilter() {
+  if (!qualityDetailInput || !qualityDetailResults) return;
+  var query = normalizeQualityText(qualityDetailInput.value);
+  var shouldShowAll = qualityDetailInput.getAttribute("data-show-all") === "1";
+  var visible = 0;
+  qualityDetailRows.forEach(function (row) {
+    var text = normalizeQualityText(row.getAttribute("data-filter-text"));
+    var match = shouldShowAll || (query && text.indexOf(query) !== -1);
+    row.hidden = !match;
+    if (match) visible += 1;
+  });
+  qualityDetailResults.hidden = !query && !shouldShowAll;
+  if (qualityDetailCount) {
+    qualityDetailCount.textContent = query || shouldShowAll ? "符合 " + visible : "輸入搜尋後顯示";
+  }
+}
+
+if (qualityDetailInput) {
+  qualityDetailInput.addEventListener("input", function () {
+    qualityDetailInput.removeAttribute("data-show-all");
+    applyQualityDetailFilter();
+  });
+}
+
+if (qualityDetailShowAll) {
+  qualityDetailShowAll.addEventListener("click", function () {
+    qualityDetailInput.value = "";
+    qualityDetailInput.setAttribute("data-show-all", "1");
+    applyQualityDetailFilter();
+  });
+}
+
+applyQualityDetailFilter();
 
 document.addEventListener("submit", function (event) {
   var form = event.target.closest("[data-quality-bulk-form]");

@@ -1,5 +1,12 @@
 ﻿# webitgpt Changelog
 
+## v1.0.4.9 - 2026-06-04 08:20 +08:00 - data-quality-detail-on-demand-results
+
+- 資料品質工作台的 CMDB 明細改為按需顯示。
+- 預設只顯示搜尋列、顯示全部與分類摘要，不直接展開大量異常列。
+- 可用類型、資產名稱、主機、IP、狀態或建議文字搜尋後顯示符合列。
+- 補 UI contract test，固定 `qualityDetailFilter`、`qualityDetailResults` 與 `data-quality-detail-row`。
+
 ## v1.0.4.8 - 2026-06-04 07:40 +08:00 - asset-breakdown-on-demand-results
 
 - 資產管理的環境分類與平台分類改為按需顯示，點擊數字卡後只顯示搜尋列。
