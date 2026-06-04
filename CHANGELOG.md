@@ -1,5 +1,12 @@
 ﻿# webitgpt Changelog
 
+## v1.0.4.8 - 2026-06-04 07:40 +08:00 - asset-breakdown-on-demand-results
+
+- 資產管理的環境分類與平台分類改為按需顯示，點擊數字卡後只顯示搜尋列。
+- 輸入分類關鍵字或按「顯示全部」後才展開分類結果，避免明細區一開始就佔滿版面。
+- 資產明細維持搜尋、篩選、點擊數字卡或顯示全部後才展開。
+- 補 UI contract test，固定 `assetBreakdownFilter`、`assetBreakdownResults` 與前端篩選行為。
+
 ## v1.0.4.7 - 2026-06-04 06:45 +08:00 - asset-list-on-demand-results
 
 - 資產管理頁的資產明細預設收合，只保留精簡入口，避免大量資料表佔滿首頁。

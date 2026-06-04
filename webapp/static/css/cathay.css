@@ -1669,11 +1669,27 @@ a.metric:hover {
 .asset-summary { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .asset-summary-note { margin: -8px 12px 14px; }
 .asset-summary-breakdown { margin-top: -4px; }
+.asset-breakdown-filter {
+  display: grid;
+  grid-template-columns: auto minmax(220px, 420px) auto auto;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.asset-breakdown-filter label {
+  color: var(--c2);
+  font-weight: 700;
+}
+.asset-breakdown-filter input {
+  min-height: 34px;
+  padding: 6px 9px;
+}
 .asset-breakdown-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 8px;
 }
+.asset-breakdown-list[hidden] { display: none; }
 .breakdown-row {
   display: flex;
   justify-content: space-between;

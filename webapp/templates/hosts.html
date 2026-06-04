@@ -134,10 +134,16 @@
       </div>
       <a class="btn secondary" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100)) }}">收起</a>
     </div>
-    <div class="asset-breakdown-list">
+    <div class="asset-breakdown-filter">
+      <label for="assetBreakdownFilter">搜尋分類</label>
+      <input id="assetBreakdownFilter" placeholder="{% if request.args.get("summary_group") == "environment" %}輸入環境，例如 PROD{% else %}輸入平台，例如 Linux{% endif %}">
+      <button type="button" id="assetBreakdownShowAll" class="btn-sm btn-secondary">顯示全部</button>
+      <span id="assetBreakdownFilterCount" class="status-pill">搜尋後顯示</span>
+    </div>
+    <div class="asset-breakdown-list" id="assetBreakdownResults" hidden>
       {% if request.args.get("summary_group") == "environment" %}
         {% for item in asset_summary.environment_breakdown %}
-        <a class="breakdown-row" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=item.name, host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100)) }}#asset-details">
+        <a class="breakdown-row" data-asset-breakdown-row data-filter-text="{{ item.name|e }}" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=item.name, host_type=request.args.get('host_type', ''), dc=request.args.get('dc', ''), page_size=data.get('page_size', 100)) }}#asset-details">
           <span>{{ item.name }}</span><strong>{{ item.count }}</strong>
         </a>
         {% else %}
@@ -145,7 +151,7 @@
         {% endfor %}
       {% else %}
         {% for item in asset_summary.type_breakdown %}
-        <a class="breakdown-row" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=item.name, dc=request.args.get('dc', ''), page_size=data.get('page_size', 100)) }}#asset-details">
+        <a class="breakdown-row" data-asset-breakdown-row data-filter-text="{{ item.name|e }} {{ host_type_labels.get(item.name, item.name)|e }}" href="{{ url_for('api_hosts.hosts_page', q=request.args.get('q', ''), status=request.args.get('status', ''), group_name=request.args.get('group_name', ''), environment=request.args.get('environment', ''), host_type=item.name, dc=request.args.get('dc', ''), page_size=data.get('page_size', 100)) }}#asset-details">
           <span>{{ host_type_labels.get(item.name, item.name) }}</span><strong>{{ item.count }}</strong>
         </a>
         {% else %}

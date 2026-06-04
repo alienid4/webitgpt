@@ -45,6 +45,49 @@ document.addEventListener("click", async (event) => {
   alert(JSON.stringify(data, null, 2));
 });
 
+(() => {
+  const input = document.getElementById("assetBreakdownFilter");
+  const showAll = document.getElementById("assetBreakdownShowAll");
+  const count = document.getElementById("assetBreakdownFilterCount");
+  const results = document.getElementById("assetBreakdownResults");
+  const rows = Array.from(document.querySelectorAll("[data-asset-breakdown-row]"));
+
+  if (!input || !results || !rows.length) return;
+
+  const normalize = (value) => String(value || "").trim().toLowerCase();
+
+  const applyFilter = () => {
+    const query = normalize(input.value);
+    const shouldShowAll = input.dataset.showAll === "1";
+    let visible = 0;
+
+    rows.forEach((row) => {
+      const text = normalize(row.dataset.filterText);
+      const matched = shouldShowAll || (query && text.includes(query));
+      row.hidden = !matched;
+      if (matched) visible += 1;
+    });
+
+    results.hidden = !query && !shouldShowAll;
+    if (count) count.textContent = query || shouldShowAll ? `符合 ${visible}` : "搜尋後顯示";
+  };
+
+  input.addEventListener("input", () => {
+    delete input.dataset.showAll;
+    applyFilter();
+  });
+
+  if (showAll) {
+    showAll.addEventListener("click", () => {
+      input.value = "";
+      input.dataset.showAll = "1";
+      applyFilter();
+    });
+  }
+
+  applyFilter();
+})();
+
 document.addEventListener("submit", (event) => {
   const form = event.target.closest("[data-draft-bulk-form]");
   const assetForm = event.target.closest("[data-asset-bulk-form]");

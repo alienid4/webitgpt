@@ -113,6 +113,12 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.4.8",
+        "date": "2026-06-04 07:40 +08:00",
+        "patch_id": "asset-breakdown-on-demand-results",
+        "summary": "資產管理平台與環境分類改為搜尋或顯示全部後才展開，資產明細維持按需顯示。",
+    },
+    {
         "version": "1.0.4.7",
         "date": "2026-06-04 06:45 +08:00",
         "patch_id": "asset-list-on-demand-results",
