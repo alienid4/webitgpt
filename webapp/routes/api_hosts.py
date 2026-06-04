@@ -403,23 +403,42 @@ def index():
 @bp.get("/hosts")
 @require_feature("cmdb_manual_input")
 def hosts_page():
+    detail_filters = {
+        "status": request.args.get("status", ""),
+        "group_name": request.args.get("group_name", ""),
+        "environment": request.args.get("environment", ""),
+        "host_type": request.args.get("host_type", ""),
+        "dc": request.args.get("dc", ""),
+        "governance": request.args.get("governance", ""),
+    }
     params = {
         "query": request.args.get("q", ""),
         "filters": {
-            "status": request.args.get("status", ""),
-            "group_name": request.args.get("group_name", ""),
-            "environment": request.args.get("environment", ""),
-            "host_type": request.args.get("host_type", ""),
-            "dc": request.args.get("dc", ""),
-            "governance": request.args.get("governance", ""),
+            **detail_filters,
             "summary_group": request.args.get("summary_group", ""),
             "include_inactive": request.args.get("include_inactive") == "1",
         },
         "page": int(request.args.get("page", "1")),
         "page_size": int(request.args.get("page_size", "100")),
     }
+    show_assets = (
+        request.args.get("show_assets") == "1"
+        or bool(params["query"])
+        or any(bool(value) for value in detail_filters.values())
+        or params["filters"]["include_inactive"]
+        or params["page"] > 1
+    )
     try:
-        data = host_service.list_hosts(**params)
+        if show_assets:
+            data = host_service.list_hosts(**params)
+        else:
+            data = {
+                "items": [],
+                "total": 0,
+                "page": params["page"],
+                "page_size": params["page_size"],
+                "lazy": True,
+            }
     except Exception as exc:
         data = {"items": [], "total": 0, "page": 1, "page_size": 100, "error": str(exc)}
     user = current_user()

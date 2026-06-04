@@ -113,6 +113,12 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.4.11",
+        "date": "2026-06-04 13:20 +08:00",
+        "patch_id": "lazy-host-asset-list-query",
+        "summary": "資產管理頁預設只載入摘要與精簡入口，不再先查詢與渲染大量資產明細；搜尋、篩選、點數字卡或顯示全部時才載入清單。",
+    },
+    {
         "version": "1.0.4.10",
         "date": "2026-06-04 11:55 +08:00",
         "patch_id": "full-host-scope-opening-inspection",

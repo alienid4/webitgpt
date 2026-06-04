@@ -4,6 +4,7 @@ from webapp.app import create_app
 from webapp import config
 from webapp.routes import api_v1
 from webapp.routes import api_reports
+from webapp.routes import api_hosts
 from webapp.services import dependency_service
 
 
@@ -13,6 +14,44 @@ def test_health_route():
     response = client.get("/health")
     assert response.status_code == 200
     assert response.get_json()["status"] == "ok"
+
+
+def test_hosts_page_lazy_loads_asset_rows_until_requested(monkeypatch):
+    calls = {"list_hosts": 0}
+
+    def fake_list_hosts(**_kwargs):
+        calls["list_hosts"] += 1
+        return {"items": [], "total": 0, "page": 1, "page_size": 100}
+
+    def fake_summary(*_args, **_kwargs):
+        return {
+            "auto_ingested": 0,
+            "complete_assets": 0,
+            "review_assets": 0,
+            "missing_required_assets": 0,
+            "environments": 0,
+            "types": 0,
+            "environment_breakdown": [],
+            "type_breakdown": [],
+        }
+
+    monkeypatch.setattr(api_hosts.host_service, "list_hosts", fake_list_hosts)
+    monkeypatch.setattr(api_hosts.host_service, "asset_scope_summary", fake_summary)
+    monkeypatch.setattr(api_hosts.host_service, "status_counts", lambda: {})
+    monkeypatch.setattr(api_hosts, "list_views", lambda _username: [])
+
+    app = create_app()
+    client = app.test_client()
+
+    response = client.get("/hosts")
+
+    assert response.status_code == 200
+    assert calls["list_hosts"] == 0
+
+    response = client.get("/hosts?show_assets=1")
+
+    assert response.status_code == 200
+    assert calls["list_hosts"] == 1
 
 
 def test_version_segments_are_capped_at_99():
