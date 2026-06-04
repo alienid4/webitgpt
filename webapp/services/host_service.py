@@ -140,6 +140,21 @@ def list_hosts(
     }
 
 
+def list_all_hosts(
+    query: str = "",
+    filters: Optional[dict[str, Any]] = None,
+    sort: str = "hostname",
+    direction: str = "asc",
+    limit: int = 0,
+) -> list[dict[str, Any]]:
+    mongo_filter = build_host_filter(query, filters)
+    sort_dir = ASCENDING if direction == "asc" else DESCENDING
+    docs = get_collection("hosts").find(mongo_filter, {"ssh_key": 0}).sort(sort, sort_dir)
+    if limit > 0:
+        docs = docs.limit(limit)
+    return [_public(doc) or {} for doc in docs]
+
+
 def asset_scope_summary(query: str = "", filters: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     mongo_filter = build_host_filter(query, filters)
     projection = {"status": 1, "environment": 1, "host_type": 1, **{field: 1 for field in REQUIRED_FIELDS}}

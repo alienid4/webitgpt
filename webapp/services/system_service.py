@@ -113,6 +113,12 @@ MODULE_IMPACT = {
 
 RECENT_PATCH_RELEASES = [
     {
+        "version": "1.0.4.10",
+        "date": "2026-06-04 11:55 +08:00",
+        "patch_id": "full-host-scope-opening-inspection",
+        "summary": "開門檢查、巡檢摘要、NMON、平台統計與資產匯出改用後端全量主機範圍，不再被資產列表每頁 100 筆上限截斷。",
+    },
+    {
         "version": "1.0.4.9",
         "date": "2026-06-04 08:20 +08:00",
         "patch_id": "data-quality-detail-on-demand-results",

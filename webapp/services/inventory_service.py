@@ -22,7 +22,7 @@ def _now() -> datetime:
 
 
 def _hosts(limit: int = 100) -> list[dict[str, Any]]:
-    return host_service.list_hosts(page=1, page_size=limit)["items"]
+    return host_service.list_all_hosts(limit=limit)
 
 
 DEFAULT_MIN_INTERVAL_MINUTES = 360

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from webapp import config
-from webapp.services.host_service import list_hosts
+from webapp.services.host_service import list_all_hosts
 from webapp.services.mongo_service import get_collection
 
 
@@ -33,7 +33,7 @@ def _header_key(name: str) -> str:
 
 def _host_lookup() -> dict[str, dict[str, Any]]:
     result: dict[str, dict[str, Any]] = {}
-    for host in list_hosts(page=1, page_size=10000)["items"]:
+    for host in list_all_hosts():
         for key in [host.get("hostname"), host.get("asset_seq"), host.get("primary_ip")]:
             if key:
                 result[str(key).lower()] = host

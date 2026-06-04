@@ -1509,16 +1509,18 @@ def csv_template():
 @bp.get("/api/hosts/csv/export")
 @require_feature("cmdb_csv_import")
 def csv_export():
-    data = host_service.list_hosts(page=1, page_size=10000)
-    return Response(export_hosts_csv(data["items"]), mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=hosts_export.csv"})
+    return Response(
+        export_hosts_csv(host_service.list_all_hosts()),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=hosts_export.csv"},
+    )
 
 
 @bp.get("/api/hosts/xlsx/export")
 @require_feature("cmdb_csv_import")
 def xlsx_export():
-    data = host_service.list_hosts(page=1, page_size=10000)
     return Response(
-        export_hosts_xlsx(data["items"]),
+        export_hosts_xlsx(host_service.list_all_hosts()),
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": "attachment; filename=hosts_export.xlsx"},
     )

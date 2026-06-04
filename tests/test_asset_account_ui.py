@@ -691,7 +691,7 @@ def test_operations_hardening_to_10323_contracts_exist():
     css = read("webapp/static/css/cathay.css")
     config = read("webapp/config.py")
 
-    assert 'VERSION = "1.0.4.9"' in config
+    assert 'VERSION = "1.0.4.10"' in config
     assert "AP_ACCOUNT_RISK_LABELS" in service
     for text in ["缺 owner", "高權限未納 PAM", "高權限未啟用 MFA", "超過 180 天未登入"]:
         assert text in service
@@ -841,8 +841,8 @@ def test_api_key_verify_visibility_to_10332_contracts_exist():
     reports = read("webapp/routes/api_reports.py")
     data_quality = read("webapp/templates/data_quality.html")
 
-    assert 'VERSION = "1.0.4.9"' in config
-    assert "data-quality-detail-on-demand-results" in config
+    assert 'VERSION = "1.0.4.10"' in config
+    assert "full-host-scope-opening-inspection" in config
     assert "data_quality_retire_selected_assets" in reports
     assert "data-quality-bulk-form=\"retire\"" in data_quality
     assert "can_bulk_retire" in read("webapp/services/quality_service.py")
@@ -955,7 +955,7 @@ def test_global_judgement_source_visibility_contracts_exist():
     nmon = read("webapp/templates/nmon.html")
     dependencies = read("webapp/templates/dependencies.html")
 
-    assert "data-quality-detail-on-demand-results" in config
+    assert "full-host-scope-opening-inspection" in config
     assert "static-asset-cache-busting" in changelog
     assert "ai-judgement-visual-contrast" in changelog
     assert "global-judgement-source-visibility" in changelog
@@ -1233,6 +1233,38 @@ def test_opening_check_defaults_to_all_systems_after_import():
     assert _selected_system("missing", options) == ""
 
 
+def test_opening_check_uses_full_host_scope_beyond_ui_page_cap(monkeypatch):
+    from webapp.services import legacy_parity_service
+
+    hosts = [
+        {
+            "asset_seq": f"HW-{index:06d}",
+            "asset_name": "Full scope system",
+            "hostname": f"host-{index:03d}",
+            "host_type": "linux",
+            "ip": f"10.10.1.{index}",
+            "status": "active",
+        }
+        for index in range(1, 121)
+    ]
+
+    monkeypatch.setattr(legacy_parity_service, "list_all_hosts", lambda: hosts)
+    monkeypatch.setattr(legacy_parity_service, "_latest_inspection_result", lambda host: None)
+    monkeypatch.setattr(legacy_parity_service, "diagnostic_history", lambda asset_seq, days=7, limit=6: [])
+    monkeypatch.setattr(legacy_parity_service, "latest_report", lambda hostname: None)
+    monkeypatch.setattr(
+        legacy_parity_service,
+        "get_collection",
+        lambda name: type("FakeCollection", (), {"find_one": lambda self, *args, **kwargs: None})(),
+    )
+
+    diagnostics = legacy_parity_service.daily_diagnostics("linux", legacy_parity_service.OPENING_ALL_SYSTEMS_VALUE)
+
+    assert diagnostics["summary"]["hosts"] == 120
+    assert diagnostics["readiness_summary"]["ready"] == 120
+    assert diagnostics["all_systems_count"] == 120
+
+
 def test_system_alias_governance_merges_common_name_typos():
     from webapp.services.system_alias_service import grouped_system_options, host_matches_system, system_match_key
 
@@ -1309,7 +1341,7 @@ def test_asset_management_summary_uses_ingestion_governance_language():
     assert ".asset-breakdown-list[hidden]" in css
     assert "assetBreakdownFilterCount" in js
     assert "dataset.showAll" in js
-    assert "data-quality-detail-on-demand-results" in read("CHANGELOG.md")
+    assert "full-host-scope-opening-inspection" in read("CHANGELOG.md")
     assert "環境分類" in hosts
     assert "平台分類" in hosts
     assert "asset_summary.environment_breakdown" in hosts

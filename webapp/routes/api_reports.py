@@ -9,7 +9,7 @@ from webapp.decorators import current_user, require_feature, require_role
 from webapp.services import audit_log_service, host_service
 from webapp.services.compliance_service import dashboard as compliance_dashboard
 from webapp.services.feature_flags import is_enabled
-from webapp.services.host_service import list_hosts
+from webapp.services.host_service import list_all_hosts
 from webapp.services.inventory_service import account_report_summary
 from webapp.services import dependency_service
 from webapp.services import cmdb_relationship_service
@@ -92,7 +92,7 @@ def _empty_quality_report(message: str) -> dict:
 def _summary() -> dict:
     warnings: list[str] = []
     try:
-        hosts = list_hosts(page=1, page_size=10000)["items"]
+        hosts = list_all_hosts()
     except Exception as exc:
         hosts = []
         warnings.append(f"CMDB 資產摘要暫時不可用：{exc.__class__.__name__}")

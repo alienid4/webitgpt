@@ -1,5 +1,12 @@
 ﻿# webitgpt Changelog
 
+## v1.0.4.10 - 2026-06-04 11:55 +08:00 - full-host-scope-opening-inspection
+
+- 開門檢查改用後端全量主機範圍，不再被資產列表每頁 100 筆上限截斷。
+- 巡檢摘要、NMON 狀態、NMON raw 主機對照、平台統計與 VMware 盤點同步改用全量主機查詢。
+- CSV / Excel 匯出改為匯出完整篩選範圍，不再只輸出前 100 筆。
+- 補回歸測試，確認開門檢查在超過 100 台 Linux 主機時仍能顯示完整候選數。
+
 ## v1.0.4.9 - 2026-06-04 08:20 +08:00 - data-quality-detail-on-demand-results
 
 - 資料品質工作台的 CMDB 明細改為按需顯示。

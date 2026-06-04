@@ -8,7 +8,7 @@ from typing import Any
 
 from webapp import config
 from webapp.services.collection_credential_service import account_for_tier
-from webapp.services.host_service import list_hosts
+from webapp.services.host_service import list_all_hosts, list_hosts
 from webapp.services.mongo_service import get_collection
 from webapp.services.system_alias_service import canonical_host_system_name, host_matches_system
 
@@ -143,7 +143,7 @@ def _system_name(host: dict[str, Any]) -> str:
 def run_daily_inspection(limit: int = 20, user: str = "system", system_name: str = "", platform: str = "") -> dict[str, Any]:
     selected_system = (system_name or "").strip()
     selected_platform = (platform or "").strip()
-    hosts = list_hosts(page=1, page_size=10000)["items"]
+    hosts = list_all_hosts()
     if selected_platform:
         hosts = [host for host in hosts if host.get("host_type") == selected_platform]
     if selected_system:
@@ -200,7 +200,7 @@ def today_report() -> dict[str, Any]:
 
 
 def nmon_status() -> dict[str, Any]:
-    hosts = list_hosts(page=1, page_size=10000)["items"]
+    hosts = list_all_hosts()
     items = [_nmon_host_status(host) for host in hosts]
     enabled = [host for host in hosts if host.get("nmon_enabled")]
     installed = [item for item in items if item["install_status"] == "已安裝"]

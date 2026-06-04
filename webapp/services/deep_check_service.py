@@ -10,7 +10,7 @@ from typing import Any, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from webapp import config
-from webapp.services.host_service import list_hosts
+from webapp.services.host_service import list_all_hosts, list_hosts
 from webapp.services.mongo_service import get_collection
 from webapp.services.remedy_kb import match_remedies
 
@@ -1566,7 +1566,7 @@ def _controller_hostname() -> str:
 
 
 def _get_host_by_hostname(hostname: str) -> Optional[dict[str, Any]]:
-    for host in list_hosts(page=1, page_size=10000)["items"]:
+    for host in list_all_hosts():
         if host.get("hostname") == hostname:
             return host
     return None

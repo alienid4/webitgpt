@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from webapp.services.host_service import list_hosts
+from webapp.services.host_service import list_all_hosts
 from webapp.services.mask_service import mask_dict
 from webapp.services.mongo_service import get_collection
 
@@ -27,14 +27,14 @@ def list_vcenters() -> list[dict[str, Any]]:
 
 
 def vmware_inventory() -> dict[str, Any]:
-    hosts = list_hosts(filters={"host_type": "vmware_host"}, page=1, page_size=1000)["items"]
-    vms = list_hosts(filters={"host_type": "vmware_vm"}, page=1, page_size=1000)["items"]
-    vcenters = list_hosts(filters={"host_type": "vmware_vcenter"}, page=1, page_size=1000)["items"]
+    hosts = list_all_hosts(filters={"host_type": "vmware_host"})
+    vms = list_all_hosts(filters={"host_type": "vmware_vm"})
+    vcenters = list_all_hosts(filters={"host_type": "vmware_vcenter"})
     return {"vcenters": vcenters, "hosts": hosts, "vms": vms, "credentials": list_vcenters()}
 
 
 def platform_status() -> dict[str, Any]:
-    all_hosts = list_hosts(page=1, page_size=10000)["items"]
+    all_hosts = list_all_hosts()
     counts: dict[str, int] = {}
     for host in all_hosts:
         counts[host.get("host_type", "unknown")] = counts.get(host.get("host_type", "unknown"), 0) + 1

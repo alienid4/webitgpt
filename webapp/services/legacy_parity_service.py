@@ -13,7 +13,7 @@ from typing import Any
 from webapp import config
 from webapp.services.collection_credential_service import account_for_tier
 from webapp.services.host_service import get_host
-from webapp.services.host_service import list_hosts
+from webapp.services.host_service import list_all_hosts
 from webapp.services.deep_check_service import latest_report
 from webapp.services.important_service_service import enabled_service_names
 from webapp.services.inventory_service import DEFAULT_MIN_INTERVAL_MINUTES, inventory_history
@@ -147,7 +147,7 @@ def _now() -> datetime:
 
 
 def _hosts() -> list[dict[str, Any]]:
-    return list_hosts(page=1, page_size=10000)["items"]
+    return list_all_hosts()
 
 
 def _system_name(host: dict[str, Any]) -> str:
